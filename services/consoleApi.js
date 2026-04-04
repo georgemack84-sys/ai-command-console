@@ -4770,6 +4770,16 @@ async function executeAction(action, payload = {}, options = {}) {
     return { ok: result.ok, output: result.message, overview: buildOverview(options) };
   }
 
+  if (action === "alert:run-checks") {
+    const result = runAlertChecks();
+    appendAuditEvent({
+      type: action,
+      message: "Ran operational alert checks from the dashboard.",
+      payload: { actorId: actor.id },
+    });
+    return { ok: true, output: "Alert checks completed.", result, overview: buildOverview(options) };
+  }
+
   if (action === "plugin:run") {
     const pluginName = String(payload.name || "");
     const pluginArg = String(payload.pluginArg || "");

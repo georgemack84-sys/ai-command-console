@@ -216,6 +216,10 @@ function formatRelativeTime(value?: string | null) {
 
 export function ProductDashboard() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
+  const [actionState, setActionState] = useState<{ status: "idle" | "running" | "done" | "error"; message: string }>({
+    status: "idle",
+    message: "",
+  });
 
   useEffect(() => {
     let active = true;
@@ -246,6 +250,31 @@ export function ProductDashboard() {
   const workspaces = useMemo(() => snapshot?.workspaces ?? workspacesFallback, [snapshot]);
   const activityFeed = useMemo(() => snapshot?.activityFeed ?? activityFeedFallback, [snapshot]);
   const timelineFeed = useMemo(() => snapshot?.timelineFeed ?? timelineFeedFallback, [snapshot]);
+
+  async function runAlertChecks() {
+    setActionState({ status: "running", message: "Running alert checks..." });
+    try {
+      const response = await fetch("/api/console", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "alert:run-checks", payload: {} }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; output?: string; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Unable to run alert checks.");
+      }
+      setActionState({ status: "done", message: payload.output || "Alert checks completed." });
+      const refresh = await fetch("/api/dashboard", { cache: "no-store" });
+      if (refresh.ok) {
+        setSnapshot((await refresh.json()) as DashboardSnapshot);
+      }
+    } catch (error) {
+      setActionState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Unable to run alert checks.",
+      });
+    }
+  }
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -397,6 +426,34 @@ export function ProductDashboard() {
                     <div className="flex items-center gap-3">
                       <FolderOpenDot className="h-4 w-4 text-slate-400" />
                       <p className="text-sm text-slate-200">Research handoff queued for operations</p>
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-white">Quick operator action</p>
+                        <Badge className="border-white/10 bg-white/8 text-slate-200">Inline</Badge>
+                      </div>
+                      <p className="text-sm text-slate-300">Run the live alert evaluator without leaving the dashboard.</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => void runAlertChecks()}
+                        disabled={actionState.status === "running"}
+                        className="w-full justify-between"
+                      >
+                        {actionState.status === "running" ? "Running checks..." : "Run alert checks"}
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                      {actionState.message ? (
+                        <p
+                          className={cn(
+                            "text-xs",
+                            actionState.status === "error" ? "text-rose-200" : "text-slate-400",
+                          )}
+                        >
+                          {actionState.message}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </CardContent>
