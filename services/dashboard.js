@@ -214,6 +214,7 @@ function buildLiveDashboardSnapshot() {
   const workspaces = buildWorkspaceInventory();
   const activeAlerts = safeValue(() => listActiveAlerts(), []) || [];
   const audits = safeValue(() => listAuditEvents(6), []) || [];
+  const topAlert = activeAlerts[0] || null;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -291,6 +292,16 @@ function buildLiveDashboardSnapshot() {
       tone: index === 0 ? "highlight" : "default",
       href: "/operations",
     })),
+    topAlert: topAlert
+      ? {
+          id: topAlert.id,
+          title: topAlert.title,
+          type: formatEventTitle(topAlert.type),
+          severity: topAlert.severity,
+          owner: topAlert.workflow?.owner || null,
+          href: "/operations",
+        }
+      : null,
   };
 }
 

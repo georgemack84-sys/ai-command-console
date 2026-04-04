@@ -59,6 +59,14 @@ type DashboardSnapshot = {
   workspaces: DashboardWorkspace[];
   activityFeed: DashboardFeedItem[];
   timelineFeed: DashboardFeedItem[];
+  topAlert: {
+    id: string;
+    title: string;
+    type: string;
+    severity: string;
+    owner: string | null;
+    href: string;
+  } | null;
 };
 
 const summaryCardsFallback: DashboardCard[] = [
@@ -220,6 +228,10 @@ export function ProductDashboard() {
     status: "idle",
     message: "",
   });
+  const [alertActionState, setAlertActionState] = useState<{ status: "idle" | "running" | "done" | "error"; message: string }>({
+    status: "idle",
+    message: "",
+  });
 
   useEffect(() => {
     let active = true;
@@ -272,6 +284,38 @@ export function ProductDashboard() {
       setActionState({
         status: "error",
         message: error instanceof Error ? error.message : "Unable to run alert checks.",
+      });
+    }
+  }
+
+  async function acknowledgeTopAlert() {
+    if (!snapshot?.topAlert?.id) {
+      return;
+    }
+
+    setAlertActionState({ status: "running", message: "Acknowledging alert..." });
+    try {
+      const response = await fetch("/api/console", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "alert:acknowledge",
+          payload: { alertId: snapshot.topAlert.id, owner: "dashboard" },
+        }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; output?: string; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Unable to acknowledge alert.");
+      }
+      setAlertActionState({ status: "done", message: payload.output || "Alert acknowledged." });
+      const refresh = await fetch("/api/dashboard", { cache: "no-store" });
+      if (refresh.ok) {
+        setSnapshot((await refresh.json()) as DashboardSnapshot);
+      }
+    } catch (error) {
+      setAlertActionState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Unable to acknowledge alert.",
       });
     }
   }
@@ -456,6 +500,43 @@ export function ProductDashboard() {
                       ) : null}
                     </div>
                   </div>
+                  {snapshot?.topAlert ? (
+                    <div className="rounded-[22px] border border-amber-300/20 bg-amber-300/10 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-amber-50">Top active alert</p>
+                          <p className="mt-2 text-sm text-amber-100/85">{snapshot.topAlert.title}</p>
+                        </div>
+                        <Badge className="border-amber-200/20 bg-white/10 text-amber-50">{snapshot.topAlert.severity}</Badge>
+                      </div>
+                      <p className="mt-3 text-xs uppercase tracking-[0.2em] text-amber-100/75">{snapshot.topAlert.type}</p>
+                      <div className="mt-4 flex flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => void acknowledgeTopAlert()}
+                          disabled={alertActionState.status === "running"}
+                          className="w-full justify-between border-amber-200/20 bg-white/10 text-amber-50 hover:bg-white/15"
+                        >
+                          {alertActionState.status === "running" ? "Acknowledging..." : "Acknowledge alert"}
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                        <Link href={snapshot.topAlert.href} className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-between")}>
+                          Open alert context
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        {alertActionState.message ? (
+                          <p
+                            className={cn(
+                              "text-xs",
+                              alertActionState.status === "error" ? "text-rose-100" : "text-amber-100/80",
+                            )}
+                          >
+                            {alertActionState.message}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
 
