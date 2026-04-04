@@ -258,9 +258,10 @@ function buildLiveDashboardSnapshot() {
           workspace.briefs > workspace.reports
             ? "bg-sky-300"
             : workspace.routes > 0
-              ? "bg-emerald-400"
+            ? "bg-emerald-400"
               : "bg-slate-400",
         updatedAt: workspace.updatedAt,
+        href: `/operations?workspace=${encodeURIComponent(workspace.workspaceId)}`,
         summary:
           totalTracked > 0
             ? `${workspace.briefs} briefs, ${workspace.reports} reports, and ${workspace.routes} saved routes are currently attached to this workspace.`
@@ -276,12 +277,19 @@ function buildLiveDashboardSnapshot() {
       time: entry.timestamp,
       tag: formatEventTitle(entry.type),
       tone: index === 0 ? "highlight" : "default",
+      href:
+        String(entry.type || "").includes("workspace") || String(entry.type || "").includes("governance")
+          ? "/operations"
+          : String(entry.type || "").includes("invite")
+            ? "/access"
+            : "/console",
     })),
     timelineFeed: activeAlerts.slice(0, 3).map((alert, index) => ({
       title: alert.title,
       time: alert.createdAt || new Date().toISOString(),
       tag: formatEventTitle(alert.type),
       tone: index === 0 ? "highlight" : "default",
+      href: "/operations",
     })),
   };
 }

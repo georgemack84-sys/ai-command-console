@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { cn } from "@/src/lib/utils";
 
 export type ActivityItem = {
@@ -5,6 +7,7 @@ export type ActivityItem = {
   time: string;
   tag: string;
   tone?: "default" | "highlight";
+  href?: string;
 };
 
 export function ActivityList({
@@ -17,10 +20,12 @@ export function ActivityList({
   return (
     <div className="space-y-3">
       {items.map((item) => (
-        <div
+        <Component
           key={`${item.title}-${item.time}`}
+          href={item.href}
           className={cn(
-            "rounded-[22px] border p-4",
+            "block rounded-[22px] border p-4 transition",
+            item.href ? "hover:-translate-y-0.5 hover:border-white/16" : "",
             item.tone === "highlight" ? "border-sky-300/18 bg-sky-300/10" : "border-white/10 bg-white/5",
           )}
         >
@@ -31,8 +36,28 @@ export function ActivityList({
             </div>
             <span className="shrink-0 text-xs text-slate-500">{item.time}</span>
           </div>
-        </div>
+        </Component>
       ))}
     </div>
   );
+}
+
+function Component({
+  href,
+  className,
+  children,
+}: {
+  href?: string;
+  className: string;
+  children: ReactNode;
+}) {
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{children}</div>;
 }

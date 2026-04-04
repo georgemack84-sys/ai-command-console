@@ -40,6 +40,7 @@ type DashboardWorkspace = {
   state: string;
   tone: string;
   updatedAt: string | null;
+  href?: string;
   summary: string;
   meta: Array<{ label: string; value: string }>;
 };
@@ -49,6 +50,7 @@ type DashboardFeedItem = {
   time: string;
   tag: string;
   tone?: "default" | "highlight";
+  href?: string;
 };
 
 type DashboardSnapshot = {
@@ -92,6 +94,7 @@ const workspacesFallback: DashboardWorkspace[] = [
     state: "Live review",
     tone: "bg-emerald-400",
     updatedAt: new Date().toISOString(),
+    href: "/operations",
     summary: "Release notes, design sign-off, and routing QA are aligned and ready for the next decision.",
     meta: [
       { label: "Health", value: "94" },
@@ -103,6 +106,7 @@ const workspacesFallback: DashboardWorkspace[] = [
     state: "Needs approval",
     tone: "bg-amber-300",
     updatedAt: new Date().toISOString(),
+    href: "/operations",
     summary: "One follow-up is waiting on an approver target before the sweep can continue.",
     meta: [
       { label: "Health", value: "81" },
@@ -114,6 +118,7 @@ const workspacesFallback: DashboardWorkspace[] = [
     state: "Drafting report",
     tone: "bg-sky-300",
     updatedAt: new Date().toISOString(),
+    href: "/briefs",
     summary: "Research synthesis is almost publishable, with strong source coverage and one final edit pass.",
     meta: [
       { label: "Health", value: "89" },
@@ -123,16 +128,16 @@ const workspacesFallback: DashboardWorkspace[] = [
 ];
 
 const activityFeedFallback: DashboardFeedItem[] = [
-  { title: "Risk digest sent", time: "2 min ago", tag: "Automation", tone: "highlight" },
-  { title: "Brief approved for publish", time: "18 min ago", tag: "Review" },
-  { title: "Console run completed", time: "36 min ago", tag: "Runtime" },
-  { title: "Ownership handoff accepted", time: "1 hr ago", tag: "Collaboration" },
+  { title: "Risk digest sent", time: "2 min ago", tag: "Automation", tone: "highlight", href: "/operations" },
+  { title: "Brief approved for publish", time: "18 min ago", tag: "Review", href: "/briefs" },
+  { title: "Console run completed", time: "36 min ago", tag: "Runtime", href: "/console" },
+  { title: "Ownership handoff accepted", time: "1 hr ago", tag: "Collaboration", href: "/operations" },
 ];
 
 const timelineFeedFallback: DashboardFeedItem[] = [
-  { title: "Launch workspace moved into review", time: "08:42", tag: "Workspace", tone: "highlight" },
-  { title: "Automation sweep queued for policy board", time: "09:15", tag: "Queue" },
-  { title: "Research digest draft delivered to ops", time: "09:28", tag: "Report" },
+  { title: "Launch workspace moved into review", time: "08:42", tag: "Workspace", tone: "highlight", href: "/operations" },
+  { title: "Automation sweep queued for policy board", time: "09:15", tag: "Queue", href: "/operations" },
+  { title: "Research digest draft delivered to ops", time: "09:28", tag: "Report", href: "/reports" },
 ];
 
 const filterPills = ["All workspaces", "Highest priority", "Needs review", "Recently updated"];
@@ -332,8 +337,9 @@ export function ProductDashboard() {
 
               <div className="mt-6 space-y-4">
                 {workspaces.map((workspace, index) => (
-                  <div
+                  <Link
                     key={workspace.name}
+                    href={workspace.href || "/operations"}
                     className="group rounded-[28px] border border-white/10 bg-white/[0.045] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/16 hover:bg-white/[0.07]"
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -360,7 +366,7 @@ export function ProductDashboard() {
                         ))}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </Card>
