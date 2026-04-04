@@ -1,7 +1,8 @@
 const path = require("path");
 const { loadDocument, saveDocument } = require("./stateDatabase");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const JOBS_PATH = path.join(process.cwd(), "data", "agents", "jobs.json");
+const JOBS_PATH = getAgentsDataPath("jobs.json");
 const JOBS_KEY = "jobs";
 const MAX_EVENT_HISTORY = 200;
 const DEFAULT_EVENT_PREVIEW = 6;

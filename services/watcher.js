@@ -4,8 +4,9 @@ const { listTasks } = require("./taskQueue");
 const { getSchedule, startSchedule } = require("./scheduler");
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { recordTelemetry } = require("./telemetry");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const WATCHER_PATH = path.join(process.cwd(), "data", "agents", "watcher.json");
+const WATCHER_PATH = getAgentsDataPath("watcher.json");
 const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
 const WATCHER_KEY = "watcher";
 

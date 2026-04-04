@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const AUDIT_PATH = path.join(process.cwd(), "data", "agents", "audit-log.jsonl");
+const AUDIT_PATH = getAgentsDataPath("audit-log.jsonl");
 
 function ensureAuditPath() {
   fs.mkdirSync(path.dirname(AUDIT_PATH), { recursive: true });

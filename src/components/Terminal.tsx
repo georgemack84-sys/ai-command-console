@@ -855,10 +855,10 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(24,24,27,0.82),rgba(9,9,11,0.94))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
-      <div className="mb-4">
+    <section className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(24,24,27,0.82),rgba(9,9,11,0.94))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
+      <div className="mb-4 min-w-0">
         <h2 className="text-lg font-semibold text-white">{title}</h2>
-        <p className="mt-1 text-sm text-zinc-400">{note}</p>
+        <p className="mt-1 break-words text-sm text-zinc-400">{note}</p>
       </div>
       {children}
     </section>
@@ -875,10 +875,10 @@ function Stat({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4">
       <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{label}</p>
       <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
-      <p className="mt-2 text-sm text-zinc-400">{detail}</p>
+      <p className="mt-2 break-words text-sm text-zinc-400">{detail}</p>
     </div>
   );
 }
@@ -1436,19 +1436,19 @@ export default function Terminal() {
   const completedChange = previousOverview ? overview.system.completedTasks - previousOverview.system.completedTasks : 0;
 
   return (
-    <div className={`rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_32%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(3,7,18,0.98))] text-zinc-100 shadow-[0_36px_120px_rgba(0,0,0,0.55)] ${layoutMode === "dense" ? "p-3 sm:p-4" : "p-4 sm:p-6"}`}>
-      <div className={`grid xl:grid-cols-[1.65fr_0.95fr] ${layoutMode === "dense" ? "gap-4" : "gap-5"}`}>
-        <div className="space-y-5">
-          <div className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+    <div className={`min-w-0 overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_32%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(3,7,18,0.98))] text-zinc-100 shadow-[0_36px_120px_rgba(0,0,0,0.55)] ${layoutMode === "dense" ? "p-3 sm:p-4" : "p-4 sm:p-6"}`}>
+      <div className={`min-w-0 grid xl:grid-cols-[minmax(0,1.65fr)_minmax(0,0.95fr)] ${layoutMode === "dense" ? "gap-4" : "gap-5"}`}>
+        <div className="min-w-0 space-y-5">
+          <div className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-black/20 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-cyan-300/80">Operations Console</p>
+              <div className="min-w-0">
+                <p className="break-words text-xs uppercase tracking-[0.28em] text-cyan-300/80">Operations Console</p>
                 <h2 className="mt-2 text-3xl font-semibold text-white">Run your research desk like a live editorial room</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+                <p className="mt-2 max-w-2xl break-words text-sm leading-6 text-zinc-400">
                   Streaming briefs, guided routing, review inbox actions, signal recovery, and saved sessions in one browser surface.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 lg:justify-end">
                 <span className={`rounded-full border px-3 py-2 text-xs uppercase tracking-[0.18em] ${toneClass(streamStatus)}`}>
                   Stream {streamStatus}
                 </span>
@@ -1497,7 +1497,7 @@ export default function Terminal() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-xs text-zinc-500">
+            <p className="mt-3 break-words text-xs text-zinc-500">
               Shortcuts: <span className="text-zinc-300">Ctrl/Cmd+K</span> command palette, <span className="text-zinc-300">Ctrl/Cmd+Enter</span> run command, <span className="text-zinc-300">Alt+1..4</span> switch tabs, <span className="text-zinc-300">/</span> focus input.
             </p>
           </div>
@@ -1544,7 +1544,7 @@ export default function Terminal() {
                         key={item}
                         type="button"
                         onClick={() => setCommand(item)}
-                        className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-sm text-zinc-300 transition hover:border-cyan-400/40 hover:text-white"
+                        className="max-w-full rounded-full border border-white/10 bg-black/25 px-3 py-2 text-left text-sm text-zinc-300 transition whitespace-normal break-words hover:border-cyan-400/40 hover:text-white"
                       >
                         {item}
                       </button>
@@ -1561,7 +1561,7 @@ export default function Terminal() {
                       placeholder="Macro name"
                       className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none"
                     />
-                    <button type="button" onClick={saveMacro} className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm">
+                    <button type="button" onClick={saveMacro} className="shrink-0 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm">
                       Save
                     </button>
                   </div>
@@ -1571,7 +1571,7 @@ export default function Terminal() {
                         key={`${macro.name}:${macro.command}`}
                         type="button"
                         onClick={() => void executeCommand(macro.command)}
-                        className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-sm text-zinc-200 transition hover:bg-black/40"
+                        className="max-w-full rounded-full border border-white/10 bg-black/25 px-3 py-2 text-left text-sm text-zinc-200 transition whitespace-normal break-words hover:bg-black/40"
                       >
                         {macro.name}
                       </button>
@@ -2217,7 +2217,7 @@ export default function Terminal() {
           ) : null}
         </div>
 
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-5">
           <Panel title="Trust & Recovery" note="The desk shows whether the workflow is safe, stale, or needs intervention.">
             <div className="space-y-3">
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
@@ -3590,7 +3590,7 @@ export default function Terminal() {
         </div>
       ) : null}
 
-      <div className="pointer-events-none fixed bottom-6 right-6 z-20 flex w-[320px] flex-col gap-3">
+      <div className="pointer-events-none fixed bottom-6 left-4 right-4 z-20 flex w-auto max-w-[320px] flex-col gap-3 md:left-auto md:right-6 md:w-[320px]">
         {toasts.map((toast) => (
           <div key={toast.id} className={`rounded-2xl border p-4 text-sm shadow-[0_12px_40px_rgba(0,0,0,0.35)] ${toneClass(toast.tone)}`}>
             {toast.message}

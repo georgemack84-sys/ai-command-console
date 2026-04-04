@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
+const { getWorkspaceDataPath } = require("./runtimePaths");
 
 let database = null;
 
@@ -22,7 +23,7 @@ function getStorageDriver() {
 }
 
 function getWorkspaceDatabasePath() {
-  return readEnv("AI_COMMAND_CONSOLE_DATABASE_PATH") || path.join(process.cwd(), "data", "workspace.sqlite");
+  return readEnv("AI_COMMAND_CONSOLE_DATABASE_PATH") || getWorkspaceDataPath("workspace.sqlite");
 }
 
 function ensureDatabase() {

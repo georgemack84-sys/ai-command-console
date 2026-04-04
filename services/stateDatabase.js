@@ -1,9 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const DATA_DIR = path.join(process.cwd(), "data", "agents");
-const DB_PATH = path.join(DATA_DIR, "console.sqlite");
+const DATA_DIR = getAgentsDataPath();
+const DB_PATH = getAgentsDataPath("console.sqlite");
 
 let database = null;
 let bootstrappedLegacyDocuments = null;

@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const AGENT_DATA_DIR = path.join(process.cwd(), "data", "agents");
+const AGENT_DATA_DIR = getAgentsDataPath();
 
 function ensureDir() {
   fs.mkdirSync(AGENT_DATA_DIR, { recursive: true });

@@ -3,18 +3,17 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { AssistantMemoryEntry } from "@/src/lib/assistant/types";
 import { demoResearchBriefs, demoResearchReports, demoSavedRoutes, getDemoTrafficState } from "@/src/lib/mock-data";
-import { getStorageDriver } from "@/src/lib/server/runtime";
+import { getStorageDriver, getWorkspaceDataPath } from "@/src/lib/server/runtime";
 import { readWorkspaceDocument, writeWorkspaceDocument } from "@/src/lib/server/workspace-store";
 import type { ResearchBrief, ResearchReport, SavedRoute, TrafficState, UserAccount, UserRole, UserStatus } from "@/src/lib/types";
 
-const root = process.cwd();
-const usersPath = path.join(root, "data", "workspace-users.json");
-const routesPath = path.join(root, "data", "workspace-user-routes.json");
-const trafficStatePath = path.join(root, "data", "workspace-traffic-state.json");
-const assistantMemoryPath = path.join(root, "data", "workspace-assistant-memory.json");
-const researchBriefsPath = path.join(root, "data", "research-briefs.json");
-const researchReportsPath = path.join(root, "data", "research-reports.json");
-const invitesPath = path.join(root, "data", "workspace-invites.json");
+const usersPath = getWorkspaceDataPath("workspace-users.json");
+const routesPath = getWorkspaceDataPath("workspace-user-routes.json");
+const trafficStatePath = getWorkspaceDataPath("workspace-traffic-state.json");
+const assistantMemoryPath = getWorkspaceDataPath("workspace-assistant-memory.json");
+const researchBriefsPath = getWorkspaceDataPath("research-briefs.json");
+const researchReportsPath = getWorkspaceDataPath("research-reports.json");
+const invitesPath = getWorkspaceDataPath("workspace-invites.json");
 const persistenceDriver = getStorageDriver();
 
 type UserRoutesStore = Record<string, SavedRoute[]>;

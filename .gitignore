@@ -14,3 +14,7 @@ cookies.txt
 inventory.txt
 summary.txt
 journal.txt
+.next-dev.err
+playwright-artifacts
+test-results
+playwright-report

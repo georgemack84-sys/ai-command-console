@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { loadDocument, saveDocument } = require("./stateDatabase");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const COLLAB_PATH = path.join(process.cwd(), "data", "agents", "collaboration.json");
+const COLLAB_PATH = getAgentsDataPath("collaboration.json");
 const COLLAB_KEY = "collaboration";
 
 function ensureCollaborationDir() {

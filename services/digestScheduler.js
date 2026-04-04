@@ -1,9 +1,9 @@
-const path = require("path");
 const { getDigestSchedulerStatus, updateDigestSchedulerStatus } = require("./digestSchedulerState");
 const { loadWorkspaceDocument } = require("./workspaceDocuments");
+const { getWorkspaceDataPath } = require("./runtimePaths");
 
 let digestSchedulerTimer = null;
-const USERS_PATH = path.join(process.cwd(), "data", "workspace-users.json");
+const USERS_PATH = getWorkspaceDataPath("workspace-users.json");
 
 function readUsersFromStorage() {
   return loadWorkspaceDocument("workspace.users", [], { legacyPath: USERS_PATH });

@@ -20,12 +20,24 @@ export function getStorageDriver(): StorageDriver {
   return isProductionRuntime() ? "sqlite" : "json";
 }
 
+export function getWorkspaceDataRoot() {
+  return readEnv("AI_COMMAND_CONSOLE_DATA_ROOT") || path.join(process.cwd(), "data");
+}
+
+export function getWorkspaceDataPath(...segments: string[]) {
+  return path.join(getWorkspaceDataRoot(), ...segments);
+}
+
+export function getAgentsDataPath(...segments: string[]) {
+  return path.join(getWorkspaceDataRoot(), "agents", ...segments);
+}
+
 export function getWorkspaceDatabasePath() {
-  return readEnv("AI_COMMAND_CONSOLE_DATABASE_PATH") || path.join(process.cwd(), "data", "workspace.sqlite");
+  return readEnv("AI_COMMAND_CONSOLE_DATABASE_PATH") || getWorkspaceDataPath("workspace.sqlite");
 }
 
 export function getAgentsDatabasePath() {
-  return readEnv("AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH") || path.join(process.cwd(), "data", "agents", "console.sqlite");
+  return readEnv("AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH") || getAgentsDataPath("console.sqlite");
 }
 
 export function areSecureCookiesEnabled() {

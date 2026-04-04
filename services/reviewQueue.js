@@ -3,8 +3,9 @@ const path = require("path");
 const { getTaskById, addTask } = require("./taskQueue");
 const { sendReviewReply } = require("./reviewReplies");
 const { loadDocument, saveDocument } = require("./stateDatabase");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const REVIEW_PATH = path.join(process.cwd(), "data", "agents", "reviewQueue.json");
+const REVIEW_PATH = getAgentsDataPath("reviewQueue.json");
 const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
 const REVIEW_KEY = "reviewQueue";
 

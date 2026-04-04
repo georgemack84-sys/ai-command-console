@@ -5,6 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppSession } from "@/src/components/app/app-provider";
 import { SectionCard } from "@/src/components/shared/section-card";
 import { AccessHistoryClient } from "@/src/components/access/access-history-client";
+import { Badge } from "@/src/components/ui/badge";
+import { buttonVariants } from "@/src/components/ui/button";
+import { EventEntry } from "@/src/components/ui/event-entry";
+import { MetricTile } from "@/src/components/ui/metric-tile";
+import { SignalEntry } from "@/src/components/ui/signal-entry";
+import { SurfacePanel, SurfacePanelHeader } from "@/src/components/ui/surface-panel";
 
 type AdminUser = {
   id: string;
@@ -430,13 +436,7 @@ function toneClass(value: string) {
 }
 
 function MetricCard({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
-      <p className="mt-2 text-sm text-slate-400">{detail}</p>
-    </div>
-  );
+  return <MetricTile label={label} value={value} detail={detail} className="rounded-[26px]" />;
 }
 
 export function PlatformControlCenterClient() {
@@ -1141,17 +1141,21 @@ export function PlatformControlCenterClient() {
         title="Platform Control Center"
         description="A cross-workspace command layer for platform posture, remediation, trust movement, and governance drift."
       >
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex flex-col gap-4 rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(15,23,42,0.5))] p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <Badge className="border-white/10 bg-white/6 text-slate-200">Executive layer</Badge>
+            <p className="mt-3 text-sm text-slate-300">High-signal overview first, then environment controls and incident lanes underneath.</p>
+          </div>
           <button
             type="button"
             onClick={exportPlatformReport}
-            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             Export platform report
           </button>
         </div>
-        {message ? <div className="rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-emerald-100">{message}</div> : null}
-        {error ? <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div> : null}
+        {message ? <div className="rounded-[28px] border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-emerald-100">{message}</div> : null}
+        {error ? <div className="rounded-[28px] border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div> : null}
 
         {globalOperations ? (
           <>
@@ -1164,19 +1168,20 @@ export function PlatformControlCenterClient() {
             </div>
 
             <div className="mt-6 grid gap-4 xl:grid-cols-[1.25fr,0.95fr]">
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+              <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(15,23,42,0.5))] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
+                    <Badge className="border-white/10 bg-white/6 text-slate-200">Environment deck</Badge>
                     <p className="text-sm font-semibold text-white">Environment command deck</p>
                     <p className="mt-1 text-sm text-slate-300">Act on unhealthy clusters by environment without dropping into individual workspace views.</p>
                   </div>
-                  <Link href="/operations" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200">
+                  <Link href="/operations" className={buttonVariants({ variant: "outline", size: "sm" })}>
                     Open full operations
                   </Link>
                 </div>
                 <div className="mt-4 grid gap-4 lg:grid-cols-3">
                   {globalOperations.environments.map((item) => (
-                    <div key={item.environment} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                    <div key={item.environment} className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.18)]">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-semibold capitalize text-white">{item.environment}</p>
                         <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(item.unhealthyCount ? "warning" : "healthy")}`}>
@@ -2412,16 +2417,13 @@ export function PlatformControlCenterClient() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Platform incident board</p>
-                  <p className="mt-1 text-sm text-slate-300">Cross-workspace triage lanes with direct actions for the clusters that need intervention first.</p>
-                </div>
-                <Link href="/operations" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200">
-                  Deep incident view
-                </Link>
-              </div>
+            <SurfacePanel className="mt-6">
+              <SurfacePanelHeader
+                badge="Incident board"
+                title="Platform incident board"
+                description="Cross-workspace triage lanes with direct actions for the clusters that need intervention first."
+                actions={<Link href="/operations" className={buttonVariants({ variant: "outline", size: "sm" })}>Deep incident view</Link>}
+              />
               <div className="mt-4 grid gap-4 xl:grid-cols-3">
                 <IncidentLane
                   title="Critical clusters"
@@ -2496,15 +2498,14 @@ export function PlatformControlCenterClient() {
                   assignmentLabel="Backup target"
                 />
               </div>
-            </div>
+            </SurfacePanel>
 
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Deployment posture</p>
-                  <p className="mt-1 text-sm text-slate-300">Runtime settings that determine whether auth and workspace persistence are operating in a production-ready mode.</p>
-                </div>
-              </div>
+            <SurfacePanel className="mt-6">
+              <SurfacePanelHeader
+                badge="Deployment posture"
+                title="Deployment posture"
+                description="Runtime settings that determine whether auth and workspace persistence are operating in a production-ready mode."
+              />
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   label="Environment"
@@ -2527,18 +2528,19 @@ export function PlatformControlCenterClient() {
                   detail="Production now fails closed if the auth secret is missing."
                 />
               </div>
-            </div>
+            </SurfacePanel>
 
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Runtime diagnostics</p>
-                  <p className="mt-1 text-sm text-slate-300">Recent platform-level failures, degraded health checks, and route exceptions captured for operators.</p>
-                </div>
+            <SurfacePanel className="mt-6">
+              <SurfacePanelHeader
+                badge="Diagnostics"
+                title="Runtime diagnostics"
+                description="Recent platform-level failures, degraded health checks, and route exceptions captured for operators."
+                actions={
                 <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass((diagnostics?.summary.errors || 0) > 0 ? "critical" : (diagnostics?.summary.warnings || 0) > 0 ? "warning" : "healthy")}`}>
                   {diagnostics?.summary.total || 0} events
                 </span>
-              </div>
+                }
+              />
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   label="Errors"
@@ -2564,59 +2566,55 @@ export function PlatformControlCenterClient() {
               <div className="mt-4 space-y-3">
                 {(diagnostics?.recent || []).length ? (
                   diagnostics?.recent.map((entry) => (
-                    <div key={entry.id} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-white">{entry.message}</p>
-                          <p className="mt-1 text-xs text-slate-400">
-                            {entry.scope} • {entry.level} • {formatTime(entry.timestamp)}
-                          </p>
-                        </div>
-                        <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(entry.level)}`}>{entry.level}</span>
-                      </div>
+                    <EventEntry
+                      key={entry.id}
+                      title={entry.message}
+                      subtitle={`${entry.scope} • ${entry.level} • ${formatTime(entry.timestamp)}`}
+                      badge={entry.level}
+                      badgeClassName={toneClass(entry.level)}
+                    >
                       {entry.context ? (
                         <pre className="mt-3 overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-xs text-slate-300">
                           {JSON.stringify(entry.context, null, 2)}
                         </pre>
                       ) : null}
-                    </div>
+                    </EventEntry>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">
+                  <div className="rounded-[22px] border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">
                     No runtime diagnostics recorded recently.
                   </div>
                 )}
               </div>
-            </div>
+            </SurfacePanel>
 
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Recent platform changes</p>
-                  <p className="mt-1 text-sm text-slate-300">Recent playbook rollouts and the admin actions shaping platform behavior.</p>
-                </div>
-                <Link href="/operations" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200">
-                  Full rollout history
-                </Link>
-              </div>
+            <SurfacePanel className="mt-6">
+              <SurfacePanelHeader
+                badge="Recent changes"
+                title="Recent platform changes"
+                description="Recent playbook rollouts and the admin actions shaping platform behavior."
+                actions={<Link href="/operations" className={buttonVariants({ variant: "outline", size: "sm" })}>Full rollout history</Link>}
+              />
               <div className="mt-4 grid gap-4 lg:grid-cols-3">
                 {globalOperations.playbookRollouts.slice(0, 6).map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-white">{item.playbookName}</p>
-                      <span className="text-xs uppercase text-slate-400">{item.environment}</span>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-400">
+                  <EventEntry
+                    key={item.id}
+                    title={item.playbookName}
+                    subtitle={`${item.workspaceCount} workspaces • ${item.appliedByName || "System"} • ${formatTime(item.appliedAt)}`}
+                    badge={item.environment}
+                    badgeClassName="border-white/10 text-slate-300"
+                  >
+                    <p className="text-xs text-slate-500">
                       {item.workspaceCount} workspaces • {item.appliedByName || "System"} • {formatTime(item.appliedAt)}
                     </p>
                     <p className="mt-2 text-xs text-slate-500">
                       {item.workspaceNames.slice(0, 3).join(", ")}
                       {item.workspaceNames.length > 3 ? ` +${item.workspaceNames.length - 3} more` : ""}
                     </p>
-                  </div>
+                  </EventEntry>
                 ))}
               </div>
-            </div>
+            </SurfacePanel>
           </>
         ) : (
           <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-slate-300">
@@ -2654,7 +2652,7 @@ function IncidentLane({
   assignmentLabel?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+    <div className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.18)]">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">{title}</p>
@@ -2665,30 +2663,32 @@ function IncidentLane({
       <div className="mt-4 space-y-3">
         {items.length ? (
           items.map((item) => (
-            <div key={`${title}-${item.workspaceId}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-white">{item.workspaceName}</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {item.incidentPolicy.environment} • {item.incidentStatus} • {item.overdueIntervals} overdue intervals
+            <SignalEntry
+              key={`${title}-${item.workspaceId}`}
+              className="bg-white/5 transition hover:bg-white/7"
+              title={item.workspaceName}
+              meta={`${item.incidentPolicy.environment} • ${item.incidentStatus} • ${item.overdueIntervals} overdue intervals`}
+              badge={item.status}
+              badgeClassName={toneClass(item.status)}
+              body={
+                <>
+                  {item.hasPolicyOverride ? (
+                    <p className="text-xs text-amber-100">{item.policyOverrideSummary || "Workspace-specific policy active"}</p>
+                  ) : null}
+                  {item.incidentApproval?.state === "pending" ? (
+                    <p className="mt-2 text-xs text-slate-300">
+                      Pending {item.incidentApproval.requestedStatus} approval
+                      {item.incidentApproval.approverTarget ? ` • ${item.incidentApproval.approverTarget}` : ""}
+                      {item.incidentApprovalSla?.finalEscalated ? " • final escalated" : item.incidentApprovalSla?.escalated ? " • escalated" : ""}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-xs text-slate-400">
+                    Due users {item.dueUsers}
+                    {item.snoozedUntil ? ` • snoozed until ${formatTime(item.snoozedUntil)}` : ""}
                   </p>
-                </div>
-                <span className={`rounded-full border px-2 py-1 text-[11px] ${toneClass(item.status)}`}>{item.status}</span>
-              </div>
-              {item.hasPolicyOverride ? (
-                <p className="mt-2 text-xs text-amber-100">{item.policyOverrideSummary || "Workspace-specific policy active"}</p>
-              ) : null}
-              {item.incidentApproval?.state === "pending" ? (
-                <p className="mt-2 text-xs text-slate-300">
-                  Pending {item.incidentApproval.requestedStatus} approval
-                  {item.incidentApproval.approverTarget ? ` • ${item.incidentApproval.approverTarget}` : ""}
-                  {item.incidentApprovalSla?.finalEscalated ? " • final escalated" : item.incidentApprovalSla?.escalated ? " • escalated" : ""}
-                </p>
-              ) : null}
-              <p className="mt-2 text-xs text-slate-400">
-                Due users {item.dueUsers}
-                {item.snoozedUntil ? ` • snoozed until ${formatTime(item.snoozedUntil)}` : ""}
-              </p>
+                </>
+              }
+            >
               <div className="mt-3 space-y-2">
                 <input
                   value={ownerDrafts[item.workspaceId] ?? ""}
@@ -2702,7 +2702,7 @@ function IncidentLane({
                   <button
                     type="button"
                     onClick={() => onAssignOwner(item.workspaceId, item.workspaceName, ownerDrafts[item.workspaceId] ?? "")}
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-100"
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-white/10"
                   >
                     Save {assignmentLabel.toLowerCase()}
                   </button>
@@ -2715,13 +2715,13 @@ function IncidentLane({
                   </button>
                   <Link
                     href={`/operations?workspace=${encodeURIComponent(item.workspaceId)}${item.hasPolicyOverride ? "&exceptions=overrides" : ""}`}
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-100"
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-white/10"
                   >
                     Open workspace
                   </Link>
                 </div>
               </div>
-            </div>
+            </SignalEntry>
           ))
         ) : (
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">{empty}</div>

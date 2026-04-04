@@ -47,9 +47,10 @@ const {
 } = require("./collaboration");
 const { getDigestSchedulerStatus } = require("./digestScheduler");
 const { loadWorkspaceDocument } = require("./workspaceDocuments");
+const { getWorkspaceDataPath } = require("./runtimePaths");
 
-const ROUTES_PATH = path.join(process.cwd(), "data", "workspace-user-routes.json");
-const USERS_PATH = path.join(process.cwd(), "data", "workspace-users.json");
+const ROUTES_PATH = getWorkspaceDataPath("workspace-user-routes.json");
+const USERS_PATH = getWorkspaceDataPath("workspace-users.json");
 
 function getResearchWorkspace(options = {}) {
   return options.workspaceId || options.userId || "demo";

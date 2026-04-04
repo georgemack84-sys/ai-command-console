@@ -1,8 +1,8 @@
-const path = require("path");
 const { loadWorkspaceDocument, saveWorkspaceDocument } = require("./workspaceDocuments");
+const { getWorkspaceDataPath } = require("./runtimePaths");
 
-const BRIEFS_PATH = path.join(process.cwd(), "data", "research-briefs.json");
-const REPORTS_PATH = path.join(process.cwd(), "data", "research-reports.json");
+const BRIEFS_PATH = getWorkspaceDataPath("research-briefs.json");
+const REPORTS_PATH = getWorkspaceDataPath("research-reports.json");
 
 function defaultWorkspaceStore() {
   return {};

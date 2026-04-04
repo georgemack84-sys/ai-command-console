@@ -8,8 +8,9 @@ const { listReviewItems } = require("./reviewQueue");
 const { listAgentProfiles } = require("./agentRuntime");
 const { loadAgentState } = require("./agentMemory");
 const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const DASHBOARD_PATH = path.join(process.cwd(), "data", "agents", "dashboard.json");
+const DASHBOARD_PATH = getAgentsDataPath("dashboard.json");
 const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
 const DASHBOARD_KEY = "dashboard";
 

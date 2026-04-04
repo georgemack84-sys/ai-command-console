@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const INBOX_PATH = path.join(process.cwd(), "data", "agents", "inbox.json");
+const INBOX_PATH = getAgentsDataPath("inbox.json");
 const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
 const INBOX_KEY = "inbox";
 

@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAppSession } from "@/src/components/app/app-provider";
 import { SectionCard } from "@/src/components/shared/section-card";
+import { Badge } from "@/src/components/ui/badge";
+import { buttonVariants } from "@/src/components/ui/button";
+import { MetricTile } from "@/src/components/ui/metric-tile";
+import { SignalEntry } from "@/src/components/ui/signal-entry";
+import { SurfacePanel, SurfacePanelHeader } from "@/src/components/ui/surface-panel";
 
 type WorkspaceHealth = {
   workspaceId: string;
@@ -1338,12 +1343,13 @@ export function WorkspaceOperationsClient() {
       title="Workspace operations"
       description="Assign owners, rerun automation, snooze noisy workspaces, and keep escalation handling visible in one place."
     >
-      {message ? <div className="mb-4 rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">{message}</div> : null}
-      {error ? <div className="mb-4 rounded-3xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div> : null}
+      {message ? <div className="mb-4 rounded-[28px] border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">{message}</div> : null}
+      {error ? <div className="mb-4 rounded-[28px] border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div> : null}
       {actionSummary ? (
-        <div className="mb-4 rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
+        <div className="mb-4 rounded-[30px] border border-amber-400/20 bg-[linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.08))] p-5 shadow-[0_20px_60px_rgba(120,53,15,0.18)]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
+              <Badge className="border-amber-300/20 bg-white/10 text-amber-50">Action summary</Badge>
               <p className="text-sm font-semibold text-white">{actionSummary.title}</p>
               <p className="mt-1 text-sm text-amber-50">{actionSummary.detail}</p>
               <p className="mt-2 text-xs uppercase tracking-[0.18em] text-amber-100/80">
@@ -1357,16 +1363,17 @@ export function WorkspaceOperationsClient() {
             <button
               type="button"
               onClick={() => setActionSummary(null)}
-              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               Dismiss
             </button>
           </div>
         </div>
       ) : null}
-      <div className="mb-4 rounded-3xl border border-sky-400/20 bg-sky-400/10 p-5">
+      <div className="mb-4 rounded-[32px] border border-sky-400/20 bg-[linear-gradient(135deg,rgba(56,189,248,0.16),rgba(15,23,42,0.55))] p-5 shadow-[0_24px_80px_rgba(14,165,233,0.12)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
+            <Badge className="border-sky-300/20 bg-white/10 text-sky-50">Guided operations</Badge>
             <p className="text-sm font-semibold text-white">Guided demo mode</p>
             <p className="mt-1 max-w-3xl text-sm text-slate-200">
               {demoMode
@@ -1385,7 +1392,7 @@ export function WorkspaceOperationsClient() {
                 <button
                   type="button"
                   onClick={() => updateQuery({ demo: null, step: null })}
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white"
+                  className={buttonVariants({ variant: "outline" })}
                 >
                   Exit guided mode
                 </button>
@@ -1397,7 +1404,7 @@ export function WorkspaceOperationsClient() {
                       workspace: activeDemoStep?.workspaceId ?? workspace?.workspaceId ?? null,
                     })
                   }
-                  className="rounded-full border border-sky-300/30 bg-sky-300 px-4 py-2 text-sm font-semibold text-slate-950"
+                  className={buttonVariants({ variant: "default" })}
                 >
                   Next step
                 </button>
@@ -1412,7 +1419,7 @@ export function WorkspaceOperationsClient() {
                     workspace: demoSteps[0]?.workspaceId ?? workspace?.workspaceId ?? null,
                   })
                 }
-                className="rounded-full border border-sky-300/30 bg-sky-300 px-4 py-2 text-sm font-semibold text-slate-950"
+                className={buttonVariants({ variant: "default" })}
               >
                 Start guided demo
               </button>
@@ -1421,7 +1428,7 @@ export function WorkspaceOperationsClient() {
         </div>
         {demoMode && activeDemoStep ? (
           <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr,0.8fr]">
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
+            <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-[0_18px_50px_rgba(2,6,23,0.22)]">
               <p className="text-xs uppercase tracking-[0.2em] text-sky-300/80">
                 Step {activeDemoStep.id} of {demoSteps.length}
               </p>
@@ -1431,7 +1438,7 @@ export function WorkspaceOperationsClient() {
                 <button
                   type="button"
                   onClick={() => updateQuery({ workspace: activeDemoStep.workspaceId ?? workspace?.workspaceId ?? null })}
-                  className="rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm text-amber-100"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-amber-400/20 bg-amber-400/10 px-4 text-sm text-amber-100 transition hover:bg-amber-400/15"
                 >
                   {activeDemoStep.actionLabel}
                 </button>
@@ -1445,7 +1452,7 @@ export function WorkspaceOperationsClient() {
                         activeDemoStep.recommendedAction!.success
                       )
                     }
-                    className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 text-sm text-emerald-100 transition hover:bg-emerald-500/15"
                   >
                     {activeDemoStep.recommendedAction.label}
                   </button>
@@ -1459,7 +1466,7 @@ export function WorkspaceOperationsClient() {
                         workspace: demoSteps[Math.max(normalizedDemoStep - 2, 0)]?.workspaceId ?? workspace?.workspaceId ?? null,
                       })
                     }
-                    className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white"
+                    className={buttonVariants({ variant: "outline" })}
                   >
                     Previous
                   </button>
@@ -1468,7 +1475,7 @@ export function WorkspaceOperationsClient() {
             </div>
             <div className="space-y-2">
               {demoScenario ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200">
+                <div className="rounded-[22px] border border-white/10 bg-white/5 p-3 text-sm text-slate-200">
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Scenario summary</p>
                   <p className="mt-1 font-semibold text-white">{demoScenario.name}</p>
                   <p className="mt-1 text-xs text-slate-300">{demoScenario.description}</p>
@@ -1499,16 +1506,17 @@ export function WorkspaceOperationsClient() {
         ) : null}
       </div>
 
-      <div className="mb-4 rounded-3xl border border-white/10 bg-white/5 p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-white">Platform control plane</p>
-            <p className="mt-1 text-sm text-slate-300">Cross-workspace rollout of trust, incident, and approval pressure so admins can steer the whole platform before drilling into one team.</p>
-          </div>
+      <SurfacePanel className="mb-4">
+        <SurfacePanelHeader
+          badge="Platform snapshot"
+          title="Platform control plane"
+          description="Cross-workspace rollout of trust, incident, and approval pressure so admins can steer the whole platform before drilling into one team."
+          actions={
           <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(globalOperations.totals.unhealthyWorkspaces ? "warning" : "healthy")}`}>
             {globalOperations.totals.workspaceCount} workspaces
           </span>
-        </div>
+          }
+        />
         <div className="mt-4 grid gap-4 md:grid-cols-4">
           <Metric label="Unhealthy" value={String(globalOperations.totals.unhealthyWorkspaces)} />
           <Metric label="Open Incidents" value={String(globalOperations.totals.openIncidents)} />
@@ -2196,11 +2204,11 @@ export function WorkspaceOperationsClient() {
             </div>
           </div>
         </div>
-      </div>
+      </SurfacePanel>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="space-y-3">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+          <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(15,23,42,0.52))] p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Workspace scope</p>
               <span className="text-xs text-slate-500">{filteredWorkspaces.length} shown</span>
@@ -2209,10 +2217,10 @@ export function WorkspaceOperationsClient() {
               <button
                 type="button"
                 onClick={() => updateQuery({ exceptions: null, workspace: null })}
-                className={`rounded-full border px-3 py-1.5 text-xs ${
+              className={`rounded-full border px-3 py-1.5 text-xs transition ${
                   exceptionFilter === "all"
                     ? "border-sky-300/40 bg-sky-300/10 text-sky-100"
-                    : "border-white/10 bg-white/5 text-slate-300"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/8"
                 }`}
               >
                 All workspaces
@@ -2220,10 +2228,10 @@ export function WorkspaceOperationsClient() {
               <button
                 type="button"
                 onClick={() => updateQuery({ exceptions: "overrides", workspace: null })}
-                className={`rounded-full border px-3 py-1.5 text-xs ${
+              className={`rounded-full border px-3 py-1.5 text-xs transition ${
                   exceptionFilter === "overrides"
                     ? "border-amber-400/40 bg-amber-400/10 text-amber-100"
-                    : "border-white/10 bg-white/5 text-slate-300"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/8"
                 }`}
               >
                 Exceptions only
@@ -2237,7 +2245,7 @@ export function WorkspaceOperationsClient() {
             <a
               key={item.workspaceId}
               href={`/operations?workspace=${encodeURIComponent(item.workspaceId)}${exceptionFilter === "overrides" ? "&exceptions=overrides" : ""}`}
-              className={`block rounded-3xl border p-4 ${workspace?.workspaceId === item.workspaceId ? "border-sky-300/50 bg-sky-300/10" : "border-white/10 bg-white/5"}`}
+              className={`block rounded-[26px] border p-4 transition ${workspace?.workspaceId === item.workspaceId ? "border-sky-300/50 bg-sky-300/10 shadow-[0_18px_40px_rgba(14,165,233,0.12)]" : "border-white/10 bg-white/5 hover:bg-white/7"}`}
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -2256,7 +2264,7 @@ export function WorkspaceOperationsClient() {
             </a>
           ))}
           {!filteredWorkspaces.length ? (
-            <div className="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">
+            <div className="rounded-[26px] border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">
               No workspaces match this policy-exception filter.
             </div>
           ) : null}
@@ -2346,19 +2354,23 @@ export function WorkspaceOperationsClient() {
               {approvalTrustDashboard.alerts.length ? (
                 <div className="mt-4 space-y-3">
                   {approvalTrustDashboard.alerts.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-white">{item.title}</p>
-                        <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(item.tone)}`}>{item.tone}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-slate-300">{item.detail}</p>
-                      {item.acknowledged ? (
-                        <p className="mt-2 text-xs text-slate-400">
-                          Acknowledged by {item.acknowledgedByName || "admin"} on {formatTime(item.acknowledgedAt || null)}.
-                        </p>
-                      ) : null}
-                      {item.actions?.length ? (
-                        <div className="mt-4 flex flex-wrap gap-2">
+                    <SignalEntry
+                      key={item.id}
+                      title={item.title}
+                      badge={item.tone}
+                      badgeClassName={toneClass(item.tone)}
+                      body={
+                        <>
+                          <p>{item.detail}</p>
+                          {item.acknowledged ? (
+                            <p className="mt-2 text-xs text-slate-400">
+                              Acknowledged by {item.acknowledgedByName || "admin"} on {formatTime(item.acknowledgedAt || null)}.
+                            </p>
+                          ) : null}
+                        </>
+                      }
+                      actions={item.actions?.length ? (
+                        <>
                           {item.actions.map((alertAction) => (
                             <button
                               key={`${item.id}-${alertAction.action}-${alertAction.label}`}
@@ -2369,9 +2381,9 @@ export function WorkspaceOperationsClient() {
                               {alertAction.label}
                             </button>
                           ))}
-                        </div>
-                      ) : null}
-                    </div>
+                        </>
+                      ) : undefined}
+                    />
                   ))}
                 </div>
               ) : null}
@@ -2383,15 +2395,14 @@ export function WorkspaceOperationsClient() {
                   </div>
                   <div className="mt-3 space-y-3">
                     {approvalTrustSignals.map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-white">{item.title}</p>
-                          <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(item.tone)}`}>
-                            {item.environment || item.type}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-slate-300">{item.detail}</p>
-                      </div>
+                      <SignalEntry
+                        key={item.id}
+                        className="bg-white/5"
+                        title={item.title}
+                        badge={item.environment || item.type}
+                        badgeClassName={toneClass(item.tone)}
+                        body={item.detail}
+                      />
                     ))}
                   </div>
                 </div>
@@ -2404,23 +2415,26 @@ export function WorkspaceOperationsClient() {
                   </div>
                   <div className="mt-3 space-y-3">
                     {approvalRecommendationFamilies.map((item) => (
-                      <div key={item.family} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-white">{item.label}</p>
-                          <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(item.rolledBackCount > 0 ? "critical" : item.trustSignalCount > 0 ? "warning" : "healthy")}`}>
-                            {item.recommendationKind}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs text-slate-400">
-                          {item.recommendationCount} recommendations • {item.promotedCount} promoted • {item.rolledBackCount} rolled back • {item.trustSignalCount} trust alerts
-                        </p>
-                        <p className="mt-2 text-xs text-slate-400">
-                          {item.target ? `${item.target}` : item.workspaceId ? item.workspaceId : "global"}{item.observingCount ? ` • ${item.observingCount} observing/cooldown` : ""}
-                        </p>
-                        <p className="mt-2 text-xs text-slate-500">
-                          {item.lastPromotionAt ? `last promotion ${formatTime(item.lastPromotionAt)}` : item.lastRecommendationAt ? `last recommendation ${formatTime(item.lastRecommendationAt)}` : "no history yet"}
-                        </p>
-                      </div>
+                      <SignalEntry
+                        key={item.family}
+                        className="bg-white/5"
+                        title={item.label}
+                        badge={item.recommendationKind}
+                        badgeClassName={toneClass(item.rolledBackCount > 0 ? "critical" : item.trustSignalCount > 0 ? "warning" : "healthy")}
+                        body={
+                          <>
+                            <p className="text-xs text-slate-400">
+                              {item.recommendationCount} recommendations • {item.promotedCount} promoted • {item.rolledBackCount} rolled back • {item.trustSignalCount} trust alerts
+                            </p>
+                            <p className="mt-2 text-xs text-slate-400">
+                              {item.target ? `${item.target}` : item.workspaceId ? item.workspaceId : "global"}{item.observingCount ? ` • ${item.observingCount} observing/cooldown` : ""}
+                            </p>
+                            <p className="mt-2 text-xs text-slate-500">
+                              {item.lastPromotionAt ? `last promotion ${formatTime(item.lastPromotionAt)}` : item.lastRecommendationAt ? `last recommendation ${formatTime(item.lastRecommendationAt)}` : "no history yet"}
+                            </p>
+                          </>
+                        }
+                      />
                     ))}
                   </div>
                 </div>
@@ -2829,34 +2843,32 @@ export function WorkspaceOperationsClient() {
               </div>
             ) : null}
 
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">{workspace.workspaceName}</p>
-                  <p className="mt-1 text-sm text-slate-300">
-                    Last sweep: {formatTime(workspace.lastSweepRunAt)} • Queued: {formatTime(workspace.lastSweepQueuedAt)}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
+            <SurfacePanel>
+              <SurfacePanelHeader
+                badge="Workspace detail"
+                title={workspace.workspaceName}
+                description={`Last sweep: ${formatTime(workspace.lastSweepRunAt)} • Queued: ${formatTime(workspace.lastSweepQueuedAt)}`}
+                className="flex-col lg:flex-row lg:items-center"
+                actions={<div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => void runAction("collaboration:automation-run-sweep", { workspaceId: workspace.workspaceId }, `Queued a digest sweep for ${workspace.workspaceName}.`)}
-                    className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-100"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 text-sm text-cyan-100 transition hover:bg-cyan-400/15"
                   >
                     Run Sweep
                   </button>
                   <button
                     type="button"
                     onClick={() => void runAction("collaboration:automation-snooze", { workspaceId: workspace.workspaceId, minutes: 60 }, `Snoozed ${workspace.workspaceName} for 60 minutes.`)}
-                    className="rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-100"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 px-4 text-sm text-amber-100 transition hover:bg-amber-500/15"
                   >
                     Snooze 1h
                   </button>
-                </div>
-              </div>
+                </div>}
+              />
 
               <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-                <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                <div className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.18)]">
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Health detail</p>
                   <p className="mt-3 text-sm text-slate-200">Status: <span className="font-semibold text-white">{workspace.status}</span></p>
                   <p className="mt-2 text-sm text-slate-200">Incident status: <span className="font-semibold text-white">{workspace.incidentStatus}</span></p>
@@ -2893,7 +2905,7 @@ export function WorkspaceOperationsClient() {
                   ) : null}
                   {workspace.lastSweepError ? <p className="mt-3 text-sm text-rose-200">Last error: {workspace.lastSweepError}</p> : null}
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                <div className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.18)]">
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Assign owner</p>
                   <input
                     value={ownerDrafts[workspace.workspaceId] ?? workspace.escalationOwner ?? ""}
@@ -2904,7 +2916,7 @@ export function WorkspaceOperationsClient() {
                   <button
                     type="button"
                     onClick={() => void runAction("collaboration:automation-assign", { workspaceId: workspace.workspaceId, owner: ownerDrafts[workspace.workspaceId] ?? workspace.escalationOwner ?? "" }, `Assigned an owner to ${workspace.workspaceName}.`)}
-                    className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+                    className="mt-3 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
                   >
                     Save owner
                   </button>
@@ -2923,7 +2935,7 @@ export function WorkspaceOperationsClient() {
                         `Updated the required approver for ${workspace.workspaceName}.`
                       )
                     }
-                    className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+                    className="mt-3 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
                   >
                     Save approver
                   </button>
@@ -2942,7 +2954,7 @@ export function WorkspaceOperationsClient() {
                         `Updated the backup approver for ${workspace.workspaceName}.`
                       )
                     }
-                    className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+                    className="mt-3 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
                   >
                     Save backup approver
                   </button>
@@ -2978,7 +2990,7 @@ export function WorkspaceOperationsClient() {
                         `Added a note for ${workspace.workspaceName}.`
                       ).then(() => setNoteDrafts((current) => ({ ...current, [workspace.workspaceId]: "" })))
                     }
-                    className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+                    className="mt-3 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
                   >
                     Save note
                   </button>
@@ -3033,12 +3045,12 @@ export function WorkspaceOperationsClient() {
                   </button>
                 </div>
               </div>
-            </div>
+            </SurfacePanel>
 
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-              <p className="text-sm font-semibold text-white">Policy-driven closeout</p>
+            <SurfacePanel>
+              <SurfacePanelHeader title="Policy-driven closeout" />
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                <div className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Resolve requirements</p>
                   <p className="mt-3 text-sm text-slate-200">
                     Approval: <span className="font-semibold text-white">{workspace.incidentPolicy.requireApprovalForResolved ? "Required" : "Not required"}</span>
@@ -3061,7 +3073,7 @@ export function WorkspaceOperationsClient() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                <div className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Archive requirements</p>
                   <p className="mt-3 text-sm text-slate-200">
                     Approval: <span className="font-semibold text-white">{workspace.incidentPolicy.requireApprovalForArchived ? "Required" : "Not required"}</span>
@@ -3084,7 +3096,7 @@ export function WorkspaceOperationsClient() {
                   )}
                 </div>
               </div>
-              <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+              <div className="mt-4 rounded-[24px] border border-white/10 bg-slate-950/70 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Approval state</p>
                 {workspace.incidentApproval ? (
                   <div className="mt-3 space-y-2 text-sm text-slate-200">
@@ -3110,9 +3122,11 @@ export function WorkspaceOperationsClient() {
                       <p className="text-slate-300">{workspace.incidentApproval.routingReason}</p>
                     ) : null}
                     {workspace.incidentApproval.requestedStatus === "archived" && workspace.incidentApproval.archiveRationale ? (
-                      <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-3 text-sm text-sky-100">
-                        {workspace.incidentApproval.archiveRationale}
-                      </div>
+                      <SignalEntry
+                        title="Archive rationale"
+                        className="bg-sky-500/10 border-sky-500/20"
+                        body={<span className="text-sky-100">{workspace.incidentApproval.archiveRationale}</span>}
+                      />
                     ) : null}
                     {workspace.incidentApproval.approvedByName ? (
                       <p>
@@ -3223,7 +3237,7 @@ export function WorkspaceOperationsClient() {
                   </p>
                 )}
               </div>
-            </div>
+            </SurfacePanel>
 
             <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
               <div className="flex items-center justify-between gap-3">
@@ -3443,10 +3457,5 @@ export function WorkspaceOperationsClient() {
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
-    </div>
-  );
+  return <MetricTile label={label} value={value} />;
 }

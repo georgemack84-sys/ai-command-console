@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { loadDocument, saveDocument } = require("./stateDatabase");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const QUEUE_PATH = path.join(process.cwd(), "data", "agents", "taskQueue.json");
+const QUEUE_PATH = getAgentsDataPath("taskQueue.json");
 const QUEUE_KEY = "taskQueue";
 
 function ensureQueueDir() {

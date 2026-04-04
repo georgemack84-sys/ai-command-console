@@ -1,7 +1,8 @@
 const path = require("path");
 const { loadDocument, saveDocument } = require("./stateDatabase");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const TELEMETRY_PATH = path.join(process.cwd(), "data", "agents", "telemetry.json");
+const TELEMETRY_PATH = getAgentsDataPath("telemetry.json");
 const TELEMETRY_KEY = "telemetry";
 
 function defaultTelemetryState() {

@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { loadDocument, saveDocument } = require("./stateDatabase");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const POLICY_PATH = path.join(process.cwd(), "data", "agents", "automation-policy.json");
+const POLICY_PATH = getAgentsDataPath("automation-policy.json");
 const POLICY_KEY = "automationPolicy";
 
 function ensurePolicyDir() {
