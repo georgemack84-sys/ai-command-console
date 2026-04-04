@@ -1,0 +1,182 @@
+{
+  "default": [
+    {
+      "id": "route-home-work",
+      "label": "Home to Work",
+      "origin": "Outer Sunset, San Francisco",
+      "destination": "Financial District, San Francisco",
+      "segmentIds": [
+        "seg-parkway-green",
+        "seg-i90-west-loop"
+      ],
+      "currentTimeMinutes": 29,
+      "normalTimeMinutes": 19,
+      "lastUpdated": "2 min ago",
+      "ownerId": "d66a8a51-47a5-4bf0-b0e0-e26c567c4bf7",
+      "ownerName": "Demo User"
+    },
+    {
+      "id": "route-daycare-office",
+      "label": "Daycare to Office",
+      "origin": "North Beach, San Francisco",
+      "destination": "Mission Bay, San Francisco",
+      "segmentIds": [
+        "seg-river-bridge",
+        "seg-beltline-east"
+      ],
+      "currentTimeMinutes": 31,
+      "normalTimeMinutes": 17,
+      "lastUpdated": "1 min ago"
+    },
+    {
+      "id": "route-office-airport",
+      "label": "Office to Airport",
+      "origin": "SoMa, San Francisco",
+      "destination": "San Francisco International Airport",
+      "segmentIds": [
+        "seg-101-market-soma",
+        "seg-i5-airport"
+      ],
+      "currentTimeMinutes": 28,
+      "normalTimeMinutes": 22,
+      "lastUpdated": "4 min ago"
+    }
+  ],
+  "ws-prod-redwood": [
+    {
+      "id": "route-home-work-prod-0",
+      "label": "Home to Work (Prod)",
+      "origin": "Outer Sunset, San Francisco",
+      "destination": "Financial District, San Francisco",
+      "segmentIds": [
+        "seg-parkway-green",
+        "seg-i90-west-loop"
+      ],
+      "currentTimeMinutes": 29,
+      "normalTimeMinutes": 19,
+      "lastUpdated": "2 min ago",
+      "ownerId": "b2452351-e33c-463c-ba32-d5599f5fed12",
+      "ownerName": "Morgan Ops"
+    },
+    {
+      "id": "route-daycare-office-prod-1",
+      "label": "Daycare to Office (Prod)",
+      "origin": "North Beach, San Francisco",
+      "destination": "Mission Bay, San Francisco",
+      "segmentIds": [
+        "seg-river-bridge",
+        "seg-beltline-east"
+      ],
+      "currentTimeMinutes": 31,
+      "normalTimeMinutes": 17,
+      "lastUpdated": "1 min ago",
+      "ownerId": "b2452351-e33c-463c-ba32-d5599f5fed12",
+      "ownerName": "Morgan Ops"
+    },
+    {
+      "id": "route-office-airport-prod-2",
+      "label": "Office to Airport (Prod)",
+      "origin": "SoMa, San Francisco",
+      "destination": "San Francisco International Airport",
+      "segmentIds": [
+        "seg-101-market-soma",
+        "seg-i5-airport"
+      ],
+      "currentTimeMinutes": 28,
+      "normalTimeMinutes": 22,
+      "lastUpdated": "4 min ago",
+      "ownerId": "b2452351-e33c-463c-ba32-d5599f5fed12",
+      "ownerName": "Morgan Ops"
+    }
+  ],
+  "ws-staging-orbit": [
+    {
+      "id": "route-home-work-staging-0",
+      "label": "Home to Work (Staging)",
+      "origin": "Outer Sunset, San Francisco",
+      "destination": "Financial District, San Francisco",
+      "segmentIds": [
+        "seg-parkway-green",
+        "seg-i90-west-loop"
+      ],
+      "currentTimeMinutes": 29,
+      "normalTimeMinutes": 19,
+      "lastUpdated": "2 min ago",
+      "ownerId": "36f43b4a-dd08-4a68-a535-00b0e6b3c975",
+      "ownerName": "Jamie Staging"
+    },
+    {
+      "id": "route-daycare-office-staging-1",
+      "label": "Daycare to Office (Staging)",
+      "origin": "North Beach, San Francisco",
+      "destination": "Mission Bay, San Francisco",
+      "segmentIds": [
+        "seg-river-bridge",
+        "seg-beltline-east"
+      ],
+      "currentTimeMinutes": 31,
+      "normalTimeMinutes": 17,
+      "lastUpdated": "1 min ago",
+      "ownerId": "36f43b4a-dd08-4a68-a535-00b0e6b3c975",
+      "ownerName": "Jamie Staging"
+    },
+    {
+      "id": "route-office-airport-staging-2",
+      "label": "Office to Airport (Staging)",
+      "origin": "SoMa, San Francisco",
+      "destination": "San Francisco International Airport",
+      "segmentIds": [
+        "seg-101-market-soma",
+        "seg-i5-airport"
+      ],
+      "currentTimeMinutes": 28,
+      "normalTimeMinutes": 22,
+      "lastUpdated": "4 min ago",
+      "ownerId": "36f43b4a-dd08-4a68-a535-00b0e6b3c975",
+      "ownerName": "Jamie Staging"
+    }
+  ],
+  "ws-labs-signal": [
+    {
+      "id": "route-home-work-labs-0",
+      "label": "Home to Work (Labs)",
+      "origin": "Outer Sunset, San Francisco",
+      "destination": "Financial District, San Francisco",
+      "segmentIds": [
+        "seg-parkway-green",
+        "seg-i90-west-loop"
+      ],
+      "currentTimeMinutes": 29,
+      "normalTimeMinutes": 19,
+      "lastUpdated": "2 min ago",
+      "ownerId": "7edf7f1b-ab2d-499b-94dd-5256671e6734",
+      "ownerName": "Alex Labs"
+    },
+    {
+      "id": "route-daycare-office-labs-1",
+      "label": "Daycare to Office (Labs)",
+      "origin": "North Beach, San Francisco",
+      "destination": "Mission Bay, San Francisco",
+      "segmentIds": [
+        "seg-river-bridge",
+        "seg-beltline-east"
+      ],
+      "currentTimeMinutes": 31,
+      "normalTimeMinutes": 17,
+      "lastUpdated": "1 min ago"
+    },
+    {
+      "id": "route-office-airport-labs-2",
+      "label": "Office to Airport (Labs)",
+      "origin": "SoMa, San Francisco",
+      "destination": "San Francisco International Airport",
+      "segmentIds": [
+        "seg-101-market-soma",
+        "seg-i5-airport"
+      ],
+      "currentTimeMinutes": 28,
+      "normalTimeMinutes": 22,
+      "lastUpdated": "4 min ago"
+    }
+  ]
+}

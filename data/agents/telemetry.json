@@ -1,0 +1,42 @@
+{
+  "createdAt": "2026-04-01T04:44:09.450Z",
+  "events": [
+    {
+      "id": "telemetry_1775018649458_8qs8o9",
+      "timestamp": "2026-04-01T04:44:09.458Z",
+      "type": "command",
+      "status": "ok",
+      "durationMs": 4,
+      "actorId": "demo",
+      "meta": {
+        "command": "help"
+      }
+    },
+    {
+      "id": "telemetry_1775028738961_3w3tir",
+      "timestamp": "2026-04-01T07:32:18.961Z",
+      "type": "scheduler:stop",
+      "status": "ok",
+      "durationMs": 1,
+      "actorId": null,
+      "meta": {
+        "agentName": "planner",
+        "reason": "max_cycles_reached"
+      }
+    },
+    {
+      "id": "telemetry_1775028738962_m1tnf0",
+      "timestamp": "2026-04-01T07:32:18.962Z",
+      "type": "scheduler:tick",
+      "status": "ok",
+      "durationMs": 4,
+      "actorId": null,
+      "meta": {
+        "agentName": "planner",
+        "cycleCount": 2,
+        "reason": "stopped_at_max_cycles"
+      }
+    }
+  ],
+  "updatedAt": "2026-04-01T07:32:18.962Z"
+}

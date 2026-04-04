@@ -1,0 +1,28 @@
+{
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "Task Decomposer",
+      "skills": ["planning", "task breakdown"],
+      "tools": ["planner"]
+    },
+    {
+      "name": "Executor",
+      "role": "Command Runner",
+      "skills": ["execution", "automation"],
+      "tools": ["executionEngine"]
+    },
+    {
+      "name": "Researcher",
+      "role": "Information Gatherer",
+      "skills": ["search", "analysis"],
+      "tools": ["web", "memory"]
+    },
+    {
+      "name": "Critic",
+      "role": "Quality Control",
+      "skills": ["evaluation", "refinement"],
+      "tools": ["analysis"]
+    }
+  ]
+}

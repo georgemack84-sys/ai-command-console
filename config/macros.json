@@ -1,0 +1,6 @@
+{
+  "macros": {
+    "dailycheck": "status health",
+    "quickscan": "ls"
+  }
+}

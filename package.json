@@ -1,0 +1,57 @@
+{
+  "name": "ai-command-console",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/run-next.cjs dev",
+    "build": "node scripts/run-next.cjs build --webpack",
+    "start": "node scripts/run-next.cjs start",
+    "preflight": "node scripts/preflight.cjs",
+    "backup:sqlite": "node scripts/backup-sqlite.cjs",
+    "deployment:inventory": "node scripts/deployment-inventory.cjs",
+    "validate:deploy-config": "node scripts/validate-deploy-config.cjs",
+    "verify:backup": "node scripts/verify-sqlite-backup.cjs",
+    "restore:sqlite": "node scripts/restore-sqlite.cjs",
+    "validate:deploy": "node scripts/validate-deploy.cjs",
+    "lint": "eslint",
+    "test": "node --test --test-concurrency=1 --test-isolation=none tests/*.test.mjs",
+    "verify": "npm run lint && npm test && npm run build"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "chalk": "^4.1.2",
+    "dotenv": "^17.3.1",
+    "fs-extra": "^11.3.4",
+    "inquirer": "^8.2.7",
+    "mapbox-gl": "^3.20.0",
+    "next": "^16.2.0",
+    "openai": "^6.32.0",
+    "ora": "^5.4.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-map-gl": "^8.1.0",
+    "recharts": "^3.8.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "nodemon": "^3.1.14",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "description": "Multi-agent command console with research workflows and governed operations tooling.",
+  "keywords": [
+    "ai",
+    "console",
+    "operations",
+    "research",
+    "nextjs"
+  ],
+  "author": "",
+  "license": "ISC"
+}

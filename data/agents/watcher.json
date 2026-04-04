@@ -1,0 +1,892 @@
+{
+  "createdAt": "2026-03-20T09:30:48.475Z",
+  "updatedAt": "2026-03-23T04:23:03.414Z",
+  "enabled": true,
+  "intervalSeconds": 4,
+  "lastRunAt": "2026-03-21T08:56:25.941Z",
+  "lastResult": {
+    "ok": true,
+    "decisions": [
+      {
+        "ruleName": "planner_queue_rule",
+        "agentName": "planner",
+        "queuedCount": 5,
+        "minQueuedTasks": 1,
+        "matched": true,
+        "action": "schedule_already_active_or_valid"
+      },
+      {
+        "ruleName": "builder_queue_rule",
+        "agentName": "builder",
+        "queuedCount": 0,
+        "minQueuedTasks": 1,
+        "matched": false,
+        "action": "none"
+      },
+      {
+        "ruleName": "researcher_queue_rule",
+        "agentName": "researcher",
+        "queuedCount": 0,
+        "minQueuedTasks": 1,
+        "matched": false,
+        "action": "none"
+      }
+    ]
+  },
+  "lastError": null,
+  "rules": [
+    {
+      "name": "planner_queue_rule",
+      "agentName": "planner",
+      "minQueuedTasks": 1,
+      "scheduleIntervalSeconds": 3,
+      "scheduleMaxCycles": 3,
+      "enabled": true
+    },
+    {
+      "name": "builder_queue_rule",
+      "agentName": "builder",
+      "minQueuedTasks": 1,
+      "scheduleIntervalSeconds": 3,
+      "scheduleMaxCycles": 3,
+      "enabled": true
+    },
+    {
+      "name": "researcher_queue_rule",
+      "agentName": "researcher",
+      "minQueuedTasks": 1,
+      "scheduleIntervalSeconds": 4,
+      "scheduleMaxCycles": 3,
+      "enabled": true
+    }
+  ],
+  "history": [
+    {
+      "timestamp": "2026-03-20T09:30:48.492Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 1,
+          "minQueuedTasks": 1,
+          "matched": true,
+          "action": "schedule_started",
+          "schedule": {
+            "enabled": true,
+            "intervalSeconds": 3,
+            "maxCycles": 3,
+            "cycleCount": 1
+          }
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:30:48.506Z",
+      "type": "watcher_started",
+      "intervalSeconds": 4
+    },
+    {
+      "timestamp": "2026-03-20T09:30:52.510Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:30:56.524Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:00.535Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:04.546Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:08.556Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:12.567Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:16.574Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:20.575Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:24.577Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:28.592Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:32.591Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:36.600Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:40.606Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:44.617Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:48.635Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:52.639Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:31:56.644Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:32:00.648Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:32:04.655Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:32:08.656Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:32:12.667Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:32:16.675Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:32:20.686Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-20T09:32:24.696Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-21T08:56:20.896Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 5,
+          "minQueuedTasks": 1,
+          "matched": true,
+          "action": "schedule_started",
+          "schedule": {
+            "enabled": true,
+            "intervalSeconds": 3,
+            "maxCycles": 3,
+            "cycleCount": 0
+          }
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-21T08:56:25.941Z",
+      "type": "watcher_run",
+      "decisions": [
+        {
+          "ruleName": "planner_queue_rule",
+          "agentName": "planner",
+          "queuedCount": 5,
+          "minQueuedTasks": 1,
+          "matched": true,
+          "action": "schedule_already_active_or_valid"
+        },
+        {
+          "ruleName": "builder_queue_rule",
+          "agentName": "builder",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        },
+        {
+          "ruleName": "researcher_queue_rule",
+          "agentName": "researcher",
+          "queuedCount": 0,
+          "minQueuedTasks": 1,
+          "matched": false,
+          "action": "none"
+        }
+      ]
+    }
+  ]
+}

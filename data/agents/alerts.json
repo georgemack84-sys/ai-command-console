@@ -1,0 +1,12 @@
+{
+  "createdAt": "2026-04-01T04:44:09.443Z",
+  "thresholds": {
+    "queuedTasksHigh": 6,
+    "pendingReviewsHigh": 4,
+    "inactiveAgentsHigh": 2
+  },
+  "lastRunAt": null,
+  "lastResult": null,
+  "alerts": [],
+  "updatedAt": "2026-04-01T04:44:09.444Z"
+}

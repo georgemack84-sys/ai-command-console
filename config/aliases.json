@@ -1,0 +1,14 @@
+{
+  "aliases": {
+    "ls": "list files",
+    "dir": "list files",
+    "cat": "read",
+    "sum": "summarize",
+    "st": "status",
+    "qp": "queue pending",
+    "qd": "queue done",
+    "qf": "queue failed",
+    "qs": "queue summary",
+    "q": "queue"
+  }
+}

@@ -1,0 +1,16 @@
+node_modules
+.next
+.codex-temp
+.env
+logs
+*.log
+*.zip
+*.tsbuildinfo
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+backups
+cookies.txt
+inventory.txt
+summary.txt
+journal.txt

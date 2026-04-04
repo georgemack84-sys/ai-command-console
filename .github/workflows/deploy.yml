@@ -1,0 +1,298 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Deployment target environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      rollback_release:
+        description: Existing release version to reactivate instead of building a new one
+        required: false
+        type: string
+
+jobs:
+  package:
+    if: >-
+      ${{
+        (github.event_name == 'workflow_dispatch') ||
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main'
+        )
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || 'staging' }}
+    env:
+      NODE_ENV: production
+      AI_COMMAND_CONSOLE_AUTH_SECRET: ci-placeholder-secret
+      AI_COMMAND_CONSOLE_STORAGE_DRIVER: sqlite
+      AI_COMMAND_CONSOLE_DATABASE_PATH: ./data/workspace.sqlite
+      AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH: ./data/agents/console.sqlite
+      AI_COMMAND_CONSOLE_SECURE_COOKIES: true
+      AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS: 1209600
+      DEPLOY_ARTIFACT_ONLY: ${{ vars.DEPLOY_ARTIFACT_ONLY }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_RESTART_COMMAND: ${{ vars.DEPLOY_RESTART_COMMAND }}
+      DEPLOY_HEALTHCHECK_URL: ${{ vars.DEPLOY_HEALTHCHECK_URL }}
+      DEPLOY_HEALTHCHECK_PATH: ${{ vars.DEPLOY_HEALTHCHECK_PATH }}
+      DEPLOY_HEALTHCHECK_ATTEMPTS: ${{ vars.DEPLOY_HEALTHCHECK_ATTEMPTS }}
+      DEPLOY_HEALTHCHECK_DELAY_SECONDS: ${{ vars.DEPLOY_HEALTHCHECK_DELAY_SECONDS }}
+      DEPLOY_VALIDATION_PATHS: ${{ vars.DEPLOY_VALIDATION_PATHS }}
+      DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+
+    steps:
+      - name: Resolve deployment metadata
+        id: metadata
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            TARGET_ENVIRONMENT="staging"
+            SOURCE_REF="${{ github.event.workflow_run.head_branch }}"
+            SOURCE_SHA="${{ github.event.workflow_run.head_sha }}"
+            RELEASE_VERSION="${{ github.event.workflow_run.head_sha }}"
+            ROLLBACK_RELEASE=""
+          else
+            TARGET_ENVIRONMENT="${{ inputs.target_environment }}"
+            SOURCE_REF="${GITHUB_REF_NAME}"
+            SOURCE_SHA="${GITHUB_SHA}"
+            RELEASE_VERSION="${GITHUB_SHA}"
+            ROLLBACK_RELEASE="${{ inputs.rollback_release }}"
+            if [ -n "$ROLLBACK_RELEASE" ]; then
+              RELEASE_VERSION="$ROLLBACK_RELEASE"
+            fi
+          fi
+
+          if [ -n "$ROLLBACK_RELEASE" ] && [ "$TARGET_ENVIRONMENT" != "production" ]; then
+            echo "Rollback is only supported for manual production deploys."
+            exit 1
+          fi
+
+          {
+            echo "target_environment=$TARGET_ENVIRONMENT"
+            echo "source_ref=$SOURCE_REF"
+            echo "source_sha=$SOURCE_SHA"
+            echo "release_version=$RELEASE_VERSION"
+            echo "rollback_release=$ROLLBACK_RELEASE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check out repository
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.metadata.outputs.source_sha }}
+
+      - name: Guard production branch
+        if: ${{ github.event_name == 'workflow_dispatch' && steps.metadata.outputs.target_environment == 'production' }}
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "Production deploys are only allowed from main."
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        run: npm ci
+
+      - name: Validate deploy configuration
+        run: npm run validate:deploy-config
+        env:
+          DEPLOY_TARGET_ENVIRONMENT: ${{ steps.metadata.outputs.target_environment }}
+
+      - name: Run preflight
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        run: npm run preflight
+
+      - name: Lint
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        run: npm run lint
+
+      - name: Test
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        run: npm test
+
+      - name: Build standalone bundle
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        run: npm run build
+
+      - name: Assemble deploy bundle
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        shell: bash
+        run: |
+          rm -rf release
+          mkdir -p release
+          cp -R .next/standalone/. release/
+          mkdir -p release/.next
+          cp -R .next/static release/.next/static
+          if [ -d public ]; then cp -R public release/public; fi
+          if [ -d data ]; then cp -R data release/data; fi
+          if [ -d logs ]; then cp -R logs release/logs; fi
+          cp package.json release/package.json
+          cp README.md release/README.md
+          cp .env.example release/.env.example
+          cat <<EOF > release/RELEASE.txt
+          release_version=${{ steps.metadata.outputs.release_version }}
+          source_ref=${{ steps.metadata.outputs.source_ref }}
+          source_sha=${{ steps.metadata.outputs.source_sha }}
+          built_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          EOF
+          tar -czf "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz" -C release .
+
+      - name: Upload deploy bundle
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-command-console-release-${{ steps.metadata.outputs.release_version }}
+          path: ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz
+          if-no-files-found: error
+
+      - name: Deploy over SSH
+        if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_RESTART_COMMAND: ${{ vars.DEPLOY_RESTART_COMMAND }}
+          DEPLOY_HEALTHCHECK_URL: ${{ vars.DEPLOY_HEALTHCHECK_URL }}
+          DEPLOY_HEALTHCHECK_PATH: ${{ vars.DEPLOY_HEALTHCHECK_PATH }}
+          DEPLOY_HEALTHCHECK_ATTEMPTS: ${{ vars.DEPLOY_HEALTHCHECK_ATTEMPTS }}
+          DEPLOY_HEALTHCHECK_DELAY_SECONDS: ${{ vars.DEPLOY_HEALTHCHECK_DELAY_SECONDS }}
+          DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          RELEASE_ROOT="${DEPLOY_PATH}/releases"
+          RELEASE_PATH="${RELEASE_ROOT}/${{ steps.metadata.outputs.release_version }}"
+          CURRENT_PATH="${DEPLOY_PATH}/current"
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          if [ -z "${{ steps.metadata.outputs.rollback_release }}" ]; then
+            scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz"
+            ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
+              mkdir -p '$DEPLOY_PATH' '$RELEASE_ROOT' && \
+              rm -rf '$RELEASE_PATH' && \
+              mkdir -p '$RELEASE_PATH' && \
+              tar -xzf '/tmp/ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz' -C '$RELEASE_PATH' && \
+              rm -f '/tmp/ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz' && \
+              ln -sfn '$RELEASE_PATH' '$CURRENT_PATH' && \
+              if [ -n \"$DEPLOY_RESTART_COMMAND\" ]; then eval \"$DEPLOY_RESTART_COMMAND\"; fi"
+          else
+            ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
+              test -d '$RELEASE_PATH' && \
+              ln -sfn '$RELEASE_PATH' '$CURRENT_PATH' && \
+              if [ -n \"$DEPLOY_RESTART_COMMAND\" ]; then eval \"$DEPLOY_RESTART_COMMAND\"; fi"
+          fi
+
+      - name: Post-deploy smoke check
+        if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
+        env:
+          DEPLOY_HEALTHCHECK_URL: ${{ vars.DEPLOY_HEALTHCHECK_URL }}
+          DEPLOY_HEALTHCHECK_PATH: ${{ vars.DEPLOY_HEALTHCHECK_PATH }}
+          DEPLOY_HEALTHCHECK_ATTEMPTS: ${{ vars.DEPLOY_HEALTHCHECK_ATTEMPTS }}
+          DEPLOY_HEALTHCHECK_DELAY_SECONDS: ${{ vars.DEPLOY_HEALTHCHECK_DELAY_SECONDS }}
+          DEPLOY_VALIDATION_PATHS: ${{ vars.DEPLOY_VALIDATION_PATHS }}
+        run: |
+          if [ -z "$DEPLOY_VALIDATION_PATHS" ] && [ -n "$DEPLOY_HEALTHCHECK_PATH" ]; then
+            export DEPLOY_VALIDATION_PATHS="$DEPLOY_HEALTHCHECK_PATH"
+          fi
+          npm run validate:deploy
+
+      - name: Prune old remote releases
+        if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          KEEP_RELEASES="${DEPLOY_RELEASE_RETENTION:-5}"
+          if ! [[ "$KEEP_RELEASES" =~ ^[0-9]+$ ]] || [ "$KEEP_RELEASES" -lt 1 ]; then
+            echo "DEPLOY_RELEASE_RETENTION must be a positive integer"
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
+            RELEASE_ROOT='$DEPLOY_PATH/releases'; \
+            CURRENT_PATH='$DEPLOY_PATH/current'; \
+            KEEP_RELEASES='$KEEP_RELEASES'; \
+            if [ ! -d \"\$RELEASE_ROOT\" ]; then exit 0; fi; \
+            CURRENT_TARGET=\$(basename \"\$(readlink -f \"\$CURRENT_PATH\" 2>/dev/null || echo '')\"); \
+            RELEASE_COUNT=0; \
+            for RELEASE_DIR in \$(find \"\$RELEASE_ROOT\" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %f\n' | sort -nr | awk '{print \$2}'); do \
+              RELEASE_COUNT=\$((RELEASE_COUNT + 1)); \
+              if [ \"\$RELEASE_COUNT\" -le \"\$KEEP_RELEASES\" ] || [ \"\$RELEASE_DIR\" = \"\$CURRENT_TARGET\" ]; then \
+                continue; \
+              fi; \
+              rm -rf \"\$RELEASE_ROOT/\$RELEASE_DIR\"; \
+            done"
+
+      - name: Summarize deployment
+        shell: bash
+        run: |
+          {
+            echo "## Deployment Summary"
+            echo ""
+            echo "- Trigger: \`${{ github.event_name }}\`"
+            echo "- Target environment: \`${{ steps.metadata.outputs.target_environment }}\`"
+            echo "- Git ref: \`${{ steps.metadata.outputs.source_ref }}\`"
+            echo "- Commit: \`${{ steps.metadata.outputs.source_sha }}\`"
+            echo "- Release version: \`${{ steps.metadata.outputs.release_version }}\`"
+            if [ -n "${{ steps.metadata.outputs.rollback_release }}" ]; then
+              echo "- Mode: \`rollback\`"
+            else
+              echo "- Mode: \`build-and-deploy\`"
+            fi
+            if [ "${{ vars.DEPLOY_ARTIFACT_ONLY }}" = "true" ]; then
+              echo "- Remote host: artifact-only mode"
+            elif [ -n "${{ vars.DEPLOY_HOST }}" ]; then
+              echo "- Remote host: \`${{ vars.DEPLOY_HOST }}\`"
+            else
+              echo "- Remote host: missing configuration"
+            fi
+            if [ -z "${{ steps.metadata.outputs.rollback_release }}" ]; then
+              echo "- Artifact: \`ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz\`"
+            else
+              echo "- Artifact: skipped for rollback"
+            fi
+            if [ -n "${{ vars.DEPLOY_RELEASE_RETENTION }}" ]; then
+              echo "- Remote release retention: \`${{ vars.DEPLOY_RELEASE_RETENTION }}\`"
+            else
+              echo "- Remote release retention: \`5\` (default)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

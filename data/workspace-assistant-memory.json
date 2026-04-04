@@ -1,0 +1,41 @@
+{
+  "default": [
+    {
+      "prompt": "Should I leave now?",
+      "answerTitle": "Leave-time advice",
+      "answerSummary": "You should leave later.",
+      "createdAt": "2026-03-30T07:36:00.463Z"
+    },
+    {
+      "prompt": "Should I leave now?",
+      "answerTitle": "Leave-time advice",
+      "answerSummary": "You should leave later.",
+      "createdAt": "2026-03-30T07:35:56.659Z"
+    },
+    {
+      "prompt": "How is traffic to work?",
+      "answerTitle": "Commute briefing",
+      "answerSummary": "No saved routes are available yet, so the console cannot build a personalized briefing.",
+      "createdAt": "2026-03-30T07:35:52.233Z"
+    },
+    {
+      "prompt": "Should I leave now?",
+      "answerTitle": "Leave-time advice",
+      "answerSummary": "You should leave soon in about 10 minutes.",
+      "createdAt": "2026-03-23T08:56:35.452Z"
+    },
+    {
+      "prompt": "How is traffic to work?",
+      "answerTitle": "Commute briefing",
+      "answerSummary": "Home to Work is currently 5 minutes slower than normal.",
+      "createdAt": "2026-03-23T08:56:34.403Z"
+    },
+    {
+      "prompt": "How is traffic to work?",
+      "answerTitle": "Commute briefing",
+      "answerSummary": "Home to Work is currently 5 minutes slower than normal.",
+      "createdAt": "2026-03-23T08:56:29.174Z"
+    }
+  ]
+}
+

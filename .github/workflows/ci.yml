@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: production
+      AI_COMMAND_CONSOLE_AUTH_SECRET: ci-placeholder-secret
+      AI_COMMAND_CONSOLE_STORAGE_DRIVER: sqlite
+      AI_COMMAND_CONSOLE_DATABASE_PATH: ./data/workspace.sqlite
+      AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH: ./data/agents/console.sqlite
+      AI_COMMAND_CONSOLE_SECURE_COOKIES: true
+      AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS: 1209600
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run preflight
+        run: npm run preflight
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

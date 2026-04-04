@@ -1,0 +1,47 @@
+{
+  "createdAt": "2026-03-21T07:14:45.915Z",
+  "updatedAt": "2026-04-01T07:32:18.863Z",
+  "lastSystemSnapshot": {
+    "generatedAt": "2026-04-01T07:32:18.809Z",
+    "agentCount": 4,
+    "totalTasks": 1,
+    "queuedTasks": 1,
+    "claimedTasks": 0,
+    "completedTasks": 0,
+    "reviewPending": 0,
+    "reviewCompleted": 0,
+    "activeSchedules": 0,
+    "watcherEnabled": true,
+    "watcherLastRunAt": "2026-03-21T08:56:25.941Z"
+  },
+  "lastAgentSnapshots": {
+    "planner": {
+      "agentName": "planner",
+      "active": true,
+      "status": "running",
+      "currentGoal": "Break phase 34 into safe implementation sections",
+      "currentTaskId": "task_1774073767019_tjd2r0",
+      "queuedTasks": 0,
+      "claimedTasks": 8,
+      "completedTasks": 0,
+      "inboxCount": 4,
+      "unreadCount": 4,
+      "pendingReviews": 0,
+      "reviewedItems": 0,
+      "scheduleEnabled": false,
+      "scheduleCycleCount": 3,
+      "scheduleMaxCycles": 3,
+      "lastRunAt": "2026-03-21T06:16:55.231Z",
+      "updatedAt": "2026-03-21T07:16:38.868Z"
+    }
+  },
+  "lastHealthSnapshot": {
+    "generatedAt": "2026-04-01T07:32:18.863Z",
+    "queuePressure": "moderate",
+    "reviewPressure": "low",
+    "watcherStatus": "running",
+    "stuckSchedules": 0,
+    "inactiveAgents": 1,
+    "overall": "stable"
+  }
+}

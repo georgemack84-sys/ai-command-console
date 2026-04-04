@@ -1,0 +1,15 @@
+{
+  "createdAt": "2026-03-22T08:58:32.721Z",
+  "updatedAt": "2026-03-22T08:58:32.721Z",
+  "escalation": {
+    "autoRunWatcherOnPolicySave": false,
+    "autoRunAlertsOnPolicySave": false,
+    "autoAcknowledgeWatcherStopped": false,
+    "preferredAlertOwner": "manager"
+  },
+  "remediation": {
+    "allowScheduleRestartRecommendations": true,
+    "allowAlertResolutionRecommendations": true,
+    "allowReviewFollowupRecommendations": true
+  }
+}

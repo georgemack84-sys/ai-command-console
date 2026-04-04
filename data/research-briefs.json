@@ -1,0 +1,17 @@
+{
+  "workspace_due_digest_test": [
+    {
+      "id": "brief_due_digest",
+      "title": "Due digest brief",
+      "question": "Needs routing",
+      "status": "draft",
+      "priority": "medium",
+      "assignedAgent": "researcher",
+      "tags": [],
+      "createdAt": "2026-04-01T07:31:59.355Z",
+      "updatedAt": "2026-04-01T07:31:59.355Z",
+      "summary": "orphaned",
+      "linkedTaskId": null
+    }
+  ]
+}

@@ -1,0 +1,395 @@
+import type {
+  Alert,
+  DashboardData,
+  Incident,
+  InsightData,
+  ResearchBrief,
+  ResearchReport,
+  SavedRoute,
+  TrafficSegment,
+  TrafficSnapshot,
+  TrafficState,
+} from "@/src/lib/types";
+
+export const demoTrafficSegments: TrafficSegment[] = [
+  {
+    id: "seg-i90-west-loop",
+    name: "I-90 Westbound",
+    start: "Downtown",
+    end: "West Loop",
+    status: "heavy",
+    speedMph: 19,
+    averageSpeedMph: 42,
+    travelTimeMinutes: 18,
+    normalTimeMinutes: 9,
+    corridor: "Downtown Spine",
+    trend: "worsening",
+    coordinates: [
+      { x: 10, y: 40 },
+      { x: 22, y: 36 },
+      { x: 33, y: 34 },
+      { x: 47, y: 31 },
+    ],
+    geoCoordinates: [
+      [-122.433, 37.776],
+      [-122.425, 37.773],
+      [-122.415, 37.771],
+      [-122.402, 37.768],
+    ],
+  },
+  {
+    id: "seg-101-market-soma",
+    name: "US-101 Northbound",
+    start: "Market District",
+    end: "SoMa",
+    status: "moderate",
+    speedMph: 31,
+    averageSpeedMph: 44,
+    travelTimeMinutes: 12,
+    normalTimeMinutes: 8,
+    corridor: "Civic Connector",
+    trend: "stable",
+    coordinates: [
+      { x: 54, y: 18 },
+      { x: 58, y: 29 },
+      { x: 60, y: 43 },
+      { x: 61, y: 58 },
+    ],
+    geoCoordinates: [
+      [-122.397, 37.789],
+      [-122.395, 37.782],
+      [-122.393, 37.773],
+      [-122.391, 37.761],
+    ],
+  },
+  {
+    id: "seg-i5-airport",
+    name: "I-5 Southbound",
+    start: "Central City",
+    end: "Airport Connector",
+    status: "light",
+    speedMph: 54,
+    averageSpeedMph: 58,
+    travelTimeMinutes: 16,
+    normalTimeMinutes: 14,
+    corridor: "Airport Connector",
+    trend: "improving",
+    coordinates: [
+      { x: 22, y: 68 },
+      { x: 34, y: 63 },
+      { x: 48, y: 60 },
+      { x: 63, y: 56 },
+    ],
+    geoCoordinates: [
+      [-122.426, 37.744],
+      [-122.413, 37.747],
+      [-122.4, 37.75],
+      [-122.387, 37.753],
+    ],
+  },
+  {
+    id: "seg-beltline-east",
+    name: "East Beltline",
+    start: "Midtown",
+    end: "Tech Park",
+    status: "moderate",
+    speedMph: 29,
+    averageSpeedMph: 40,
+    travelTimeMinutes: 15,
+    normalTimeMinutes: 11,
+    corridor: "Innovation Ring",
+    trend: "stable",
+    coordinates: [
+      { x: 30, y: 12 },
+      { x: 38, y: 21 },
+      { x: 46, y: 29 },
+      { x: 53, y: 39 },
+    ],
+    geoCoordinates: [
+      [-122.421, 37.794],
+      [-122.413, 37.786],
+      [-122.405, 37.778],
+      [-122.397, 37.768],
+    ],
+  },
+  {
+    id: "seg-river-bridge",
+    name: "River Bridge",
+    start: "Northbank",
+    end: "Downtown",
+    status: "heavy",
+    speedMph: 14,
+    averageSpeedMph: 37,
+    travelTimeMinutes: 14,
+    normalTimeMinutes: 6,
+    corridor: "River Crossing",
+    trend: "worsening",
+    coordinates: [
+      { x: 66, y: 26 },
+      { x: 72, y: 33 },
+      { x: 78, y: 41 },
+      { x: 84, y: 51 },
+    ],
+    geoCoordinates: [
+      [-122.389, 37.784],
+      [-122.381, 37.778],
+      [-122.373, 37.771],
+      [-122.365, 37.762],
+    ],
+  },
+  {
+    id: "seg-parkway-green",
+    name: "Lakeside Parkway",
+    start: "South Hills",
+    end: "Medical District",
+    status: "light",
+    speedMph: 47,
+    averageSpeedMph: 49,
+    travelTimeMinutes: 11,
+    normalTimeMinutes: 10,
+    corridor: "Lakeside Arc",
+    trend: "improving",
+    coordinates: [
+      { x: 13, y: 78 },
+      { x: 24, y: 73 },
+      { x: 38, y: 70 },
+      { x: 52, y: 66 },
+    ],
+    geoCoordinates: [
+      [-122.434, 37.736],
+      [-122.422, 37.74],
+      [-122.408, 37.742],
+      [-122.394, 37.746],
+    ],
+  },
+];
+
+export const demoIncidents: Incident[] = [
+  {
+    id: "inc-1",
+    type: "accident",
+    title: "Three-car crash near West Loop interchange",
+    impact: "major",
+    segmentId: "seg-i90-west-loop",
+    location: "I-90 at Exit 16",
+    description: "Two center lanes blocked and emergency crews on scene.",
+    reportedAt: "2026-03-21T07:12:00-04:00",
+    coordinate: { x: 29, y: 35 },
+    geoCoordinate: [-122.418, 37.772],
+    active: true,
+  },
+  {
+    id: "inc-2",
+    type: "construction",
+    title: "Lane reduction approaching Tech Park",
+    impact: "moderate",
+    segmentId: "seg-beltline-east",
+    location: "East Beltline at Orchard Ave",
+    description: "Ongoing resurfacing project reducing traffic to one lane.",
+    reportedAt: "2026-03-21T06:40:00-04:00",
+    coordinate: { x: 49, y: 34 },
+    geoCoordinate: [-122.401, 37.773],
+    active: true,
+  },
+  {
+    id: "inc-3",
+    type: "road closure",
+    title: "Bridge ramp closure after stalled truck",
+    impact: "major",
+    segmentId: "seg-river-bridge",
+    location: "River Bridge east ramp",
+    description: "Ramp remains closed while crews remove a disabled tractor trailer.",
+    reportedAt: "2026-03-21T07:01:00-04:00",
+    coordinate: { x: 77, y: 42 },
+    geoCoordinate: [-122.375, 37.77],
+    active: true,
+  },
+];
+
+export const demoSavedRoutes: SavedRoute[] = [
+  {
+    id: "route-home-work",
+    label: "Home to Work",
+    origin: "Outer Sunset, San Francisco",
+    destination: "Financial District, San Francisco",
+    segmentIds: ["seg-parkway-green", "seg-i90-west-loop"],
+    currentTimeMinutes: 29,
+    normalTimeMinutes: 19,
+    lastUpdated: "2 min ago",
+  },
+  {
+    id: "route-daycare-office",
+    label: "Daycare to Office",
+    origin: "North Beach, San Francisco",
+    destination: "Mission Bay, San Francisco",
+    segmentIds: ["seg-river-bridge", "seg-beltline-east"],
+    currentTimeMinutes: 31,
+    normalTimeMinutes: 17,
+    lastUpdated: "1 min ago",
+  },
+  {
+    id: "route-office-airport",
+    label: "Office to Airport",
+    origin: "SoMa, San Francisco",
+    destination: "San Francisco International Airport",
+    segmentIds: ["seg-101-market-soma", "seg-i5-airport"],
+    currentTimeMinutes: 28,
+    normalTimeMinutes: 22,
+    lastUpdated: "4 min ago",
+  },
+];
+
+export const demoAlerts: Alert[] = [
+  {
+    id: "alert-1",
+    routeId: "route-home-work",
+    title: "Expect 10 min delay on Home to Work",
+    severity: "critical",
+    type: "delay warning",
+    detail: "Accident on I-90 Westbound is blocking two lanes near Exit 16.",
+    travelDeltaMinutes: 10,
+    incidentIds: ["inc-1"],
+    updatedAt: "Updated 2 min ago",
+    rank: 100,
+  },
+];
+
+export const demoResearchBriefs: ResearchBrief[] = [
+  {
+    id: "brief-local-kb",
+    title: "Local-first knowledge base comparison",
+    question: "Which local-first knowledge base tools best fit a small team that wants offline search and strong markdown support?",
+    status: "in_review",
+    priority: "high",
+    assignedAgent: "planner",
+    tags: ["knowledge-base", "local-first", "comparison"],
+    createdAt: "2026-03-21T08:15:00-04:00",
+    updatedAt: "2026-03-22T01:10:00-04:00",
+    summary: "Initial framing complete and synthesis draft is waiting on editorial review.",
+    linkedTaskId: "task_demo_local_kb",
+  },
+  {
+    id: "brief-agent-observability",
+    title: "Agent observability landscape scan",
+    question: "What are the strongest patterns for making autonomous agents observable to operators without adding too much UI complexity?",
+    status: "queued",
+    priority: "medium",
+    assignedAgent: "researcher",
+    tags: ["agents", "observability", "ux"],
+    createdAt: "2026-03-22T00:20:00-04:00",
+    updatedAt: "2026-03-22T00:20:00-04:00",
+    summary: "Waiting in the scout lane for a first-pass source scan.",
+    linkedTaskId: null,
+  },
+];
+
+export const demoResearchReports: ResearchReport[] = [
+  {
+    id: "report-local-kb-memo",
+    briefId: "brief-local-kb",
+    title: "Recommendation memo for a local-first knowledge base",
+    format: "memo",
+    status: "ready",
+    createdAt: "2026-03-22T01:15:00-04:00",
+    updatedAt: "2026-03-22T01:42:00-04:00",
+    excerpt: "A markdown-first stack with local indexing offers the best tradeoff for a small operator-heavy team.",
+    keyFindings: [
+      "Fast startup time mattered more than advanced sharing controls.",
+      "Native markdown support was a stronger requirement than embedded databases.",
+      "Operator trust improved when sync behavior stayed transparent.",
+    ],
+  },
+];
+
+export const demoHistory: TrafficSnapshot[] = [
+  {
+    timestamp: "2026-03-18T08:00:00-04:00",
+    averageCommuteMinutes: 24,
+    byTimeOfDay: "Morning",
+    dayOfWeek: "Wed",
+    routeMetrics: [
+      { routeId: "route-home-work", routeLabel: "Home to Work", delayMinutes: 8, currentTimeMinutes: 27, normalTimeMinutes: 19 },
+      { routeId: "route-daycare-office", routeLabel: "Daycare to Office", delayMinutes: 10, currentTimeMinutes: 27, normalTimeMinutes: 17 },
+    ],
+    congestedSegments: [
+      { segmentId: "seg-i90-west-loop", segmentName: "I-90 Westbound", status: "heavy" },
+      { segmentId: "seg-river-bridge", segmentName: "River Bridge", status: "heavy" },
+    ],
+  },
+  {
+    timestamp: "2026-03-19T17:30:00-04:00",
+    averageCommuteMinutes: 29,
+    byTimeOfDay: "Evening",
+    dayOfWeek: "Thu",
+    routeMetrics: [
+      { routeId: "route-home-work", routeLabel: "Home to Work", delayMinutes: 12, currentTimeMinutes: 31, normalTimeMinutes: 19 },
+      { routeId: "route-office-airport", routeLabel: "Office to Airport", delayMinutes: 7, currentTimeMinutes: 29, normalTimeMinutes: 22 },
+    ],
+    congestedSegments: [
+      { segmentId: "seg-i90-west-loop", segmentName: "I-90 Westbound", status: "heavy" },
+      { segmentId: "seg-101-market-soma", segmentName: "US-101 Northbound", status: "moderate" },
+    ],
+  },
+];
+
+export function buildDemoInsights(): InsightData {
+  return {
+    commuteByTimeOfDay: [
+      { label: "Morning", minutes: 26 },
+      { label: "Midday", minutes: 18 },
+      { label: "Evening", minutes: 28 },
+      { label: "Night", minutes: 14 },
+    ],
+    commuteByDayOfWeek: [
+      { label: "Mon", minutes: 27 },
+      { label: "Tue", minutes: 24 },
+      { label: "Wed", minutes: 23 },
+      { label: "Thu", minutes: 29 },
+      { label: "Fri", minutes: 31 },
+      { label: "Sat", minutes: 16 },
+      { label: "Sun", minutes: 15 },
+    ],
+    routeCongestion: [
+      { label: "Home to Work", averageDelay: 10 },
+      { label: "Daycare to Office", averageDelay: 8 },
+      { label: "Office to Airport", averageDelay: 5 },
+    ],
+    delayTrend: [
+      { label: "7:00", delay: 4 },
+      { label: "8:00", delay: 9 },
+      { label: "9:00", delay: 6 },
+      { label: "16:00", delay: 7 },
+      { label: "17:00", delay: 11 },
+      { label: "18:00", delay: 8 },
+    ],
+  };
+}
+
+export function getDemoTrafficState(): TrafficState {
+  return {
+    lastSimulationAt: new Date().toISOString(),
+    trafficSegments: demoTrafficSegments,
+    incidents: demoIncidents,
+    history: demoHistory,
+  };
+}
+
+export function getDashboardData(): DashboardData {
+  return {
+    users: [{ id: "user-demo", name: "Avery", homeCity: "San Francisco" }],
+    trafficSegments: demoTrafficSegments,
+    incidents: demoIncidents,
+    savedRoutes: demoSavedRoutes,
+    alerts: demoAlerts,
+    integrationStatus: {
+      mapbox: false,
+      tomtom: false,
+      routing: "mock",
+      traffic: "simulation",
+      storage: "file",
+    },
+    insights: buildDemoInsights(),
+    lastUpdated: new Date().toISOString(),
+    simulationMode: "live-simulated",
+  };
+}

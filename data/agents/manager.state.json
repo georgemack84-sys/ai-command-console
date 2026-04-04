@@ -1,0 +1,112 @@
+{
+  "name": "manager",
+  "active": true,
+  "status": "running",
+  "goal": "Review incoming work and delegate it safely.",
+  "createdAt": "2026-03-20T09:14:05.827Z",
+  "updatedAt": "2026-04-01T07:32:17.963Z",
+  "lastRunAt": null,
+  "stepCount": 0,
+  "maxSteps": 6,
+  "history": [
+    {
+      "timestamp": "2026-03-20T09:14:05.831Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-20T09:14:05.843Z",
+      "type": "manager_routed_task",
+      "originalTask": "Break phase 26 into detailed substeps",
+      "delegatedTo": "planner",
+      "priority": 1,
+      "delegationReason": "Task emphasizes planning, sequencing, or breakdown work.",
+      "taskId": "task_1773998045840_e8wdd6"
+    },
+    {
+      "timestamp": "2026-03-20T09:14:05.852Z",
+      "type": "manager_routed_task",
+      "originalTask": "Review safest implementation path for dashboard UI support",
+      "delegatedTo": "builder",
+      "priority": 2,
+      "delegationReason": "Task emphasizes implementation or build-oriented review.",
+      "taskId": "task_1773998045851_ikk0dc"
+    },
+    {
+      "timestamp": "2026-03-20T09:14:05.865Z",
+      "type": "manager_routed_task",
+      "originalTask": "Research the next safe architecture improvement for the AI Command Console",
+      "delegatedTo": "researcher",
+      "priority": 3,
+      "delegationReason": "Task does not strongly match planning or build patterns, so it defaults to research.",
+      "taskId": "task_1773998045863_vdpa60"
+    },
+    {
+      "timestamp": "2026-03-20T09:39:52.365Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-20T09:52:14.139Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T03:49:54.936Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T03:50:17.881Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T04:03:53.505Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T04:18:09.529Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T05:53:52.596Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T06:16:05.719Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T07:30:55.075Z",
+      "type": "agent_started",
+      "goal": "Review incoming work and delegate it safely."
+    },
+    {
+      "timestamp": "2026-03-21T09:10:30.846Z",
+      "type": "manager_routed_task",
+      "originalTask": "Investigate the next UX improvement",
+      "delegatedTo": "researcher",
+      "priority": 3,
+      "delegationReason": "Task does not strongly match planning or build patterns, so it defaults to research.",
+      "taskId": "task_1774084230844_fjcsbh"
+    }
+  ],
+  "lastPlan": [
+    "Analyze goal: Review incoming work and delegate it safely.",
+    "Inspect relevant local context",
+    "Choose the next safe executable action",
+    "Record result",
+    "Decide whether to continue or stop"
+  ],
+  "lastResult": {
+    "ok": true,
+    "summary": "Agent initialized."
+  },
+  "notes": [],
+  "currentTask": null
+}

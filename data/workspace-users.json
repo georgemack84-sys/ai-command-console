@@ -1,0 +1,57 @@
+[
+  {
+    "id": "d66a8a51-47a5-4bf0-b0e0-e26c567c4bf7",
+    "email": "demo.user@example.com",
+    "passwordHash": "5cad910a-a56f-4a09-9ad7-45556879487e:6245f1f1eca609d0ac518633eeabb2308a9fe8910ec46db1b2dc6ac76d9ac7257d570b5fa290edf8e5f418f947f6df6b996232851fa860c299602634d613fe7b",
+    "name": "Demo User",
+    "role": "admin",
+    "status": "active",
+    "workspaceId": "default",
+    "workspaceName": "Main Workspace",
+    "createdAt": "2026-03-30T08:20:21.466Z"
+  },
+  {
+    "id": "b2452351-e33c-463c-ba32-d5599f5fed12",
+    "email": "morgan.ops@example.com",
+    "passwordHash": "a646985b-4667-4c9b-84ac-b7ffd6c35bf8:59b49c210c43c6453df10c6dfd8cdc2dd8ec2e57d0d43638ee9a93eab851d35f1c2e023d5dd351759daccc005ad3fd38b05a586d399ba6021dd0216b2e74eb49",
+    "name": "Morgan Ops",
+    "role": "operator",
+    "status": "active",
+    "workspaceId": "ws-prod-redwood",
+    "workspaceName": "Production Redwood",
+    "createdAt": "2026-03-30T08:20:21.466Z"
+  },
+  {
+    "id": "6e0fca92-637a-43e3-8d2e-72214877fce2",
+    "email": "pat.approver@example.com",
+    "passwordHash": "9d9ec205-faed-480e-9e49-a981773e3bcc:955a89dd823256d3d1ccdd54aebb64c70eb878c9106077a6ce694b644ec958bbefd07ed1da722f2531bb7bed0d81576017f124938654d27581e0f4f517a9295f",
+    "name": "Pat Approver",
+    "role": "approver",
+    "status": "active",
+    "workspaceId": "ws-prod-redwood",
+    "workspaceName": "Production Redwood",
+    "createdAt": "2026-03-30T08:20:21.466Z"
+  },
+  {
+    "id": "36f43b4a-dd08-4a68-a535-00b0e6b3c975",
+    "email": "jamie.staging@example.com",
+    "passwordHash": "9eba4f29-d484-4e27-891f-941741f613d7:55508abac26e3422c74b9d472af6f9d99f01b808d5cf0dc1dd2cafc7bd2188d69b4110fdf4e3499547e6b5aca11193ecbc63d385454c1d4bdad830dd9734c485",
+    "name": "Jamie Staging",
+    "role": "operator",
+    "status": "active",
+    "workspaceId": "ws-staging-orbit",
+    "workspaceName": "Staging Orbit",
+    "createdAt": "2026-03-30T08:20:21.466Z"
+  },
+  {
+    "id": "7edf7f1b-ab2d-499b-94dd-5256671e6734",
+    "email": "alex.labs@example.com",
+    "passwordHash": "5e1806a3-1398-47c2-a1b1-22f895a30148:500d0e478e9152c39193279515622287f935d24b4398252540f88a64df48086c8254cb08cd6eee5e8b9525c2962a7f3b5556eea7b66c95083d15c36e35e9ebe5",
+    "name": "Alex Labs",
+    "role": "operator",
+    "status": "active",
+    "workspaceId": "ws-labs-signal",
+    "workspaceName": "Labs Signal",
+    "createdAt": "2026-03-30T08:20:21.466Z"
+  }
+]

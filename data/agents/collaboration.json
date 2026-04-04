@@ -1,0 +1,124 @@
+{
+  "createdAt": "2026-04-01T04:44:09.447Z",
+  "governance": {
+    "sensitiveActionsRequireApproval": true,
+    "currentEnvironment": "development",
+    "demoScenario": {
+      "id": "control-plane",
+      "name": "Control Plane Story",
+      "description": "Production is unhealthy, staging recovered, and labs remains noisy for stabilization demo steps."
+    },
+    "appliedApprovalPolicies": [],
+    "approvalRecommendationObservations": [],
+    "approvalTrustAlertAcks": [],
+    "approvalTrustHistory": [
+      {
+        "environment": "development",
+        "takenAt": "2026-04-01T04:44:09.506Z",
+        "score": 70,
+        "regressedCount": 0,
+        "improvedCount": 0,
+        "rolledBackCount": 0,
+        "observingCount": 0,
+        "cooldownCount": 0,
+        "alertCount": 0
+      }
+    ],
+    "workspacePolicyOverrides": {},
+    "workspacePolicyPlaybooks": [],
+    "workspacePolicyPlaybookRollouts": [],
+    "environmentPolicies": {
+      "development": {
+        "minimumRoleForCommands": "operator",
+        "minimumRoleForApprovals": "approver",
+        "minimumRoleForGovernance": "admin",
+        "requireChecklistForResolved": false,
+        "requiredChecklistForResolved": [
+          "owner_assigned",
+          "followup_created",
+          "summary_generated"
+        ],
+        "requireSummaryShareBeforeArchived": false,
+        "requireApprovalForResolved": false,
+        "requireApprovalForArchived": false,
+        "incidentApprovalReminderMinutes": 30,
+        "incidentApprovalEscalationMinutes": 60,
+        "incidentApprovalEscalationTarget": "team",
+        "incidentApprovalFinalEscalationMinutes": 120,
+        "incidentApprovalFinalEscalationTarget": "role:admin",
+        "incidentApprovalCapacityLimit": 3,
+        "autoPromoteApprovalRecommendations": false,
+        "autoPromoteRecommendationConfidence": 0.9,
+        "autoPromoteObservationHours": 24,
+        "autoPromoteCooldownHours": 72,
+        "trustDropAction": "notify",
+        "trustDropFollowupOwner": "Jamie Lead",
+        "promoteTrustDropToIncident": false
+      },
+      "staging": {
+        "minimumRoleForCommands": "operator",
+        "minimumRoleForApprovals": "approver",
+        "minimumRoleForGovernance": "admin",
+        "requireChecklistForResolved": true,
+        "requiredChecklistForResolved": [
+          "owner_assigned",
+          "followup_created",
+          "summary_generated"
+        ],
+        "requireSummaryShareBeforeArchived": true,
+        "requireApprovalForResolved": false,
+        "requireApprovalForArchived": false,
+        "incidentApprovalReminderMinutes": 10,
+        "incidentApprovalEscalationMinutes": 20,
+        "incidentApprovalEscalationTarget": "role:admin",
+        "incidentApprovalFinalEscalationMinutes": 40,
+        "incidentApprovalFinalEscalationTarget": "team",
+        "incidentApprovalCapacityLimit": 2,
+        "autoPromoteApprovalRecommendations": false,
+        "autoPromoteRecommendationConfidence": 0.88,
+        "autoPromoteObservationHours": 24,
+        "autoPromoteCooldownHours": 72,
+        "trustDropAction": "digest",
+        "trustDropFollowupOwner": "Jamie Lead",
+        "promoteTrustDropToIncident": false
+      },
+      "production": {
+        "minimumRoleForCommands": "approver",
+        "minimumRoleForApprovals": "approver",
+        "minimumRoleForGovernance": "admin",
+        "requireChecklistForResolved": true,
+        "requiredChecklistForResolved": [
+          "owner_assigned",
+          "followup_created",
+          "summary_generated",
+          "shared_handoff"
+        ],
+        "requireSummaryShareBeforeArchived": true,
+        "requireApprovalForResolved": true,
+        "requireApprovalForArchived": true,
+        "incidentApprovalReminderMinutes": 5,
+        "incidentApprovalEscalationMinutes": 15,
+        "incidentApprovalEscalationTarget": "role:admin",
+        "incidentApprovalFinalEscalationMinutes": 30,
+        "incidentApprovalFinalEscalationTarget": "team",
+        "incidentApprovalCapacityLimit": 1,
+        "autoPromoteApprovalRecommendations": false,
+        "autoPromoteRecommendationConfidence": 0.92,
+        "autoPromoteObservationHours": 48,
+        "autoPromoteCooldownHours": 120,
+        "trustDropAction": "followup",
+        "trustDropFollowupOwner": "Jamie Lead",
+        "promoteTrustDropToIncident": true
+      }
+    }
+  },
+  "sharedSessions": [],
+  "handoffs": [],
+  "approvals": [],
+  "inboxState": {},
+  "inboxHistory": {},
+  "digestPreferences": {},
+  "digestRuns": {},
+  "digestWorkspaceState": {},
+  "updatedAt": "2026-04-01T04:44:09.507Z"
+}

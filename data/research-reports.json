@@ -1,0 +1,502 @@
+{
+  "ws-prod-redwood": [
+    {
+      "id": "report-prod-recovery",
+      "briefId": "brief-prod-recovery",
+      "title": "Production Redwood recovery memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-03-30T07:20:21.466Z",
+      "updatedAt": "2026-03-30T08:00:21.466Z",
+      "excerpt": "Production Redwood needs a stricter recovery posture and clearer approval routing.",
+      "keyFindings": [
+        "Use a stricter production recovery preset.",
+        "Keep approval capacity low for production incidents."
+      ],
+      "ownerId": "b2452351-e33c-463c-ba32-d5599f5fed12",
+      "ownerName": "Morgan Ops"
+    }
+  ],
+  "ws-staging-orbit": [
+    {
+      "id": "report-staging-watch",
+      "briefId": "brief-staging-watch",
+      "title": "Staging watch rollout recap",
+      "format": "memo",
+      "status": "ready",
+      "createdAt": "2026-03-30T06:20:21.466Z",
+      "updatedAt": "2026-03-30T07:50:21.466Z",
+      "excerpt": "The staging preset stabilized the cluster with minimal manual intervention.",
+      "keyFindings": [
+        "Digest-heavy monitoring was enough for staging.",
+        "No trust incident promotion was needed."
+      ],
+      "ownerId": "36f43b4a-dd08-4a68-a535-00b0e6b3c975",
+      "ownerName": "Jamie Staging"
+    }
+  ],
+  "alex": [
+    {
+      "id": "report_1775028716819_zqywbh",
+      "briefId": "brief_1775028716670_611o7v",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T07:31:56.819Z",
+      "updatedAt": "2026-04-01T07:31:56.819Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775028493815_3a9vsr",
+      "briefId": "brief_1775028493669_1br5gt",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T07:28:13.814Z",
+      "updatedAt": "2026-04-01T07:28:13.814Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775028251121_5kufav",
+      "briefId": "brief_1775028250951_vcugqv",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T07:24:11.121Z",
+      "updatedAt": "2026-04-01T07:24:11.121Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775027020957_mr491d",
+      "briefId": "brief_1775027020818_ujkfc6",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T07:03:40.956Z",
+      "updatedAt": "2026-04-01T07:03:40.956Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775026802947_6cncth",
+      "briefId": "brief_1775026802789_wh316w",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T07:00:02.947Z",
+      "updatedAt": "2026-04-01T07:00:02.947Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775026581325_l90yvv",
+      "briefId": "brief_1775026581185_73dl08",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:56:21.325Z",
+      "updatedAt": "2026-04-01T06:56:21.325Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775026356553_6arz4f",
+      "briefId": "brief_1775026356400_omxhk0",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:52:36.552Z",
+      "updatedAt": "2026-04-01T06:52:36.552Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775026103145_1d2ce4",
+      "briefId": "brief_1775026102974_4hg0i8",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:48:23.144Z",
+      "updatedAt": "2026-04-01T06:48:23.144Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775025912392_bllzdv",
+      "briefId": "brief_1775025912218_fgg68f",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:45:12.392Z",
+      "updatedAt": "2026-04-01T06:45:12.392Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775025653425_br8gx4",
+      "briefId": "brief_1775025653281_n6jo73",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:40:53.425Z",
+      "updatedAt": "2026-04-01T06:40:53.425Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775024935807_pz3342",
+      "briefId": "brief_1775024935638_rhb12r",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:28:55.806Z",
+      "updatedAt": "2026-04-01T06:28:55.806Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775024789813_w2lkv6",
+      "briefId": "brief_1775024789602_fh53yk",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:26:29.813Z",
+      "updatedAt": "2026-04-01T06:26:29.813Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775024360446_8j5n9d",
+      "briefId": "brief_1775024360286_r3q4do",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:19:20.446Z",
+      "updatedAt": "2026-04-01T06:19:20.446Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775024212534_wp3ydr",
+      "briefId": "brief_1775024212372_ybxrst",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:16:52.534Z",
+      "updatedAt": "2026-04-01T06:16:52.534Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775024067668_pl5xxx",
+      "briefId": "brief_1775024067452_26ywpz",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T06:14:27.668Z",
+      "updatedAt": "2026-04-01T06:14:27.668Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775022332458_7vj272",
+      "briefId": "brief_1775022332308_fzh4tf",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:45:32.458Z",
+      "updatedAt": "2026-04-01T05:45:32.458Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775022209333_w6o666",
+      "briefId": "brief_1775022209167_x0ob79",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:43:29.332Z",
+      "updatedAt": "2026-04-01T05:43:29.332Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775022151903_0m9x2o",
+      "briefId": "brief_1775022151768_m19gz2",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:42:31.903Z",
+      "updatedAt": "2026-04-01T05:42:31.903Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775022004623_fox705",
+      "briefId": "brief_1775022004481_c4o8k0",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:40:04.622Z",
+      "updatedAt": "2026-04-01T05:40:04.622Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775021762010_onx3rv",
+      "briefId": "brief_1775021761848_xl9rnd",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:36:02.010Z",
+      "updatedAt": "2026-04-01T05:36:02.010Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775021697472_z94pw0",
+      "briefId": "brief_1775021697324_9dp8ni",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:34:57.471Z",
+      "updatedAt": "2026-04-01T05:34:57.471Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775021639690_fu6dyz",
+      "briefId": "brief_1775021639548_2zaffq",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:33:59.689Z",
+      "updatedAt": "2026-04-01T05:33:59.689Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775021340196_eh1jm0",
+      "briefId": "brief_1775021340070_q8bdrv",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:29:00.196Z",
+      "updatedAt": "2026-04-01T05:29:00.196Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775021150847_mp23cg",
+      "briefId": "brief_1775021150707_5dowhh",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:25:50.846Z",
+      "updatedAt": "2026-04-01T05:25:50.846Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775021086264_qhyz9z",
+      "briefId": "brief_1775021086147_wr60p8",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:24:46.264Z",
+      "updatedAt": "2026-04-01T05:24:46.264Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775021019362_4uiv36",
+      "briefId": "brief_1775021019228_rhdtm4",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:23:39.362Z",
+      "updatedAt": "2026-04-01T05:23:39.362Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775020727254_lb8t11",
+      "briefId": "brief_1775020727130_ezbv7x",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:18:47.254Z",
+      "updatedAt": "2026-04-01T05:18:47.254Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775020598529_5mq7o3",
+      "briefId": "brief_1775020598398_jgxb2o",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:16:38.528Z",
+      "updatedAt": "2026-04-01T05:16:38.528Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775020180556_c220sz",
+      "briefId": "brief_1775020180441_1a4eg6",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T05:09:40.556Z",
+      "updatedAt": "2026-04-01T05:09:40.556Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775019414801_wvb0q1",
+      "briefId": "brief_1775019414610_4agjcv",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T04:56:54.800Z",
+      "updatedAt": "2026-04-01T04:56:54.800Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775018736440_54cfym",
+      "briefId": "brief_1775018736155_tqglw8",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T04:45:36.439Z",
+      "updatedAt": "2026-04-01T04:45:36.439Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775018667040_3fmbxq",
+      "briefId": "brief_1775018666803_hai4h4",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T04:44:27.040Z",
+      "updatedAt": "2026-04-01T04:44:27.040Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    },
+    {
+      "id": "report_1775018544627_qjb9bt",
+      "briefId": "brief_1775018544374_gjyn23",
+      "title": "Queued memo",
+      "format": "memo",
+      "status": "draft",
+      "createdAt": "2026-04-01T04:42:24.627Z",
+      "updatedAt": "2026-04-01T04:42:24.627Z",
+      "excerpt": "Queued creation",
+      "keyFindings": [
+        "One",
+        "Two"
+      ]
+    }
+  ]
+}

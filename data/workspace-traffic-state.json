@@ -1,0 +1,757 @@
+{
+  "lastSimulationAt": "2026-04-01T04:31:15.666Z",
+  "trafficSegments": [
+    {
+      "id": "seg-i90-west-loop",
+      "name": "I-90 Westbound",
+      "start": "Downtown",
+      "end": "West Loop",
+      "status": "moderate",
+      "speedMph": 29,
+      "averageSpeedMph": 42,
+      "travelTimeMinutes": 13,
+      "normalTimeMinutes": 9,
+      "corridor": "Downtown Spine",
+      "trend": "stable",
+      "coordinates": [
+        {
+          "x": 10,
+          "y": 40
+        },
+        {
+          "x": 22,
+          "y": 36
+        },
+        {
+          "x": 33,
+          "y": 34
+        },
+        {
+          "x": 47,
+          "y": 31
+        }
+      ],
+      "geoCoordinates": [
+        [
+          -122.433,
+          37.776
+        ],
+        [
+          -122.425,
+          37.773
+        ],
+        [
+          -122.415,
+          37.771
+        ],
+        [
+          -122.402,
+          37.768
+        ]
+      ]
+    },
+    {
+      "id": "seg-101-market-soma",
+      "name": "US-101 Northbound",
+      "start": "Market District",
+      "end": "SoMa",
+      "status": "light",
+      "speedMph": 42,
+      "averageSpeedMph": 44,
+      "travelTimeMinutes": 8,
+      "normalTimeMinutes": 8,
+      "corridor": "Civic Connector",
+      "trend": "stable",
+      "coordinates": [
+        {
+          "x": 54,
+          "y": 18
+        },
+        {
+          "x": 58,
+          "y": 29
+        },
+        {
+          "x": 60,
+          "y": 43
+        },
+        {
+          "x": 61,
+          "y": 58
+        }
+      ],
+      "geoCoordinates": [
+        [
+          -122.397,
+          37.789
+        ],
+        [
+          -122.395,
+          37.782
+        ],
+        [
+          -122.393,
+          37.773
+        ],
+        [
+          -122.391,
+          37.761
+        ]
+      ]
+    },
+    {
+      "id": "seg-i5-airport",
+      "name": "I-5 Southbound",
+      "start": "Central City",
+      "end": "Airport Connector",
+      "status": "light",
+      "speedMph": 57,
+      "averageSpeedMph": 58,
+      "travelTimeMinutes": 14,
+      "normalTimeMinutes": 14,
+      "corridor": "Airport Connector",
+      "trend": "stable",
+      "coordinates": [
+        {
+          "x": 22,
+          "y": 68
+        },
+        {
+          "x": 34,
+          "y": 63
+        },
+        {
+          "x": 48,
+          "y": 60
+        },
+        {
+          "x": 63,
+          "y": 56
+        }
+      ],
+      "geoCoordinates": [
+        [
+          -122.426,
+          37.744
+        ],
+        [
+          -122.413,
+          37.747
+        ],
+        [
+          -122.4,
+          37.75
+        ],
+        [
+          -122.387,
+          37.753
+        ]
+      ]
+    },
+    {
+      "id": "seg-beltline-east",
+      "name": "East Beltline",
+      "start": "Midtown",
+      "end": "Tech Park",
+      "status": "light",
+      "speedMph": 35,
+      "averageSpeedMph": 40,
+      "travelTimeMinutes": 13,
+      "normalTimeMinutes": 11,
+      "corridor": "Innovation Ring",
+      "trend": "stable",
+      "coordinates": [
+        {
+          "x": 30,
+          "y": 12
+        },
+        {
+          "x": 38,
+          "y": 21
+        },
+        {
+          "x": 46,
+          "y": 29
+        },
+        {
+          "x": 53,
+          "y": 39
+        }
+      ],
+      "geoCoordinates": [
+        [
+          -122.421,
+          37.794
+        ],
+        [
+          -122.413,
+          37.786
+        ],
+        [
+          -122.405,
+          37.778
+        ],
+        [
+          -122.397,
+          37.768
+        ]
+      ]
+    },
+    {
+      "id": "seg-river-bridge",
+      "name": "River Bridge",
+      "start": "Northbank",
+      "end": "Downtown",
+      "status": "light",
+      "speedMph": 34,
+      "averageSpeedMph": 37,
+      "travelTimeMinutes": 7,
+      "normalTimeMinutes": 6,
+      "corridor": "River Crossing",
+      "trend": "stable",
+      "coordinates": [
+        {
+          "x": 66,
+          "y": 26
+        },
+        {
+          "x": 72,
+          "y": 33
+        },
+        {
+          "x": 78,
+          "y": 41
+        },
+        {
+          "x": 84,
+          "y": 51
+        }
+      ],
+      "geoCoordinates": [
+        [
+          -122.389,
+          37.784
+        ],
+        [
+          -122.381,
+          37.778
+        ],
+        [
+          -122.373,
+          37.771
+        ],
+        [
+          -122.365,
+          37.762
+        ]
+      ]
+    },
+    {
+      "id": "seg-parkway-green",
+      "name": "Lakeside Parkway",
+      "start": "South Hills",
+      "end": "Medical District",
+      "status": "light",
+      "speedMph": 53,
+      "averageSpeedMph": 49,
+      "travelTimeMinutes": 9,
+      "normalTimeMinutes": 10,
+      "corridor": "Lakeside Arc",
+      "trend": "stable",
+      "coordinates": [
+        {
+          "x": 13,
+          "y": 78
+        },
+        {
+          "x": 24,
+          "y": 73
+        },
+        {
+          "x": 38,
+          "y": 70
+        },
+        {
+          "x": 52,
+          "y": 66
+        }
+      ],
+      "geoCoordinates": [
+        [
+          -122.434,
+          37.736
+        ],
+        [
+          -122.422,
+          37.74
+        ],
+        [
+          -122.408,
+          37.742
+        ],
+        [
+          -122.394,
+          37.746
+        ]
+      ]
+    }
+  ],
+  "incidents": [
+    {
+      "id": "inc-1",
+      "type": "accident",
+      "title": "Three-car crash near West Loop interchange",
+      "impact": "major",
+      "segmentId": "seg-i90-west-loop",
+      "location": "I-90 at Exit 16",
+      "description": "Two center lanes blocked and emergency crews on scene.",
+      "reportedAt": "2026-03-21T07:12:00-04:00",
+      "coordinate": {
+        "x": 29,
+        "y": 35
+      },
+      "geoCoordinate": [
+        -122.418,
+        37.772
+      ],
+      "active": true
+    },
+    {
+      "id": "inc-2",
+      "type": "construction",
+      "title": "Lane reduction approaching Tech Park",
+      "impact": "moderate",
+      "segmentId": "seg-beltline-east",
+      "location": "East Beltline at Orchard Ave",
+      "description": "Ongoing resurfacing project reducing traffic to one lane.",
+      "reportedAt": "2026-03-21T06:40:00-04:00",
+      "coordinate": {
+        "x": 49,
+        "y": 34
+      },
+      "geoCoordinate": [
+        -122.401,
+        37.773
+      ],
+      "active": true
+    }
+  ],
+  "history": [
+    {
+      "timestamp": "2026-03-18T08:00:00-04:00",
+      "averageCommuteMinutes": 24,
+      "byTimeOfDay": "Morning",
+      "dayOfWeek": "Wed",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 8,
+          "currentTimeMinutes": 27,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 10,
+          "currentTimeMinutes": 27,
+          "normalTimeMinutes": 17
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "heavy"
+        },
+        {
+          "segmentId": "seg-river-bridge",
+          "segmentName": "River Bridge",
+          "status": "heavy"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-19T17:30:00-04:00",
+      "averageCommuteMinutes": 29,
+      "byTimeOfDay": "Evening",
+      "dayOfWeek": "Thu",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 12,
+          "currentTimeMinutes": 31,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 7,
+          "currentTimeMinutes": 29,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "heavy"
+        },
+        {
+          "segmentId": "seg-101-market-soma",
+          "segmentName": "US-101 Northbound",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-30T08:21:12.297Z",
+      "averageCommuteMinutes": 22.7,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Mon",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 23,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 21,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 2,
+          "currentTimeMinutes": 24,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-beltline-east",
+          "segmentName": "East Beltline",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-river-bridge",
+          "segmentName": "River Bridge",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-30T08:22:12.290Z",
+      "averageCommuteMinutes": 22.7,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Mon",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 23,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 21,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 2,
+          "currentTimeMinutes": 24,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-beltline-east",
+          "segmentName": "East Beltline",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-river-bridge",
+          "segmentName": "River Bridge",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-30T08:23:12.349Z",
+      "averageCommuteMinutes": 22.7,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Mon",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 23,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 21,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 2,
+          "currentTimeMinutes": 24,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-beltline-east",
+          "segmentName": "East Beltline",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-river-bridge",
+          "segmentName": "River Bridge",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-30T08:24:12.423Z",
+      "averageCommuteMinutes": 22.7,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Mon",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 23,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 21,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 2,
+          "currentTimeMinutes": 24,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-beltline-east",
+          "segmentName": "East Beltline",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-river-bridge",
+          "segmentName": "River Bridge",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-30T08:25:12.328Z",
+      "averageCommuteMinutes": 22.7,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Mon",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 23,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 21,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 2,
+          "currentTimeMinutes": 24,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-beltline-east",
+          "segmentName": "East Beltline",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-river-bridge",
+          "segmentName": "River Bridge",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-30T08:26:12.414Z",
+      "averageCommuteMinutes": 22.7,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Mon",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 23,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 4,
+          "currentTimeMinutes": 21,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 2,
+          "currentTimeMinutes": 24,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-beltline-east",
+          "segmentName": "East Beltline",
+          "status": "moderate"
+        },
+        {
+          "segmentId": "seg-river-bridge",
+          "segmentName": "River Bridge",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-04-01T04:27:30.280Z",
+      "averageCommuteMinutes": 21,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Wed",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 3,
+          "currentTimeMinutes": 22,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 2,
+          "currentTimeMinutes": 19,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 0,
+          "currentTimeMinutes": 22,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-04-01T04:31:15.666Z",
+      "averageCommuteMinutes": 21.3,
+      "byTimeOfDay": "Night",
+      "dayOfWeek": "Wed",
+      "routeMetrics": [
+        {
+          "routeId": "route-home-work",
+          "routeLabel": "Home to Work",
+          "delayMinutes": 3,
+          "currentTimeMinutes": 22,
+          "normalTimeMinutes": 19
+        },
+        {
+          "routeId": "route-daycare-office",
+          "routeLabel": "Daycare to Office",
+          "delayMinutes": 3,
+          "currentTimeMinutes": 20,
+          "normalTimeMinutes": 17
+        },
+        {
+          "routeId": "route-office-airport",
+          "routeLabel": "Office to Airport",
+          "delayMinutes": 0,
+          "currentTimeMinutes": 22,
+          "normalTimeMinutes": 22
+        }
+      ],
+      "congestedSegments": [
+        {
+          "segmentId": "seg-i90-west-loop",
+          "segmentName": "I-90 Westbound",
+          "status": "moderate"
+        }
+      ]
+    }
+  ]
+}
