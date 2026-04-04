@@ -12,6 +12,9 @@ test("dashboard shows workspace structure", async ({ page }) => {
   await expect(page.getByText(/workspace dashboard/i)).toBeVisible();
   await expect(page.getByText(/command workspace/i)).toBeVisible();
   await expect(page.getByText(/today's workspace focus/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: /open console/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /open operations/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /open briefs/i })).toBeVisible();
 });
 
 test("mobile layout avoids horizontal overflow on key routes", async ({ page }) => {

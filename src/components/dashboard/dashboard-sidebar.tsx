@@ -5,11 +5,11 @@ import { Card } from "@/src/components/ui/card";
 import { cn } from "@/src/lib/utils";
 
 const sidebarItems = [
-  { label: "Overview", active: true },
-  { label: "Workspaces" },
-  { label: "Automations" },
-  { label: "Activity" },
-  { label: "Insights" },
+  { label: "Overview", href: "/dashboard", active: true },
+  { label: "Workspaces", href: "/operations" },
+  { label: "Automations", href: "/operations" },
+  { label: "Activity", href: "/console" },
+  { label: "Insights", href: "/reports" },
 ];
 
 export function DashboardSidebar() {
@@ -27,9 +27,9 @@ export function DashboardSidebar() {
 
       <div className="mt-6 space-y-2">
         {sidebarItems.map((item) => (
-          <button
+          <Link
             key={item.label}
-            type="button"
+            href={item.href}
             className={cn(
               "flex w-full items-center justify-between rounded-[18px] px-4 py-3 text-sm transition",
               item.active ? "bg-white text-slate-950" : "bg-white/0 text-slate-300 hover:bg-white/6 hover:text-white",
@@ -37,7 +37,7 @@ export function DashboardSidebar() {
           >
             <span>{item.label}</span>
             {item.active ? <Sparkles className="h-4 w-4" /> : null}
-          </button>
+          </Link>
         ))}
       </div>
 

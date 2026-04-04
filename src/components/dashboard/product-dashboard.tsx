@@ -5,9 +5,13 @@ import {
   Activity,
   ArrowRight,
   Bot,
+  CheckCircle2,
   FolderOpenDot,
   Gauge,
   LayoutGrid,
+  LucideIcon,
+  Orbit,
+  PlayCircle,
   ShieldCheck,
   Sparkles,
   TimerReset,
@@ -112,6 +116,30 @@ const laneCards = [
     detail: "Low-pressure work that can stay visually secondary.",
   },
 ];
+
+const operatorActions = [
+  {
+    title: "Run the console",
+    description: "Jump straight into the live command desk when you need to route work or inspect runtime output.",
+    href: "/console",
+    cta: "Open console",
+    icon: PlayCircle,
+  },
+  {
+    title: "Check operations",
+    description: "Review approvals, automation health, and workspace pressure from the broader control plane.",
+    href: "/operations",
+    cta: "Open operations",
+    icon: Orbit,
+  },
+  {
+    title: "Review briefs",
+    description: "Move from status scanning into actual editorial work when the dashboard flags research flow risk.",
+    href: "/briefs",
+    cta: "Open briefs",
+    icon: CheckCircle2,
+  },
+] as const;
 
 export function ProductDashboard() {
   return (
@@ -325,6 +353,12 @@ export function ProductDashboard() {
               </div>
             </Card>
           </section>
+
+          <section className="grid gap-4 xl:grid-cols-3">
+            {operatorActions.map((action) => (
+              <OperatorActionCard key={action.title} {...action} />
+            ))}
+          </section>
         </div>
       </div>
     </div>
@@ -337,5 +371,38 @@ function WorkspaceMeta({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{label}</p>
       <p className="mt-2 text-sm font-semibold text-white">{value}</p>
     </div>
+  );
+}
+
+function OperatorActionCard({
+  title,
+  description,
+  href,
+  cta,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="rounded-[18px] border border-white/10 bg-white/6 p-3 text-white">
+          <Icon className="h-5 w-5" />
+        </div>
+        <Badge className="border-white/10 bg-white/6 text-slate-200">Operator action</Badge>
+      </div>
+      <div className="mt-5">
+        <CardTitle>{title}</CardTitle>
+        <CardDescription className="mt-3 leading-6">{description}</CardDescription>
+      </div>
+      <Link href={href} className={cn(buttonVariants({ variant: "outline" }), "mt-6 w-full justify-between")}>
+        {cta}
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </Card>
   );
 }
