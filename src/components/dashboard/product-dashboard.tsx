@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -27,72 +28,109 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src
 import { SectionShell } from "@/src/components/ui/section-shell";
 import { cn } from "@/src/lib/utils";
 
-const summaryCards = [
+type DashboardCard = {
+  label: string;
+  value: string;
+  detail: string;
+  icon: "LayoutGrid" | "Gauge" | "ShieldCheck" | "Sparkles";
+};
+
+type DashboardWorkspace = {
+  name: string;
+  state: string;
+  tone: string;
+  updatedAt: string | null;
+  summary: string;
+  meta: Array<{ label: string; value: string }>;
+};
+
+type DashboardFeedItem = {
+  title: string;
+  time: string;
+  tag: string;
+  tone?: "default" | "highlight";
+};
+
+type DashboardSnapshot = {
+  generatedAt: string;
+  summaryCards: DashboardCard[];
+  workspaces: DashboardWorkspace[];
+  activityFeed: DashboardFeedItem[];
+  timelineFeed: DashboardFeedItem[];
+};
+
+const summaryCardsFallback: DashboardCard[] = [
   {
     label: "Active Workspaces",
     value: "24",
     detail: "+6 this week",
-    icon: LayoutGrid,
+    icon: "LayoutGrid",
   },
   {
     label: "Agent Throughput",
     value: "91%",
     detail: "Stable across routing",
-    icon: Gauge,
+    icon: "Gauge",
   },
   {
     label: "Guardrail Health",
     value: "99.2%",
     detail: "All approvals passing",
-    icon: ShieldCheck,
+    icon: "ShieldCheck",
   },
   {
     label: "Automation Wins",
     value: "128",
     detail: "Manual steps removed",
-    icon: Sparkles,
+    icon: "Sparkles",
   },
 ];
 
-const workspaces = [
+const workspacesFallback: DashboardWorkspace[] = [
   {
     name: "Product Launch",
     state: "Live review",
-    score: "94",
-    owners: "Design + Eng",
     tone: "bg-emerald-400",
-    updated: "Updated 7 minutes ago",
+    updatedAt: new Date().toISOString(),
     summary: "Release notes, design sign-off, and routing QA are aligned and ready for the next decision.",
+    meta: [
+      { label: "Health", value: "94" },
+      { label: "Owners", value: "Design + Eng" },
+    ],
   },
   {
     name: "Ops Escalation",
     state: "Needs approval",
-    score: "81",
-    owners: "Platform",
     tone: "bg-amber-300",
-    updated: "Updated 21 minutes ago",
+    updatedAt: new Date().toISOString(),
     summary: "One follow-up is waiting on an approver target before the sweep can continue.",
+    meta: [
+      { label: "Health", value: "81" },
+      { label: "Owners", value: "Platform" },
+    ],
   },
   {
     name: "Research Desk",
     state: "Drafting report",
-    score: "89",
-    owners: "Analysts",
     tone: "bg-sky-300",
-    updated: "Updated 43 minutes ago",
+    updatedAt: new Date().toISOString(),
     summary: "Research synthesis is almost publishable, with strong source coverage and one final edit pass.",
+    meta: [
+      { label: "Health", value: "89" },
+      { label: "Owners", value: "Analysts" },
+    ],
   },
 ];
 
-const activityFeed = [
-  { title: "Risk digest sent", time: "2 min ago", tag: "Automation", tone: "highlight" as const },
+const activityFeedFallback: DashboardFeedItem[] = [
+  { title: "Risk digest sent", time: "2 min ago", tag: "Automation", tone: "highlight" },
   { title: "Brief approved for publish", time: "18 min ago", tag: "Review" },
   { title: "Console run completed", time: "36 min ago", tag: "Runtime" },
   { title: "Ownership handoff accepted", time: "1 hr ago", tag: "Collaboration" },
 ];
 
-const timelineFeed = [
-  { title: "Launch workspace moved into review", time: "08:42", tag: "Workspace", tone: "highlight" as const },
+const timelineFeedFallback: DashboardFeedItem[] = [
+  { title: "Launch workspace moved into review", time: "08:42", tag: "Workspace", tone: "highlight" },
   { title: "Automation sweep queued for policy board", time: "09:15", tag: "Queue" },
   { title: "Research digest draft delivered to ops", time: "09:28", tag: "Report" },
 ];
@@ -141,7 +179,69 @@ const operatorActions = [
   },
 ] as const;
 
+const iconMap = {
+  LayoutGrid,
+  Gauge,
+  ShieldCheck,
+  Sparkles,
+} as const;
+
+function formatRelativeTime(value?: string | null) {
+  if (!value) {
+    return "Updated recently";
+  }
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) {
+    return value;
+  }
+
+  const deltaMs = Date.now() - timestamp;
+  const minutes = Math.max(1, Math.round(deltaMs / 60_000));
+  if (minutes < 60) {
+    return `Updated ${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) {
+    return `Updated ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+  const days = Math.round(hours / 24);
+  return `Updated ${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 export function ProductDashboard() {
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSnapshot() {
+      try {
+        const response = await fetch("/api/dashboard", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as DashboardSnapshot;
+        if (active) {
+          setSnapshot(payload);
+        }
+      } catch {
+        // Keep the fallback dashboard visible when live state is unavailable.
+      }
+    }
+
+    void loadSnapshot();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const summaryCards = useMemo(() => snapshot?.summaryCards ?? summaryCardsFallback, [snapshot]);
+  const workspaces = useMemo(() => snapshot?.workspaces ?? workspacesFallback, [snapshot]);
+  const activityFeed = useMemo(() => snapshot?.activityFeed ?? activityFeedFallback, [snapshot]);
+  const timelineFeed = useMemo(() => snapshot?.timelineFeed ?? timelineFeedFallback, [snapshot]);
+
   return (
     <div className="space-y-6 md:space-y-8">
       <SectionShell className="p-6 sm:p-8">
@@ -175,7 +275,7 @@ export function ProductDashboard() {
         <div className="space-y-4 xl:space-y-5">
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {summaryCards.map((item) => (
-              <StatCard key={item.label} {...item} />
+              <StatCard key={item.label} label={item.label} value={item.value} detail={item.detail} icon={iconMap[item.icon]} />
             ))}
           </section>
 
@@ -188,7 +288,9 @@ export function ProductDashboard() {
                     The page leads with active decisions, then fans out into supporting content. That keeps the hierarchy strong and believable.
                   </CardDescription>
                 </div>
-                <Badge className="border-white/10 bg-white/6 text-slate-200">Updated live</Badge>
+                <Badge className="border-white/10 bg-white/6 text-slate-200">
+                  {snapshot?.generatedAt ? `Live at ${new Date(snapshot.generatedAt).toLocaleTimeString()}` : "Preview"}
+                </Badge>
               </div>
 
               <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -249,12 +351,13 @@ export function ProductDashboard() {
                           </span>
                         </div>
                         <p className="mt-3 text-sm leading-6 text-slate-300">{workspace.summary}</p>
-                        <p className="mt-3 text-xs uppercase tracking-[0.24em] text-slate-500">{workspace.updated}</p>
+                        <p className="mt-3 text-xs uppercase tracking-[0.24em] text-slate-500">{formatRelativeTime(workspace.updatedAt)}</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 lg:min-w-[250px]">
-                        <WorkspaceMeta label="Health" value={workspace.score} />
-                        <WorkspaceMeta label="Owners" value={workspace.owners} />
+                        {workspace.meta.map((item) => (
+                          <WorkspaceMeta key={`${workspace.name}-${item.label}`} label={item.label} value={item.value} />
+                        ))}
                       </div>
                     </div>
                   </div>
