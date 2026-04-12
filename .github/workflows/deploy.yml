@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload deploy bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-command-console-release-${{ steps.metadata.outputs.release_version }}
           path: ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz
