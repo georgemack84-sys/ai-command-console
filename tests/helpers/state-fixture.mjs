@@ -6,6 +6,8 @@ export const TEST_RUNTIME_ROOT =
   process.env.AI_COMMAND_CONSOLE_DATA_ROOT || path.join(process.cwd(), ".codex-temp", "legacy-test-runtime");
 
 process.env.AI_COMMAND_CONSOLE_DATA_ROOT = TEST_RUNTIME_ROOT;
+delete process.env.AI_COMMAND_CONSOLE_DATABASE_PATH;
+delete process.env.AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH;
 
 const require = createRequire(import.meta.url);
 const { closeDatabase } = require("../../services/stateDatabase");

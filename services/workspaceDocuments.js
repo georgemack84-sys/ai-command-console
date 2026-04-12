@@ -118,9 +118,17 @@ function saveWorkspaceDocument(key, value, options = {}) {
   return value;
 }
 
+function closeWorkspaceDatabase() {
+  if (database) {
+    database.close();
+    database = null;
+  }
+}
+
 module.exports = {
   loadWorkspaceDocument,
   saveWorkspaceDocument,
   getWorkspaceDatabasePath,
   getStorageDriver,
+  closeWorkspaceDatabase,
 };

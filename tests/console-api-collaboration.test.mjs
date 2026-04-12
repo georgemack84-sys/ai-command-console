@@ -34,6 +34,9 @@ import {
   BRIEFS_STORE_PATH,
   REPORTS_STORE_PATH,
   WORKSPACE_USERS_PATH,
+  saveWorkspaceRoutesStore,
+  saveWorkspaceBriefStore,
+  saveWorkspaceReportStore,
   resetState,
   snapshotFiles,
   restoreFiles,
@@ -49,47 +52,23 @@ test("workspace ownership signals appear in overview and command output", async 
     resetState();
     const workspaceId = "workspace_signal_test";
 
-    fs.writeFileSync(
-      BRIEFS_STORE_PATH,
-      JSON.stringify(
-        {
-          [workspaceId]: [
-            { id: "brief_1", title: "Orphaned brief", question: "Who owns this?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
-          ],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-    fs.writeFileSync(
-      REPORTS_STORE_PATH,
-      JSON.stringify(
-        {
-          [workspaceId]: [
-            { id: "report_1", briefId: "brief_1", title: "Owned report", format: "memo", status: "draft", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ownerId: "alex", ownerName: "Alex", excerpt: "owned", keyFindings: [] },
-          ],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-    fs.writeFileSync(
-      ROUTES_STORE_PATH,
-      JSON.stringify(
-        {
-          [workspaceId]: [
-            { id: "route_1", label: "North loop", route: "north", origin: "A", destination: "B", ownerId: "alex", ownerName: "Alex" },
-            { id: "route_2", label: "South loop", route: "south", origin: "C", destination: "D", ownerId: "alex", ownerName: "Alex" },
-            { id: "route_3", label: "East loop", route: "east", origin: "E", destination: "F", ownerId: "alex", ownerName: "Alex" },
-          ],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
+    saveWorkspaceBriefStore({
+      [workspaceId]: [
+        { id: "brief_1", title: "Orphaned brief", question: "Who owns this?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
+      ],
+    });
+    saveWorkspaceReportStore({
+      [workspaceId]: [
+        { id: "report_1", briefId: "brief_1", title: "Owned report", format: "memo", status: "draft", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ownerId: "alex", ownerName: "Alex", excerpt: "owned", keyFindings: [] },
+      ],
+    });
+    saveWorkspaceRoutesStore({
+      [workspaceId]: [
+        { id: "route_1", label: "North loop", route: "north", origin: "A", destination: "B", ownerId: "alex", ownerName: "Alex" },
+        { id: "route_2", label: "South loop", route: "south", origin: "C", destination: "D", ownerId: "alex", ownerName: "Alex" },
+        { id: "route_3", label: "East loop", route: "east", origin: "E", destination: "F", ownerId: "alex", ownerName: "Alex" },
+      ],
+    });
 
     const overview = await handleConsoleRequest(
       { command: "help" },
@@ -157,19 +136,11 @@ test("operator inbox aggregates ownership signals, handoffs, and approvals", asy
       { userId: "alex", userName: "Alex Editor", userRole: "operator", workspaceId }
     );
 
-    fs.writeFileSync(
-      BRIEFS_STORE_PATH,
-      JSON.stringify(
-        {
-          [workspaceId]: [
-            { id: "brief_orphaned", title: "Unowned brief", question: "Who should own it?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
-          ],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
+    saveWorkspaceBriefStore({
+      [workspaceId]: [
+        { id: "brief_orphaned", title: "Unowned brief", question: "Who should own it?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
+      ],
+    });
 
     const adminView = await handleConsoleRequest(
       { command: "help" },
@@ -202,19 +173,11 @@ test("inbox items can be marked read and acknowledged per user", async () => {
     resetState();
     const workspaceId = "workspace_inbox_state_test";
 
-    fs.writeFileSync(
-      BRIEFS_STORE_PATH,
-      JSON.stringify(
-        {
-          [workspaceId]: [
-            { id: "brief_unowned", title: "Unowned brief", question: "Who owns this?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
-          ],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
+    saveWorkspaceBriefStore({
+      [workspaceId]: [
+        { id: "brief_unowned", title: "Unowned brief", question: "Who owns this?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
+      ],
+    });
 
     const before = await handleConsoleRequest(
       { command: "help" },
@@ -260,19 +223,11 @@ test("notification history keeps handled inbox items after live sources clear", 
     resetState();
     const workspaceId = "workspace_notification_history_test";
 
-    fs.writeFileSync(
-      BRIEFS_STORE_PATH,
-      JSON.stringify(
-        {
-          [workspaceId]: [
-            { id: "brief_history", title: "History brief", question: "Will this remain visible?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
-          ],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
+    saveWorkspaceBriefStore({
+      [workspaceId]: [
+        { id: "brief_history", title: "History brief", question: "Will this remain visible?", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
+      ],
+    });
 
     const overview = await handleConsoleRequest(
       { command: "help" },
@@ -287,7 +242,7 @@ test("notification history keeps handled inbox items after live sources clear", 
     );
     assert.ok(acknowledged.overview.collaboration.notificationHistory.some((item) => item.id === inboxItem.id && item.acknowledged));
 
-    fs.writeFileSync(BRIEFS_STORE_PATH, JSON.stringify({ [workspaceId]: [] }, null, 2), "utf8");
+    saveWorkspaceBriefStore({ [workspaceId]: [] });
 
     const refreshed = await handleConsoleRequest(
       { command: "inbox:history" },
@@ -371,19 +326,11 @@ test("digest preferences persist and digest runs capture notification summaries"
     resetState();
     const workspaceId = "workspace_digest_test";
 
-    fs.writeFileSync(
-      BRIEFS_STORE_PATH,
-      JSON.stringify(
-        {
-          [workspaceId]: [
-            { id: "brief_digest", title: "Digest brief", question: "Should appear in digest", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
-          ],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
+    saveWorkspaceBriefStore({
+      [workspaceId]: [
+        { id: "brief_digest", title: "Digest brief", question: "Should appear in digest", status: "draft", priority: "medium", assignedAgent: "researcher", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), summary: "orphaned", linkedTaskId: null },
+      ],
+    });
 
     const savedPreferences = await handleConsoleRequest(
       {

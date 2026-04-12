@@ -8,6 +8,11 @@ const { closeDatabase } = require("../../services/stateDatabase");
 const { closeJobStore } = require("../../services/jobQueueStore");
 const { getProfilePath } = require("../../services/agentProfiles");
 const { getWorkspaceDataPath } = require("../../services/runtimePaths");
+const {
+  getWorkspaceDatabasePath,
+  closeWorkspaceDatabase,
+  saveWorkspaceDocument,
+} = require("../../services/workspaceDocuments");
 
 export { fs, path, restoreFiles, snapshotFiles };
 
@@ -47,10 +52,35 @@ export const BRIEFS_STORE_PATH = getWorkspaceDataPath("research-briefs.json");
 export const REPORTS_STORE_PATH = getWorkspaceDataPath("research-reports.json");
 export const WORKSPACE_USERS_PATH = getWorkspaceDataPath("workspace-users.json");
 
+export function saveWorkspaceRoutesStore(store) {
+  return saveWorkspaceDocument("workspace.routes", store, { legacyPath: ROUTES_STORE_PATH });
+}
+
+export function saveWorkspaceBriefStore(store) {
+  return saveWorkspaceDocument("workspace.research-briefs", store, { legacyPath: BRIEFS_STORE_PATH });
+}
+
+export function saveWorkspaceReportStore(store) {
+  return saveWorkspaceDocument("workspace.research-reports", store, { legacyPath: REPORTS_STORE_PATH });
+}
+
+export function saveWorkspaceUsersStore(users) {
+  return saveWorkspaceDocument("workspace.users", users, { legacyPath: WORKSPACE_USERS_PATH });
+}
+
 export function resetState() {
   closeJobStore();
   closeDatabase();
+  closeWorkspaceDatabase();
   clearJobs();
+  const workspaceDatabasePath = getWorkspaceDatabasePath();
+  for (const filePath of [workspaceDatabasePath, `${workspaceDatabasePath}-wal`, `${workspaceDatabasePath}-shm`]) {
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch {}
+  }
 
   saveQueue({
     createdAt: new Date().toISOString(),
