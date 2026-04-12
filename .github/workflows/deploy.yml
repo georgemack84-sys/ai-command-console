@@ -37,7 +37,6 @@ jobs:
     environment:
       name: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || 'staging' }}
     env:
-      NODE_ENV: production
       AI_COMMAND_CONSOLE_AUTH_SECRET: ci-placeholder-secret
       AI_COMMAND_CONSOLE_STORAGE_DRIVER: sqlite
       AI_COMMAND_CONSOLE_DATABASE_PATH: ./data/workspace.sqlite
@@ -95,7 +94,7 @@ jobs:
 
       - name: Check out repository
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.metadata.outputs.source_sha }}
 
@@ -110,7 +109,7 @@ jobs:
 
       - name: Set up Node.js
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
@@ -138,6 +137,8 @@ jobs:
 
       - name: Build standalone bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        env:
+          NODE_ENV: production
         run: npm run build
 
       - name: Assemble deploy bundle
