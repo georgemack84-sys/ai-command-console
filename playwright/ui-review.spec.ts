@@ -1,18 +1,5 @@
-import { test, type Page } from "@playwright/test";
-
-async function signUpAndAuthenticate(page: Page) {
-  const seed = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const response = await page.request.post("/api/auth/signup", {
-    data: {
-      name: `Playwright ${seed}`,
-      email: `playwright-${seed}@example.com`,
-      password: "playwright-password",
-    },
-  });
-  if (!response.ok()) {
-    throw new Error(`Failed to authenticate test user for ${page.url() || "requested route"}`);
-  }
-}
+import { test } from "@playwright/test";
+import { loginAsShowcaseAdmin } from "./helpers/auth";
 
 const routes = [
   { slug: "home", path: "/" },
@@ -26,16 +13,16 @@ const routes = [
 test.describe("desktop visual review captures", () => {
   for (const route of routes) {
     test(`capture ${route.slug}`, async ({ page }, testInfo) => {
-      if (route.slug === "briefs" || route.slug === "reports") {
-        await signUpAndAuthenticate(page);
+      if (route.slug === "dashboard" || route.slug === "console" || route.slug === "briefs" || route.slug === "reports") {
+        await loginAsShowcaseAdmin(page, route.path);
       }
-      await page.goto(route.path, { waitUntil: route.slug === "console" ? "domcontentloaded" : "networkidle" });
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
       if (route.slug === "console") {
         await page.getByText(/operations console/i).waitFor();
       }
       await page.screenshot({
         path: testInfo.outputPath(`${route.slug}.png`),
-        fullPage: true,
+        fullPage: false,
       });
     });
   }

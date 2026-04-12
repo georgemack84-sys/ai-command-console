@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const { getRuntimeLogPath } = require("./runtimePaths");
 
-const logDir = path.join(__dirname, "../logs");
+const logDir = getRuntimeLogPath();
 const diagnosticsLogFile = path.join(logDir, "diagnostics.log");
 const throttleState = new Map();
 

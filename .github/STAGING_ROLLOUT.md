@@ -21,6 +21,8 @@ npm run deployment:inventory -- staging
 - Create the shared writable directories used by your runtime env.
 - Configure the app runtime environment on the host:
   - `AI_COMMAND_CONSOLE_AUTH_SECRET`
+  - `DATABASE_URL`
+  - `NEXT_PUBLIC_APP_URL`
   - `AI_COMMAND_CONSOLE_STORAGE_DRIVER=sqlite`
   - `AI_COMMAND_CONSOLE_DATABASE_PATH`
   - `AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH`
@@ -35,9 +37,7 @@ npm run deployment:inventory -- staging
 - Confirm local checks are green:
 
 ```bash
-npm run lint
-npm test
-npm run build
+npm run verify
 ```
 
 - Confirm the deploy contract is valid in GitHub Actions or locally with matching env:
@@ -62,7 +62,7 @@ In GitHub Actions:
 
 - `Validate deploy configuration` passes
 - `Run preflight` passes
-- `Lint`, `Test`, and `Build standalone bundle` pass
+- `Lint`, `Test`, `Build standalone bundle`, and `Guard Legacy Runtime Residue` pass
 - `Deploy over SSH` passes
 - `Post-deploy smoke check` passes
 - deployment summary shows the expected release version and host
@@ -72,6 +72,7 @@ In the app:
 - `GET /api/health` returns `200`
 - `GET /api/ready` returns `200`
 - `/auth` loads successfully
+- `/settings` loads and shows workspace/invite state
 - `/platform` shows healthy deployment posture
 - runtime diagnostics do not show new high-severity failures
 - active alerts do not show runtime readiness/liveness failures after rollout stabilizes
@@ -106,3 +107,4 @@ Staging is considered healthy when all are true:
 - the platform diagnostics panel has no new recurring high-severity runtime events
 - active runtime alerts are absent or acknowledged and understood
 - operators can log in and reach `/console`, `/operations`, and `/platform`
+- workspace owners can reach `/settings`

@@ -1,4 +1,20 @@
 import path from "node:path";
+import {
+  aiSummaryEvaluationsEnabled,
+  aiSummaryAllowsMockFallback,
+  env,
+  getAiSummaryDailyBudgetUsd,
+  getAiSummaryEstimatedCostPerRunUsd,
+  getAiSummaryMaxAttempts,
+  getAiSummaryTimeoutMs,
+  getJobQueueMaxPending,
+  getJobQueueMaxRunning,
+  getJobWorkerPollIntervalMs,
+  getSessionMaxAgeSeconds,
+  isProduction,
+  secureCookiesEnabled,
+  writeLegacyJsonMirrorsEnabled,
+} from "@/src/config/env";
 
 export type StorageDriver = "json" | "sqlite";
 
@@ -8,7 +24,7 @@ function readEnv(name: string) {
 }
 
 export function isProductionRuntime() {
-  return process.env.NODE_ENV === "production";
+  return isProduction();
 }
 
 export function getStorageDriver(): StorageDriver {
@@ -16,8 +32,7 @@ export function getStorageDriver(): StorageDriver {
   if (configured === "json" || configured === "sqlite") {
     return configured;
   }
-
-  return isProductionRuntime() ? "sqlite" : "json";
+  return isProduction() ? "sqlite" : "json";
 }
 
 export function getWorkspaceDataRoot() {
@@ -32,6 +47,14 @@ export function getAgentsDataPath(...segments: string[]) {
   return path.join(getWorkspaceDataRoot(), "agents", ...segments);
 }
 
+export function getRuntimeLogPath(...segments: string[]) {
+  return path.join(getWorkspaceDataRoot(), "logs", ...segments);
+}
+
+export function getRuntimeMemoryPath(...segments: string[]) {
+  return path.join(getWorkspaceDataRoot(), "memory", ...segments);
+}
+
 export function getWorkspaceDatabasePath() {
   return readEnv("AI_COMMAND_CONSOLE_DATABASE_PATH") || getWorkspaceDataPath("workspace.sqlite");
 }
@@ -40,42 +63,58 @@ export function getAgentsDatabasePath() {
   return readEnv("AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH") || getAgentsDataPath("console.sqlite");
 }
 
+export function shouldWriteLegacyJsonMirrors() {
+  return writeLegacyJsonMirrorsEnabled();
+}
+
 export function areSecureCookiesEnabled() {
-  const configured = readEnv("AI_COMMAND_CONSOLE_SECURE_COOKIES").toLowerCase();
-  if (configured === "true" || configured === "1" || configured === "yes") {
-    return true;
-  }
-  if (configured === "false" || configured === "0" || configured === "no") {
-    return false;
-  }
-
-  return isProductionRuntime();
+  return secureCookiesEnabled();
 }
 
-export function getSessionMaxAgeSeconds() {
-  const configured = Number(readEnv("AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS"));
-  return Number.isFinite(configured) && configured > 0 ? Math.floor(configured) : 60 * 60 * 24 * 14;
-}
+export { getSessionMaxAgeSeconds };
 
 export function getAuthSecret() {
-  const configured = readEnv("AI_COMMAND_CONSOLE_AUTH_SECRET");
-  if (configured) {
-    return configured;
-  }
-
-  if (isProductionRuntime()) {
-    throw new Error("AI_COMMAND_CONSOLE_AUTH_SECRET must be configured in production.");
-  }
-
-  return "ai-command-console-dev-only-secret";
+  return env.AI_COMMAND_CONSOLE_AUTH_SECRET;
 }
 
 export function getRuntimePosture() {
+  const memoryUsage = process.memoryUsage();
+
   return {
-    environment: process.env.NODE_ENV || "development",
+    environment: env.NODE_ENV,
     storageDriver: getStorageDriver(),
-    authSecretConfigured: Boolean(readEnv("AI_COMMAND_CONSOLE_AUTH_SECRET")),
-    secureCookies: areSecureCookiesEnabled(),
+    writeLegacyJsonMirrors: shouldWriteLegacyJsonMirrors(),
+    authSecretConfigured: Boolean(env.AI_COMMAND_CONSOLE_AUTH_SECRET),
+    secureCookies: secureCookiesEnabled(),
     sessionMaxAgeSeconds: getSessionMaxAgeSeconds(),
+    databaseUrlConfigured: Boolean(env.DATABASE_URL),
+    aiSummary: {
+      providerMode: env.AI_SUMMARY_PROVIDER_MODE,
+      model: env.AI_SUMMARY_MODEL,
+      timeoutMs: getAiSummaryTimeoutMs(),
+      maxAttempts: getAiSummaryMaxAttempts(),
+      allowMockFallback: aiSummaryAllowsMockFallback(),
+      openAiConfigured: Boolean(env.OPENAI_API_KEY),
+      dailyBudgetUsd: getAiSummaryDailyBudgetUsd(),
+      estimatedCostPerRunUsd: getAiSummaryEstimatedCostPerRunUsd(),
+      evaluationsEnabled: aiSummaryEvaluationsEnabled(),
+    },
+    jobs: {
+      executionMode: env.JOB_QUEUE_EXECUTION_MODE,
+      workerPollIntervalMs: getJobWorkerPollIntervalMs(),
+      maxPendingJobs: getJobQueueMaxPending(),
+      maxRunningJobs: getJobQueueMaxRunning(),
+      externalWorkerRecommended: env.JOB_QUEUE_EXECUTION_MODE !== "external",
+    },
+    process: {
+      pid: process.pid,
+      uptimeSeconds: Math.round(process.uptime()),
+      memory: {
+        rssMb: Math.round(memoryUsage.rss / 1024 / 1024),
+        heapUsedMb: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+        heapTotalMb: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+        externalMb: Math.round(memoryUsage.external / 1024 / 1024),
+      },
+    },
   };
 }

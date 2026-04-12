@@ -3,10 +3,16 @@ const path = require("path");
 const { getTaskById, addTask } = require("./taskQueue");
 const { sendReviewReply } = require("./reviewReplies");
 const { loadDocument, saveDocument } = require("./stateDatabase");
-const { getAgentsDataPath } = require("./runtimePaths");
+const { getAgentsDataPath, getRuntimeLogPath } = require("./runtimePaths");
+const {
+  createDefaultReviewState,
+  normalizeReviewState,
+  buildReviewItem,
+  buildReviewReply,
+} = require("./reviewQueueState");
 
 const REVIEW_PATH = getAgentsDataPath("reviewQueue.json");
-const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
+const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 const REVIEW_KEY = "reviewQueue";
 
 function ensureReviewDir() {
@@ -15,11 +21,7 @@ function ensureReviewDir() {
 }
 
 function defaultReviewState() {
-  return {
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    items: []
-  };
+  return createDefaultReviewState();
 }
 
 function loadReviewState() {
@@ -44,10 +46,7 @@ function saveReviewState(state) {
 
   return saveDocument(
     REVIEW_KEY,
-    {
-      createdAt: state.createdAt || new Date().toISOString(),
-      items: Array.isArray(state.items) ? state.items : [],
-    },
+    normalizeReviewState(state),
     { legacyPath: REVIEW_PATH }
   );
 }
@@ -64,26 +63,7 @@ function logReviewEvent(payload) {
 }
 
 function makeReviewItem(task) {
-  return {
-    id: `review_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    taskId: task.id,
-    agentName: task.agentName,
-    taskDescription: task.description,
-    taskResult: task.result,
-    callbackMessageId: task.callback?.callbackMessageId || null,
-    status: "pending",
-    decision: null,
-    decisionNote: null,
-    followupTaskId: null,
-    reviewReply: {
-      sent: false,
-      replyType: null,
-      messageId: null,
-      sentAt: null
-    },
-    createdAt: new Date().toISOString(),
-    reviewedAt: null
-  };
+  return buildReviewItem(task);
 }
 
 function listReviewItems() {
@@ -151,12 +131,7 @@ function markReplySent(taskId, replyType, messageId) {
   return updateReviewItem(taskId, (current) => {
     return {
       ...current,
-      reviewReply: {
-        sent: true,
-        replyType: replyType || null,
-        messageId: messageId || null,
-        sentAt: new Date().toISOString()
-      }
+      reviewReply: buildReviewReply(replyType, messageId)
     };
   });
 }

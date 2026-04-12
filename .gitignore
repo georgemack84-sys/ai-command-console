@@ -18,3 +18,9 @@ journal.txt
 playwright-artifacts
 test-results
 playwright-report
+coverage
+.codex-temp-*.txt
+ai-command-console-report-*.txt
+project-files.txt
+project-report.txt
+.next-dev*.log

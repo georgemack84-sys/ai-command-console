@@ -10,12 +10,13 @@ export function SearchFilterBar({
     <div className="flex flex-col gap-4 border-b border-white/10 pb-5 xl:flex-row xl:items-center xl:justify-between">
       <div className="flex flex-1 items-center gap-3 rounded-[24px] border border-white/10 bg-slate-950/65 px-4 py-3">
         <Search className="h-4 w-4 text-slate-500" />
-        <input
-          readOnly
-          value="Search workspaces, owners, or tasks"
+        <div
           className="w-full bg-transparent text-sm text-slate-400 outline-none"
           aria-label="Search"
-        />
+          role="status"
+        >
+          Search workspaces, owners, or tasks
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         <button

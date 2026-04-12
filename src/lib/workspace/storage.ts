@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { AssistantMemoryEntry } from "@/src/lib/assistant/types";
 import { demoResearchBriefs, demoResearchReports, demoSavedRoutes, getDemoTrafficState } from "@/src/lib/mock-data";
-import { getStorageDriver, getWorkspaceDataPath } from "@/src/lib/server/runtime";
+import { getStorageDriver, getWorkspaceDataPath, shouldWriteLegacyJsonMirrors } from "@/src/lib/server/runtime";
 import { readWorkspaceDocument, writeWorkspaceDocument } from "@/src/lib/server/workspace-store";
 import type { ResearchBrief, ResearchReport, SavedRoute, TrafficState, UserAccount, UserRole, UserStatus } from "@/src/lib/types";
 
@@ -15,6 +15,7 @@ const researchBriefsPath = getWorkspaceDataPath("research-briefs.json");
 const researchReportsPath = getWorkspaceDataPath("research-reports.json");
 const invitesPath = getWorkspaceDataPath("workspace-invites.json");
 const persistenceDriver = getStorageDriver();
+const writeLegacyJsonMirrors = shouldWriteLegacyJsonMirrors();
 
 type UserRoutesStore = Record<string, SavedRoute[]>;
 type AssistantMemoryStore = Record<string, AssistantMemoryEntry[]>;
@@ -63,7 +64,9 @@ async function readDocument<T>(key: string, filePath: string, fallback: T) {
   const seeded = await readJsonFile<T>(filePath, fallback);
   if (persistenceDriver === "sqlite") {
     writeWorkspaceDocument(key, seeded);
-    await writeJsonFile(filePath, seeded);
+    if (writeLegacyJsonMirrors) {
+      await writeJsonFile(filePath, seeded);
+    }
   }
   return seeded;
 }
@@ -73,7 +76,9 @@ async function writeDocument<T>(key: string, filePath: string, value: T) {
     writeWorkspaceDocument(key, value);
   }
 
-  await writeJsonFile(filePath, value);
+  if (persistenceDriver === "json" || writeLegacyJsonMirrors) {
+    await writeJsonFile(filePath, value);
+  }
 }
 
 export async function readUsersFromStorage() {

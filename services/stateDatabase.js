@@ -3,24 +3,64 @@ const path = require("path");
 const Database = require("better-sqlite3");
 const { getAgentsDataPath } = require("./runtimePaths");
 
-const DATA_DIR = getAgentsDataPath();
-const DB_PATH = getAgentsDataPath("console.sqlite");
-
 let database = null;
 let bootstrappedLegacyDocuments = null;
 const DOCUMENT_SCHEMA_VERSION = 1;
 
+function readEnv(name) {
+  const value = process.env[name];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getDatabasePath() {
+  return readEnv("AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH") || getAgentsDataPath("console.sqlite");
+}
+
+function getDataDir() {
+  return path.dirname(getDatabasePath());
+}
+
+function writeLegacyJsonMirrorsEnabled() {
+  const configured = String(process.env.AI_COMMAND_CONSOLE_WRITE_LEGACY_JSON_MIRRORS || "").trim().toLowerCase();
+  if (configured === "true" || configured === "1" || configured === "yes") {
+    return true;
+  }
+  if (configured === "false" || configured === "0" || configured === "no") {
+    return false;
+  }
+  return String(process.env.NODE_ENV || "").toLowerCase() === "test";
+}
+
+function isMalformedDatabaseError(error) {
+  return /(database disk image is malformed|file is not a database|disk i\/o error)/i.test(
+    String(error?.message || error || "")
+  );
+}
+
+function removeDatabaseFiles() {
+  closeDatabase();
+  const databasePath = getDatabasePath();
+  for (const filePath of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch {}
+  }
+}
+
 function ensureDataDir() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.mkdirSync(getDataDir(), { recursive: true });
 }
 
 function extractLegacyDocuments() {
-  if (!fs.existsSync(DB_PATH)) {
+  const databasePath = getDatabasePath();
+  if (!fs.existsSync(databasePath)) {
     return null;
   }
 
   try {
-    const raw = fs.readFileSync(DB_PATH, "utf8");
+    const raw = fs.readFileSync(databasePath, "utf8");
     const parsed = JSON.parse(raw);
     const documents = parsed && typeof parsed === "object" && parsed.documents && typeof parsed.documents === "object"
       ? parsed.documents
@@ -30,7 +70,7 @@ function extractLegacyDocuments() {
       return null;
     }
 
-    fs.unlinkSync(DB_PATH);
+    fs.unlinkSync(databasePath);
     return documents;
   } catch {
     return null;
@@ -42,27 +82,53 @@ function openDatabase() {
     return database;
   }
 
-  ensureDataDir();
-  bootstrappedLegacyDocuments = extractLegacyDocuments();
-  database = new Database(DB_PATH);
-  database.pragma("journal_mode = WAL");
-  database.exec(`
-    PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS schema_metadata (
-      name TEXT PRIMARY KEY,
-      version INTEGER NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS documents (
-      key TEXT PRIMARY KEY,
-      payload TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-  `);
-  ensureSchemaMetadata(database);
-  migrateLegacyJsonDatabase(database);
-  return database;
+  try {
+    ensureDataDir();
+    bootstrappedLegacyDocuments = extractLegacyDocuments();
+    database = new Database(getDatabasePath());
+    database.pragma("journal_mode = WAL");
+    database.exec(`
+      PRAGMA journal_mode = WAL;
+      CREATE TABLE IF NOT EXISTS schema_metadata (
+        name TEXT PRIMARY KEY,
+        version INTEGER NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS documents (
+        key TEXT PRIMARY KEY,
+        payload TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    ensureSchemaMetadata(database);
+    migrateLegacyJsonDatabase(database);
+    return database;
+  } catch (error) {
+    if (isMalformedDatabaseError(error)) {
+      removeDatabaseFiles();
+      ensureDataDir();
+      database = new Database(getDatabasePath());
+      database.pragma("journal_mode = WAL");
+      database.exec(`
+        PRAGMA journal_mode = WAL;
+        CREATE TABLE IF NOT EXISTS schema_metadata (
+          name TEXT PRIMARY KEY,
+          version INTEGER NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS documents (
+          key TEXT PRIMARY KEY,
+          payload TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+      ensureSchemaMetadata(database);
+      return database;
+    }
+    throw error;
+  }
 }
 
 function ensureSchemaMetadata(db) {
@@ -111,9 +177,21 @@ function migrateLegacyJsonDatabase(db) {
 }
 
 function readRecord(key) {
-  const row = openDatabase()
-    .prepare("SELECT payload, created_at, updated_at FROM documents WHERE key = ?")
-    .get(String(key));
+  let row;
+  try {
+    row = openDatabase()
+      .prepare("SELECT payload, created_at, updated_at FROM documents WHERE key = ?")
+      .get(String(key));
+  } catch (error) {
+    if (isMalformedDatabaseError(error)) {
+      removeDatabaseFiles();
+      row = openDatabase()
+        .prepare("SELECT payload, created_at, updated_at FROM documents WHERE key = ?")
+        .get(String(key));
+    } else {
+      throw error;
+    }
+  }
 
   if (!row || !row.payload) {
     return null;
@@ -123,16 +201,34 @@ function readRecord(key) {
 }
 
 function writeRecord(key, payload, createdAt, updatedAt) {
-  openDatabase()
-    .prepare(`
-      INSERT INTO documents (key, payload, created_at, updated_at)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(key) DO UPDATE SET
-        payload = excluded.payload,
-        created_at = excluded.created_at,
-        updated_at = excluded.updated_at
-    `)
-    .run(String(key), String(payload), createdAt, updatedAt);
+  try {
+    openDatabase()
+      .prepare(`
+        INSERT INTO documents (key, payload, created_at, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+          payload = excluded.payload,
+          created_at = excluded.created_at,
+          updated_at = excluded.updated_at
+      `)
+      .run(String(key), String(payload), createdAt, updatedAt);
+  } catch (error) {
+    if (isMalformedDatabaseError(error)) {
+      removeDatabaseFiles();
+      openDatabase()
+        .prepare(`
+          INSERT INTO documents (key, payload, created_at, updated_at)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(key) DO UPDATE SET
+            payload = excluded.payload,
+            created_at = excluded.created_at,
+            updated_at = excluded.updated_at
+        `)
+        .run(String(key), String(payload), createdAt, updatedAt);
+      return;
+    }
+    throw error;
+  }
 }
 
 function writeLegacyJson(filePath, value) {
@@ -182,12 +278,10 @@ function saveDocument(key, value, options = {}) {
   };
 
   writeRecord(key, JSON.stringify(normalized), normalized.createdAt, normalized.updatedAt);
-  writeLegacyJson(options.legacyPath, normalized);
+  if (writeLegacyJsonMirrorsEnabled()) {
+    writeLegacyJson(options.legacyPath, normalized);
+  }
   return normalized;
-}
-
-function getDatabasePath() {
-  return DB_PATH;
 }
 
 function closeDatabase() {

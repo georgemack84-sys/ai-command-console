@@ -4,10 +4,10 @@ const { tickAgent, startAgent } = require("./agentRuntime");
 const { loadAgentState, saveAgentState, appendAgentHistory } = require("./agentMemory");
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { recordTelemetry } = require("./telemetry");
-const { getAgentsDataPath } = require("./runtimePaths");
+const { getAgentsDataPath, getRuntimeLogPath } = require("./runtimePaths");
 
 const SCHEDULER_PATH = getAgentsDataPath("scheduler.json");
-const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
+const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 const SCHEDULER_KEY = "scheduler";
 
 const activeTimers = new Map();

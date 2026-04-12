@@ -2,31 +2,71 @@ import fs from "fs";
 import path from "path";
 import { createRequire } from "module";
 
+export const TEST_RUNTIME_ROOT =
+  process.env.AI_COMMAND_CONSOLE_DATA_ROOT || path.join(process.cwd(), ".codex-temp", "legacy-test-runtime");
+
+process.env.AI_COMMAND_CONSOLE_DATA_ROOT = TEST_RUNTIME_ROOT;
+delete process.env.AI_COMMAND_CONSOLE_DATABASE_PATH;
+delete process.env.AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH;
+
 const require = createRequire(import.meta.url);
 const { closeDatabase } = require("../../services/stateDatabase");
+const { closeJobStore } = require("../../services/jobQueueStore");
+const { getAgentsDataPath } = require("../../services/runtimePaths");
 
-export const DATA_DIR = path.join(process.cwd(), "data", "agents");
+export const DATA_DIR = getAgentsDataPath();
+
+function snapshotBinaryFile(fullPath) {
+  if (!fs.existsSync(fullPath)) {
+    return { kind: "missing" };
+  }
+
+  const content = fs.readFileSync(fullPath);
+  const sqliteHeader = Buffer.from("SQLite format 3\u0000", "utf8");
+  if (content.length < sqliteHeader.length || !content.subarray(0, sqliteHeader.length).equals(sqliteHeader)) {
+    return { kind: "missing" };
+  }
+
+  return { kind: "binary", content };
+}
 
 export function snapshotFiles(files) {
-  return Object.fromEntries(
-    files.map((file) => {
-      const fullPath = path.join(DATA_DIR, file);
-      if (!fs.existsSync(fullPath)) {
-        return [file, { kind: "missing" }];
-      }
+  const snapshot = {};
 
-      if (path.extname(fullPath) === ".sqlite") {
-        return [file, { kind: "binary", content: fs.readFileSync(fullPath) }];
-      }
+  for (const file of files) {
+    const fullPath = path.join(DATA_DIR, file);
+    if (path.extname(fullPath) === ".sqlite") {
+      snapshot[file] = snapshotBinaryFile(fullPath);
+      continue;
+    }
 
-      return [file, { kind: "text", content: fs.readFileSync(fullPath, "utf8") }];
-    })
-  );
+    if (!fs.existsSync(fullPath)) {
+      snapshot[file] = { kind: "missing" };
+      continue;
+    }
+
+    snapshot[file] = { kind: "text", content: fs.readFileSync(fullPath, "utf8") };
+  }
+
+  return snapshot;
 }
 
 export function restoreFiles(snapshot) {
+  closeJobStore();
   closeDatabase();
   fs.mkdirSync(DATA_DIR, { recursive: true });
+  for (const file of Object.keys(snapshot)) {
+    if (file.endsWith(".sqlite")) {
+      for (const suffix of ["-wal", "-shm"]) {
+        const sidecarPath = path.join(DATA_DIR, `${file}${suffix}`);
+        try {
+          if (fs.existsSync(sidecarPath)) {
+            fs.unlinkSync(sidecarPath);
+          }
+        } catch {}
+      }
+    }
+  }
   for (const [file, entry] of Object.entries(snapshot)) {
     const fullPath = path.join(DATA_DIR, file);
     if (!entry || entry.kind === "missing") {

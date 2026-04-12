@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SectionCard } from "@/src/components/shared/section-card";
 
@@ -14,26 +14,83 @@ export function AuthClient() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [databaseState, setDatabaseState] = useState<{ ready: boolean; message: string | null }>({
+    ready: true,
+    message: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReadiness() {
+      try {
+        const response = await fetch("/api/ready", { cache: "no-store" });
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          data?: {
+            ok?: boolean;
+            checks?: {
+              database?: {
+                details?: string | null;
+              };
+            };
+          };
+        };
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!payload.data?.ok) {
+          setDatabaseState({
+            ready: false,
+            message: payload.data?.checks?.database?.details || "Database is unavailable. Start Postgres and try again.",
+          });
+          return;
+        }
+
+        setDatabaseState({ ready: true, message: null });
+      } catch {
+        if (!cancelled) {
+          setDatabaseState({
+            ready: false,
+            message: "Database status is unavailable. Start Postgres and try again.",
+          });
+        }
+      }
+    }
+
+    void loadReadiness();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submit() {
     setLoading(true);
     setError(null);
 
-    const response = await fetch(`/api/auth/${mode}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, inviteToken }),
-    });
-    const payload = (await response.json()) as { error?: string };
+    try {
+      const response = await fetch(`/api/auth/${mode}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, inviteToken }),
+      });
+      const payload = (await response.json()) as
+        | { ok: true; data: { user: { id: string } } }
+        | { ok: false; error?: { message?: string } };
 
-    setLoading(false);
-    if (!response.ok) {
-      setError(payload.error || "Authentication failed.");
-      return;
+      if (!response.ok || !payload.ok) {
+        setError(payload.ok ? "Authentication failed." : payload.error?.message || "Authentication failed.");
+        return;
+      }
+
+      router.push(searchParams.get("next") || "/dashboard");
+      router.refresh();
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
@@ -59,6 +116,11 @@ export function AuthClient() {
         </div>
 
         <div className="space-y-4">
+          {!databaseState.ready ? (
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+              Local database is unavailable. Start Postgres, then retry auth.
+            </div>
+          ) : null}
           {mode === "signup" && inviteToken ? (
             <div className="rounded-2xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">
               Workspace invite detected. Creating this account will join the invited workspace automatically.
@@ -77,13 +139,15 @@ export function AuthClient() {
         </div>
 
         {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
+        {!error && !databaseState.ready && databaseState.message ? <p className="mt-4 text-sm text-amber-100/80">{databaseState.message}</p> : null}
 
         <button
           type="button"
           onClick={() => void submit()}
+          disabled={loading || !databaseState.ready}
           className="mt-5 w-full rounded-2xl bg-sky-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-200"
         >
-          {loading ? "Working..." : mode === "login" ? "Log in" : "Create account"}
+          {loading ? "Working..." : !databaseState.ready ? "Database unavailable" : mode === "login" ? "Log in" : "Create account"}
         </button>
       </SectionCard>
     </div>
@@ -105,6 +169,7 @@ function Field({
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-white">{label}</span>
       <input
+        suppressHydrationWarning
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}

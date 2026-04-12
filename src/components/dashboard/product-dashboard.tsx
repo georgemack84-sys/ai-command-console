@@ -26,7 +26,9 @@ import { Badge } from "@/src/components/ui/badge";
 import { Button, buttonVariants } from "@/src/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { SectionShell } from "@/src/components/ui/section-shell";
+import { postDashboardAction } from "@/src/lib/client/dashboard-actions";
 import { cn } from "@/src/lib/utils";
+import type { DashboardSnapshot } from "@/src/types/platform";
 
 type DashboardCard = {
   label: string;
@@ -36,11 +38,16 @@ type DashboardCard = {
 };
 
 type DashboardWorkspace = {
+  id: string;
   name: string;
   state: string;
   tone: string;
   updatedAt: string | null;
   href?: string;
+  quickAction?: {
+    action: "workspace:generate-summary";
+    label: string;
+  } | null;
   summary: string;
   meta: Array<{ label: string; value: string }>;
 };
@@ -53,20 +60,15 @@ type DashboardFeedItem = {
   href?: string;
 };
 
-type DashboardSnapshot = {
-  generatedAt: string;
-  summaryCards: DashboardCard[];
-  workspaces: DashboardWorkspace[];
-  activityFeed: DashboardFeedItem[];
-  timelineFeed: DashboardFeedItem[];
-  topAlert: {
-    id: string;
-    title: string;
-    type: string;
-    severity: string;
-    owner: string | null;
-    href: string;
-  } | null;
+type CriticalSignal = {
+  id: string;
+  title: string;
+  summary: string;
+  severity: string;
+  category: string;
+  happenedAt: string;
+  sourceName: string;
+  href: string;
 };
 
 const summaryCardsFallback: DashboardCard[] = [
@@ -98,10 +100,11 @@ const summaryCardsFallback: DashboardCard[] = [
 
 const workspacesFallback: DashboardWorkspace[] = [
   {
+    id: "workspace-product-launch",
     name: "Product Launch",
     state: "Live review",
     tone: "bg-emerald-400",
-    updatedAt: new Date().toISOString(),
+    updatedAt: null,
     href: "/operations",
     summary: "Release notes, design sign-off, and routing QA are aligned and ready for the next decision.",
     meta: [
@@ -110,10 +113,11 @@ const workspacesFallback: DashboardWorkspace[] = [
     ],
   },
   {
+    id: "workspace-ops-escalation",
     name: "Ops Escalation",
     state: "Needs approval",
     tone: "bg-amber-300",
-    updatedAt: new Date().toISOString(),
+    updatedAt: null,
     href: "/operations",
     summary: "One follow-up is waiting on an approver target before the sweep can continue.",
     meta: [
@@ -122,10 +126,11 @@ const workspacesFallback: DashboardWorkspace[] = [
     ],
   },
   {
+    id: "workspace-research-desk",
     name: "Research Desk",
     state: "Drafting report",
     tone: "bg-sky-300",
-    updatedAt: new Date().toISOString(),
+    updatedAt: null,
     href: "/briefs",
     summary: "Research synthesis is almost publishable, with strong source coverage and one final edit pass.",
     meta: [
@@ -146,6 +151,29 @@ const timelineFeedFallback: DashboardFeedItem[] = [
   { title: "Launch workspace moved into review", time: "08:42", tag: "Workspace", tone: "highlight", href: "/operations" },
   { title: "Automation sweep queued for policy board", time: "09:15", tag: "Queue", href: "/operations" },
   { title: "Research digest draft delivered to ops", time: "09:28", tag: "Report", href: "/reports" },
+];
+
+const criticalSignalsFallback: CriticalSignal[] = [
+  {
+    id: "fallback-critical-1",
+    title: "Approval lane is backing up in one workspace",
+    summary: "One operational lane is carrying most of the late-cycle pressure and needs an owner decision.",
+    severity: "high",
+    category: "Operations",
+    happenedAt: "",
+    sourceName: "Incident Feed",
+    href: "/operations",
+  },
+  {
+    id: "fallback-critical-2",
+    title: "Research handoff is waiting on a final editor",
+    summary: "A publish-ready brief still needs one final owner before it can move downstream.",
+    severity: "high",
+    category: "Research",
+    happenedAt: "",
+    sourceName: "Research Desk",
+    href: "/briefs",
+  },
 ];
 
 const filterPills = ["All workspaces", "Highest priority", "Needs review", "Recently updated"];
@@ -222,6 +250,23 @@ function formatRelativeTime(value?: string | null) {
   return `Updated ${days} day${days === 1 ? "" : "s"} ago`;
 }
 
+function severityLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function severityTone(value: string) {
+  if (value === "critical") {
+    return "border-rose-300/30 bg-rose-300/10 text-rose-100";
+  }
+  if (value === "high") {
+    return "border-amber-300/30 bg-amber-300/10 text-amber-100";
+  }
+  if (value === "medium") {
+    return "border-sky-300/30 bg-sky-300/10 text-sky-100";
+  }
+  return "border-emerald-300/30 bg-emerald-300/10 text-emerald-100";
+}
+
 export function ProductDashboard() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [actionState, setActionState] = useState<{ status: "idle" | "running" | "done" | "error"; message: string }>({
@@ -232,6 +277,11 @@ export function ProductDashboard() {
     status: "idle",
     message: "",
   });
+  const [insightJobState, setInsightJobState] = useState<{ status: "idle" | "running" | "done" | "error"; message: string }>({
+    status: "idle",
+    message: "",
+  });
+  const [workspaceActionState, setWorkspaceActionState] = useState<Record<string, { status: "idle" | "running" | "done" | "error"; message: string }>>({});
 
   useEffect(() => {
     let active = true;
@@ -242,9 +292,9 @@ export function ProductDashboard() {
         if (!response.ok) {
           return;
         }
-        const payload = (await response.json()) as DashboardSnapshot;
+        const payload = (await response.json()) as { ok: true; data: DashboardSnapshot };
         if (active) {
-          setSnapshot(payload);
+          setSnapshot(payload.data);
         }
       } catch {
         // Keep the fallback dashboard visible when live state is unavailable.
@@ -259,6 +309,7 @@ export function ProductDashboard() {
   }, []);
 
   const summaryCards = useMemo(() => snapshot?.summaryCards ?? summaryCardsFallback, [snapshot]);
+  const criticalSignals = useMemo(() => snapshot?.criticalSignals ?? criticalSignalsFallback, [snapshot]);
   const workspaces = useMemo(() => snapshot?.workspaces ?? workspacesFallback, [snapshot]);
   const activityFeed = useMemo(() => snapshot?.activityFeed ?? activityFeedFallback, [snapshot]);
   const timelineFeed = useMemo(() => snapshot?.timelineFeed ?? timelineFeedFallback, [snapshot]);
@@ -266,19 +317,12 @@ export function ProductDashboard() {
   async function runAlertChecks() {
     setActionState({ status: "running", message: "Running alert checks..." });
     try {
-      const response = await fetch("/api/console", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "alert:run-checks", payload: {} }),
-      });
-      const payload = (await response.json()) as { ok?: boolean; output?: string; error?: string };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Unable to run alert checks.");
-      }
-      setActionState({ status: "done", message: payload.output || "Alert checks completed." });
+      const result = await postDashboardAction("alert:run-checks", {});
+      setActionState({ status: "done", message: result?.output || "Alert checks completed." });
       const refresh = await fetch("/api/dashboard", { cache: "no-store" });
       if (refresh.ok) {
-        setSnapshot((await refresh.json()) as DashboardSnapshot);
+        const refreshed = (await refresh.json()) as { ok: true; data: DashboardSnapshot };
+        setSnapshot(refreshed.data);
       }
     } catch (error) {
       setActionState({
@@ -295,28 +339,93 @@ export function ProductDashboard() {
 
     setAlertActionState({ status: "running", message: "Acknowledging alert..." });
     try {
-      const response = await fetch("/api/console", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "alert:acknowledge",
-          payload: { alertId: snapshot.topAlert.id, owner: "dashboard" },
-        }),
+      const result = await postDashboardAction("alert:acknowledge", {
+        alertId: snapshot.topAlert.id,
+        owner: "dashboard",
       });
-      const payload = (await response.json()) as { ok?: boolean; output?: string; error?: string };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Unable to acknowledge alert.");
-      }
-      setAlertActionState({ status: "done", message: payload.output || "Alert acknowledged." });
+      setAlertActionState({ status: "done", message: result?.output || "Alert acknowledged." });
       const refresh = await fetch("/api/dashboard", { cache: "no-store" });
       if (refresh.ok) {
-        setSnapshot((await refresh.json()) as DashboardSnapshot);
+        const refreshed = (await refresh.json()) as { ok: true; data: DashboardSnapshot };
+        setSnapshot(refreshed.data);
       }
     } catch (error) {
       setAlertActionState({
         status: "error",
         message: error instanceof Error ? error.message : "Unable to acknowledge alert.",
       });
+    }
+  }
+
+  async function acknowledgeCriticalSignal(alertId: string) {
+    setAlertActionState({ status: "running", message: "Acknowledging signal..." });
+    try {
+      const result = await postDashboardAction("alert:acknowledge", {
+        alertId,
+        owner: "dashboard-critical-signals",
+      });
+      setAlertActionState({ status: "done", message: result?.output || "Signal acknowledged." });
+      const refresh = await fetch("/api/dashboard", { cache: "no-store" });
+      if (refresh.ok) {
+        const refreshed = (await refresh.json()) as { ok: true; data: DashboardSnapshot };
+        setSnapshot(refreshed.data);
+      }
+    } catch (error) {
+      setAlertActionState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Unable to acknowledge signal.",
+      });
+    }
+  }
+
+  async function queueInsightGeneration() {
+    setInsightJobState({ status: "running", message: "Queueing AI insight generation..." });
+    try {
+      const response = await fetch("/api/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ async: true }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; data?: { job?: { id?: string } }; error?: { message?: string } };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message || "Unable to queue insight generation.");
+      }
+      setInsightJobState({
+        status: "done",
+        message: `Queued job ${payload.data?.job?.id || ""} for background insight generation.`,
+      });
+    } catch (error) {
+      setInsightJobState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Unable to queue insight generation.",
+      });
+    }
+  }
+
+  async function runWorkspaceQuickAction(workspace: DashboardWorkspace) {
+    if (!workspace.quickAction) {
+      return;
+    }
+
+    setWorkspaceActionState((current) => ({
+      ...current,
+      [workspace.id]: { status: "running", message: "Queueing summary..." },
+    }));
+
+    try {
+      const result = await postDashboardAction(workspace.quickAction.action, { workspaceId: workspace.id });
+      setWorkspaceActionState((current) => ({
+        ...current,
+        [workspace.id]: { status: "done", message: result?.output || "Workspace action completed." },
+      }));
+    } catch (error) {
+      setWorkspaceActionState((current) => ({
+        ...current,
+        [workspace.id]: {
+          status: "error",
+          message: error instanceof Error ? error.message : "Unable to run workspace action.",
+        },
+      }));
     }
   }
 
@@ -355,6 +464,100 @@ export function ProductDashboard() {
             {summaryCards.map((item) => (
               <StatCard key={item.label} label={item.label} value={item.value} detail={item.detail} icon={iconMap[item.icon]} />
             ))}
+          </section>
+
+          <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <Card className="p-6">
+              <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <CardTitle>Critical signals to address now</CardTitle>
+                  <CardDescription className="mt-2 max-w-xl">
+                    The dashboard now exposes the actual high-priority items behind the headline count so you can triage them without guessing.
+                  </CardDescription>
+                </div>
+                <Badge className="border-amber-300/20 bg-amber-300/10 text-amber-100">
+                  {criticalSignals.length} active
+                </Badge>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {criticalSignals.length ? (
+                  criticalSignals.map((signal) => (
+                    <div key={signal.id} className="rounded-[24px] border border-white/10 bg-white/[0.045] p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="max-w-2xl">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className={cn("border", severityTone(signal.severity))}>{severityLabel(signal.severity)}</Badge>
+                            <span className="text-xs uppercase tracking-[0.22em] text-slate-500">{signal.category}</span>
+                            <span className="text-xs text-slate-500">{signal.sourceName}</span>
+                          </div>
+                          <p className="mt-3 text-base font-semibold text-white">{signal.title}</p>
+                          <p className="mt-2 text-sm leading-6 text-slate-300">{signal.summary}</p>
+                          <p className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">{formatRelativeTime(signal.happenedAt)}</p>
+                        </div>
+
+                        <div className="flex min-w-[210px] flex-col gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => void acknowledgeCriticalSignal(signal.id)}
+                            disabled={alertActionState.status === "running"}
+                            className="w-full justify-between"
+                          >
+                            {alertActionState.status === "running" ? "Acknowledging..." : "Acknowledge"}
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                          <Link href={signal.href} className={buttonVariants({ variant: "ghost" })}>
+                            Open drilldown
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState
+                    title="No urgent signals right now"
+                    description="The highest-severity updates have been acknowledged, so the dashboard can stay focused on normal operator flow."
+                    href="/reports"
+                    cta="Open reports"
+                  />
+                )}
+              </div>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Fastest next move</CardTitle>
+                    <CardDescription className="mt-2">The most direct response path for the current signal pressure.</CardDescription>
+                  </div>
+                  <Gauge className="h-5 w-5 text-slate-400" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="rounded-[22px] border border-amber-300/15 bg-amber-300/10 p-4">
+                  <p className="text-sm font-medium text-amber-50">Start with active signals</p>
+                  <p className="mt-2 text-sm text-amber-100/80">
+                    {criticalSignals.length
+                      ? `There are ${criticalSignals.length} high-priority items still open. Acknowledge the obvious ones, then move deeper into reports or operations.`
+                      : "Signal pressure is low enough to shift attention back to routine monitoring and editorial throughput."}
+                  </p>
+                </div>
+                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                    <p className="text-sm text-slate-200">Use the list to acknowledge noise and keep only real risk visible.</p>
+                  </div>
+                </div>
+                {alertActionState.message ? (
+                  <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                    <p className={cn("text-sm", alertActionState.status === "error" ? "text-rose-200" : "text-slate-200")}>
+                      {alertActionState.message}
+                    </p>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
           </section>
 
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -410,9 +613,8 @@ export function ProductDashboard() {
 
               <div className="mt-6 space-y-4">
                 {workspaces.map((workspace, index) => (
-                  <Link
-                    key={workspace.name}
-                    href={workspace.href || "/operations"}
+                  <div
+                    key={workspace.id}
                     className="group rounded-[28px] border border-white/10 bg-white/[0.045] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/16 hover:bg-white/[0.07]"
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -433,13 +635,41 @@ export function ProductDashboard() {
                         <p className="mt-3 text-xs uppercase tracking-[0.24em] text-slate-500">{formatRelativeTime(workspace.updatedAt)}</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 lg:min-w-[250px]">
-                        {workspace.meta.map((item) => (
-                          <WorkspaceMeta key={`${workspace.name}-${item.label}`} label={item.label} value={item.value} />
-                        ))}
+                      <div className="flex min-w-[250px] flex-col gap-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          {workspace.meta.map((item) => (
+                            <WorkspaceMeta key={`${workspace.name}-${item.label}`} label={item.label} value={item.value} />
+                          ))}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Link href={workspace.href || "/operations"} className={buttonVariants({ variant: "ghost" })}>
+                            Open workspace
+                          </Link>
+                          {workspace.quickAction ? (
+                            <Button
+                              variant="outline"
+                              onClick={() => void runWorkspaceQuickAction(workspace)}
+                              disabled={workspaceActionState[workspace.id]?.status === "running"}
+                              className="w-full justify-between"
+                            >
+                              {workspaceActionState[workspace.id]?.status === "running" ? "Queueing..." : workspace.quickAction.label}
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          {workspaceActionState[workspace.id]?.message ? (
+                            <p
+                              className={cn(
+                                "text-xs",
+                                workspaceActionState[workspace.id]?.status === "error" ? "text-rose-200" : "text-slate-400",
+                              )}
+                            >
+                              {workspaceActionState[workspace.id]?.message}
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </Card>
@@ -496,6 +726,34 @@ export function ProductDashboard() {
                           )}
                         >
                           {actionState.message}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-white">AI insight generation</p>
+                        <Badge className="border-white/10 bg-white/8 text-slate-200">Background job</Badge>
+                      </div>
+                      <p className="text-sm text-slate-300">Queue an insight refresh without blocking the dashboard request cycle.</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => void queueInsightGeneration()}
+                        disabled={insightJobState.status === "running"}
+                        className="w-full justify-between"
+                      >
+                        {insightJobState.status === "running" ? "Queueing..." : "Generate insights"}
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                      {insightJobState.message ? (
+                        <p
+                          className={cn(
+                            "text-xs",
+                            insightJobState.status === "error" ? "text-rose-200" : "text-slate-400",
+                          )}
+                        >
+                          {insightJobState.message}
                         </p>
                       ) : null}
                     </div>

@@ -9,6 +9,7 @@ import { buttonVariants } from "@/src/components/ui/button";
 import { MetricTile } from "@/src/components/ui/metric-tile";
 import { SignalEntry } from "@/src/components/ui/signal-entry";
 import { SurfacePanel, SurfacePanelHeader } from "@/src/components/ui/surface-panel";
+import { postOperationsAction } from "@/src/lib/client/operations-actions";
 
 type WorkspaceHealth = {
   workspaceId: string;
@@ -503,11 +504,12 @@ type ConsolePayload = {
 };
 
 async function fetchOperationsPayload() {
-  const response = await fetch("/api/console", { cache: "no-store" });
+  const response = await fetch("/api/control-center/overview", { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Unable to load workspace operations.");
   }
-  return (await response.json()) as ConsolePayload;
+  const payload = (await response.json()) as { ok: boolean; data?: ConsolePayload };
+  return payload.data as ConsolePayload;
 }
 
 function formatTime(value?: string | null) {
@@ -547,7 +549,7 @@ function checklistLabel(workspace: WorkspaceHealth, itemId: string) {
 }
 
 export function WorkspaceOperationsClient() {
-  const { user } = useAppSession();
+  const { user, authLoading } = useAppSession();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1103,14 +1105,10 @@ export function WorkspaceOperationsClient() {
   }
 
   async function runAction(action: string, payload: Record<string, unknown>, success: string) {
-    const response = await fetch("/api/console", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, payload }),
-    });
-    const result = (await response.json()) as { ok: boolean; error?: string };
-    if (!result.ok) {
-      setError(result.error || "Action failed.");
+    try {
+      await postOperationsAction(action, payload);
+    } catch (actionError: unknown) {
+      setError(actionError instanceof Error ? actionError.message : "Action failed.");
       return;
     }
     setMessage(success);
@@ -1321,6 +1319,20 @@ export function WorkspaceOperationsClient() {
     anchor.download = "trust-report.csv";
     anchor.click();
     URL.revokeObjectURL(url);
+  }
+
+  if (authLoading) {
+    return (
+      <SectionCard
+        eyebrow="Operations"
+        title="Loading workspace operations"
+        description="Checking the authenticated operator session before loading workspace controls."
+      >
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+          Restoring your operator access and workspace control surface.
+        </div>
+      </SectionCard>
+    );
   }
 
   if (user?.role !== "admin") {
@@ -3008,6 +3020,7 @@ export function WorkspaceOperationsClient() {
                     Generate summary
                   </button>
                   <select
+                    aria-label="Incident status"
                     value={workspace.incidentStatus}
                     onChange={(event) =>
                       void runAction(

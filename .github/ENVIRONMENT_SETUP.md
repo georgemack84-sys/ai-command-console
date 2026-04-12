@@ -65,6 +65,8 @@ Strongly recommended variables:
 Your target host still needs the app runtime environment configured outside GitHub Actions:
 
 - `AI_COMMAND_CONSOLE_AUTH_SECRET`
+- `DATABASE_URL`
+- `NEXT_PUBLIC_APP_URL`
 - `AI_COMMAND_CONSOLE_STORAGE_DRIVER=sqlite`
 - `AI_COMMAND_CONSOLE_DATABASE_PATH`
 - `AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH`

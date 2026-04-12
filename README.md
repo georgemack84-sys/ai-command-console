@@ -1,54 +1,98 @@
 # AI Command Console
 
-AI Command Console is a Next.js workspace for operating a multi-agent command console with a built-in research desk and operations tooling.
+AI Command Console is a production-minded Next.js SaaS foundation for an AI-powered workspace and monitoring platform. It combines a polished frontend with a real backend, PostgreSQL + Prisma data layer, signed session auth, structured API boundaries, seeded demo data, and practical testing/deployment workflows.
 
-## Current Product Shape
+## Stack Overview
 
-- Browser console with live overview, command execution, workflow actions, alerts, approvals, and job activity
-- Research desk for briefs, reports, digests, queue routing, and operator collaboration
-- Agent runtime services for planner, builder, manager, and researcher roles
-- SQLite-backed operational state with legacy JSON write-through compatibility
-- Environment-aware authentication and workspace persistence with a production SQLite posture
+- Next.js App Router with React 19 and Tailwind CSS
+- Integrated Next.js route handlers for the API surface
+- PostgreSQL + Prisma ORM for relational data and migrations
+- Signed credentials auth with database-backed sessions
+- Structured service layer for workspaces, updates, insights, briefs, and reports
+- Optional OpenAI-backed summary service with deterministic fallback
+- Background job orchestration for async insight and summary generation
+- Playwright for browser smoke coverage
+- Vitest + Testing Library for unit/component coverage
+- Legacy node:test console workflow coverage preserved
+- Vercel-ready app hosting model with managed Postgres
 
-## Production-Oriented Status
+## Product Shape
 
-Verified in this workspace:
+The foundation models a believable intelligence platform where users can:
 
-- `npm run lint` passes
-- `npm test` passes
-- `npm run build` passes
+- sign in and access their workspace
+- monitor tracked sources and incoming updates
+- review generated insights and recommendations
+- create and manage research briefs and reports
+- inspect recent activity and operational state
 
-Important caveats:
+## Folder Structure
 
-- The console services still include some legacy file-backed subsystems outside the main auth/workspace store
-- Production should run with an explicit auth secret and storage configuration
+- `app/`
+  Next.js routes, pages, and API handlers
+- `src/components/`
+  UI and page-level frontend components
+- `src/config/`
+  environment validation and runtime config
+- `src/server/`
+  database, auth, API helpers, observability, and service layer
+- `src/types/`
+  shared product-facing DTOs
+- `prisma/`
+  schema, migrations, and seed script
+- `tests/`
+  Vitest unit/component tests and existing node:test coverage
+- `playwright/`
+  end-to-end smoke tests
 
-## Deployment Contract
+## Database Model
 
-Production deployment should assume:
+Core relational models:
 
-- `NODE_ENV=production`
-- `AI_COMMAND_CONSOLE_AUTH_SECRET` is required
-- `AI_COMMAND_CONSOLE_STORAGE_DRIVER=sqlite`
-- `AI_COMMAND_CONSOLE_DATABASE_PATH` points at a persistent writable volume
-- `AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH` also points at persistent storage
-- `.env` itself should not be the secret source in managed hosting unless that is your platform standard
+- `User`
+- `Workspace`
+- `WorkspaceMember`
+- `AuthSession`
+- `Source`
+- `MonitoredUpdate`
+- `Insight`
+- `ActivityEvent`
+- `SavedView`
+- `ResearchBrief`
+- `ResearchReport`
 
-Health endpoints:
+This supports user-aware access, protected workspace boundaries, monitored sources, update ingestion, AI insight generation, activity history, and editorial workflows.
 
-- `GET /api/health`
-  Use for liveness. Confirms the process can respond and expected runtime directories are present.
-- `GET /api/ready`
-  Use for readiness. Confirms the production auth/runtime contract and required SQLite files are available.
+## Environment
 
-Recommended platform expectations:
+Copy `.env.example` to `.env` and set values for your environment.
 
-- Back up both SQLite files on a schedule
-- Mount `data/` and `logs/` on persistent storage
-- Treat a non-200 response from `/api/ready` as “do not receive traffic”
-- Run `npm run preflight` before accepting traffic or during startup hooks
+Required/important variables:
 
-## Local Setup
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:55432/ai_command_console?schema=public
+NEXT_PUBLIC_APP_URL=http://localhost:5050
+LOG_LEVEL=info
+AI_COMMAND_CONSOLE_AUTH_SECRET=replace-with-a-long-random-secret
+OPENAI_API_KEY=
+AI_SUMMARY_PROVIDER_MODE=auto
+AI_SUMMARY_MODEL=gpt-4.1-mini
+AI_SUMMARY_DAILY_BUDGET_USD=1
+AI_SUMMARY_ESTIMATED_COST_PER_RUN_USD=0.02
+AI_SUMMARY_EVAL_ENABLED=true
+JOB_QUEUE_EXECUTION_MODE=external
+JOB_WORKER_POLL_INTERVAL_MS=2000
+JOB_QUEUE_MAX_PENDING=100
+JOB_QUEUE_MAX_RUNNING=12
+AI_COMMAND_CONSOLE_DATA_ROOT=./.codex-temp/runtime-data
+AI_COMMAND_CONSOLE_DATABASE_PATH=./.codex-temp/runtime-data/workspace.sqlite
+AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH=./.codex-temp/runtime-data/agents/console.sqlite
+AI_COMMAND_CONSOLE_WRITE_LEGACY_JSON_MIRRORS=false
+AI_COMMAND_CONSOLE_SECURE_COOKIES=false
+AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS=1209600
+```
+
+## Local Development
 
 1. Install dependencies
 
@@ -56,180 +100,250 @@ Recommended platform expectations:
 npm install
 ```
 
-2. Start the app
+2. Start Postgres locally
+
+```bash
+docker compose up -d
+```
+
+The default local Docker Postgres port for this repo is `55432` to avoid conflicts with other PostgreSQL installs already using `5432`.
+
+For local development, point mutable runtime state at `./.codex-temp/runtime-data` so queue, telemetry, inbox, and workspace churn stays out of tracked fixture files under `data/`.
+
+If local auth, health checks, or Prisma-backed pages fail, run:
+
+```bash
+npm run dev:doctor
+```
+
+That script tells you whether `DATABASE_URL` is valid, whether Postgres is reachable, and whether Docker is available for the local container workflow.
+
+If you want a quick read on where mutable runtime state is currently landing and whether tracked legacy state files are still dirty, run:
+
+```bash
+npm run dev:state-report
+```
+
+That report is read-only. It shows the configured runtime data root, the isolated legacy test runtime root, and any dirty tracked files under `data/`, `agents/`, `memory/`, or `logs/`.
+
+If you want to preserve the current dirty legacy state before cleaning it up by hand, run:
+
+```bash
+npm run dev:state-archive
+```
+
+That command is also non-destructive. It copies the currently dirty legacy state files into `./.codex-temp/legacy-state-archive/<timestamp>/` and writes a manifest so you can review exactly what was captured.
+
+If you want a guided cleanup for the known runtime residue that historically leaked into tracked legacy paths, start with:
+
+```bash
+npm run dev:state-cleanup
+```
+
+That is a dry-run. It only plans cleanup for the known-safe residue list and skips anything else for manual review.
+
+To actually apply that cleanup after taking an archive snapshot, run:
+
+```bash
+npm run dev:state-cleanup -- --apply
+```
+
+Apply mode restores tracked residue from `HEAD` and removes matching untracked residue, but still leaves any non-listed entries alone.
+
+If you want a quick guardrail check without the fuller report, run:
+
+```bash
+npm run check:legacy-state
+```
+
+That command reports whether the known runtime residue set is dirty under tracked legacy paths. CI runs the same guard in strict mode after tests and build.
+
+If you want the repo to try the full local setup path for you, run:
+
+```bash
+npm run dev:bootstrap
+```
+
+That command will:
+
+- run the local doctor
+- start the `postgres` Docker service when Docker is available
+- wait for the database port to come up
+- apply Prisma migrations
+- seed demo data
+
+To keep local setup safe, it refuses to run against non-local or non-`ai_command_console` databases. If you intentionally point `DATABASE_URL` at a shared environment, run `npm run db:deploy` and `npm run db:seed` manually instead.
+
+For Windows machines without Docker, try:
+
+```bash
+npm run dev:postgres:windows
+```
+
+That helper will:
+
+- check whether the host and port from `DATABASE_URL` are already reachable
+- detect an installed PostgreSQL Windows service
+- try to start that service when possible
+- report the next step if PostgreSQL is not installed yet
+
+3. Run Prisma migrations
+
+```bash
+npm run db:deploy
+```
+
+4. Seed demo data
+
+```bash
+npm run db:seed
+```
+
+Or do both in one step:
+
+```bash
+npm run db:reset:local
+```
+
+5. Start the app
 
 ```bash
 npm run dev
 ```
 
-3. Open the local app
-
-```text
-http://localhost:5050
-```
-
-## Environment Variables
-
-Create a `.env` file for auth, persistence, and any optional external integrations you keep.
+For sustained load, keep background jobs outside the app process:
 
 ```bash
-AI_COMMAND_CONSOLE_AUTH_SECRET=replace-this-in-real-use
-AI_COMMAND_CONSOLE_STORAGE_DRIVER=sqlite
-AI_COMMAND_CONSOLE_DATABASE_PATH=./data/workspace.sqlite
-AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH=./data/agents/console.sqlite
-AI_COMMAND_CONSOLE_SECURE_COOKIES=true
-AI_COMMAND_CONSOLE_ALERT_WEBHOOK_URL=
+npm run worker:jobs
 ```
 
-## Key Routes
+The safer production-style posture is:
 
-- `/console`
-- `/operations`
-- `/briefs`
-- `/reports`
-- `/platform`
-- `/auth`
-- `/`
-- `/api/health`
-- `/api/ready`
+- `JOB_QUEUE_EXECUTION_MODE=external`
+- run `npm run worker:jobs` in a second process
+- tune `JOB_QUEUE_MAX_PENDING` and `JOB_QUEUE_MAX_RUNNING` for the environment instead of letting the web app absorb unlimited work
 
-## Verification
+The app runs at [http://localhost:5050](http://localhost:5050).
 
-Run the core production checks:
+To rerun the queue hardening check against a live local app, use:
 
 ```bash
-npm run preflight
-npm run lint
-npm test
-npm run build
+npm run stress:jobs
 ```
 
-CI runs the same gate in GitHub Actions on pushes to `main`, `codex/**`, and on pull requests.
+That script logs in with the seeded showcase admin, drives mixed reads plus queue pressure, waits for the queue to settle, and fails if polling, readiness, or settled memory cross the configured safety thresholds.
 
-## Deployment Workflow
+Demo credentials after seeding:
 
-The repo now includes a production-minded GitHub Actions deploy workflow in `.github/workflows/deploy.yml`.
+- email: `operator@pulse.local`
+- password: `demo-password`
 
-What it does:
+## Scripts
 
-- automatically deploys to the `staging` environment after the `CI` workflow passes on `main`
-- reruns `preflight`, `lint`, `test`, and `build`
-- creates a standalone Next.js deployment bundle
-- uploads a versioned release artifact named `ai-command-console-release-<commit-sha>.tgz`
-- supports manual environment-targeted deploys (`staging` or `production`)
-- optionally deploys that bundle over SSH if deployment variables and secrets are configured
-- runs a post-deploy smoke check against the target service
-- supports manual production rollback by repointing the live release to an earlier deployed version
+- `npm run dev`
+- `npm run dev:doctor`
+- `npm run dev:bootstrap`
+- `npm run dev:state-report`
+- `npm run dev:state-archive`
+- `npm run dev:state-cleanup`
+- `npm run check:legacy-state`
+- `npm run dev:postgres:windows`
+- `npm run worker:jobs`
+- `npm run stress:jobs`
+- `npm run build`
+- `npm run start`
+- `npm run lint`
+- `npm run test`
+- `npm run test:unit`
+- `npm run test:legacy`
+- `npm run test:e2e`
+- `npm run db:generate`
+- `npm run db:migrate`
+- `npm run db:deploy`
+- `npm run db:push`
+- `npm run db:seed`
+- `npm run db:reset:local`
+- `npm run db:studio`
 
-Repository variables for SSH deployment:
+## API Surface
 
-- `DEPLOY_HOST`
-- `DEPLOY_PORT`
-- `DEPLOY_USER`
-- `DEPLOY_PATH`
-- `DEPLOY_RESTART_COMMAND` (optional)
-- `DEPLOY_HEALTHCHECK_URL` (optional)
-- `DEPLOY_HEALTHCHECK_PATH` (optional, defaults to `/api/ready`)
-- `DEPLOY_HEALTHCHECK_ATTEMPTS` (optional)
-- `DEPLOY_HEALTHCHECK_DELAY_SECONDS` (optional)
-- `DEPLOY_VALIDATION_PATHS` (optional comma-separated list, defaults to `/api/health,/api/ready,/auth`)
-- `DEPLOY_RELEASE_RETENTION` (optional, defaults to `5`)
-- `DEPLOY_ARTIFACT_ONLY` (optional, defaults to unset; set to `true` only when you intentionally want artifact generation without a remote deploy)
+Core routes:
 
-Repository secret:
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/session`
+- `GET /api/dashboard`
+- `GET /api/profile`
+- `GET /api/workspace`
+- `GET|PATCH /api/settings/workspace`
+- `POST|DELETE /api/settings/invites`
+- `GET /api/sources`
+- `GET /api/updates`
+- `GET /api/insights`
+- `POST /api/insights`
+- `GET|POST /api/jobs`
+- `GET /api/activity`
+- `GET|POST|PATCH|DELETE /api/research/briefs`
+- `GET /api/research/briefs/[id]`
+- `GET|POST|PATCH|DELETE /api/research/reports`
 
-- `DEPLOY_SSH_KEY`
+Response contract:
 
-If those deployment settings are not configured, the workflow still produces the release artifact without attempting a remote deploy.
+- success: `{ ok: true, data: ... }`
+- failure: `{ ok: false, error: { code, message, details? } }`
 
-The workflow now validates the deployment contract before packaging or rollout. Staging and production expect the remote deployment settings to be present unless `DEPLOY_ARTIFACT_ONLY=true` is explicitly set on that environment. Production should not use artifact-only mode.
+## Auth And Authorization
 
-For operator notification, the app can optionally post critical runtime alerts to `AI_COMMAND_CONSOLE_ALERT_WEBHOOK_URL`. By default only `high` and `critical` alerts notify, and outbound notifications are throttled per alert type.
+- Credentials-based sign-in/sign-up
+- Signed HTTP-only session cookie
+- Database-backed `AuthSession` records
+- Proxy-based protected route redirects
+- Server-side workspace checks for protected data access
+- Users only access their own workspace-scoped data unless explicitly elevated
 
-After a remote deploy, the workflow now runs a reusable validation script against the deployed service. By default it checks `http://127.0.0.1:3000/api/health`, `http://127.0.0.1:3000/api/ready`, and `http://127.0.0.1:3000/auth`. You can override the base URL with `DEPLOY_HEALTHCHECK_URL` and the path list with `DEPLOY_VALIDATION_PATHS`. `DEPLOY_HEALTHCHECK_PATH` still works as a compatibility override for a single path.
+## Observability
 
-Remote deploy layout:
+- structured server logging in `src/server/observability/logger.ts`
+- AI provider boundary in `src/server/services/ai-service.ts`
+- background job orchestration in `src/server/jobs/background-jobs.ts`
+- environment-aware runtime posture reporting
+- `/api/health` for liveness
+- `/api/ready` for readiness
 
-- releases are unpacked into `<DEPLOY_PATH>/releases/<release-version>`
-- the live app should run from `<DEPLOY_PATH>/current`
-- new deploys atomically repoint `current` to the new release directory
-- manual rollback repoints `current` to an older release directory without rebuilding
-- after a successful deploy and smoke check, older release directories are pruned while keeping the current release and the most recent retained releases
+## Testing
 
-Recommended GitHub setup:
+Currently verified in this repo:
 
-- Create a `staging` environment and a `production` environment in GitHub
-- Put environment-specific variables and secrets on those environments
-- Let `staging` deploy automatically from successful `main` CI runs
-- Add required reviewers to the `production` environment for manual approval
-- Trigger the deploy workflow manually with `target_environment=production` only from `main`
-- For rollback, trigger the deploy workflow manually with `target_environment=production` and `rollback_release=<previous-release-sha>`
-- Set `DEPLOY_ARTIFACT_ONLY=true` only for environments where you explicitly want bundle creation without remote rollout
+- `npm run verify`
+- `npm run test:unit`
+- `npm run test:legacy`
+- `npm run build`
+- `npm run check:legacy-state -- --strict`
 
-Environment setup helpers:
+`npm run verify` is the default contributor check. It runs lint, unit tests, legacy tests, production build, and the strict legacy-state guard in one pass.
 
-- inventory script: `npm run deployment:inventory`
-- setup guide: `.github/ENVIRONMENT_SETUP.md`
-- templates: `.github/environment-templates/staging.env.example` and `.github/environment-templates/production.env.example`
-- staging rollout runbook: `.github/STAGING_ROLLOUT.md`
+Playwright coverage is configured, but it expects a running PostgreSQL instance and migrated seed data before execution.
 
-## Backup And Restore
-
-Back up the SQLite files:
+Run browser smoke tests with:
 
 ```bash
-npm run backup:sqlite
+npm run test:e2e
 ```
 
-Back up into a specific directory:
+If browser tests fail on signup, health, or readiness, run `npm run dev:doctor` first. The most common local issue is Postgres not running on the host and port configured in `DATABASE_URL`.
 
-```bash
-node scripts/backup-sqlite.cjs ./backups/manual-restore-point
-```
+## Deployment Assumptions
 
-Restore from a backup directory:
+- frontend/app hosted on Vercel
+- PostgreSQL provided by Neon, Supabase, RDS, Railway, or similar
+- `DATABASE_URL` and `AI_COMMAND_CONSOLE_AUTH_SECRET` supplied by the platform
+- migrations applied with `npm run db:deploy`
+- seed data is optional and should not be used in production
 
-```bash
-npm run restore:sqlite -- ./backups/manual-restore-point
-```
+## Recommended Next Steps
 
-Verify a backup before restore:
-
-```bash
-npm run verify:backup -- ./backups/manual-restore-point
-```
-
-Recommended recovery flow:
-
-1. Stop the app.
-2. Take a final copy of the current `data/` directory.
-3. Run `npm run verify:backup -- <backup-directory>`.
-4. Run the restore script with the chosen backup directory.
-5. Run `npm run preflight`.
-6. Start the app and confirm `/api/ready` returns `200`.
-
-Backup notes:
-
-- each backup now includes `backup-manifest.json` with source and destination details
-- restore now refuses backups that fail SQLite integrity checks
-- the SQLite stores record simple schema metadata so future migrations have a version anchor
-
-Alerting notes:
-
-- critical runtime alerts now surface in the in-app alerts workflow automatically
-- if `AI_COMMAND_CONSOLE_ALERT_WEBHOOK_URL` is configured, high-severity runtime alerts can also be delivered to an external webhook
-- webhook delivery is throttled with `AI_COMMAND_CONSOLE_ALERT_WEBHOOK_THROTTLE_SECONDS` to reduce duplicate paging during outages
-
-## Strong-Base Checklist
-
-- Console API and workflow tests are green
-- Production build completes successfully
-- Streaming console route no longer crashes on closed connections
-- Nested project folders have been removed from the workspace
-- Generated build output and archive artifacts are now ignoreable
-
-## Next Hardening Moves
-
-- Initialize the main workspace as a git repository if this is the canonical project root
-- Finish migrating the remaining legacy service stores behind the same environment-aware persistence layer
-- Add post-deploy rollback support or release version tagging around deploy artifacts
+- add ingestion jobs for source refresh and external webhook/event intake
+- expand workspace sharing and multi-workspace membership controls
+- add request tracing and external log/metrics sinks
+- broaden Playwright coverage for authenticated desktop and mobile flows

@@ -17,8 +17,18 @@ function getAgentsDataPath(...segments) {
   return path.join(getDataRoot(), "agents", ...segments);
 }
 
+function getRuntimeLogPath(...segments) {
+  return path.join(getDataRoot(), "logs", ...segments);
+}
+
+function getRuntimeMemoryPath(...segments) {
+  return path.join(getDataRoot(), "memory", ...segments);
+}
+
 module.exports = {
   getDataRoot,
   getWorkspaceDataPath,
   getAgentsDataPath,
+  getRuntimeLogPath,
+  getRuntimeMemoryPath,
 };

@@ -1,7 +1,5 @@
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-
-const { buildOverview, handleConsoleRequest, queueDueDigestSweepIfNeeded } = require("../../../services/consoleApi");
-
-export { buildOverview, handleConsoleRequest, queueDueDigestSweepIfNeeded };
+export {
+  executeTerminalRequest,
+  getTerminalOverview,
+  queueTerminalDigestSweep,
+} from "@/src/server/services/console-runtime";

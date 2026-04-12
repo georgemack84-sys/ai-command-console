@@ -7,8 +7,9 @@ const {
   listInbox
 } = require("./inbox");
 const { addTask } = require("./taskQueue");
+const { getRuntimeLogPath } = require("./runtimePaths");
 
-const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
+const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 
 function ensureLogDir() {
   fs.mkdirSync(AGENT_LOG_DIR, { recursive: true });

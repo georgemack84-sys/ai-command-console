@@ -8,10 +8,10 @@ const { listAgentProfiles } = require("./agentRuntime");
 const { loadAgentState } = require("./agentMemory");
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { getThrottleMs, shouldNotify, sendAlertNotification } = require("./alertNotifications");
-const { getAgentsDataPath } = require("./runtimePaths");
+const { getAgentsDataPath, getRuntimeLogPath } = require("./runtimePaths");
 
 const ALERTS_PATH = getAgentsDataPath("alerts.json");
-const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
+const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 const ALERTS_KEY = "alerts";
 
 function ensureAlertsDir() {

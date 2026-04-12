@@ -13,13 +13,23 @@ import { cn } from "@/src/lib/utils";
 import type { ResearchBrief, ResearchReport, SessionUser } from "@/src/lib/types";
 
 type ReportsResponse = {
-  reports: ResearchReport[];
-  error?: string;
+  ok: boolean;
+  data?: {
+    reports: ResearchReport[];
+  };
+  error?: {
+    message?: string;
+  };
 };
 
 type BriefsResponse = {
-  briefs: ResearchBrief[];
-  error?: string;
+  ok: boolean;
+  data?: {
+    briefs: ResearchBrief[];
+  };
+  error?: {
+    message?: string;
+  };
 };
 
 type AdminUser = {
@@ -68,19 +78,19 @@ export function ReportsPageClient() {
     const reportsPayload = (await reportsResponse.json()) as ReportsResponse;
     const briefsPayload = (await briefsResponse.json()) as BriefsResponse;
 
-    if (!reportsResponse.ok) {
-      throw new Error(reportsPayload.error || "Unable to load reports.");
+    if (!reportsResponse.ok || !reportsPayload.ok) {
+      throw new Error(reportsPayload.error?.message || "Unable to load reports.");
     }
-    if (!briefsResponse.ok) {
-      throw new Error(briefsPayload.error || "Unable to load briefs.");
+    if (!briefsResponse.ok || !briefsPayload.ok) {
+      throw new Error(briefsPayload.error?.message || "Unable to load briefs.");
     }
 
     startTransition(() => {
-      setReports(reportsPayload.reports);
-      setBriefs(briefsPayload.briefs);
+      setReports(reportsPayload.data?.reports || []);
+      setBriefs(briefsPayload.data?.briefs || []);
       setForm((current) => ({
         ...current,
-        briefId: current.briefId || briefsPayload.briefs[0]?.id || "",
+        briefId: current.briefId || briefsPayload.data?.briefs?.[0]?.id || "",
       }));
     });
   }
@@ -110,11 +120,11 @@ export function ReportsPageClient() {
     let cancelled = false;
     void (async () => {
       const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
-      const sessionPayload = (await sessionResponse.json()) as { user?: SessionUser | null };
+      const sessionPayload = (await sessionResponse.json()) as { ok: boolean; data?: { user?: SessionUser | null } };
       if (cancelled) {
         return;
       }
-      const sessionUser = sessionPayload.user || null;
+      const sessionUser = sessionPayload.data?.user || null;
       setCurrentUser(sessionUser);
       if (sessionUser?.role === "admin") {
         const adminResponse = await fetch("/api/admin/access", { cache: "no-store" });
@@ -151,10 +161,10 @@ export function ReportsPageClient() {
         }),
       });
       const payload = (await response.json()) as ReportsResponse;
-      if (!response.ok) {
-        throw new Error(payload.error || "Unable to create report.");
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message || "Unable to create report.");
       }
-      setReports(payload.reports);
+      setReports(payload.data?.reports || []);
       setForm((current) => ({ ...EMPTY_FORM, briefId: current.briefId }));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to create report.");
@@ -170,10 +180,10 @@ export function ReportsPageClient() {
       body: JSON.stringify({ id, status }),
     });
     const payload = (await response.json()) as ReportsResponse;
-    if (response.ok) {
-      setReports(payload.reports);
+    if (response.ok && payload.ok) {
+      setReports(payload.data?.reports || []);
     } else {
-      setError(payload.error || "Unable to update report.");
+      setError(payload.error?.message || "Unable to update report.");
     }
   }
 
@@ -184,10 +194,10 @@ export function ReportsPageClient() {
       body: JSON.stringify({ reportId: id }),
     });
     const payload = (await response.json()) as ReportsResponse;
-    if (response.ok) {
-      setReports(payload.reports);
+    if (response.ok && payload.ok) {
+      setReports(payload.data?.reports || []);
     } else {
-      setError(payload.error || "Unable to delete report.");
+      setError(payload.error?.message || "Unable to delete report.");
     }
   }
 
@@ -205,10 +215,10 @@ export function ReportsPageClient() {
       body: JSON.stringify({ id, ownerId: targetOwner.id, ownerName: targetOwner.name }),
     });
     const payload = (await response.json()) as ReportsResponse;
-    if (response.ok) {
-      setReports(payload.reports);
+    if (response.ok && payload.ok) {
+      setReports(payload.data?.reports || []);
     } else {
-      setError(payload.error || "Unable to reassign report.");
+      setError(payload.error?.message || "Unable to reassign report.");
     }
   }
 
@@ -257,7 +267,7 @@ export function ReportsPageClient() {
             </div>
 
             <div className="mt-6 grid gap-3">
-              <select value={form.briefId} onChange={(event) => setForm((current) => ({ ...current, briefId: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none">
+              <select suppressHydrationWarning value={form.briefId} onChange={(event) => setForm((current) => ({ ...current, briefId: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none">
                 <option value="">Select a brief</option>
                 {briefs.map((brief) => (
                   <option key={brief.id} value={brief.id}>
@@ -265,15 +275,15 @@ export function ReportsPageClient() {
                   </option>
                 ))}
               </select>
-              <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Report title" />
-              <select value={form.format} onChange={(event) => setForm((current) => ({ ...current, format: event.target.value as ResearchReport["format"] }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none">
+              <input suppressHydrationWarning value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Report title" />
+              <select suppressHydrationWarning value={form.format} onChange={(event) => setForm((current) => ({ ...current, format: event.target.value as ResearchReport["format"] }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none">
                 <option value="memo">Memo</option>
                 <option value="briefing">Briefing</option>
                 <option value="comparison">Comparison</option>
                 <option value="outline">Outline</option>
               </select>
-              <textarea value={form.excerpt} onChange={(event) => setForm((current) => ({ ...current, excerpt: event.target.value }))} className="min-h-28 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Short summary or excerpt" />
-              <textarea value={form.keyFindings} onChange={(event) => setForm((current) => ({ ...current, keyFindings: event.target.value }))} className="min-h-32 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="One key finding per line" />
+              <textarea suppressHydrationWarning value={form.excerpt} onChange={(event) => setForm((current) => ({ ...current, excerpt: event.target.value }))} className="min-h-28 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Short summary or excerpt" />
+              <textarea suppressHydrationWarning value={form.keyFindings} onChange={(event) => setForm((current) => ({ ...current, keyFindings: event.target.value }))} className="min-h-32 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="One key finding per line" />
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -366,6 +376,7 @@ export function ReportsPageClient() {
                       {currentUser?.role === "admin" && workspaceUsers.length ? (
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           <select
+                            suppressHydrationWarning
                             value={ownerDrafts[report.id] ?? report.ownerId ?? ""}
                             onChange={(event) => setOwnerDrafts((current) => ({ ...current, [report.id]: event.target.value }))}
                             className="rounded-full border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white outline-none"

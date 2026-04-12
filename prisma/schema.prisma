@@ -1,0 +1,478 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  viewer
+  operator
+  approver
+  admin
+}
+
+enum UserStatus {
+  active
+  disabled
+}
+
+enum WorkspaceMemberRole {
+  owner
+  admin
+  member
+  viewer
+}
+
+enum WorkspaceInviteStatus {
+  pending
+  accepted
+  revoked
+}
+
+enum SourceType {
+  website
+  repository
+  integration
+  feed
+  document
+}
+
+enum SourceStatus {
+  healthy
+  degraded
+  paused
+}
+
+enum UpdateSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum InsightType {
+  summary
+  insight
+  recommendation
+  classification
+}
+
+enum InsightStatus {
+  ready
+  draft
+  archived
+}
+
+enum BriefStatus {
+  draft
+  queued
+  in_progress
+  in_review
+  complete
+}
+
+enum BriefPriority {
+  low
+  medium
+  high
+}
+
+enum ReportFormat {
+  memo
+  briefing
+  comparison
+  outline
+}
+
+enum ReportStatus {
+  draft
+  ready
+  published
+}
+
+model User {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  passwordHash String
+  name         String
+  role         UserRole          @default(operator)
+  status       UserStatus        @default(active)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  memberships  WorkspaceMember[]
+  sessions     AuthSession[]
+  activities   ActivityEvent[]
+  briefs       ResearchBrief[]
+  reports      ResearchReport[]
+  savedViews   SavedView[]
+  createdInvites WorkspaceInvite[] @relation("CreatedWorkspaceInvites")
+  acceptedInvites WorkspaceInvite[] @relation("AcceptedWorkspaceInvites")
+}
+
+model Workspace {
+  id          String            @id @default(cuid())
+  name        String
+  slug        String            @unique
+  description String
+  plan        String            @default("scale")
+  statusTone  String            @default("healthy")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  members     WorkspaceMember[]
+  sources     Source[]
+  updates     MonitoredUpdate[]
+  insights    Insight[]
+  activity    ActivityEvent[]
+  savedViews  SavedView[]
+  briefs      ResearchBrief[]
+  reports     ResearchReport[]
+  invites     WorkspaceInvite[]
+  operationsState WorkspaceOperationsState?
+  operationsFollowups OperationsFollowup[]
+  incidentApprovals IncidentApprovalRequest[]
+  policyOverride WorkspacePolicyOverride?
+  playbookRolloutWorkspaces PolicyPlaybookRolloutWorkspace[]
+}
+
+model WorkspaceInvite {
+  id               String                @id @default(cuid())
+  token            String                @unique
+  email            String?
+  workspaceId      String
+  createdById      String
+  status           WorkspaceInviteStatus @default(pending)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  acceptedAt       DateTime?
+  acceptedByUserId String?
+  workspace        Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy        User                  @relation("CreatedWorkspaceInvites", fields: [createdById], references: [id], onDelete: Cascade)
+  acceptedBy       User?                 @relation("AcceptedWorkspaceInvites", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status])
+  @@index([email, status])
+}
+
+model WorkspaceMember {
+  id          String              @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceMemberRole @default(member)
+  isDefault   Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+model AuthSession {
+  id         String   @id @default(cuid())
+  userId     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+  ipHash     String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Source {
+  id            String            @id @default(cuid())
+  workspaceId   String
+  name          String
+  type          SourceType
+  status        SourceStatus      @default(healthy)
+  url           String?
+  updateCadence String
+  description   String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  workspace     Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  updates       MonitoredUpdate[]
+}
+
+model MonitoredUpdate {
+  id          String         @id @default(cuid())
+  workspaceId String
+  sourceId    String
+  title       String
+  summary     String
+  status      String
+  severity    UpdateSeverity @default(medium)
+  category    String
+  happenedAt  DateTime
+  createdAt   DateTime       @default(now())
+  metadata    Json?
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source      Source         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+}
+
+model Insight {
+  id          String        @id @default(cuid())
+  workspaceId String
+  title       String
+  summary     String
+  type        InsightType
+  status      InsightStatus @default(ready)
+  confidence  Int
+  sourceIds   String[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  metadata    Json?
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model ActivityEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String?
+  type        String
+  title       String
+  description String
+  createdAt   DateTime  @default(now())
+  metadata    Json?
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+}
+
+model SavedView {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String?
+  name        String
+  description String
+  filters     Json
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ResearchBrief {
+  id            String         @id @default(cuid())
+  workspaceId   String
+  ownerId       String?
+  title         String
+  question      String
+  status        BriefStatus    @default(draft)
+  priority      BriefPriority  @default(medium)
+  assignedAgent String
+  tags          String[]
+  summary       String
+  linkedTaskId  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner         User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  reports       ResearchReport[]
+}
+
+model ResearchReport {
+  id          String       @id @default(cuid())
+  workspaceId String
+  briefId     String
+  ownerId     String?
+  title       String
+  format      ReportFormat
+  status      ReportStatus @default(draft)
+  excerpt     String
+  keyFindings String[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brief       ResearchBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  owner       User?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+}
+
+model WorkspaceOperationsState {
+  id                           String    @id @default(cuid())
+  workspaceId                  String    @unique
+  escalationOwner              String?
+  incidentApproverTarget       String?
+  backupApproverTarget         String?
+  snoozedUntil                 DateTime?
+  resolutionTaskId             String?
+  resolutionCompletedAt        DateTime?
+  resolutionDescription        String?
+  resolutionOwnerName          String?
+  incidentSummary              String?
+  incidentSummaryUpdatedAt     DateTime?
+  incidentHandoffDraft         String?
+  incidentHandoffDraftUpdatedAt DateTime?
+  incidentArchiveRecommendation String?
+  incidentStatus               String    @default("open")
+  incidentStatusUpdatedAt      DateTime?
+  incidentChecklist            Json?
+  lastSweepRunAt               DateTime?
+  lastSweepQueuedAt            DateTime?
+  lastGeneratedCount           Int       @default(0)
+  lastSweepError               String?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+  workspace                    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model OperationsFollowup {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  agentName       String
+  description     String
+  status          String    @default("queued")
+  priority        Int       @default(2)
+  ownerId         String?
+  ownerName       String?
+  linkedInboxItemId String?
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+}
+
+model IncidentApprovalRequest {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  label             String
+  requestedStatus   String
+  status            String    @default("pending")
+  approverTarget    String?
+  routingMode       String?
+  routingReason     String?
+  routedFromTarget  String?
+  requestedById     String?
+  requestedByName   String?
+  approvedById      String?
+  approvedByName    String?
+  rejectedById      String?
+  rejectedByName    String?
+  rejectionNote     String?
+  archiveRationale  String?
+  createdAt         DateTime  @default(now())
+  resolvedAt        DateTime?
+  updatedAt         DateTime  @updatedAt
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([approverTarget, status])
+}
+
+model PlatformGovernanceSettings {
+  id                               String   @id @default("default")
+  currentEnvironment               String   @default("development")
+  sensitiveActionsRequireApproval  Boolean  @default(true)
+  demoScenarioId                   String?
+  demoScenarioName                 String?
+  demoScenarioDescription          String?
+  createdAt                        DateTime @default(now())
+  updatedAt                        DateTime @updatedAt
+}
+
+model EnvironmentPolicy {
+  id                                  String   @id @default(cuid())
+  environment                         String   @unique
+  minimumRoleForCommands              String
+  minimumRoleForApprovals             String
+  minimumRoleForGovernance            String
+  requireChecklistForResolved         Boolean  @default(false)
+  requiredChecklistForResolved        String[]
+  requireSummaryShareBeforeArchived   Boolean  @default(false)
+  requireApprovalForResolved          Boolean  @default(false)
+  requireApprovalForArchived          Boolean  @default(false)
+  incidentApprovalReminderMinutes     Int      @default(30)
+  incidentApprovalEscalationMinutes   Int      @default(60)
+  incidentApprovalEscalationTarget    String   @default("team")
+  incidentApprovalFinalEscalationMinutes Int   @default(120)
+  incidentApprovalFinalEscalationTarget String @default("role:admin")
+  incidentApprovalCapacityLimit       Int      @default(3)
+  autoPromoteApprovalRecommendations  Boolean  @default(false)
+  autoPromoteRecommendationConfidence Float    @default(0.9)
+  autoPromoteObservationHours         Int      @default(24)
+  autoPromoteCooldownHours            Int      @default(72)
+  trustDropAction                     String   @default("notify")
+  trustDropFollowupOwner              String?
+  promoteTrustDropToIncident          Boolean  @default(false)
+  createdAt                           DateTime @default(now())
+  updatedAt                           DateTime @updatedAt
+}
+
+model WorkspacePolicyOverride {
+  id                              String   @id @default(cuid())
+  workspaceId                     String   @unique
+  environment                     String?
+  incidentApprovalCapacityLimit   Int?
+  incidentApprovalReminderMinutes Int?
+  trustDropAction                 String?
+  trustDropFollowupOwner          String?
+  requireApprovalForResolved      Boolean?
+  requireApprovalForArchived      Boolean?
+  promoteTrustDropToIncident      Boolean?
+  sourceType                      String?
+  sourcePlaybookId                String?
+  updatedById                     String?
+  updatedByName                   String?
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+  workspace                       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourcePlaybook                  PolicyPlaybook? @relation(fields: [sourcePlaybookId], references: [id], onDelete: SetNull)
+
+  @@index([sourcePlaybookId])
+}
+
+model PolicyPlaybook {
+  id                            String   @id
+  name                          String
+  environment                   String
+  incidentApprovalCapacityLimit Int
+  trustDropAction               String
+  requireApprovalForResolved    Boolean  @default(false)
+  promoteTrustDropToIncident    Boolean  @default(false)
+  description                   String?
+  isPreset                      Boolean  @default(false)
+  createdById                   String?
+  createdByName                 String?
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+  rollouts                      PolicyPlaybookRollout[]
+  sourcedOverrides              WorkspacePolicyOverride[]
+}
+
+model PolicyPlaybookRollout {
+  id             String   @id @default(cuid())
+  playbookId     String
+  environment    String
+  workspaceCount Int      @default(0)
+  appliedById    String?
+  appliedByName  String?
+  createdAt      DateTime @default(now())
+  rolledBackAt   DateTime?
+  playbook       PolicyPlaybook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  workspaces     PolicyPlaybookRolloutWorkspace[]
+
+  @@index([playbookId, createdAt])
+}
+
+model PolicyPlaybookRolloutWorkspace {
+  id               String   @id @default(cuid())
+  rolloutId        String
+  workspaceId      String
+  workspaceName    String
+  beforeOverride   Json?
+  afterOverride    Json?
+  createdAt        DateTime @default(now())
+  rollout          PolicyPlaybookRollout @relation(fields: [rolloutId], references: [id], onDelete: Cascade)
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([rolloutId, workspaceId])
+  @@index([workspaceId, createdAt])
+}

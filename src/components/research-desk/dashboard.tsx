@@ -201,10 +201,26 @@ export function ResearchDeskDashboard() {
   const [summaryViewName, setSummaryViewName] = useState<string | null>(null);
   const [summaryNotice, setSummaryNotice] = useState<string | null>(null);
   const [savingSummary, setSavingSummary] = useState(false);
+  const [queueingSummary, setQueueingSummary] = useState(false);
   const [runningScheduleId, setRunningScheduleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const autoRunAttempted = useRef(false);
   const runScheduleRef = useRef<(schedule: SummarySchedule) => Promise<void>>(async () => {});
+
+  async function persistResearchDeskPreferences(nextViews: SavedTriageView[], nextSchedules: SummarySchedule[]) {
+    try {
+      await fetch("/api/preferences/research-desk", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          views: nextViews.slice(0, 6),
+          schedules: nextSchedules.slice(0, 6),
+        }),
+      });
+    } catch {
+      // Fallback local state remains usable if persistence is temporarily unavailable.
+    }
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -312,26 +328,47 @@ export function ResearchDeskDashboard() {
 
     void (async () => {
       const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
-      const sessionPayload = (await sessionResponse.json()) as { user?: SessionUser | null };
+      const sessionPayload = (await sessionResponse.json()) as { ok: boolean; data?: { user?: SessionUser | null } };
       if (!cancelled) {
-        setCurrentUser(sessionPayload.user || null);
+        setCurrentUser(sessionPayload.data?.user || null);
+      }
+
+      if (sessionPayload.data?.user) {
+        try {
+          const preferencesResponse = await fetch("/api/preferences/research-desk", { cache: "no-store" });
+          const preferencesPayload = (await preferencesResponse.json()) as {
+            ok: boolean;
+            data?: {
+              views?: SavedTriageView[];
+              schedules?: SummarySchedule[];
+            };
+          };
+          if (!cancelled && preferencesResponse.ok && preferencesPayload.ok) {
+            if (preferencesPayload.data?.views?.length) {
+              setSavedViews(preferencesPayload.data.views);
+            }
+            if (preferencesPayload.data?.schedules?.length) {
+              setSchedules(preferencesPayload.data.schedules);
+            }
+          }
+        } catch {}
       }
     })();
 
     async function loadOverview() {
       try {
         const [overviewResponse, briefsResponse, reportsResponse] = await Promise.all([
-          fetch("/api/console", { cache: "no-store" }),
+          fetch("/api/control-center/overview", { cache: "no-store" }),
           fetch("/api/research/briefs", { cache: "no-store" }),
           fetch("/api/research/reports", { cache: "no-store" }),
         ]);
-        const payload = (await overviewResponse.json()) as { overview: Overview };
-        const briefPayload = (await briefsResponse.json()) as { briefs?: ResearchBrief[] };
-        const reportPayload = (await reportsResponse.json()) as { reports?: ResearchReport[] };
+        const payload = (await overviewResponse.json()) as { ok: boolean; data?: { overview: Overview } };
+        const briefPayload = (await briefsResponse.json()) as { ok: boolean; data?: { briefs?: ResearchBrief[] } };
+        const reportPayload = (await reportsResponse.json()) as { ok: boolean; data?: { reports?: ResearchReport[] } };
         if (!cancelled) {
-          setOverview(payload.overview);
-          setBriefs(Array.isArray(briefPayload.briefs) ? briefPayload.briefs : []);
-          setReports(Array.isArray(reportPayload.reports) ? reportPayload.reports : []);
+          setOverview(payload.data?.overview || EMPTY_OVERVIEW);
+          setBriefs(Array.isArray(briefPayload.data?.briefs) ? briefPayload.data?.briefs : []);
+          setReports(Array.isArray(reportPayload.data?.reports) ? reportPayload.data?.reports : []);
         }
       } finally {
         if (!cancelled) {
@@ -467,18 +504,21 @@ export function ResearchDeskDashboard() {
       return;
     }
 
-    setSavedViews((current) =>
-      [
-        { name: trimmed, filter: triageFilter, sort: triageSort, freshnessHours },
-        ...current.filter((item) => item.name !== trimmed),
-      ].slice(0, 6)
-    );
+    const nextViews = [
+      { name: trimmed, filter: triageFilter, sort: triageSort, freshnessHours },
+      ...savedViews.filter((item) => item.name !== trimmed),
+    ].slice(0, 6);
+    setSavedViews(nextViews);
+    void persistResearchDeskPreferences(nextViews, schedules);
     setViewName("");
   }
 
   function deleteView(name: string) {
-    setSavedViews((current) => current.filter((item) => item.name !== name));
-    setSchedules((current) => current.filter((item) => item.viewName !== name));
+    const nextViews = savedViews.filter((item) => item.name !== name);
+    const nextSchedules = schedules.filter((item) => item.viewName !== name);
+    setSavedViews(nextViews);
+    setSchedules(nextSchedules);
+    void persistResearchDeskPreferences(nextViews, nextSchedules);
   }
 
   function buildTriageSummary(viewLabel: string) {
@@ -537,9 +577,9 @@ export function ResearchDeskDashboard() {
           status: "draft",
         }),
       });
-      const payload = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || "Unable to save summary report.");
+      const payload = (await response.json()) as { ok: boolean; error?: { message?: string } };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message || "Unable to save summary report.");
       }
       setSummaryNotice(`Saved draft report on brief "${targetBrief.title}".`);
     } catch (error) {
@@ -549,18 +589,47 @@ export function ResearchDeskDashboard() {
     }
   }
 
+  async function queueSummaryJob() {
+    try {
+      setQueueingSummary(true);
+      setSummaryNotice(null);
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "workspace:generate-summary",
+          view: {
+            name: summaryViewName || "Current View",
+            filter: triageFilter,
+            sort: triageSort,
+            freshnessHours,
+          },
+        }),
+      });
+      const payload = (await response.json()) as { ok: boolean; data?: { job?: { id: string } }; error?: { message?: string } };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message || "Unable to queue AI summary.");
+      }
+      setSummaryNotice(`Queued AI summary job ${payload.data?.job?.id || ""}. A draft report will appear when it completes.`);
+    } catch (error) {
+      setSummaryNotice(error instanceof Error ? error.message : "Unable to queue AI summary.");
+    } finally {
+      setQueueingSummary(false);
+    }
+  }
+
   async function reloadDeskData() {
     const [overviewResponse, briefsResponse, reportsResponse] = await Promise.all([
-      fetch("/api/console", { cache: "no-store" }),
+      fetch("/api/control-center/overview", { cache: "no-store" }),
       fetch("/api/research/briefs", { cache: "no-store" }),
       fetch("/api/research/reports", { cache: "no-store" }),
     ]);
-    const payload = (await overviewResponse.json()) as { overview: Overview };
-    const briefPayload = (await briefsResponse.json()) as { briefs?: ResearchBrief[] };
-    const reportPayload = (await reportsResponse.json()) as { reports?: ResearchReport[] };
-    setOverview(payload.overview);
-    setBriefs(Array.isArray(briefPayload.briefs) ? briefPayload.briefs : []);
-    setReports(Array.isArray(reportPayload.reports) ? reportPayload.reports : []);
+    const payload = (await overviewResponse.json()) as { ok: boolean; data?: { overview: Overview } };
+    const briefPayload = (await briefsResponse.json()) as { ok: boolean; data?: { briefs?: ResearchBrief[] } };
+    const reportPayload = (await reportsResponse.json()) as { ok: boolean; data?: { reports?: ResearchReport[] } };
+    setOverview(payload.data?.overview || EMPTY_OVERVIEW);
+    setBriefs(Array.isArray(briefPayload.data?.briefs) ? briefPayload.data?.briefs : []);
+    setReports(Array.isArray(reportPayload.data?.reports) ? reportPayload.data?.reports : []);
   }
 
   runScheduleRef.current = async (schedule: SummarySchedule) => {
@@ -586,6 +655,7 @@ export function ResearchDeskDashboard() {
       }
       if (Array.isArray(payload.schedules)) {
         setSchedules(payload.schedules);
+        void persistResearchDeskPreferences(savedViews, payload.schedules);
       }
       await reloadDeskData();
       const generated = payload.generated || [];
@@ -613,23 +683,25 @@ export function ResearchDeskDashboard() {
       return;
     }
 
-    setSchedules((current) =>
-      [
-        {
-          id: `schedule_${Date.now()}`,
-          viewName: targetName,
-          cadence: scheduleCadence,
-          destination: scheduleDestination,
-          lastRunAt: null,
-        },
-        ...current.filter((item) => !(item.viewName === targetName && item.cadence === scheduleCadence && item.destination === scheduleDestination)),
-      ].slice(0, 6)
-    );
+    const nextSchedules = [
+      {
+        id: `schedule_${Date.now()}`,
+        viewName: targetName,
+        cadence: scheduleCadence,
+        destination: scheduleDestination,
+        lastRunAt: null,
+      },
+      ...schedules.filter((item) => !(item.viewName === targetName && item.cadence === scheduleCadence && item.destination === scheduleDestination)),
+    ].slice(0, 6);
+    setSchedules(nextSchedules);
+    void persistResearchDeskPreferences(savedViews, nextSchedules);
     setSummaryNotice(`Scheduled "${targetName}" as ${scheduleCadence}.`);
   }
 
   function removeSchedule(id: string) {
-    setSchedules((current) => current.filter((item) => item.id !== id));
+    const nextSchedules = schedules.filter((item) => item.id !== id);
+    setSchedules(nextSchedules);
+    void persistResearchDeskPreferences(savedViews, nextSchedules);
   }
 
   function cadenceLabel(value: SummarySchedule["cadence"]) {
@@ -981,6 +1053,14 @@ export function ResearchDeskDashboard() {
                   className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100 transition hover:bg-emerald-400/20 disabled:opacity-50"
                 >
                   {savingSummary ? "Saving..." : "Save as Report"}
+                </button>
+                <button
+                  type="button"
+                  disabled={queueingSummary}
+                  onClick={() => void queueSummaryJob()}
+                  className="rounded-full border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-300/20 disabled:opacity-50"
+                >
+                  {queueingSummary ? "Queueing..." : "Queue AI Draft"}
                 </button>
               </div>
             </div>

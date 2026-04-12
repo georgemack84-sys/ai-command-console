@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
-const { getAgentsDataPath } = require("./runtimePaths");
+const { getAgentsDataPath, getRuntimeLogPath } = require("./runtimePaths");
 
 const INBOX_PATH = getAgentsDataPath("inbox.json");
-const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
+const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 const INBOX_KEY = "inbox";
 
 function ensureInboxDir() {

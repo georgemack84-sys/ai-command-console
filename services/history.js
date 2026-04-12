@@ -1,8 +1,8 @@
 const path = require("path");
 const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
+const { getRuntimeLogPath } = require("./runtimePaths");
 
-const logDir = path.join(__dirname, "../logs");
-const historyFile = path.join(logDir, "history.json");
+const historyFile = getRuntimeLogPath("history.json");
 const HISTORY_KEY = "runtime.history";
 
 function loadHistory() {

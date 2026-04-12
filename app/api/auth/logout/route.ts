@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
 import { clearSessionCookie } from "@/src/lib/auth";
+import { apiError, apiSuccess } from "@/src/server/api/response";
 
 export async function POST() {
-  await clearSessionCookie();
-  return NextResponse.json({ ok: true });
+  try {
+    await clearSessionCookie();
+    return apiSuccess({ loggedOut: true });
+  } catch (error) {
+    return apiError(error, "Unable to log out.");
+  }
 }

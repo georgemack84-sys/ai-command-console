@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import terminalCommandCatalog from "@/src/data/terminal-command-catalog.json";
 
 type QueueItem = {
   id: string;
@@ -241,9 +242,51 @@ type Overview = {
       completionRate: number;
       retryPressure: number;
       scheduledRetries: number;
+      timedOut?: number;
     };
+    diagnostics: {
+      summary: {
+        total: number;
+        errors: number;
+        warnings: number;
+        byScope: Record<string, number>;
+        latestAt: string | null;
+      };
+      recent: Array<{
+        id: string;
+        scope: string;
+        level: string;
+        message: string;
+        timestamp: string;
+        traceId?: string | null;
+        context?: Record<string, unknown>;
+      }>;
+      health: {
+        running: number;
+        activeWorkers?: number;
+        queued: number;
+        scheduledRetries: number;
+        staleRunning: number;
+        unhealthy: boolean;
+      };
+      latestFailures: Array<{
+        id: string;
+        traceId?: string | null;
+        type: string;
+        status: string;
+        error: string | null;
+        nextRetryAt: string | null;
+        latestEventAt: string | null;
+      }>;
+    };
+    warnings?: Array<{
+      code: string;
+      severity: "warning" | "critical";
+      message: string;
+    }>;
     items: Array<{
       id: string;
+      traceId?: string | null;
       type: string;
       status: string;
       actorId?: string | null;
@@ -252,6 +295,9 @@ type Overview = {
       createdAt: string;
       startedAt?: string | null;
       completedAt?: string | null;
+      workerId?: string | null;
+      lastHeartbeatAt?: string | null;
+      leaseExpiresAt?: string | null;
       result?: unknown;
       error?: string | null;
       retryCount?: number;
@@ -517,55 +563,13 @@ const HISTORY_KEY = "ai-console-command-history";
 const MACRO_KEY = "ai-console-macros";
 const SESSION_KEY = "ai-console-sessions";
 const MAX_HISTORY = 14;
+const STREAM_CONNECT_DELAY_MS = 1200;
 
-const COMMANDS = [
-  "help",
-  "agents:list",
-  "agent:status researcher",
-  "agent:start researcher",
-  "agent:tick researcher",
-  "agent:stop researcher",
-  "manager:route Compare top open-source eval frameworks",
-  "brief:list",
-  "brief:create Market scan | Compare local-first note apps",
-  "brief:route brief_123",
-  "report:list",
-  "report:create brief_123 | Executive memo",
-  "report:publish report_123",
-  "review:create task_123",
-  "queue:list",
-  "inbox:list",
-  "inbox:digest",
-  "inbox:history",
-  "ownership:signals",
-  "dashboard:health",
-  "digest:health",
-  "schedule:list",
-  "watcher:run",
-  "review:list",
-  "alerts:active",
-  "plugins",
-  "run plugin projectReportPlugin .",
-];
+const COMMANDS = terminalCommandCatalog.commands;
 
-const DEFAULT_MACROS: Macro[] = [
-  { name: "Desk Health", command: "dashboard:health" },
-  { name: "Workload", command: "dashboard:workload" },
-  { name: "Signals", command: "alerts:active" },
-];
+const DEFAULT_MACROS: Macro[] = terminalCommandCatalog.defaultMacros;
 
-const DEFAULT_SESSIONS: SessionPreset[] = [
-  { name: "Brief Triage", draftCommand: "dashboard:health", macros: DEFAULT_MACROS },
-  {
-    name: "Scout Loop",
-    draftCommand: "agent:tick researcher",
-    macros: [
-      { name: "Scout Status", command: "agent:status researcher" },
-      { name: "Scout Tick", command: "agent:tick researcher" },
-      { name: "Review Queue", command: "review:list" },
-    ],
-  },
-];
+const DEFAULT_SESSIONS: SessionPreset[] = terminalCommandCatalog.defaultSessions as SessionPreset[];
 
 const TAB_LABELS: Record<TabKey, string> = {
   dashboard: "Briefing",
@@ -662,7 +666,28 @@ const EMPTY_OVERVIEW: Overview = {
       completionRate: 0,
       retryPressure: 0,
       scheduledRetries: 0,
+      timedOut: 0,
     },
+    diagnostics: {
+      summary: {
+        total: 0,
+        errors: 0,
+        warnings: 0,
+        byScope: {},
+        latestAt: null,
+      },
+      recent: [],
+      health: {
+        running: 0,
+        activeWorkers: 0,
+        queued: 0,
+        scheduledRetries: 0,
+        staleRunning: 0,
+        unhealthy: false,
+      },
+      latestFailures: [],
+    },
+    warnings: [],
     items: [],
   },
   collaboration: {
@@ -772,6 +797,21 @@ function toneClass(value: string) {
   return "border-cyan-500/30 bg-cyan-500/10 text-cyan-100";
 }
 
+function describeJobWarning(warning: { code: string; message: string }) {
+  if (warning.code === "jobs_external_worker_missing") {
+    return {
+      title: "External worker missing",
+      detail:
+        "Jobs are queued with no active worker lease. Start `npm run worker:jobs` and confirm external queue mode before expecting background work to drain.",
+    };
+  }
+
+  return {
+    title: null,
+    detail: warning.message,
+  };
+}
+
 function outputParts(output: string) {
   const trimmed = output.trim();
   const lines = trimmed.split("\n");
@@ -801,6 +841,42 @@ function formatDuration(start?: string | null, end?: string | null) {
   }
 
   return `${diff}ms`;
+}
+
+function compactTraceId(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (value.length <= 18) {
+    return value;
+  }
+
+  return `${value.slice(0, 10)}...${value.slice(-6)}`;
+}
+
+function leaseTone(status?: string | null, leaseExpiresAt?: string | null) {
+  if (status !== "running") {
+    return "inactive";
+  }
+
+  if (!leaseExpiresAt) {
+    return "warning";
+  }
+
+  return new Date(leaseExpiresAt).getTime() > Date.now() ? "active" : "critical";
+}
+
+function leaseLabel(status?: string | null, leaseExpiresAt?: string | null) {
+  if (status !== "running") {
+    return "Not leased";
+  }
+
+  if (!leaseExpiresAt) {
+    return "Lease unknown";
+  }
+
+  return new Date(leaseExpiresAt).getTime() > Date.now() ? "Lease active" : "Lease expired";
 }
 
 function renderObject(value: unknown) {
@@ -958,6 +1034,27 @@ export default function Terminal() {
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  async function copyTraceId(traceId?: string | null) {
+    if (!traceId || typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(traceId);
+      pushToast(setToasts, {
+        id: id(),
+        tone: "success",
+        message: `Copied trace ID ${compactTraceId(traceId)}.`,
+      });
+    } catch {
+      pushToast(setToasts, {
+        id: id(),
+        tone: "warning",
+        message: "Unable to copy the trace ID from this browser context.",
+      });
+    }
+  }
+
   const deferredCommand = useDeferredValue(command);
   const handleShortcutExecute = useEffectEvent(() => {
     void executeCommand(command);
@@ -1042,41 +1139,45 @@ export default function Terminal() {
   }, []);
 
   useEffect(() => {
-    const source = new EventSource("/api/console/stream");
-    setStreamStatus("connecting");
+    let source: EventSource | null = null;
+    const connectTimer = window.setTimeout(() => {
+      source = new EventSource("/api/console/stream");
+      setStreamStatus("connecting");
 
-    source.addEventListener("overview", (event) => {
-      const payload = JSON.parse((event as MessageEvent).data) as { overview: Overview; sentAt: string };
-      startTransition(() => {
-        setPreviousOverview((current) => current ?? payload.overview);
-        setOverview((current) => {
-          const next = payload.overview;
-          if (current.alerts.activeCount < next.alerts.activeCount) {
-            pushToast(setToasts, { id: id(), tone: "warning", message: "New research signal detected." });
-          }
-          if (current.ownershipSignals.length < next.ownershipSignals.length) {
-            pushToast(setToasts, { id: id(), tone: "warning", message: "Workspace ownership risk needs attention." });
-          }
-          if (current.collaboration.inbox.length < next.collaboration.inbox.length) {
-            pushToast(setToasts, { id: id(), tone: "warning", message: "New inbox item is waiting for the team." });
-          }
-          if (current.reviews.length < next.reviews.length) {
-            pushToast(setToasts, { id: id(), tone: "warning", message: "New editorial review entered the inbox." });
-          }
-          return next;
+      source.addEventListener("overview", (event) => {
+        const payload = JSON.parse((event as MessageEvent).data) as { overview: Overview; sentAt: string };
+        startTransition(() => {
+          setPreviousOverview((current) => current ?? payload.overview);
+          setOverview((current) => {
+            const next = payload.overview;
+            if (current.alerts.activeCount < next.alerts.activeCount) {
+              pushToast(setToasts, { id: id(), tone: "warning", message: "New research signal detected." });
+            }
+            if (current.ownershipSignals.length < next.ownershipSignals.length) {
+              pushToast(setToasts, { id: id(), tone: "warning", message: "Workspace ownership risk needs attention." });
+            }
+            if (current.collaboration.inbox.length < next.collaboration.inbox.length) {
+              pushToast(setToasts, { id: id(), tone: "warning", message: "New inbox item is waiting for the team." });
+            }
+            if (current.reviews.length < next.reviews.length) {
+              pushToast(setToasts, { id: id(), tone: "warning", message: "New editorial review entered the inbox." });
+            }
+            return next;
+          });
+          setLastSyncAt(payload.sentAt);
+          setStreamStatus("live");
+          setError(null);
         });
-        setLastSyncAt(payload.sentAt);
-        setStreamStatus("live");
-        setError(null);
       });
-    });
 
-    source.onerror = () => {
-      setStreamStatus("reconnecting");
-    };
+      source.onerror = () => {
+        setStreamStatus("reconnecting");
+      };
+    }, STREAM_CONNECT_DELAY_MS);
 
     return () => {
-      source.close();
+      window.clearTimeout(connectTimer);
+      source?.close();
     };
   }, []);
 
@@ -3111,14 +3212,116 @@ export default function Terminal() {
                     <p className="mt-2 text-lg font-semibold text-white">{overview.jobs.metrics.retryPressure}%</p>
                   </div>
                 </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                  <div className="rounded-xl bg-zinc-950/70 p-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Diagnostics</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{overview.jobs.diagnostics.summary.total}</p>
+                  </div>
+                  <div className="rounded-xl bg-zinc-950/70 p-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Timed Out</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{overview.jobs.metrics.timedOut ?? 0}</p>
+                  </div>
+                </div>
                 {overview.jobs.metrics.scheduledRetries ? (
                   <p className="mt-3 text-xs text-amber-200">
                     {overview.jobs.metrics.scheduledRetries} job{overview.jobs.metrics.scheduledRetries === 1 ? "" : "s"} waiting for automatic retry.
                   </p>
                 ) : null}
+                {overview.jobs.diagnostics.health.unhealthy ? (
+                  <div className="mt-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-100">
+                    Queue health is degraded. Stale running jobs: {overview.jobs.diagnostics.health.staleRunning}.
+                  </div>
+                ) : null}
+                {overview.jobs.warnings?.length ? (
+                  <div className="mt-3 space-y-2">
+                    {overview.jobs.warnings.map((warning) => (
+                      <div
+                        key={warning.code}
+                        className={`rounded-xl border p-3 text-xs ${
+                          warning.severity === "critical"
+                            ? "border-rose-500/20 bg-rose-500/10 text-rose-100"
+                            : "border-amber-400/20 bg-amber-400/10 text-amber-100"
+                        }`}
+                      >
+                        {describeJobWarning(warning).title ? (
+                          <p className="font-semibold">{describeJobWarning(warning).title}</p>
+                        ) : null}
+                        <p className={describeJobWarning(warning).title ? "mt-1" : ""}>{describeJobWarning(warning).detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                <p className="mt-3 text-xs text-zinc-500">
+                  Active workers {overview.jobs.diagnostics.health.activeWorkers ?? 0} • Running jobs {overview.jobs.diagnostics.health.running}
+                </p>
+                <div className="mt-3 space-y-2">
+                  {overview.jobs.diagnostics.recent.slice(0, 4).map((entry) => (
+                    <div key={entry.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-zinc-100">{entry.message}</span>
+                        <span className={`rounded-full border px-2 py-1 text-[11px] ${toneClass(entry.level)}`}>{entry.level}</span>
+                      </div>
+                      <p className="mt-2 text-xs text-zinc-500">{entry.scope} • {formatTime(entry.timestamp)}</p>
+                      {entry.traceId ? (
+                        <div className="mt-2 flex items-center gap-2 text-[11px] text-cyan-200">
+                          <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-mono">
+                            Trace {compactTraceId(entry.traceId)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void copyTraceId(entry.traceId)}
+                            className="rounded-full border border-white/10 px-2 py-1 text-zinc-300 transition hover:bg-white/10"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      ) : null}
+                      {entry.context ? (
+                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-950/70 p-3 text-[11px] text-zinc-300">
+                          {JSON.stringify(entry.context, null, 2)}
+                        </pre>
+                      ) : null}
+                    </div>
+                  ))}
+                  {!overview.jobs.diagnostics.recent.length ? (
+                    <div className="rounded-xl border border-dashed border-white/10 p-3 text-sm text-zinc-500">
+                      No recent AI or job diagnostics.
+                    </div>
+                  ) : null}
+                </div>
+                {overview.jobs.diagnostics.latestFailures.length ? (
+                  <div className="mt-3 space-y-2">
+                    {overview.jobs.diagnostics.latestFailures.slice(0, 3).map((failure) => (
+                      <div key={failure.id} className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-rose-50">{failure.type}</span>
+                          <span className={`rounded-full border px-2 py-1 text-[11px] ${toneClass(failure.status)}`}>{failure.status}</span>
+                        </div>
+                        {failure.error ? <p className="mt-2 text-xs text-rose-100">{failure.error}</p> : null}
+                        <p className="mt-1 text-xs text-rose-200/80">
+                          {failure.nextRetryAt ? `Next retry ${formatTime(failure.nextRetryAt)}` : `Latest event ${formatTime(failure.latestEventAt)}`}
+                        </p>
+                        {failure.traceId ? (
+                          <div className="mt-2 flex items-center gap-2 text-[11px] text-rose-100">
+                            <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-1 font-mono">
+                              Trace {compactTraceId(failure.traceId)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => void copyTraceId(failure.traceId)}
+                              className="rounded-full border border-white/10 px-2 py-1 text-rose-50 transition hover:bg-white/10"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="mt-3 space-y-2">
                   {filteredJobs.slice(0, 6).map((job) => (
-                    <div key={job.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
+                    <div key={job.id} data-testid={`console-job-card-${job.id}`} className="rounded-xl border border-white/10 bg-black/25 p-3">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm text-zinc-100">{job.type}</span>
                         <span className={`rounded-full border px-2 py-1 text-[11px] ${toneClass(job.status)}`}>{job.status}</span>
@@ -3126,6 +3329,9 @@ export default function Terminal() {
                       <p className="mt-2 text-xs text-zinc-500">{job.id} • {formatTime(job.createdAt)}</p>
                       <p className="mt-1 text-xs text-zinc-500">
                         Attempts {job.attempts ?? 0} • Retries {job.retryCount ?? 0}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Worker {job.workerId || "unassigned"} • {leaseLabel(job.status, job.leaseExpiresAt)}
                       </p>
                       <p className="mt-1 text-xs text-zinc-500">
                         Events {job.eventCount ?? job.events?.length ?? 0}
@@ -3139,6 +3345,7 @@ export default function Terminal() {
                         <button
                           type="button"
                           onClick={() => setSelectedJobId(job.id)}
+                          data-testid={`console-job-inspect-${job.id}`}
                           className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100"
                         >
                           Inspect
@@ -3432,7 +3639,7 @@ export default function Terminal() {
       ) : null}
 
       {selectedJob ? (
-        <div className="fixed inset-y-0 right-0 z-20 flex w-full max-w-md">
+        <div data-testid="console-job-detail" className="fixed inset-y-0 right-0 z-20 flex w-full max-w-md">
           <div className="w-full border-l border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] p-5 shadow-[-24px_0_70px_rgba(0,0,0,0.35)]">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -3472,9 +3679,30 @@ export default function Terminal() {
                 </div>
                 <div className="mt-4 space-y-1 text-xs text-zinc-500">
                   <p>Job ID: {selectedJob.id}</p>
+                  {selectedJob.traceId ? (
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-cyan-200">Trace ID: {selectedJob.traceId}</p>
+                      <button
+                        type="button"
+                        onClick={() => void copyTraceId(selectedJob.traceId)}
+                        className="rounded-full border border-white/10 px-2 py-1 text-[11px] text-zinc-300 transition hover:bg-white/10"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ) : null}
                   <p>Created: {formatTime(selectedJob.createdAt)}</p>
                   <p>Started: {formatTime(selectedJob.startedAt)}</p>
                   <p>Completed: {formatTime(selectedJob.completedAt)}</p>
+                  <p>Worker: {selectedJob.workerId || "Unassigned"}</p>
+                  <div className="flex items-center gap-2">
+                    <p>Lease: {leaseLabel(selectedJob.status, selectedJob.leaseExpiresAt)}</p>
+                    <span className={`rounded-full border px-2 py-1 text-[11px] ${toneClass(leaseTone(selectedJob.status, selectedJob.leaseExpiresAt))}`}>
+                      {leaseLabel(selectedJob.status, selectedJob.leaseExpiresAt)}
+                    </span>
+                  </div>
+                  <p>Last heartbeat: {formatTime(selectedJob.lastHeartbeatAt)}</p>
+                  <p>Lease expires: {formatTime(selectedJob.leaseExpiresAt)}</p>
                   {selectedJob.nextRetryAt ? <p className="text-amber-200">Next retry: {formatTime(selectedJob.nextRetryAt)}</p> : null}
                   {selectedJob.canceledAt ? <p>Canceled: {formatTime(selectedJob.canceledAt)}</p> : null}
                   <p>Retry delay: {selectedJob.retryDelayMs ?? 0}ms</p>
@@ -3565,6 +3793,20 @@ export default function Terminal() {
                             <span className="text-xs text-zinc-500">{formatTime(event.timestamp)}</span>
                           </div>
                           <p className="mt-2 text-sm text-zinc-100">{event.message}</p>
+                          {typeof event.meta?.traceId === "string" ? (
+                            <div className="mt-2 flex items-center gap-2 text-[11px] text-cyan-200">
+                              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-mono">
+                                Trace {compactTraceId(event.meta.traceId)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => void copyTraceId(event.meta?.traceId as string)}
+                                className="rounded-full border border-white/10 px-2 py-1 text-zinc-300 transition hover:bg-white/10"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          ) : null}
                           {event.meta && Object.keys(event.meta).length ? (
                             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-xl bg-black/25 p-3 text-xs text-zinc-400">
                               {renderObject(event.meta)}
