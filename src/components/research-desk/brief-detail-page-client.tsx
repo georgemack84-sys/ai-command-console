@@ -8,6 +8,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { buttonVariants } from "@/src/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/src/components/ui/card";
 import { SectionCard } from "@/src/components/shared/section-card";
+import { postResearchAction } from "@/src/lib/client/research-actions";
 import { cn } from "@/src/lib/utils";
 import type { ResearchBrief, ResearchReport } from "@/src/lib/types";
 
@@ -124,15 +125,7 @@ export function BriefDetailPageClient({ briefId }: { briefId: string }) {
     setBusy(busyKey);
     setError(null);
     try {
-      const response = await fetch("/api/console", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, payload: actionPayload }),
-      });
-      const result = (await response.json()) as { ok: boolean; error?: string };
-      if (!response.ok || !result.ok) {
-        throw new Error(result.error || "Action failed.");
-      }
+      await postResearchAction(action, actionPayload);
       await loadDetail();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Action failed.");

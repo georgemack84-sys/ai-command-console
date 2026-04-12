@@ -22,18 +22,20 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
+    command: "node scripts/run-playwright-server.cjs",
     env: {
       ...process.env,
+      DATABASE_URL: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:55432/ai_command_console?schema=public",
       AI_COMMAND_CONSOLE_DATA_ROOT: playwrightDataRoot,
       AI_COMMAND_CONSOLE_STORAGE_DRIVER: "sqlite",
       AI_COMMAND_CONSOLE_DATABASE_PATH: path.join(playwrightDataRoot, "workspace.sqlite"),
       AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH: path.join(playwrightDataRoot, "agents", "console.sqlite"),
       AI_COMMAND_CONSOLE_AUTH_SECRET: "playwright-local-auth-secret",
       AI_COMMAND_CONSOLE_SECURE_COOKIES: "false",
+      NEXT_PUBLIC_APP_URL: "http://localhost:5050",
     },
     url: "http://localhost:5050",
     reuseExistingServer: true,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });

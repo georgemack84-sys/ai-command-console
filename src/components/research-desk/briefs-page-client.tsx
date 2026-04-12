@@ -13,8 +13,13 @@ import { cn } from "@/src/lib/utils";
 import type { ResearchBrief, ResearchBriefStatus, ResearchPriority, SessionUser } from "@/src/lib/types";
 
 type BriefResponse = {
-  briefs: ResearchBrief[];
-  error?: string;
+  ok: boolean;
+  data?: {
+    briefs: ResearchBrief[];
+  };
+  error?: {
+    message?: string;
+  };
 };
 
 type AdminUser = {
@@ -63,11 +68,11 @@ export function BriefsPageClient() {
   async function loadBriefs() {
     const response = await fetch("/api/research/briefs", { cache: "no-store" });
     const payload = (await response.json()) as BriefResponse;
-    if (!response.ok) {
-      throw new Error(payload.error || "Unable to load briefs.");
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error?.message || "Unable to load briefs.");
     }
     startTransition(() => {
-      setBriefs(payload.briefs);
+      setBriefs(payload.data?.briefs || []);
     });
   }
 
@@ -96,11 +101,11 @@ export function BriefsPageClient() {
     let cancelled = false;
     void (async () => {
       const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
-      const sessionPayload = (await sessionResponse.json()) as { user?: SessionUser | null };
+      const sessionPayload = (await sessionResponse.json()) as { ok: boolean; data?: { user?: SessionUser | null } };
       if (cancelled) {
         return;
       }
-      const sessionUser = sessionPayload.user || null;
+      const sessionUser = sessionPayload.data?.user || null;
       setCurrentUser(sessionUser);
       if (sessionUser?.role === "admin") {
         const adminResponse = await fetch("/api/admin/access", { cache: "no-store" });
@@ -136,10 +141,10 @@ export function BriefsPageClient() {
         }),
       });
       const payload = (await response.json()) as BriefResponse;
-      if (!response.ok) {
-        throw new Error(payload.error || "Unable to create brief.");
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message || "Unable to create brief.");
       }
-      setBriefs(payload.briefs);
+      setBriefs(payload.data?.briefs || []);
       setForm(EMPTY_FORM);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to create brief.");
@@ -155,10 +160,10 @@ export function BriefsPageClient() {
       body: JSON.stringify({ id, status }),
     });
     const payload = (await response.json()) as BriefResponse;
-    if (response.ok) {
-      setBriefs(payload.briefs);
+    if (response.ok && payload.ok) {
+      setBriefs(payload.data?.briefs || []);
     } else {
-      setError(payload.error || "Unable to update brief.");
+      setError(payload.error?.message || "Unable to update brief.");
     }
   }
 
@@ -169,10 +174,10 @@ export function BriefsPageClient() {
       body: JSON.stringify({ id, routeToQueue: true }),
     });
     const payload = (await response.json()) as BriefResponse;
-    if (response.ok) {
-      setBriefs(payload.briefs);
+    if (response.ok && payload.ok) {
+      setBriefs(payload.data?.briefs || []);
     } else {
-      setError(payload.error || "Unable to route brief.");
+      setError(payload.error?.message || "Unable to route brief.");
     }
   }
 
@@ -183,10 +188,10 @@ export function BriefsPageClient() {
       body: JSON.stringify({ briefId: id }),
     });
     const payload = (await response.json()) as BriefResponse;
-    if (response.ok) {
-      setBriefs(payload.briefs);
+    if (response.ok && payload.ok) {
+      setBriefs(payload.data?.briefs || []);
     } else {
-      setError(payload.error || "Unable to delete brief.");
+      setError(payload.error?.message || "Unable to delete brief.");
     }
   }
 
@@ -204,10 +209,10 @@ export function BriefsPageClient() {
       body: JSON.stringify({ id, ownerId: targetOwner.id, ownerName: targetOwner.name }),
     });
     const payload = (await response.json()) as BriefResponse;
-    if (response.ok) {
-      setBriefs(payload.briefs);
+    if (response.ok && payload.ok) {
+      setBriefs(payload.data?.briefs || []);
     } else {
-      setError(payload.error || "Unable to reassign brief.");
+      setError(payload.error?.message || "Unable to reassign brief.");
     }
   }
 
@@ -256,20 +261,20 @@ export function BriefsPageClient() {
             </div>
 
             <div className="mt-6 grid gap-3">
-              <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Brief title" />
-              <textarea value={form.question} onChange={(event) => setForm((current) => ({ ...current, question: event.target.value }))} className="min-h-32 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Research question" />
+              <input suppressHydrationWarning value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Brief title" />
+              <textarea suppressHydrationWarning value={form.question} onChange={(event) => setForm((current) => ({ ...current, question: event.target.value }))} className="min-h-32 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Research question" />
               <div className="grid gap-3 md:grid-cols-2">
-                <input value={form.assignedAgent} onChange={(event) => setForm((current) => ({ ...current, assignedAgent: event.target.value }))} className="rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Assigned agent" />
-                <select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as ResearchPriority }))} className="rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none">
+                <input suppressHydrationWarning value={form.assignedAgent} onChange={(event) => setForm((current) => ({ ...current, assignedAgent: event.target.value }))} className="rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Assigned agent" />
+                <select suppressHydrationWarning value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as ResearchPriority }))} className="rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none">
                   <option value="low">Low priority</option>
                   <option value="medium">Medium priority</option>
                   <option value="high">High priority</option>
                 </select>
               </div>
-              <input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Tags separated by commas" />
-              <textarea value={form.summary} onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))} className="min-h-28 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Short desk summary" />
+              <input suppressHydrationWarning value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} className="w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Tags separated by commas" />
+              <textarea suppressHydrationWarning value={form.summary} onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))} className="min-h-28 w-full rounded-[20px] border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none" placeholder="Short desk summary" />
               <label className="flex items-center gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-slate-200">
-                <input type="checkbox" checked={form.queueBrief} onChange={(event) => setForm((current) => ({ ...current, queueBrief: event.target.checked }))} />
+                <input suppressHydrationWarning type="checkbox" checked={form.queueBrief} onChange={(event) => setForm((current) => ({ ...current, queueBrief: event.target.checked }))} />
                 Queue this brief immediately for the assigned agent
               </label>
             </div>
@@ -375,6 +380,7 @@ export function BriefsPageClient() {
                       {currentUser?.role === "admin" && workspaceUsers.length ? (
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           <select
+                            suppressHydrationWarning
                             value={ownerDrafts[brief.id] ?? brief.ownerId ?? ""}
                             onChange={(event) => setOwnerDrafts((current) => ({ ...current, [brief.id]: event.target.value }))}
                             className="rounded-full border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white outline-none"

@@ -52,7 +52,7 @@ type WatchlistItem = {
 };
 
 export function AccessHistoryClient({ embedded = false }: { embedded?: boolean }) {
-  const { user } = useAppSession();
+  const { user, authLoading } = useAppSession();
   const [payload, setPayload] = useState<AccessPayload | null>(null);
   const [briefs, setBriefs] = useState<ResearchBrief[]>([]);
   const [reports, setReports] = useState<ResearchReport[]>([]);
@@ -74,14 +74,14 @@ export function AccessHistoryClient({ embedded = false }: { embedded?: boolean }
         fetch("/api/research/reports", { cache: "no-store" }),
       ]);
 
-      setPayload(accessPayload as AccessPayload);
+      setPayload((accessPayload as { ok: boolean; data?: AccessPayload }).data || null);
       if (briefsResponse.ok) {
-        const briefPayload = (await briefsResponse.json()) as { briefs?: ResearchBrief[] };
-        setBriefs(briefPayload.briefs || []);
+        const briefPayload = (await briefsResponse.json()) as { ok: boolean; data?: { briefs?: ResearchBrief[] } };
+        setBriefs(briefPayload.data?.briefs || []);
       }
       if (reportsResponse.ok) {
-        const reportPayload = (await reportsResponse.json()) as { reports?: ResearchReport[] };
-        setReports(reportPayload.reports || []);
+        const reportPayload = (await reportsResponse.json()) as { ok: boolean; data?: { reports?: ResearchReport[] } };
+        setReports(reportPayload.data?.reports || []);
       }
       setError(null);
     })();
@@ -212,6 +212,23 @@ export function AccessHistoryClient({ embedded = false }: { embedded?: boolean }
     anchor.download = "access-history.csv";
     anchor.click();
     URL.revokeObjectURL(url);
+  }
+
+  if (authLoading) {
+    if (embedded) {
+      return null;
+    }
+    return (
+      <SectionCard
+        eyebrow="Access"
+        title="Loading access history"
+        description="Checking administrator access before loading approvals and governance history."
+      >
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+          Restoring your administrator session and loading the history timeline.
+        </div>
+      </SectionCard>
+    );
   }
 
   if (user?.role !== "admin") {

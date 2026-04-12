@@ -11,6 +11,7 @@ import { EventEntry } from "@/src/components/ui/event-entry";
 import { MetricTile } from "@/src/components/ui/metric-tile";
 import { SignalEntry } from "@/src/components/ui/signal-entry";
 import { SurfacePanel, SurfacePanelHeader } from "@/src/components/ui/surface-panel";
+import { postOperationsAction } from "@/src/lib/client/operations-actions";
 
 type AdminUser = {
   id: string;
@@ -50,6 +51,51 @@ type AdminAccessPayload = {
     authSecretConfigured: boolean;
     secureCookies: boolean;
     sessionMaxAgeSeconds: number;
+    aiSummary?: {
+      providerMode: "auto" | "openai" | "mock";
+      model: string;
+      timeoutMs: number;
+      maxAttempts: number;
+      allowMockFallback: boolean;
+      openAiConfigured: boolean;
+      dailyBudgetUsd: number;
+      estimatedCostPerRunUsd: number;
+      evaluationsEnabled: boolean;
+    };
+    jobs?: {
+      executionMode: "in_process" | "external";
+      workerPollIntervalMs: number;
+      maxPendingJobs: number;
+      maxRunningJobs: number;
+      externalWorkerRecommended: boolean;
+      health?: {
+        running: number;
+        activeWorkers: number;
+        queued: number;
+        scheduledRetries: number;
+        staleRunning: number;
+        unhealthy: boolean;
+        pending: number;
+        saturated: boolean;
+        maxPendingJobs: number;
+        maxRunningJobs: number;
+      };
+    };
+    process?: {
+      pid: number;
+      uptimeSeconds: number;
+      memory: {
+        rssMb: number;
+        heapUsedMb: number;
+        heapTotalMb: number;
+        externalMb: number;
+      };
+    };
+    warnings?: Array<{
+      code: string;
+      severity: "warning" | "critical";
+      message: string;
+    }>;
   };
   diagnostics?: {
     summary: {
@@ -65,9 +111,131 @@ type AdminAccessPayload = {
       level: string;
       scope: string;
       message: string;
+      traceId?: string | null;
       context?: Record<string, unknown>;
     }>;
   };
+  aiSummaryReliability?: {
+    status: "healthy" | "warning" | "critical";
+    totals: {
+      total: number;
+      successes: number;
+      fallbacks: number;
+      retries: number;
+      errors: number;
+    };
+    latestAt: string | null;
+    latestSuccessAt: string | null;
+    latestFallbackAt: string | null;
+    recentSuccessRate: number;
+    recentFailureRate: number;
+    recentFallbackRate: number;
+    trend: {
+      successRateDelta: number;
+      failureRateDelta: number;
+      fallbackRateDelta: number;
+    };
+    traceRates: {
+      total: number;
+      success: number;
+      fallback: number;
+      error: number;
+      successRate: number;
+      failureRate: number;
+    };
+    recent: Array<{
+      id: string;
+      timestamp: string;
+      level: string;
+      scope: string;
+      message: string;
+      traceId?: string | null;
+      context?: Record<string, unknown>;
+    }>;
+  };
+  aiSummaryEvaluations?: {
+    status: "healthy" | "warning" | "critical";
+    totals: {
+      total: number;
+      healthy: number;
+      warning: number;
+      critical: number;
+    };
+    latestAt: string | null;
+    averageScore: number;
+    latestScore: number | null;
+    recent: Array<{
+      id: string;
+      timestamp: string;
+      level: string;
+      scope: string;
+      message: string;
+      traceId?: string | null;
+      context?: Record<string, unknown>;
+    }>;
+  };
+  aiSummaryBudget?: {
+    day: string;
+    usageUsd: number;
+    runs: number;
+    updatedAt: string | null;
+    dailyBudgetUsd: number;
+    estimatedCostPerRunUsd: number;
+    projectedUsageUsd: number;
+    remainingUsd: number;
+    budgetExceeded: boolean;
+    recent: Array<{
+      id: string;
+      timestamp: string;
+      traceId?: string | null;
+      provider?: string | null;
+      costUsd: number;
+      attempts: number;
+    }>;
+  };
+  legacyCompatibility?: {
+    total: number;
+    updatedAt: string | null;
+    byAction: Record<string, number>;
+    bySurface: Record<string, number>;
+    recent: Array<{
+      id: string;
+      timestamp: string;
+      surface: string;
+      action: string;
+      traceId?: string | null;
+      context?: Record<string, unknown>;
+    }>;
+  };
+};
+
+type AdminSummaryCheckResult = {
+  workspaceId: string;
+  workspaceName: string;
+  title: string;
+  summary: string;
+  bullets: string[];
+  provider: "openai" | "mock";
+  model: string;
+  promptVersion: string;
+  attempts: number;
+  latencyMs: number;
+  fallbackReason: string | null;
+  traceId: string;
+  viewName: string;
+  forcedFallback?: boolean;
+};
+
+type OperatorCheckJob = {
+  id: string;
+  traceId?: string | null;
+  type: string;
+  status: string;
+  attempts?: number;
+  maxAttempts?: number;
+  workerId?: string | null;
+  leaseExpiresAt?: string | null;
+  createdAt?: string | null;
 };
 
 type PlatformPayload = {
@@ -102,22 +270,47 @@ type PlatformPayload = {
       queued: number;
       running: number;
       failed: number;
+      health: {
+        activeWorkers: number;
+        pending?: number;
+        queued?: number;
+        scheduledRetries?: number;
+        running?: number;
+        staleRunning: number;
+        unhealthy: boolean;
+        saturated?: boolean;
+        maxPendingJobs?: number;
+        maxRunningJobs?: number;
+      };
       metrics: {
         avgQueueWaitMs?: number | null;
         avgRunTimeMs?: number | null;
         completionRate?: number | null;
         retryPressure?: number | null;
         scheduledRetryCount?: number | null;
+        timedOut?: number | null;
       };
       items: Array<{
         id: string;
+        traceId?: string | null;
         type: string;
         status: string;
         attempts?: number;
         maxAttempts?: number;
+        workerId?: string | null;
+        leaseExpiresAt?: string | null;
         nextRetryAt?: string | null;
         error?: string | null;
         createdAt?: string | null;
+      }>;
+      latestFailures: Array<{
+        id: string;
+        traceId?: string | null;
+        type: string;
+        status: string;
+        error?: string | null;
+        nextRetryAt?: string | null;
+        latestEventAt?: string | null;
       }>;
     };
     collaboration: {
@@ -389,11 +582,12 @@ type PlatformPayload = {
 };
 
 async function fetchPlatformPayload() {
-  const response = await fetch("/api/console", { cache: "no-store" });
+  const response = await fetch("/api/control-center/overview", { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Unable to load platform control center.");
   }
-  return (await response.json()) as PlatformPayload;
+  const payload = (await response.json()) as { ok: boolean; data?: PlatformPayload };
+  return payload.data as PlatformPayload;
 }
 
 async function fetchAdminAccessPayload() {
@@ -401,7 +595,8 @@ async function fetchAdminAccessPayload() {
   if (!response.ok) {
     throw new Error("Unable to load admin access data.");
   }
-  return (await response.json()) as AdminAccessPayload;
+  const payload = (await response.json()) as { ok: boolean; data?: AdminAccessPayload };
+  return payload.data as AdminAccessPayload;
 }
 
 function formatTime(value?: string | null) {
@@ -435,12 +630,83 @@ function toneClass(value: string) {
   return "border-cyan-500/30 bg-cyan-500/10 text-cyan-100";
 }
 
+function describeRuntimeWarning(warning: { code: string; message: string }) {
+  if (warning.code === "jobs_external_worker_missing") {
+    return {
+      title: "External worker missing",
+      detail:
+        "Queued jobs are waiting with no active worker. Start `npm run worker:jobs` and confirm `JOB_QUEUE_EXECUTION_MODE=external` for this runtime.",
+    };
+  }
+
+  return {
+    title: null,
+    detail: warning.message,
+  };
+}
+
+function compactTraceId(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (value.length <= 18) {
+    return value;
+  }
+
+  return `${value.slice(0, 10)}...${value.slice(-6)}`;
+}
+
+function getWorkerStatus(runtimePosture: AdminAccessPayload["runtime"] | null) {
+  const jobs = runtimePosture?.jobs;
+  const health = jobs?.health;
+  if (!jobs || !health) {
+    return {
+      label: "Unknown",
+      tone: "warning",
+      detail: "Worker state has not loaded yet.",
+      recovery:
+        "Refresh the platform control center. If this persists, inspect the app runtime and jobs worker logs.",
+    };
+  }
+  if (jobs.executionMode !== "external") {
+    return {
+      label: "In-process",
+      tone: "warning",
+      detail: "Jobs are still running inside the web app process.",
+      recovery: "Start `npm run worker:jobs` and set `JOB_QUEUE_EXECUTION_MODE=external` for sustained load.",
+    };
+  }
+  if ((health.pending || 0) > 0 && (health.activeWorkers || 0) === 0) {
+    return {
+      label: "Worker missing",
+      tone: "critical",
+      detail: "Queued jobs are waiting with no active external worker.",
+      recovery: "Start `npm run worker:jobs`, confirm the worker stays alive, then verify active workers rise above zero.",
+    };
+  }
+  if (health.unhealthy || (health.staleRunning || 0) > 0) {
+    return {
+      label: "Recovery needed",
+      tone: "warning",
+      detail: "The queue has stale leases or degraded worker health.",
+      recovery: "Inspect stale jobs, restart the worker if needed, and reduce pressure before queueing more work.",
+    };
+  }
+  return {
+    label: "Healthy",
+    tone: "healthy",
+    detail: `${health.activeWorkers || 0} active workers and ${health.pending || 0} pending jobs.`,
+    recovery: "No action needed. Keep the external worker running for sustained load.",
+  };
+}
+
 function MetricCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return <MetricTile label={label} value={value} detail={detail} className="rounded-[26px]" />;
 }
 
 export function PlatformControlCenterClient() {
-  const { user } = useAppSession();
+  const { user, authLoading } = useAppSession();
   const [payload, setPayload] = useState<PlatformPayload | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -469,6 +735,14 @@ export function PlatformControlCenterClient() {
   const [adminInvites, setAdminInvites] = useState<WorkspaceInvite[]>([]);
   const [runtimePosture, setRuntimePosture] = useState<AdminAccessPayload["runtime"] | null>(null);
   const [diagnostics, setDiagnostics] = useState<AdminAccessPayload["diagnostics"] | null>(null);
+  const [aiSummaryReliability, setAiSummaryReliability] = useState<AdminAccessPayload["aiSummaryReliability"] | null>(null);
+  const [aiSummaryEvaluations, setAiSummaryEvaluations] = useState<AdminAccessPayload["aiSummaryEvaluations"] | null>(null);
+  const [aiSummaryBudget, setAiSummaryBudget] = useState<AdminAccessPayload["aiSummaryBudget"] | null>(null);
+  const [legacyCompatibility, setLegacyCompatibility] = useState<AdminAccessPayload["legacyCompatibility"] | null>(null);
+  const [summaryCheck, setSummaryCheck] = useState<AdminSummaryCheckResult | null>(null);
+  const [summaryCheckRunning, setSummaryCheckRunning] = useState(false);
+  const [operatorCheckJob, setOperatorCheckJob] = useState<OperatorCheckJob | null>(null);
+  const [operatorCheckRunning, setOperatorCheckRunning] = useState<"insights" | "summary" | "failure" | null>(null);
   const [workspaceNameDrafts, setWorkspaceNameDrafts] = useState<Record<string, string>>({});
   const [inviteDrafts, setInviteDrafts] = useState<Record<string, string>>({});
   const [platformMetaDraft, setPlatformMetaDraft] = useState<{
@@ -536,6 +810,10 @@ export function PlatformControlCenterClient() {
         setAdminInvites(adminAccess.invites || []);
         setRuntimePosture(adminAccess.runtime || null);
         setDiagnostics(adminAccess.diagnostics || null);
+        setAiSummaryReliability(adminAccess.aiSummaryReliability || null);
+        setAiSummaryEvaluations(adminAccess.aiSummaryEvaluations || null);
+        setAiSummaryBudget(adminAccess.aiSummaryBudget || null);
+        setLegacyCompatibility(adminAccess.legacyCompatibility || null);
         setWorkspaceNameDrafts(Object.fromEntries((adminAccess.workspaces || []).map((workspace) => [workspace.id, workspace.name])));
         setError(null);
       } catch (loadError: unknown) {
@@ -562,22 +840,23 @@ export function PlatformControlCenterClient() {
     setAdminInvites(adminAccess.invites || []);
     setRuntimePosture(adminAccess.runtime || null);
     setDiagnostics(adminAccess.diagnostics || null);
+    setAiSummaryReliability(adminAccess.aiSummaryReliability || null);
+    setAiSummaryEvaluations(adminAccess.aiSummaryEvaluations || null);
+    setAiSummaryBudget(adminAccess.aiSummaryBudget || null);
+    setLegacyCompatibility(adminAccess.legacyCompatibility || null);
     setWorkspaceNameDrafts(Object.fromEntries((adminAccess.workspaces || []).map((workspace) => [workspace.id, workspace.name])));
     setError(null);
   }
 
   async function runAction(action: string, payloadValue: Record<string, unknown>, success: string) {
-    const response = await fetch("/api/console", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, payload: payloadValue }),
-    });
-    const result = (await response.json()) as { ok: boolean; error?: string };
-    if (!result.ok) {
-      setError(result.error || "Action failed.");
+    try {
+      await postOperationsAction(action, payloadValue);
+    } catch (actionError: unknown) {
+      setError(actionError instanceof Error ? actionError.message : "Action failed.");
       return;
     }
     setMessage(success);
+    setError(null);
     await load();
   }
 
@@ -866,10 +1145,138 @@ export function PlatformControlCenterClient() {
     await load();
   }
 
+  async function runAdminSummaryCheck() {
+    setSummaryCheckRunning(true);
+    const response = await fetch("/api/admin/access", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "ai-summary-check" }),
+    });
+    const result = (await response.json()) as {
+      ok?: boolean;
+      data?: { summaryCheck?: AdminSummaryCheckResult };
+      error?: { message?: string };
+    };
+    setSummaryCheckRunning(false);
+
+    if (!response.ok || !result.data?.summaryCheck) {
+      setError(result.error?.message || "Unable to run AI summary check.");
+      return;
+    }
+
+    setSummaryCheck(result.data.summaryCheck);
+    setMessage(`Completed AI summary check for ${result.data.summaryCheck.workspaceName}.`);
+    await load();
+  }
+
+  async function runAdminFallbackDrill() {
+    setSummaryCheckRunning(true);
+    const response = await fetch("/api/admin/access", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "ai-summary-check", forceFallback: true }),
+    });
+    const result = (await response.json()) as {
+      ok?: boolean;
+      data?: { summaryCheck?: AdminSummaryCheckResult };
+      error?: { message?: string };
+    };
+    setSummaryCheckRunning(false);
+
+    if (!response.ok || !result.data?.summaryCheck) {
+      setError(result.error?.message || "Unable to run AI fallback drill.");
+      return;
+    }
+
+    setSummaryCheck(result.data.summaryCheck);
+    setMessage(`Completed AI fallback drill for ${result.data.summaryCheck.workspaceName}.`);
+    await load();
+  }
+
+  async function queueOperatorCheck(kind: "insights" | "summary" | "failure") {
+    if (Boolean(payload?.overview.jobs?.health?.saturated)) {
+      setError("The job queue is saturated. Let the current workload drain before queueing another operator check.");
+      return;
+    }
+
+    setOperatorCheckRunning(kind);
+    const response = await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        kind === "summary"
+          ? {
+              type: "workspace:generate-summary",
+              view: {
+                name: "Platform operator summary check",
+                filter: "all",
+                sort: "recent",
+                freshnessHours: 72,
+              },
+            }
+          : kind === "failure"
+            ? {
+                type: "workspace:failure-drill",
+              }
+            : {
+                type: "workspace:generate-insights",
+              },
+      ),
+    });
+    const result = (await response.json()) as {
+      ok?: boolean;
+      data?: { job?: OperatorCheckJob };
+      error?: { message?: string };
+    };
+    setOperatorCheckRunning(null);
+
+    if (!response.ok || !result.data?.job) {
+      setError(result.error?.message || "Unable to queue operator check.");
+      return;
+    }
+
+    setOperatorCheckJob(result.data.job);
+    setMessage(
+      kind === "summary"
+        ? "Queued platform operator summary job."
+        : kind === "failure"
+          ? "Queued platform failure drill."
+          : "Queued platform operator insight refresh.",
+    );
+    await load();
+  }
+
+  async function managePlatformJob(type: "job:cancel" | "job:retry", jobId: string, success: string) {
+    const response = await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, jobId }),
+    });
+    const result = (await response.json()) as { error?: { message?: string } };
+
+    if (!response.ok) {
+      setError(result.error?.message || "Unable to update job.");
+      return;
+    }
+
+    setMessage(success);
+    await load();
+  }
+
   const collaboration = payload?.overview.collaboration;
   const activity = payload?.overview.activity;
   const telemetry = payload?.overview.telemetry;
   const jobs = payload?.overview.jobs;
+  const queuePending = Number(jobs?.health?.pending ?? ((jobs?.health?.queued ?? 0) + (jobs?.health?.scheduledRetries ?? 0)));
+  const queuePendingLimit = Math.max(1, Number(jobs?.health?.maxPendingJobs ?? 1));
+  const queueRunning = Number(jobs?.health?.running ?? 0);
+  const queueRunningLimit = Math.max(1, Number(jobs?.health?.maxRunningJobs ?? 1));
+  const queuePendingRatio = queuePending / queuePendingLimit;
+  const queueRunningRatio = queueRunning / queueRunningLimit;
+  const queueSaturated = Boolean(jobs?.health?.saturated);
+  const queueHot = !queueSaturated && (queuePendingRatio >= 0.7 || queueRunningRatio >= 0.7);
+  const operatorChecksDisabled = Boolean(operatorCheckRunning) || queueSaturated;
+  const workerStatus = getWorkerStatus(runtimePosture);
   const globalOperations = collaboration?.globalOperations;
   const trustEnvironments = collaboration?.approvalTrustEnvironments;
   const trustTrends = collaboration?.approvalTrustTrends;
@@ -1120,6 +1527,18 @@ export function PlatformControlCenterClient() {
     anchor.click();
     URL.revokeObjectURL(url);
     setMessage("Exported the platform control report.");
+  }
+
+  if (authLoading) {
+    return (
+      <SectionCard
+        eyebrow="Platform"
+        title="Loading platform control center"
+        description="Checking administrator access before loading cross-workspace controls."
+      >
+        <p className="text-sm text-slate-300">Restoring your administrator session and platform posture.</p>
+      </SectionCard>
+    );
   }
 
   if (user?.role !== "admin") {
@@ -1457,6 +1876,33 @@ export function PlatformControlCenterClient() {
                       detail={`Last sweep ${formatTime(collaboration?.digestScheduler?.lastRunAt)}`}
                     />
                   </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <MetricCard
+                      label="Workers"
+                      value={String(jobs?.health?.activeWorkers ?? 0)}
+                      detail={`${jobs?.running ?? 0} running jobs currently leased`}
+                    />
+                    <MetricCard
+                      label="Stale jobs"
+                      value={String(jobs?.health?.staleRunning ?? 0)}
+                      detail={jobs?.health?.unhealthy ? "Queue attention needed" : "No stale worker leases detected"}
+                    />
+                    <MetricCard
+                      label="Timed out"
+                      value={String(jobs?.metrics?.timedOut ?? 0)}
+                      detail={`${jobs?.metrics?.scheduledRetryCount ?? 0} scheduled retries pending`}
+                    />
+                  </div>
+                  {queueSaturated ? (
+                    <div data-testid="platform-queue-saturated" className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-100">
+                      The queue is saturated at {queuePending}/{queuePendingLimit} pending jobs. New operator checks are temporarily paused until current work drains.
+                    </div>
+                  ) : null}
+                  {queueHot ? (
+                    <div data-testid="platform-queue-hot" className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+                      Queue pressure is elevated at {queuePending}/{queuePendingLimit} pending and {queueRunning}/{queueRunningLimit} running jobs. Expect slower leases and prefer retries over new drill traffic.
+                    </div>
+                  ) : null}
                   <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-white">Scheduler and digest pressure</p>
@@ -1491,7 +1937,7 @@ export function PlatformControlCenterClient() {
                     </div>
                     <div className="mt-4 space-y-3">
                       {(jobs?.items || []).slice(0, 6).map((job) => (
-                        <div key={job.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <div key={job.id} data-testid={`platform-live-job-${job.id}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-sm font-medium text-white">{job.type}</p>
                             <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(job.status)}`}>{job.status}</span>
@@ -1499,10 +1945,72 @@ export function PlatformControlCenterClient() {
                           <p className="mt-1 text-xs text-slate-400">
                             {job.id} • attempts {job.attempts ?? 0}/{job.maxAttempts ?? 0}
                           </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {job.workerId ? `worker ${job.workerId}` : "worker unassigned"} • {job.leaseExpiresAt ? `lease ${formatTime(job.leaseExpiresAt)}` : "not leased"}
+                          </p>
+                          {job.traceId ? <p className="mt-1 font-mono text-[11px] text-cyan-200">Trace {compactTraceId(job.traceId)}</p> : null}
                           {job.nextRetryAt ? <p className="mt-1 text-xs text-slate-400">Next retry {formatTime(job.nextRetryAt)}</p> : null}
                           {job.error ? <p className="mt-1 text-xs text-rose-200">{job.error}</p> : null}
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {job.status === "queued" ? (
+                              <button
+                                type="button"
+                                onClick={() => void managePlatformJob("job:cancel", job.id, `Canceled ${job.id}.`)}
+                                data-testid={`platform-job-cancel-${job.id}`}
+                                className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100"
+                              >
+                                Cancel
+                              </button>
+                            ) : null}
+                            {job.status === "failed" ? (
+                              <button
+                                type="button"
+                                onClick={() => void managePlatformJob("job:retry", job.id, `Retried ${job.id}.`)}
+                                data-testid={`platform-job-retry-${job.id}`}
+                                className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-100"
+                              >
+                                Retry
+                              </button>
+                            ) : null}
+                          </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-white">Latest failed jobs</p>
+                      <span className="text-xs text-slate-400">{jobs?.latestFailures?.length ?? 0} failures</span>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {(jobs?.latestFailures || []).length ? (
+                        jobs?.latestFailures.map((job) => (
+                          <div key={`failed-${job.id}`} data-testid={`platform-failed-job-${job.id}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-medium text-white">{job.type}</p>
+                              <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(job.status)}`}>{job.status}</span>
+                            </div>
+                            <p className="mt-1 text-xs text-slate-400">{job.id} • {formatTime(job.latestEventAt)}</p>
+                            {job.traceId ? <p className="mt-1 font-mono text-[11px] text-cyan-200">Trace {compactTraceId(job.traceId)}</p> : null}
+                            {job.error ? <p className="mt-1 text-xs text-rose-200">{job.error}</p> : null}
+                            {job.nextRetryAt ? <p className="mt-1 text-xs text-amber-200">Next retry {formatTime(job.nextRetryAt)}</p> : null}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void managePlatformJob("job:retry", job.id, `Retried ${job.id}.`)}
+                                data-testid={`platform-failed-job-retry-${job.id}`}
+                                className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-100"
+                              >
+                                Retry failed job
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">
+                          No recent failed jobs to triage.
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
@@ -2527,6 +3035,487 @@ export function PlatformControlCenterClient() {
                   value={runtimePosture?.authSecretConfigured ? "Configured" : "Missing"}
                   detail="Production now fails closed if the auth secret is missing."
                 />
+                <MetricCard
+                  label="Job mode"
+                  value={runtimePosture?.jobs?.executionMode === "external" ? "External worker" : "In-process"}
+                  detail={`Worker poll ${runtimePosture?.jobs?.workerPollIntervalMs ?? 0}ms • queue ${runtimePosture?.jobs?.maxPendingJobs ?? 0}/${runtimePosture?.jobs?.maxRunningJobs ?? 0}`}
+                />
+                <MetricCard
+                  label="Runtime RSS"
+                  value={`${runtimePosture?.process?.memory?.rssMb ?? 0}MB`}
+                  detail={`Heap ${runtimePosture?.process?.memory?.heapUsedMb ?? 0}/${runtimePosture?.process?.memory?.heapTotalMb ?? 0}MB • uptime ${runtimePosture?.process?.uptimeSeconds ?? 0}s`}
+                />
+              </div>
+              {runtimePosture?.jobs?.externalWorkerRecommended ? (
+                <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-100">
+                  This runtime is still using in-process jobs. For sustained load, run <code className="rounded bg-slate-950/60 px-1 py-0.5 text-xs">npm run worker:jobs</code> and set <code className="rounded bg-slate-950/60 px-1 py-0.5 text-xs">JOB_QUEUE_EXECUTION_MODE=external</code>.
+                </div>
+              ) : null}
+              {runtimePosture?.warnings?.length ? (
+                <div className="mt-4 space-y-2">
+                  {runtimePosture.warnings.map((warning) => (
+                    <div
+                      key={warning.code}
+                      className={`rounded-2xl border p-3 text-sm ${
+                        warning.severity === "critical"
+                          ? "border-rose-500/20 bg-rose-500/10 text-rose-100"
+                          : "border-amber-400/20 bg-amber-400/10 text-amber-100"
+                      }`}
+                    >
+                      {describeRuntimeWarning(warning).title ? (
+                        <p className="font-semibold">{describeRuntimeWarning(warning).title}</p>
+                      ) : null}
+                      <p className={describeRuntimeWarning(warning).title ? "mt-1" : ""}>
+                        {describeRuntimeWarning(warning).detail}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </SurfacePanel>
+
+            <SurfacePanel className="mt-6" data-testid="platform-worker-recovery">
+              <SurfacePanelHeader
+                badge="Worker plane"
+                title="Worker status and recovery"
+                description="Keep the jobs plane healthy so the web app can stay responsive while background work runs elsewhere."
+                actions={
+                  <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(workerStatus.tone)}`}>
+                    {workerStatus.label}
+                  </span>
+                }
+              />
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard
+                  label="Execution mode"
+                  value={runtimePosture?.jobs?.executionMode === "external" ? "External" : "In-process"}
+                  detail={`Poll ${runtimePosture?.jobs?.workerPollIntervalMs ?? 0}ms`}
+                />
+                <MetricCard
+                  label="Active workers"
+                  value={String(runtimePosture?.jobs?.health?.activeWorkers ?? 0)}
+                  detail={`${runtimePosture?.jobs?.health?.pending ?? 0} pending • ${runtimePosture?.jobs?.health?.running ?? 0} running`}
+                />
+                <MetricCard
+                  label="Stale leases"
+                  value={String(runtimePosture?.jobs?.health?.staleRunning ?? 0)}
+                  detail={runtimePosture?.jobs?.health?.unhealthy ? "Queue requires recovery attention" : "No stale worker leases detected"}
+                />
+                <MetricCard
+                  label="Queue limits"
+                  value={`${runtimePosture?.jobs?.maxPendingJobs ?? 0}/${runtimePosture?.jobs?.maxRunningJobs ?? 0}`}
+                  detail="Pending / running capacity before saturation."
+                />
+              </div>
+              <div className={`mt-4 rounded-[24px] border p-4 ${toneClass(workerStatus.tone)}`}>
+                <p className="text-sm font-semibold">{workerStatus.label}</p>
+                <p className="mt-2 text-sm">{workerStatus.detail}</p>
+                <p className="mt-3 text-xs opacity-90">{workerStatus.recovery}</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                  <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 font-mono text-slate-100">
+                    npm run worker:jobs
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 font-mono text-slate-100">
+                    JOB_QUEUE_EXECUTION_MODE=external
+                  </span>
+                </div>
+              </div>
+            </SurfacePanel>
+
+            <SurfacePanel className="mt-6">
+              <SurfacePanelHeader
+                badge="AI posture"
+                title="AI summary posture"
+                description="Current provider policy and fallback behavior for generated workspace summaries."
+                actions={
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void runAdminSummaryCheck()}
+                      disabled={summaryCheckRunning}
+                      data-testid="platform-run-summary-check"
+                      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {summaryCheckRunning ? "Running check…" : "Run summary check"}
+                    </button>
+                    {runtimePosture?.environment !== "production" ? (
+                      <button
+                        type="button"
+                        onClick={() => void runAdminFallbackDrill()}
+                        disabled={summaryCheckRunning}
+                        data-testid="platform-run-fallback-drill"
+                        className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {summaryCheckRunning ? "Running drill…" : "Run fallback drill"}
+                      </button>
+                    ) : null}
+                  </div>
+                }
+              />
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard
+                  label="Provider mode"
+                  value={String(runtimePosture?.aiSummary?.providerMode || "unknown")}
+                  detail="Auto prefers OpenAI, mock forces deterministic summaries, and openai requires the provider."
+                />
+                <MetricCard
+                  label="Model"
+                  value={String(runtimePosture?.aiSummary?.model || "unknown")}
+                  detail="Current model target for structured workspace summaries."
+                />
+                <MetricCard
+                  label="Fallback"
+                  value={runtimePosture?.aiSummary?.allowMockFallback ? "Allowed" : "Disabled"}
+                  detail="Controls whether summary generation can degrade gracefully to mock output."
+                />
+                <MetricCard
+                  label="Provider key"
+                  value={runtimePosture?.aiSummary?.openAiConfigured ? "Configured" : "Missing"}
+                  detail="Whether an OpenAI API key is present for summary generation."
+                />
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <MetricCard
+                  label="Timeout"
+                  value={`${runtimePosture?.aiSummary?.timeoutMs ?? 0}ms`}
+                  detail="Maximum time a single provider attempt gets before timing out."
+                />
+                <MetricCard
+                  label="Attempts"
+                  value={String(runtimePosture?.aiSummary?.maxAttempts ?? 0)}
+                  detail="Maximum provider attempts before fallback or terminal failure."
+                />
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <MetricCard
+                  label="Daily budget"
+                  value={`$${Number(aiSummaryBudget?.dailyBudgetUsd ?? runtimePosture?.aiSummary?.dailyBudgetUsd ?? 0).toFixed(2)}`}
+                  detail={`Spent $${Number(aiSummaryBudget?.usageUsd ?? 0).toFixed(2)} today`}
+                />
+                <MetricCard
+                  label="Per-run cost"
+                  value={`$${Number(aiSummaryBudget?.estimatedCostPerRunUsd ?? runtimePosture?.aiSummary?.estimatedCostPerRunUsd ?? 0).toFixed(2)}`}
+                  detail={`${aiSummaryBudget?.runs ?? 0} provider-backed runs recorded`}
+                />
+                <MetricCard
+                  label="Evaluations"
+                  value={runtimePosture?.aiSummary?.evaluationsEnabled ? "Enabled" : "Disabled"}
+                  detail={
+                    aiSummaryBudget?.budgetExceeded
+                      ? "Budget guard is currently active."
+                      : `Remaining $${Number(aiSummaryBudget?.remainingUsd ?? 0).toFixed(2)} today`
+                  }
+                />
+              </div>
+              {summaryCheck ? (
+                <div data-testid="platform-summary-check-result" className="mt-4 rounded-[24px] border border-cyan-400/20 bg-cyan-400/10 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-cyan-50">{summaryCheck.title}</p>
+                      <p className="mt-1 text-xs text-cyan-100/80">
+                        {summaryCheck.workspaceName} • {summaryCheck.provider} • {summaryCheck.model} • {summaryCheck.latencyMs}ms
+                        {summaryCheck.fallbackReason ? ` • fallback ${summaryCheck.fallbackReason}` : ""}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-cyan-300/20 bg-slate-950/40 px-3 py-1 text-[11px] font-mono text-cyan-100">
+                      Trace {compactTraceId(summaryCheck.traceId)}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-slate-100">{summaryCheck.summary}</p>
+                  {summaryCheck.forcedFallback ? (
+                    <div className="mt-3 inline-flex rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-1 text-[11px] text-rose-100">
+                      Development fallback drill
+                    </div>
+                  ) : null}
+                  <ul className="mt-3 space-y-2 text-xs text-slate-300">
+                    {summaryCheck.bullets.map((bullet, index) => (
+                      <li key={`${summaryCheck.traceId}-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2">
+                        {bullet}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </SurfacePanel>
+
+            <SurfacePanel className="mt-6">
+              <SurfacePanelHeader
+                badge="AI reliability"
+                title="AI summary reliability"
+                description="Recent summary generation behavior, including retries and fallback pressure."
+                actions={
+                  <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(aiSummaryReliability?.status || "healthy")}`}>
+                    {aiSummaryReliability?.status || "healthy"}
+                  </span>
+                }
+              />
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <MetricCard
+                  label="Events"
+                  value={String(aiSummaryReliability?.totals.total || 0)}
+                  detail="Recent AI summary diagnostics captured in memory."
+                />
+                <MetricCard
+                  label="Successes"
+                  value={String(aiSummaryReliability?.totals.successes || 0)}
+                  detail="Summaries completed without needing a fallback."
+                />
+                <MetricCard
+                  label="Fallbacks"
+                  value={String(aiSummaryReliability?.totals.fallbacks || 0)}
+                  detail="Times the system degraded to deterministic summary output."
+                />
+                <MetricCard
+                  label="Retries"
+                  value={String(aiSummaryReliability?.totals.retries || 0)}
+                  detail="Transient provider failures that required another attempt."
+                />
+                <MetricCard
+                  label="Errors"
+                  value={String(aiSummaryReliability?.totals.errors || 0)}
+                  detail="Hard AI summary failures recorded at error severity."
+                />
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <MetricCard
+                  label="Latest event"
+                  value={formatTime(aiSummaryReliability?.latestAt)}
+                  detail="Most recent AI summary runtime event."
+                />
+                <MetricCard
+                  label="Latest success"
+                  value={formatTime(aiSummaryReliability?.latestSuccessAt)}
+                  detail="Last successful generated summary."
+                />
+                <MetricCard
+                  label="Latest fallback"
+                  value={formatTime(aiSummaryReliability?.latestFallbackAt)}
+                  detail="Last time the service fell back from provider output."
+                />
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <MetricCard
+                  label="Recent success rate"
+                  value={`${aiSummaryReliability?.recentSuccessRate ?? 0}%`}
+                  detail={`Delta ${formatSignedDelta(aiSummaryReliability?.trend.successRateDelta ?? 0)} pts`}
+                />
+                <MetricCard
+                  label="Recent failure rate"
+                  value={`${aiSummaryReliability?.recentFailureRate ?? 0}%`}
+                  detail={`Delta ${formatSignedDelta(aiSummaryReliability?.trend.failureRateDelta ?? 0)} pts`}
+                />
+                <MetricCard
+                  label="Recent fallback rate"
+                  value={`${aiSummaryReliability?.recentFallbackRate ?? 0}%`}
+                  detail={`Delta ${formatSignedDelta(aiSummaryReliability?.trend.fallbackRateDelta ?? 0)} pts`}
+                />
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <MetricCard
+                  label="Trace success rate"
+                  value={`${aiSummaryReliability?.traceRates.successRate ?? 0}%`}
+                  detail={`${aiSummaryReliability?.traceRates.success ?? 0} of ${aiSummaryReliability?.traceRates.total ?? 0} traces`}
+                />
+                <MetricCard
+                  label="Trace failure rate"
+                  value={`${aiSummaryReliability?.traceRates.failureRate ?? 0}%`}
+                  detail={`${aiSummaryReliability?.traceRates.error ?? 0} trace-linked failures`}
+                />
+                <MetricCard
+                  label="Trace fallbacks"
+                  value={String(aiSummaryReliability?.traceRates.fallback ?? 0)}
+                  detail="Recent unique traces that degraded to fallback output."
+                />
+              </div>
+              {aiSummaryBudget ? (
+                <div className="mt-4 rounded-[24px] border border-white/10 bg-slate-950/50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">Budget and evaluation posture</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Daily spend guard and recent provider-cost samples for summary generation.
+                      </p>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(aiSummaryBudget.budgetExceeded ? "warning" : "healthy")}`}>
+                      {aiSummaryBudget.budgetExceeded ? "Guard active" : "Within budget"}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    <MetricCard
+                      label="Budget day"
+                      value={aiSummaryBudget.day}
+                      detail={`Projected $${Number(aiSummaryBudget.projectedUsageUsd).toFixed(2)} after next run`}
+                    />
+                    <MetricCard
+                      label="Remaining"
+                      value={`$${Number(aiSummaryBudget.remainingUsd).toFixed(2)}`}
+                      detail={`${aiSummaryBudget.runs} provider-backed runs recorded`}
+                    />
+                    <MetricCard
+                      label="Last update"
+                      value={formatTime(aiSummaryBudget.updatedAt)}
+                      detail="Updated each time a provider-backed summary run finishes."
+                    />
+                  </div>
+                </div>
+              ) : null}
+              {aiSummaryEvaluations ? (
+                <div className="mt-4 rounded-[24px] border border-white/10 bg-slate-950/50 p-4" data-testid="platform-ai-evaluations">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">Evaluation quality</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Lightweight quality scoring for generated summaries so operators can see whether outputs are healthy, marginal, or failing.
+                      </p>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(aiSummaryEvaluations.status)}`}>
+                      {aiSummaryEvaluations.status}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <MetricCard
+                      label="Evaluations"
+                      value={String(aiSummaryEvaluations.totals.total)}
+                      detail="Recent evaluation events captured after summary generation."
+                    />
+                    <MetricCard
+                      label="Healthy"
+                      value={String(aiSummaryEvaluations.totals.healthy)}
+                      detail="Outputs that passed the evaluation bar cleanly."
+                    />
+                    <MetricCard
+                      label="Warnings"
+                      value={String(aiSummaryEvaluations.totals.warning)}
+                      detail="Outputs that need closer operator scrutiny."
+                    />
+                    <MetricCard
+                      label="Critical"
+                      value={String(aiSummaryEvaluations.totals.critical)}
+                      detail="Outputs that failed the quality bar."
+                    />
+                    <MetricCard
+                      label="Average score"
+                      value={`${aiSummaryEvaluations.averageScore}%`}
+                      detail={`Latest ${aiSummaryEvaluations.latestScore ?? 0}% • ${formatTime(aiSummaryEvaluations.latestAt)}`}
+                    />
+                  </div>
+                </div>
+              ) : null}
+              <div className="mt-4 space-y-3">
+                {(aiSummaryReliability?.recent || []).length ? (
+                  aiSummaryReliability?.recent.map((entry) => (
+                    <EventEntry
+                      key={entry.id}
+                      title={entry.message}
+                      subtitle={`${entry.level} • ${formatTime(entry.timestamp)}${entry.traceId ? ` • ${compactTraceId(entry.traceId)}` : ""}`}
+                      badge={entry.level}
+                      badgeClassName={toneClass(entry.level)}
+                    >
+                      {entry.traceId ? (
+                        <div className="mt-3 inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-mono text-cyan-100">
+                          Trace {entry.traceId}
+                        </div>
+                      ) : null}
+                      {entry.context ? (
+                        <pre className="mt-3 overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-xs text-slate-300">
+                          {JSON.stringify(entry.context, null, 2)}
+                        </pre>
+                      ) : null}
+                    </EventEntry>
+                  ))
+                ) : (
+                  <div className="rounded-[22px] border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">
+                    No recent AI summary events recorded.
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 rounded-[24px] border border-white/10 bg-slate-950/50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Operator runtime checks</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Queue a real insight or summary job from the control center to validate runtime behavior without using the terminal.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void queueOperatorCheck("insights")}
+                      disabled={operatorChecksDisabled}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {queueSaturated ? "Queue saturated" : operatorCheckRunning === "insights" ? "Queueing insight check…" : "Run insight check"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void queueOperatorCheck("summary")}
+                      disabled={operatorChecksDisabled}
+                      data-testid="platform-run-summary-job"
+                      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {queueSaturated ? "Queue saturated" : operatorCheckRunning === "summary" ? "Queueing summary check…" : "Run summary job"}
+                    </button>
+                    {runtimePosture?.environment !== "production" ? (
+                      <button
+                        type="button"
+                        onClick={() => void queueOperatorCheck("failure")}
+                        disabled={operatorChecksDisabled}
+                        data-testid="platform-run-failure-drill"
+                        className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {queueSaturated ? "Queue saturated" : operatorCheckRunning === "failure" ? "Queueing failure drill…" : "Run failure drill"}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                {operatorCheckJob ? (
+                  <div data-testid="platform-operator-check-job" data-job-id={operatorCheckJob.id} className="mt-4 rounded-[22px] border border-cyan-400/20 bg-cyan-400/10 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-cyan-50">{operatorCheckJob.type}</p>
+                        <p className="mt-1 text-xs text-cyan-100/80">
+                          {operatorCheckJob.status} • queued {formatTime(operatorCheckJob.createdAt || null)}
+                          {operatorCheckJob.workerId ? ` • worker ${operatorCheckJob.workerId}` : ""}
+                        </p>
+                      </div>
+                      {operatorCheckJob.traceId ? (
+                        <span className="rounded-full border border-cyan-300/20 bg-slate-950/40 px-3 py-1 text-[11px] font-mono text-cyan-100">
+                          Trace {compactTraceId(operatorCheckJob.traceId)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+                        Job ID
+                        <div className="mt-1 font-mono text-[11px] text-slate-100">{operatorCheckJob.id}</div>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+                        Attempts
+                        <div className="mt-1 text-slate-100">
+                          {operatorCheckJob.attempts ?? 0} / {operatorCheckJob.maxAttempts ?? "?"}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+                        Lease
+                        <div className="mt-1 text-slate-100">
+                          {operatorCheckJob.leaseExpiresAt ? `expires ${formatTime(operatorCheckJob.leaseExpiresAt)}` : "Not leased yet"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {operatorCheckJob.status === "queued" ? (
+                        <button
+                          type="button"
+                          data-testid={`platform-operator-check-cancel-${operatorCheckJob.id}`}
+                          onClick={() => void managePlatformJob("job:cancel", operatorCheckJob.id, `Canceled ${operatorCheckJob.id}.`)}
+                          className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100"
+                        >
+                          Cancel queued check
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </SurfacePanel>
 
@@ -2569,10 +3558,15 @@ export function PlatformControlCenterClient() {
                     <EventEntry
                       key={entry.id}
                       title={entry.message}
-                      subtitle={`${entry.scope} • ${entry.level} • ${formatTime(entry.timestamp)}`}
+                      subtitle={`${entry.scope} • ${entry.level} • ${formatTime(entry.timestamp)}${entry.traceId ? ` • ${compactTraceId(entry.traceId)}` : ""}`}
                       badge={entry.level}
                       badgeClassName={toneClass(entry.level)}
                     >
+                      {entry.traceId ? (
+                        <div className="mt-3 inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-mono text-cyan-100">
+                          Trace {entry.traceId}
+                        </div>
+                      ) : null}
                       {entry.context ? (
                         <pre className="mt-3 overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-xs text-slate-300">
                           {JSON.stringify(entry.context, null, 2)}
@@ -2587,6 +3581,38 @@ export function PlatformControlCenterClient() {
                 )}
               </div>
             </SurfacePanel>
+
+            {legacyCompatibility ? (
+              <SurfacePanel className="mt-6">
+                <SurfacePanelHeader
+                  badge="Legacy boundary"
+                  title="Legacy compatibility residue"
+                  description="Explicit tracking for the small remaining legacy console helpers still exercised by the live runtime."
+                  actions={
+                    <span className={`rounded-full border px-3 py-1 text-[11px] ${toneClass(legacyCompatibility.total > 0 ? "warning" : "healthy")}`}>
+                      {legacyCompatibility.total} recent hits
+                    </span>
+                  }
+                />
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <MetricCard
+                    label="Latest usage"
+                    value={formatTime(legacyCompatibility.updatedAt)}
+                    detail="Most recent call into the fenced legacy compatibility layer."
+                  />
+                  <MetricCard
+                    label="Actions"
+                    value={String(Object.keys(legacyCompatibility.byAction || {}).length)}
+                    detail={Object.entries(legacyCompatibility.byAction || {}).map(([action, count]) => `${action} ${count}`).slice(0, 2).join(" • ") || "No recent legacy actions."}
+                  />
+                  <MetricCard
+                    label="Surfaces"
+                    value={String(Object.keys(legacyCompatibility.bySurface || {}).length)}
+                    detail={Object.entries(legacyCompatibility.bySurface || {}).map(([surface, count]) => `${surface} ${count}`).slice(0, 2).join(" • ") || "No recent legacy surfaces."}
+                  />
+                </div>
+              </SurfacePanel>
+            ) : null}
 
             <SurfacePanel className="mt-6">
               <SurfacePanelHeader

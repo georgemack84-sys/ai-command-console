@@ -19,9 +19,9 @@ export function ActivityList({
 }) {
   return (
     <div className="space-y-3">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <Component
-          key={`${item.title}-${item.time}`}
+          key={`${item.href ?? item.title}-${item.time}-${item.tag}-${index}`}
           href={item.href}
           className={cn(
             "block rounded-[22px] border p-4 transition",

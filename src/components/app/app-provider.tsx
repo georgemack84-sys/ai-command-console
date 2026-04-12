@@ -14,16 +14,25 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 async function fetchJson<T>(url: string, init?: RequestInit) {
   const response = await fetch(url, init);
+  const body = (await response.json()) as
+    | { ok: true; data: T }
+    | { ok: false; error?: { message?: string } };
   return {
     ok: response.ok,
     status: response.status,
-    body: (await response.json()) as T,
+    body,
   };
 }
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+export function AppProvider({
+  children,
+  initialUser = null,
+}: {
+  children: React.ReactNode;
+  initialUser?: SessionUser | null;
+}) {
+  const [user, setUser] = useState<SessionUser | null>(initialUser);
+  const [authLoading, setAuthLoading] = useState(initialUser ? false : true);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +41,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const session = await fetchJson<{ user: SessionUser | null }>("/api/auth/session");
         if (!cancelled) {
-          setUser(session.body.user);
+          setUser(session.ok && "data" in session.body ? session.body.data.user : null);
         }
       } finally {
         if (!cancelled) {
@@ -44,7 +53,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialUser]);
 
   const value = useMemo<AppContextValue>(
     () => ({
