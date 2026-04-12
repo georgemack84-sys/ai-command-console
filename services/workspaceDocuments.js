@@ -10,6 +10,17 @@ function readEnv(name) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function writeLegacyJsonMirrorsEnabled() {
+  const configured = readEnv("AI_COMMAND_CONSOLE_WRITE_LEGACY_JSON_MIRRORS").toLowerCase();
+  if (configured === "true" || configured === "1" || configured === "yes") {
+    return true;
+  }
+  if (configured === "false" || configured === "0" || configured === "no") {
+    return false;
+  }
+  return String(process.env.NODE_ENV || "").toLowerCase() === "test";
+}
+
 function isProductionRuntime() {
   return process.env.NODE_ENV === "production";
 }
@@ -100,7 +111,7 @@ function saveWorkspaceDocument(key, value, options = {}) {
       .run(String(key), JSON.stringify(value), existing?.created_at || now, now);
   }
 
-  if (options.legacyPath) {
+  if (options.legacyPath && (driver === "json" || writeLegacyJsonMirrorsEnabled())) {
     writeLegacyJson(options.legacyPath, value);
   }
 

@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       "backups/**",
     ],
   },
+  experimental: {
+    prerenderEarlyExit: false,
+    serverMinification: false,
+  },
   turbopack: {
     root: process.cwd(),
   },

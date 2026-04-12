@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const { getRuntimeLogPath } = require("./runtimePaths");
+const { readAgentProfile } = require("./agentProfiles");
 const {
   loadAgentState,
   saveAgentState,
@@ -13,7 +15,7 @@ const {
 const { sendTaskCompletionCallback } = require("./callbacks");
 
 const AGENTS_DIR = path.join(process.cwd(), "agents");
-const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
+const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 
 function ensureLogDir() {
   fs.mkdirSync(AGENT_LOG_DIR, { recursive: true });
@@ -34,14 +36,7 @@ function sleep(ms) {
 }
 
 function getAgentProfile(agentName) {
-  const profilePath = path.join(AGENTS_DIR, `${agentName}.json`);
-
-  if (!fs.existsSync(profilePath)) {
-    throw new Error(`Agent profile not found: ${profilePath}`);
-  }
-
-  const raw = fs.readFileSync(profilePath, "utf8");
-  return JSON.parse(raw);
+  return readAgentProfile(agentName);
 }
 
 function listAgentProfiles() {

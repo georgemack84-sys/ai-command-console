@@ -1,8 +1,7 @@
-const path = require("path");
 const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
+const { getRuntimeMemoryPath } = require("./runtimePaths");
 
-const memoryDir = path.join(__dirname, "../memory");
-const memoryFile = path.join(memoryDir, "memory.json");
+const memoryFile = getRuntimeMemoryPath("memory.json");
 const MEMORY_KEY = "runtime.memory";
 
 function saveMemory(data) {

@@ -15,8 +15,10 @@ jobs:
       NODE_ENV: production
       AI_COMMAND_CONSOLE_AUTH_SECRET: ci-placeholder-secret
       AI_COMMAND_CONSOLE_STORAGE_DRIVER: sqlite
-      AI_COMMAND_CONSOLE_DATABASE_PATH: ./data/workspace.sqlite
-      AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH: ./data/agents/console.sqlite
+      AI_COMMAND_CONSOLE_DATA_ROOT: ./.codex-temp/runtime-data
+      AI_COMMAND_CONSOLE_DATABASE_PATH: ./.codex-temp/runtime-data/workspace.sqlite
+      AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH: ./.codex-temp/runtime-data/agents/console.sqlite
+      AI_COMMAND_CONSOLE_WRITE_LEGACY_JSON_MIRRORS: false
       AI_COMMAND_CONSOLE_SECURE_COOKIES: true
       AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS: 1209600
 
@@ -44,3 +46,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Guard Legacy Runtime Residue
+        run: npm run check:legacy-state -- --strict

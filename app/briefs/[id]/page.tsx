@@ -1,6 +1,8 @@
 import { requireSessionUser } from "@/src/lib/auth";
 import { BriefDetailPageClient } from "@/src/components/research-desk/brief-detail-page-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function BriefDetailPage({
   params,
 }: {

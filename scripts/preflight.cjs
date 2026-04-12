@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { checkLegacyState } = require("./check-legacy-state.cjs");
 
 function readEnv(name) {
   const value = process.env[name];
@@ -69,6 +70,8 @@ function runPreflight() {
   const agentsDatabase = checkWritableFilePath(getAgentsDatabasePath());
   const logsDirectory = canWriteDirectory(path.join(process.cwd(), "logs"));
   const alertWebhookUrl = readEnv("AI_COMMAND_CONSOLE_ALERT_WEBHOOK_URL");
+  const legacyState = checkLegacyState({ projectRoot: process.cwd() });
+  const strictLegacyStateGuard = process.env.CI === "true";
 
   if (isProductionRuntime() && !authSecretConfigured) {
     problems.push("AI_COMMAND_CONSOLE_AUTH_SECRET must be configured in production.");
@@ -88,6 +91,21 @@ function runPreflight() {
 
   if (!logsDirectory) {
     problems.push(`Logs directory is not writable: ${path.join(process.cwd(), "logs")}`);
+  }
+
+  if (!legacyState.ok) {
+    const details =
+      legacyState.reason === "git_error"
+        ? `Unable to inspect git status for legacy residue: ${legacyState.error}`
+        : `Known runtime residue is dirty in tracked legacy paths: ${legacyState.offending
+            .map((entry) => entry.relativePath)
+            .join(", ")}`;
+
+    if (strictLegacyStateGuard) {
+      problems.push(details);
+    } else {
+      warnings.push(`${details} Run npm run dev:state-report for details.`);
+    }
   }
 
   if (!isProductionRuntime() && !authSecretConfigured) {
@@ -111,6 +129,12 @@ function runPreflight() {
       logsDirectory: {
         path: path.join(process.cwd(), "logs"),
         ok: logsDirectory,
+      },
+      legacyState: {
+        ok: legacyState.ok,
+        reason: legacyState.reason,
+        offendingEntries: legacyState.offending.map((entry) => entry.relativePath),
+        otherDirtyEntries: legacyState.other.map((entry) => entry.relativePath),
       },
       alertWebhookConfigured: Boolean(alertWebhookUrl),
     },

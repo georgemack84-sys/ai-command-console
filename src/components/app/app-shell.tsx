@@ -1,8 +1,9 @@
 "use client";
 
+import { useContext } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Command, LayoutDashboard, Sparkles } from "lucide-react";
+import { PathnameContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
 import { useAppSession } from "@/src/components/app/app-provider";
 import { buttonVariants } from "@/src/components/ui/button";
 import { cn } from "@/src/lib/utils";
@@ -10,7 +11,8 @@ import { cn } from "@/src/lib/utils";
 const primaryNavItems = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/console", label: "Console" },
+  { href: "/settings", label: "Settings", protected: true },
+  { href: "/console", label: "Console", protected: true },
   { href: "/operations", label: "Operations", protected: true },
   { href: "/briefs", label: "Briefs" },
   { href: "/reports", label: "Reports" },
@@ -30,6 +32,13 @@ const pageMeta: Array<{
     title: "A premium frontend for the control plane, dashboard, and research workflow.",
     description:
       "The homepage now leads with a clearer product story, richer composition, and stronger visual hierarchy.",
+  },
+  {
+    match: (pathname) => pathname.startsWith("/settings"),
+    eyebrow: "Settings",
+    title: "Manage workspace identity, membership, and support context.",
+    description:
+      "Settings now gives workspace owners a safe surface to update workspace details and manage membership without leaving the app.",
   },
   {
     match: (pathname) => pathname.startsWith("/dashboard"),
@@ -83,8 +92,14 @@ const pageMeta: Array<{
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathnameContext = useContext(PathnameContext);
+  const pathname = pathnameContext ?? "/";
   const { user, logout, authLoading } = useAppSession();
+
+  if (pathnameContext === null) {
+    return <main className="min-h-screen bg-black text-zinc-100">{children}</main>;
+  }
+
   const meta = pageMeta.find((item) => item.match(pathname)) ?? pageMeta[0];
   const visiblePrimaryNavItems = primaryNavItems.filter((item) => !item.protected || user);
   const isHome = pathname === "/";

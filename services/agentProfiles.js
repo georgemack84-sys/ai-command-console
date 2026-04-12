@@ -1,20 +1,31 @@
 const fs = require("fs");
 const path = require("path");
+const { getAgentsDataPath } = require("./runtimePaths");
 
-const AGENTS_DIR = path.join(process.cwd(), "agents");
+const SEED_AGENTS_DIR = path.join(process.cwd(), "agents");
+
+function getRuntimeProfilesDir() {
+  return getAgentsDataPath("profiles");
+}
 
 function getProfilePath(agentName) {
-  return path.join(AGENTS_DIR, `${agentName}.json`);
+  return path.join(getRuntimeProfilesDir(), `${agentName}.json`);
+}
+
+function getSeedProfilePath(agentName) {
+  return path.join(SEED_AGENTS_DIR, `${agentName}.json`);
 }
 
 function readAgentProfile(agentName) {
   const profilePath = getProfilePath(agentName);
+  const seedProfilePath = getSeedProfilePath(agentName);
+  const readablePath = fs.existsSync(profilePath) ? profilePath : seedProfilePath;
 
-  if (!fs.existsSync(profilePath)) {
+  if (!fs.existsSync(readablePath)) {
     throw new Error(`Agent profile not found: ${agentName}`);
   }
 
-  return JSON.parse(fs.readFileSync(profilePath, "utf8"));
+  return JSON.parse(fs.readFileSync(readablePath, "utf8"));
 }
 
 function updateAgentProfile(agentName, updates = {}) {
@@ -37,6 +48,7 @@ function updateAgentProfile(agentName, updates = {}) {
       : {}),
   };
 
+  fs.mkdirSync(path.dirname(profilePath), { recursive: true });
   fs.writeFileSync(profilePath, JSON.stringify(next, null, 2), "utf8");
   return next;
 }

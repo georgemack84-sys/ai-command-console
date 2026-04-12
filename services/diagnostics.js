@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { getRuntimeLogPath, getRuntimeMemoryPath } = require("./runtimePaths");
 
 function safeExists(targetPath) {
   try {
@@ -36,16 +37,17 @@ function diagnosePath(target = "") {
 
 function diagnoseEnvironment() {
   const projectRoot = getProjectRoot();
+  const logDir = getRuntimeLogPath();
 
   const checks = [
     { name: "cli.js", path: path.join(projectRoot, "cli.js") },
     { name: ".env", path: path.join(projectRoot, ".env") },
     { name: "services", path: path.join(projectRoot, "services") },
     { name: "tools", path: path.join(projectRoot, "tools") },
-    { name: "memory", path: path.join(projectRoot, "memory") },
-    { name: "logs", path: path.join(projectRoot, "logs") },
-    { name: "history.json", path: path.join(projectRoot, "logs", "history.json") },
-    { name: "memory.json", path: path.join(projectRoot, "memory", "memory.json") },
+    { name: "memory", path: getRuntimeMemoryPath() },
+    { name: "logs", path: logDir },
+    { name: "history.json", path: getRuntimeLogPath("history.json") },
+    { name: "memory.json", path: getRuntimeMemoryPath("memory.json") },
   ];
 
   const results = checks.map((check) => {

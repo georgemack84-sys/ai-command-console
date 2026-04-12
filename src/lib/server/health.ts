@@ -1,6 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
-import { getAgentsDatabasePath, getRuntimePosture, getWorkspaceDatabasePath, isProductionRuntime } from "@/src/lib/server/runtime";
+import { getAgentsDatabasePath, getRuntimeLogPath, getRuntimePosture, getWorkspaceDataRoot, getWorkspaceDatabasePath, isProductionRuntime } from "@/src/lib/server/runtime";
 import { recordDiagnosticEvent } from "@/services/operationalDiagnostics";
 import { resolveAlertByType, upsertAlert } from "@/services/alerts";
 
@@ -38,8 +37,8 @@ function checkDirectory(targetPath: string) {
 
 export function buildLivenessReport() {
   const runtime = getRuntimePosture();
-  const logsDir = path.join(process.cwd(), "logs");
-  const dataDir = path.join(process.cwd(), "data");
+  const logsDir = getRuntimeLogPath();
+  const dataDir = getWorkspaceDataRoot();
 
   const checks = {
     runtime: {

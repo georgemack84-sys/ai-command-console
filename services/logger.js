@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const { getRuntimeLogPath } = require("./runtimePaths");
 
-const logDir = path.join(__dirname, "../logs");
+const logDir = getRuntimeLogPath();
 const actionLogFile = path.join(logDir, "actions.log");
 
 function ensureLogFile() {

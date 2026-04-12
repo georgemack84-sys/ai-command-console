@@ -2,29 +2,34 @@ const fs = require("fs");
 const path = require("path");
 const { getAgentsDataPath } = require("./runtimePaths");
 
-const AUDIT_PATH = getAgentsDataPath("audit-log.jsonl");
+function getAuditPath() {
+  return getAgentsDataPath("audit-log.jsonl");
+}
 
 function ensureAuditPath() {
-  fs.mkdirSync(path.dirname(AUDIT_PATH), { recursive: true });
-  if (!fs.existsSync(AUDIT_PATH)) {
-    fs.writeFileSync(AUDIT_PATH, "", "utf8");
+  const auditPath = getAuditPath();
+  fs.mkdirSync(path.dirname(auditPath), { recursive: true });
+  if (!fs.existsSync(auditPath)) {
+    fs.writeFileSync(auditPath, "", "utf8");
   }
 }
 
 function appendAuditEvent(event) {
   ensureAuditPath();
+  const auditPath = getAuditPath();
   const entry = {
     id: `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     timestamp: new Date().toISOString(),
     ...event,
   };
-  fs.appendFileSync(AUDIT_PATH, `${JSON.stringify(entry)}\n`, "utf8");
+  fs.appendFileSync(auditPath, `${JSON.stringify(entry)}\n`, "utf8");
   return entry;
 }
 
 function listAuditEvents(limit = 20) {
   ensureAuditPath();
-  const lines = fs.readFileSync(AUDIT_PATH, "utf8").split(/\r?\n/).filter(Boolean);
+  const auditPath = getAuditPath();
+  const lines = fs.readFileSync(auditPath, "utf8").split(/\r?\n/).filter(Boolean);
   return lines
     .slice(-Math.max(1, Number(limit || 20)))
     .map((line) => {
@@ -44,7 +49,7 @@ function listAuditEvents(limit = 20) {
 
 function clearAuditEvents() {
   ensureAuditPath();
-  fs.writeFileSync(AUDIT_PATH, "", "utf8");
+  fs.writeFileSync(getAuditPath(), "", "utf8");
 }
 
 module.exports = {

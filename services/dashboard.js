@@ -11,10 +11,16 @@ const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
 const { listActiveAlerts } = require("./alerts");
 const { listAuditEvents } = require("./auditTrail");
 const { loadWorkspaceDocument } = require("./workspaceDocuments");
-const { getAgentsDataPath, getWorkspaceDataPath } = require("./runtimePaths");
+const { getAgentsDataPath, getRuntimeLogPath, getWorkspaceDataPath } = require("./runtimePaths");
+const {
+  safeCount,
+  safeValue,
+  formatEventTitle,
+  buildWorkspaceInventorySnapshot,
+} = require("./dashboardSupport");
 
 const DASHBOARD_PATH = getAgentsDataPath("dashboard.json");
-const AGENT_LOG_DIR = path.join(process.cwd(), "logs", "agents");
+const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 const DASHBOARD_KEY = "dashboard";
 const USERS_PATH = getWorkspaceDataPath("workspace-users.json");
 const ROUTES_PATH = getWorkspaceDataPath("workspace-user-routes.json");
@@ -74,22 +80,6 @@ function logDashboardEvent(payload) {
     ...payload
   });
   fs.appendFileSync(logPath, line + "\n", "utf8");
-}
-
-function safeCount(fn, fallback = 0) {
-  try {
-    return fn();
-  } catch {
-    return fallback;
-  }
-}
-
-function safeValue(fn, fallback = null) {
-  try {
-    return fn();
-  } catch {
-    return fallback;
-  }
 }
 
 function collectSystemSummary() {
@@ -156,56 +146,7 @@ function buildWorkspaceInventory() {
   const routes = readWorkspaceStore("workspace.routes", ROUTES_PATH, {});
   const briefs = readWorkspaceStore("workspace.research-briefs", BRIEFS_PATH, {});
   const reports = readWorkspaceStore("workspace.research-reports", REPORTS_PATH, {});
-  const map = new Map();
-
-  (Array.isArray(users) ? users : []).forEach((user) => {
-    if (!user || user.status === "disabled") {
-      return;
-    }
-    const workspaceId = String(user.workspaceId || "default");
-    const current = map.get(workspaceId) || {
-      workspaceId,
-      name: user.workspaceName || "Main Workspace",
-      members: 0,
-      briefs: 0,
-      reports: 0,
-      routes: 0,
-      updatedAt: user.createdAt || null,
-    };
-    current.members += 1;
-    current.name = user.workspaceName || current.name;
-    current.updatedAt = current.updatedAt || user.createdAt || null;
-    map.set(workspaceId, current);
-  });
-
-  for (const [workspaceId, workspace] of map.entries()) {
-    const routeCount = Array.isArray(routes?.[workspaceId]) ? routes[workspaceId].length : 0;
-    const briefItems = Array.isArray(briefs?.[workspaceId]) ? briefs[workspaceId] : [];
-    const reportItems = Array.isArray(reports?.[workspaceId]) ? reports[workspaceId] : [];
-    const latestTimestamps = [
-      workspace.updatedAt,
-      ...briefItems.map((item) => item?.updatedAt || item?.createdAt || null),
-      ...reportItems.map((item) => item?.updatedAt || item?.createdAt || null),
-    ].filter(Boolean);
-
-    workspace.routes = routeCount;
-    workspace.briefs = briefItems.length;
-    workspace.reports = reportItems.length;
-    workspace.updatedAt = latestTimestamps.sort().slice(-1)[0] || null;
-  }
-
-  return [...map.values()].sort((left, right) => {
-    const leftScore = left.members + left.briefs + left.reports + left.routes;
-    const rightScore = right.members + right.briefs + right.reports + right.routes;
-    return rightScore - leftScore;
-  });
-}
-
-function formatEventTitle(type) {
-  return String(type || "activity")
-    .replaceAll(":", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+  return buildWorkspaceInventorySnapshot({ users, routes, briefs, reports });
 }
 
 function buildLiveDashboardSnapshot() {

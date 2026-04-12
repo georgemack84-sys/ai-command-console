@@ -1,8 +1,8 @@
-const path = require("path");
 const { loadJsonDocument, saveJsonDocument } = require("./documentStore");
+const { getRuntimeMemoryPath } = require("./runtimePaths");
 
-const missionsFile = path.join(__dirname, "..", "memory", "missions.json");
-const currentMissionFile = path.join(__dirname, "..", "memory", "currentMission.json");
+const missionsFile = getRuntimeMemoryPath("missions.json");
+const currentMissionFile = getRuntimeMemoryPath("currentMission.json");
 const MISSIONS_KEY = "runtime.missions";
 const CURRENT_MISSION_KEY = "runtime.current-mission";
 
