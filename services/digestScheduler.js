@@ -19,13 +19,13 @@ function uniqueWorkspaceIds(users) {
 
 async function runDigestSchedulerSweep() {
   try {
-    const { queueDueDigestSweepIfNeeded } = require("./consoleApi");
+    const { queueLegacyDueDigestSweepIfNeeded } = require("./legacyConsoleCompat");
     const users = readUsersFromStorage();
     const workspaces = uniqueWorkspaceIds(users);
     const queued = [];
 
     for (const workspaceId of workspaces) {
-      const job = queueDueDigestSweepIfNeeded(workspaceId, {
+      const job = queueLegacyDueDigestSweepIfNeeded(workspaceId, {
         actorId: "digest-scheduler",
         actorName: "Digest Scheduler",
       });

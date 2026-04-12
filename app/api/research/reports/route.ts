@@ -1,163 +1,102 @@
-import { randomUUID } from "node:crypto";
-import { createRequire } from "node:module";
-import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSessionUser } from "@/src/lib/auth";
-import type { ResearchBrief, ResearchReport } from "@/src/lib/types";
-import { appendAuditEvent } from "@/services/auditTrail";
+import { AppError } from "@/src/server/api/errors";
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { createReport, deleteReport, listReports, updateReport } from "@/src/server/services/research-service";
 
-const require = createRequire(import.meta.url);
-const { listBriefs, saveBriefs, listReports, saveReports } = require("../../../../services/researchDesk");
+const createReportSchema = z.object({
+  briefId: z.string().min(1),
+  title: z.string().min(1),
+  format: z.enum(["memo", "briefing", "comparison", "outline"]).default("memo"),
+  status: z.enum(["draft", "ready", "published"]).default("draft"),
+  excerpt: z.string().default("Draft report created from the research desk."),
+  keyFindings: z.array(z.string()).default([]),
+});
 
-function getWorkspaceId(user: { workspaceId?: string; id?: string } | null) {
-  return user?.workspaceId || user?.id || "default";
-}
+const patchReportSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().optional(),
+  briefId: z.string().optional(),
+  format: z.enum(["memo", "briefing", "comparison", "outline"]).optional(),
+  status: z.enum(["draft", "ready", "published"]).optional(),
+  excerpt: z.string().optional(),
+  keyFindings: z.array(z.string()).optional(),
+  ownerId: z.string().nullable().optional(),
+});
 
-function canManageResource(ownerId: string | undefined, userId: string, role: string) {
-  return !ownerId || ownerId === userId || role === "admin";
+const deleteReportSchema = z.object({
+  reportId: z.string().min(1),
+});
+
+async function requireUser() {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new AppError(401, "unauthorized", "Authentication required.");
+  }
+  return user;
 }
 
 export async function GET() {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ reports: [] }, { status: 401 });
+  try {
+    const user = await requireUser();
+    return apiSuccess({ reports: await listReports(user.workspaceId) });
+  } catch (error) {
+    return apiError(error, "Unable to load reports.");
   }
-
-  const reports = listReports(getWorkspaceId(user));
-  return NextResponse.json({ reports });
 }
 
 export async function POST(request: Request) {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  try {
+    const user = await requireUser();
+    const body = createReportSchema.parse(await request.json());
+    const report = await createReport({
+      workspaceId: user.workspaceId,
+      ownerId: user.id,
+      briefId: body.briefId,
+      title: body.title.trim(),
+      format: body.format,
+      status: body.status,
+      excerpt: body.excerpt.trim(),
+      keyFindings: body.keyFindings.map((item) => item.trim()).filter(Boolean),
+    });
+    return apiSuccess({ reports: await listReports(user.workspaceId), report }, { status: 201 });
+  } catch (error) {
+    return apiError(error, "Unable to create report.");
   }
-
-  const body = (await request.json()) as Partial<ResearchReport>;
-  if (!body.title?.trim() || !body.briefId?.trim()) {
-    return NextResponse.json({ error: "Title and brief id are required." }, { status: 400 });
-  }
-
-  const now = new Date().toISOString();
-  const report: ResearchReport = {
-    id: body.id || randomUUID(),
-    briefId: body.briefId.trim(),
-    title: body.title.trim(),
-    format: body.format || "memo",
-    status: body.status || "draft",
-    createdAt: body.createdAt || now,
-    updatedAt: now,
-    ownerId: user.id,
-    ownerName: user.name,
-    excerpt: body.excerpt?.trim() || "Draft report created from the research desk.",
-    keyFindings: Array.isArray(body.keyFindings)
-      ? body.keyFindings.filter(Boolean).map((item) => String(item).trim())
-      : [],
-  };
-
-  const workspaceId = getWorkspaceId(user);
-  const current = listReports(workspaceId);
-  const next = [report, ...current.filter((item: ResearchReport) => item.id !== report.id)];
-  saveReports(workspaceId, next);
-  const briefs = listBriefs(workspaceId);
-  const nextBriefs = briefs.map((brief: ResearchBrief) =>
-    brief.id === report.briefId
-      ? {
-          ...brief,
-          status: "in_review",
-          updatedAt: new Date().toISOString(),
-          summary: `Report draft "${report.title}" created and waiting for editorial review.`,
-        }
-      : brief,
-  );
-  saveBriefs(workspaceId, nextBriefs);
-  return NextResponse.json({ reports: next });
 }
 
 export async function PATCH(request: Request) {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  try {
+    const user = await requireUser();
+    const body = patchReportSchema.parse(await request.json());
+    await updateReport({
+      workspaceId: user.workspaceId,
+      reportId: body.id,
+      actorId: user.id,
+      actorRole: user.role,
+      patch: {
+        ...(body.title ? { title: body.title.trim() } : {}),
+        ...(body.briefId ? { briefId: body.briefId } : {}),
+        ...(body.format ? { format: body.format } : {}),
+        ...(body.status ? { status: body.status } : {}),
+        ...(body.excerpt ? { excerpt: body.excerpt.trim() } : {}),
+        ...(body.keyFindings ? { keyFindings: body.keyFindings.map((item) => item.trim()).filter(Boolean) } : {}),
+        ...(user.role === "admin" ? { ownerId: body.ownerId ?? undefined } : {}),
+      },
+    });
+    return apiSuccess({ reports: await listReports(user.workspaceId) });
+  } catch (error) {
+    return apiError(error, "Unable to update report.");
   }
-
-  const body = (await request.json()) as Partial<ResearchReport> & { id?: string };
-  if (!body.id) {
-    return NextResponse.json({ error: "Report id is required." }, { status: 400 });
-  }
-
-  const workspaceId = getWorkspaceId(user);
-  const current = listReports(workspaceId);
-  const existing = current.find((report: ResearchReport) => report.id === body.id);
-  if (existing && !canManageResource(existing.ownerId, user.id, user.role)) {
-    return NextResponse.json({ error: "Only the owner or an admin can update this report." }, { status: 403 });
-  }
-  const next = current.map((report: ResearchReport) =>
-    report.id === body.id
-      ? (() => {
-          if (user.role === "admin" && body.ownerId && body.ownerId !== report.ownerId) {
-            appendAuditEvent({
-              type: "admin:report-owner-reassigned",
-              message: `Reassigned report ${report.title} to ${body.ownerName || body.ownerId}.`,
-              payload: {
-                actorId: user.id,
-                reportId: report.id,
-                reportTitle: report.title,
-                previousOwnerId: report.ownerId || null,
-                previousOwnerName: report.ownerName || null,
-                nextOwnerId: body.ownerId,
-                nextOwnerName: body.ownerName || null,
-              },
-            });
-          }
-
-          return {
-          ...report,
-          ...(body.title ? { title: body.title.trim() } : {}),
-          ...(body.briefId ? { briefId: body.briefId.trim() } : {}),
-          ...(body.format ? { format: body.format } : {}),
-          ...(body.status ? { status: body.status } : {}),
-          ...(body.excerpt ? { excerpt: body.excerpt.trim() } : {}),
-          ...(body.keyFindings ? { keyFindings: body.keyFindings.filter(Boolean).map((item) => String(item).trim()) } : {}),
-          ...(user.role === "admin" && body.ownerId ? { ownerId: body.ownerId } : {}),
-          ...(user.role === "admin" && body.ownerName ? { ownerName: body.ownerName.trim() } : {}),
-          updatedAt: new Date().toISOString(),
-        };
-        })()
-      : report,
-  );
-
-  saveReports(workspaceId, next);
-  const changed = next.find((report: ResearchReport) => report.id === body.id);
-  if (changed?.status === "published") {
-    const briefs = listBriefs(workspaceId);
-    const nextBriefs = briefs.map((brief: ResearchBrief) =>
-      brief.id === changed.briefId
-        ? {
-            ...brief,
-            status: "complete",
-            updatedAt: new Date().toISOString(),
-            summary: `Published report "${changed.title}" completed this brief.`,
-          }
-        : brief,
-    );
-    saveBriefs(workspaceId, nextBriefs);
-  }
-  return NextResponse.json({ reports: next });
 }
 
 export async function DELETE(request: Request) {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  try {
+    const user = await requireUser();
+    const body = deleteReportSchema.parse(await request.json());
+    await deleteReport(user.workspaceId, body.reportId, user.id, user.role);
+    return apiSuccess({ reports: await listReports(user.workspaceId) });
+  } catch (error) {
+    return apiError(error, "Unable to delete report.");
   }
-
-  const { reportId } = (await request.json()) as { reportId?: string };
-  const workspaceId = getWorkspaceId(user);
-  const current = listReports(workspaceId);
-  const target = current.find((report: ResearchReport) => report.id === reportId);
-  if (target && !canManageResource(target.ownerId, user.id, user.role)) {
-    return NextResponse.json({ error: "Only the owner or an admin can delete this report." }, { status: 403 });
-  }
-  const next = current.filter((report: ResearchReport) => report.id !== reportId);
-  saveReports(workspaceId, next);
-  return NextResponse.json({ reports: next });
 }

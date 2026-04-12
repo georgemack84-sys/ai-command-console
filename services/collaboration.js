@@ -2,6 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { getAgentsDataPath } = require("./runtimePaths");
+const {
+  createDefaultCollaborationState,
+  normalizeCollaborationState,
+  sanitizeCollaborationState,
+} = require("./collaborationState");
 
 const COLLAB_PATH = getAgentsDataPath("collaboration.json");
 const COLLAB_KEY = "collaboration";
@@ -11,105 +16,7 @@ function ensureCollaborationDir() {
 }
 
 function defaultCollaborationState() {
-  return {
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    governance: {
-      sensitiveActionsRequireApproval: true,
-      currentEnvironment: "development",
-      demoScenario: {
-        id: "control-plane",
-        name: "Control Plane Story",
-        description: "Production is unhealthy, staging recovered, and labs remains noisy for stabilization demo steps.",
-      },
-      appliedApprovalPolicies: [],
-      approvalRecommendationObservations: [],
-      approvalTrustAlertAcks: [],
-      approvalTrustHistory: [],
-      workspacePolicyOverrides: {},
-      workspacePolicyPlaybooks: [],
-      workspacePolicyPlaybookRollouts: [],
-      environmentPolicies: {
-        development: {
-          minimumRoleForCommands: "operator",
-          minimumRoleForApprovals: "approver",
-          minimumRoleForGovernance: "admin",
-          requireChecklistForResolved: false,
-          requiredChecklistForResolved: ["owner_assigned", "followup_created", "summary_generated"],
-          requireSummaryShareBeforeArchived: false,
-          requireApprovalForResolved: false,
-          requireApprovalForArchived: false,
-          incidentApprovalReminderMinutes: 30,
-          incidentApprovalEscalationMinutes: 60,
-          incidentApprovalEscalationTarget: "team",
-          incidentApprovalFinalEscalationMinutes: 120,
-          incidentApprovalFinalEscalationTarget: "role:admin",
-          incidentApprovalCapacityLimit: 3,
-          autoPromoteApprovalRecommendations: false,
-          autoPromoteRecommendationConfidence: 0.9,
-          autoPromoteObservationHours: 24,
-          autoPromoteCooldownHours: 72,
-          trustDropAction: "notify",
-          trustDropFollowupOwner: "Jamie Lead",
-          promoteTrustDropToIncident: false,
-        },
-        staging: {
-          minimumRoleForCommands: "operator",
-          minimumRoleForApprovals: "approver",
-          minimumRoleForGovernance: "admin",
-          requireChecklistForResolved: true,
-          requiredChecklistForResolved: ["owner_assigned", "followup_created", "summary_generated"],
-          requireSummaryShareBeforeArchived: true,
-          requireApprovalForResolved: false,
-          requireApprovalForArchived: false,
-          incidentApprovalReminderMinutes: 10,
-          incidentApprovalEscalationMinutes: 20,
-          incidentApprovalEscalationTarget: "role:admin",
-          incidentApprovalFinalEscalationMinutes: 40,
-          incidentApprovalFinalEscalationTarget: "team",
-          incidentApprovalCapacityLimit: 2,
-          autoPromoteApprovalRecommendations: false,
-          autoPromoteRecommendationConfidence: 0.88,
-          autoPromoteObservationHours: 24,
-          autoPromoteCooldownHours: 72,
-          trustDropAction: "digest",
-          trustDropFollowupOwner: "Jamie Lead",
-          promoteTrustDropToIncident: false,
-        },
-        production: {
-          minimumRoleForCommands: "approver",
-          minimumRoleForApprovals: "approver",
-          minimumRoleForGovernance: "admin",
-          requireChecklistForResolved: true,
-          requiredChecklistForResolved: ["owner_assigned", "followup_created", "summary_generated", "shared_handoff"],
-          requireSummaryShareBeforeArchived: true,
-          requireApprovalForResolved: true,
-          requireApprovalForArchived: true,
-          incidentApprovalReminderMinutes: 5,
-          incidentApprovalEscalationMinutes: 15,
-          incidentApprovalEscalationTarget: "role:admin",
-          incidentApprovalFinalEscalationMinutes: 30,
-          incidentApprovalFinalEscalationTarget: "team",
-          incidentApprovalCapacityLimit: 1,
-          autoPromoteApprovalRecommendations: false,
-          autoPromoteRecommendationConfidence: 0.92,
-          autoPromoteObservationHours: 48,
-          autoPromoteCooldownHours: 120,
-          trustDropAction: "followup",
-          trustDropFollowupOwner: "Jamie Lead",
-          promoteTrustDropToIncident: true,
-        },
-      },
-    },
-    sharedSessions: [],
-    handoffs: [],
-    approvals: [],
-    inboxState: {},
-    inboxHistory: {},
-    digestPreferences: {},
-    digestRuns: {},
-    digestWorkspaceState: {},
-  };
+  return createDefaultCollaborationState();
 }
 
 function loadCollaborationState() {
@@ -117,55 +24,10 @@ function loadCollaborationState() {
 
   try {
     const parsed = loadDocument(COLLAB_KEY, defaultCollaborationState, { legacyPath: COLLAB_PATH });
-    return {
-      ...defaultCollaborationState(),
-      ...parsed,
-      governance: {
-        ...defaultCollaborationState().governance,
-        ...(parsed.governance || {}),
-        demoScenario:
-          parsed.governance?.demoScenario && typeof parsed.governance.demoScenario === "object"
-            ? parsed.governance.demoScenario
-            : defaultCollaborationState().governance.demoScenario,
-        appliedApprovalPolicies: Array.isArray(parsed.governance?.appliedApprovalPolicies)
-          ? parsed.governance.appliedApprovalPolicies
-          : [],
-        approvalRecommendationObservations: Array.isArray(parsed.governance?.approvalRecommendationObservations)
-          ? parsed.governance.approvalRecommendationObservations
-          : [],
-        approvalTrustAlertAcks: Array.isArray(parsed.governance?.approvalTrustAlertAcks)
-          ? parsed.governance.approvalTrustAlertAcks
-          : [],
-        approvalTrustHistory: Array.isArray(parsed.governance?.approvalTrustHistory)
-          ? parsed.governance.approvalTrustHistory
-          : [],
-        workspacePolicyOverrides:
-          parsed.governance?.workspacePolicyOverrides && typeof parsed.governance.workspacePolicyOverrides === "object"
-            ? parsed.governance.workspacePolicyOverrides
-            : {},
-        workspacePolicyPlaybooks: Array.isArray(parsed.governance?.workspacePolicyPlaybooks)
-          ? parsed.governance.workspacePolicyPlaybooks
-          : [],
-        workspacePolicyPlaybookRollouts: Array.isArray(parsed.governance?.workspacePolicyPlaybookRollouts)
-          ? parsed.governance.workspacePolicyPlaybookRollouts
-          : [],
-        environmentPolicies: {
-          ...defaultCollaborationState().governance.environmentPolicies,
-          ...(parsed.governance?.environmentPolicies || {}),
-        },
-      },
-      sharedSessions: Array.isArray(parsed.sharedSessions) ? parsed.sharedSessions : [],
-      handoffs: Array.isArray(parsed.handoffs) ? parsed.handoffs : [],
-      approvals: Array.isArray(parsed.approvals) ? parsed.approvals : [],
-      inboxState: parsed.inboxState && typeof parsed.inboxState === "object" ? parsed.inboxState : {},
-      inboxHistory: parsed.inboxHistory && typeof parsed.inboxHistory === "object" ? parsed.inboxHistory : {},
-      digestPreferences: parsed.digestPreferences && typeof parsed.digestPreferences === "object" ? parsed.digestPreferences : {},
-      digestRuns: parsed.digestRuns && typeof parsed.digestRuns === "object" ? parsed.digestRuns : {},
-      digestWorkspaceState: parsed.digestWorkspaceState && typeof parsed.digestWorkspaceState === "object" ? parsed.digestWorkspaceState : {},
-    };
+    return normalizeCollaborationState(parsed);
   } catch (error) {
     return {
-      ...defaultCollaborationState(),
+      ...createDefaultCollaborationState(),
       updatedAt: new Date().toISOString(),
       error: `Failed to parse collaboration state: ${error.message}`,
     };
@@ -176,51 +38,7 @@ function saveCollaborationState(state) {
   ensureCollaborationDir();
   return saveDocument(
     COLLAB_KEY,
-    {
-      createdAt: state.createdAt || new Date().toISOString(),
-      governance: {
-        ...defaultCollaborationState().governance,
-        ...(state.governance || {}),
-        demoScenario:
-          state.governance?.demoScenario && typeof state.governance.demoScenario === "object"
-            ? state.governance.demoScenario
-            : defaultCollaborationState().governance.demoScenario,
-        appliedApprovalPolicies: Array.isArray(state.governance?.appliedApprovalPolicies)
-          ? state.governance.appliedApprovalPolicies.slice(-50)
-          : [],
-        approvalRecommendationObservations: Array.isArray(state.governance?.approvalRecommendationObservations)
-          ? state.governance.approvalRecommendationObservations.slice(-100)
-          : [],
-        approvalTrustAlertAcks: Array.isArray(state.governance?.approvalTrustAlertAcks)
-          ? state.governance.approvalTrustAlertAcks.slice(-100)
-          : [],
-        approvalTrustHistory: Array.isArray(state.governance?.approvalTrustHistory)
-          ? state.governance.approvalTrustHistory.slice(-500)
-          : [],
-        workspacePolicyOverrides:
-          state.governance?.workspacePolicyOverrides && typeof state.governance.workspacePolicyOverrides === "object"
-            ? state.governance.workspacePolicyOverrides
-            : {},
-        workspacePolicyPlaybooks: Array.isArray(state.governance?.workspacePolicyPlaybooks)
-          ? state.governance.workspacePolicyPlaybooks.slice(-20)
-          : [],
-        workspacePolicyPlaybookRollouts: Array.isArray(state.governance?.workspacePolicyPlaybookRollouts)
-          ? state.governance.workspacePolicyPlaybookRollouts.slice(-100)
-          : [],
-        environmentPolicies: {
-          ...defaultCollaborationState().governance.environmentPolicies,
-          ...(state.governance?.environmentPolicies || {}),
-        },
-      },
-      sharedSessions: Array.isArray(state.sharedSessions) ? state.sharedSessions.slice(-100) : [],
-      handoffs: Array.isArray(state.handoffs) ? state.handoffs.slice(-100) : [],
-      approvals: Array.isArray(state.approvals) ? state.approvals.slice(-100) : [],
-      inboxState: state.inboxState && typeof state.inboxState === "object" ? state.inboxState : {},
-      inboxHistory: state.inboxHistory && typeof state.inboxHistory === "object" ? state.inboxHistory : {},
-      digestPreferences: state.digestPreferences && typeof state.digestPreferences === "object" ? state.digestPreferences : {},
-      digestRuns: state.digestRuns && typeof state.digestRuns === "object" ? state.digestRuns : {},
-      digestWorkspaceState: state.digestWorkspaceState && typeof state.digestWorkspaceState === "object" ? state.digestWorkspaceState : {},
-    },
+    sanitizeCollaborationState(state),
     { legacyPath: COLLAB_PATH }
   );
 }

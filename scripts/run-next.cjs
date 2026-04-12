@@ -22,6 +22,10 @@ if (command === "start") {
   }
 }
 
+if (command === "dev") {
+  console.log("Dev note: run `npm run dev:doctor` if Prisma-backed routes fail or local auth cannot connect to Postgres.");
+}
+
 const nextBin = require.resolve("next/dist/bin/next");
 const result = spawnSync(process.execPath, [nextBin, command, ...args], {
   stdio: "inherit",

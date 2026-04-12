@@ -25,11 +25,29 @@ const eslintConfig = defineConfig([
     "scripts/**",
     "services/**",
     "tools/**",
+    "coverage/**",
     "cli.js",
     "server.js",
     "toolRouter.js",
     "*.txt",
   ]),
+  {
+    files: [
+      "prisma/seed.ts",
+      "src/server/services/control-center-service.ts",
+      "src/server/services/policy-governance-service.ts",
+      "src/server/services/terminal-governance-compat-service.ts",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  {
+    files: ["tests/job-queue.test.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

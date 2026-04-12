@@ -1,17 +1,24 @@
-import { NextResponse } from "next/server";
+import { z } from "zod";
 import { authenticateUser, setSessionCookie } from "@/src/lib/auth";
+import { AppError } from "@/src/server/api/errors";
+import { apiError, apiSuccess } from "@/src/server/api/response";
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { email?: string; password?: string };
-  if (!body.email || !body.password) {
-    return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
-  }
+  try {
+    const body = loginSchema.parse(await request.json());
+    const result = await authenticateUser(body.email, body.password);
+    if ("error" in result) {
+      throw new AppError(401, "invalid_credentials", result.error || "Invalid email or password.");
+    }
 
-  const result = await authenticateUser(body.email, body.password);
-  if ("error" in result) {
-    return NextResponse.json(result, { status: 401 });
+    await setSessionCookie(result.user);
+    return apiSuccess({ user: result.user });
+  } catch (error) {
+    return apiError(error, "Unable to log in.");
   }
-
-  await setSessionCookie(result.user);
-  return NextResponse.json({ user: result.user });
 }

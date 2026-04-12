@@ -1,4 +1,4 @@
-import { buildOverview, queueDueDigestSweepIfNeeded } from "../core";
+import { getTerminalOverview, queueTerminalDigestSweep } from "../core";
 import { getSessionUser } from "@/src/lib/auth";
 import { ensureDigestScheduler } from "@/services/digestScheduler";
 
@@ -12,17 +12,22 @@ function encodeEvent(data: unknown, event = "message") {
 export async function GET() {
   ensureDigestScheduler();
   const user = await getSessionUser();
+  if (!user) {
+    return new Response("Authentication required.", { status: 401 });
+  }
   const context = {
-    userId: user?.id || "demo",
-    workspaceId: user?.workspaceId || "default",
-    userName: user?.name || user?.email || "Demo User",
-    userRole: user?.role || "admin",
+    id: user.id,
+    workspaceId: user.workspaceId,
+    name: user.name,
+    email: user.email,
+    role: user.role,
   };
   let stopStream = () => {};
   const stream = new ReadableStream({
     start(controller) {
       let closed = false;
       let timer: ReturnType<typeof setInterval> | null = null;
+      let pushing = false;
 
       const stop = () => {
         closed = true;
@@ -33,23 +38,25 @@ export async function GET() {
       };
       stopStream = stop;
 
-      const push = () => {
-        if (closed) {
+      const push = async () => {
+        if (closed || pushing) {
           return;
         }
+        pushing = true;
 
-        queueDueDigestSweepIfNeeded(context.workspaceId, {
-          actorId: context.userId,
-          actorName: context.userName,
-        });
+        queueTerminalDigestSweep(context);
 
         try {
+          const overview = await getTerminalOverview(context);
+          if (closed) {
+            return;
+          }
           controller.enqueue(
             new TextEncoder().encode(
               encodeEvent(
                 {
                   ok: true,
-                  overview: buildOverview(context),
+                  overview,
                   sentAt: new Date().toISOString(),
                 },
                 "overview"
@@ -58,11 +65,15 @@ export async function GET() {
           );
         } catch {
           stop();
+        } finally {
+          pushing = false;
         }
       };
 
-      push();
-      timer = setInterval(push, 4000);
+      void push();
+      timer = setInterval(() => {
+        void push();
+      }, 4000);
 
       return () => {
         stop();

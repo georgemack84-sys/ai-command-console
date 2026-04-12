@@ -1,14 +1,19 @@
-import { NextResponse } from "next/server";
-import { buildLiveDashboardSnapshot } from "@/services/dashboard";
-import { recordHandledError } from "@/services/operationalDiagnostics";
+import { getSessionUser } from "@/src/lib/auth";
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { buildDashboardSnapshot } from "@/src/server/services/dashboard-service";
+import { AppError } from "@/src/server/api/errors";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    return NextResponse.json(buildLiveDashboardSnapshot());
+    const user = await getSessionUser();
+    if (!user) {
+      throw new AppError(401, "unauthorized", "Authentication required.");
+    }
+    const snapshot = await buildDashboardSnapshot(user.workspaceId);
+    return apiSuccess(snapshot);
   } catch (error) {
-    recordHandledError("dashboard-route", error, { method: "GET" }, { dedupeKey: "dashboard-route:get", cooldownMs: 60 * 1000 });
-    return NextResponse.json({ error: "Unable to load dashboard data." }, { status: 500 });
+    return apiError(error, "Unable to load dashboard data.");
   }
 }

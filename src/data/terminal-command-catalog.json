@@ -1,0 +1,96 @@
+{
+  "commands": [
+    "help",
+    "agents:list",
+    "agent:status researcher",
+    "agent:start researcher",
+    "agent:tick researcher",
+    "agent:stop researcher",
+    "manager:route Compare top open-source eval frameworks",
+    "brief:list",
+    "brief:create Market scan | Compare local-first note apps",
+    "brief:route brief_123",
+    "report:list",
+    "report:create brief_123 | Executive memo",
+    "report:publish report_123",
+    "review:create task_123",
+    "queue:list",
+    "inbox:list",
+    "inbox:digest",
+    "inbox:history",
+    "ownership:signals",
+    "dashboard:health",
+    "dashboard:workload",
+    "digest:health",
+    "schedule:list",
+    "watcher:run",
+    "review:list",
+    "alerts:active",
+    "plugins",
+    "run plugin projectReportPlugin ."
+  ],
+  "helpCommands": [
+    "help",
+    "agents:list",
+    "agent:status <name>",
+    "agent:start <name> [goal]",
+    "agent:tick <name>",
+    "agent:stop <name>",
+    "manager:route <task>",
+    "brief:list",
+    "brief:create <title> | <question>",
+    "brief:route <briefId>",
+    "report:list",
+    "report:create <briefId> | <title>",
+    "report:publish <reportId>",
+    "queue:list",
+    "queue:next <agentName>",
+    "dashboard:system",
+    "dashboard:health",
+    "dashboard:workload",
+    "dashboard:agent <agentName>",
+    "schedule:list",
+    "schedule:status <agentName>",
+    "schedule:run <agentName>",
+    "watcher:status",
+    "watcher:run",
+    "review:create <taskId>",
+    "review:list",
+    "inbox:list",
+    "inbox:digest",
+    "inbox:history",
+    "trust:report",
+    "ownership:signals",
+    "alerts:list",
+    "alerts:active",
+    "digest:health",
+    "alerts:run",
+    "plugins",
+    "run plugin <name> [optional-argument]"
+  ],
+  "defaultMacros": [
+    { "name": "Desk Health", "command": "dashboard:health" },
+    { "name": "Workload", "command": "dashboard:workload" },
+    { "name": "Signals", "command": "alerts:active" }
+  ],
+  "defaultSessions": [
+    {
+      "name": "Brief Triage",
+      "draftCommand": "dashboard:health",
+      "macros": [
+        { "name": "Desk Health", "command": "dashboard:health" },
+        { "name": "Workload", "command": "dashboard:workload" },
+        { "name": "Signals", "command": "alerts:active" }
+      ]
+    },
+    {
+      "name": "Scout Loop",
+      "draftCommand": "agent:tick researcher",
+      "macros": [
+        { "name": "Scout Status", "command": "agent:status researcher" },
+        { "name": "Scout Tick", "command": "agent:tick researcher" },
+        { "name": "Review Queue", "command": "review:list" }
+      ]
+    }
+  ]
+}
