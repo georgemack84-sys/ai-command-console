@@ -67,6 +67,8 @@ export type WorkspaceApiSnapshot = {
     status: string;
     type: string;
     updateCadence: string;
+    description?: string | null;
+    url?: string | null;
   }>;
   updates: Array<{
     id: string;

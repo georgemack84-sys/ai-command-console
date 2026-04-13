@@ -2,6 +2,7 @@ import { z } from "zod";
 import { authenticateUser, setSessionCookie } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
+import { trackEvent } from "@/src/server/observability/analytics";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -17,6 +18,11 @@ export async function POST(request: Request) {
     }
 
     await setSessionCookie(result.user);
+    trackEvent({
+      event: "auth_login_succeeded",
+      actorId: result.user.id,
+      workspaceId: result.user.workspaceId,
+    });
     return apiSuccess({ user: result.user });
   } catch (error) {
     return apiError(error, "Unable to log in.");

@@ -16,12 +16,22 @@ const envSchema = z.object({
   AI_SUMMARY_DAILY_BUDGET_USD: z.string().optional(),
   AI_SUMMARY_ESTIMATED_COST_PER_RUN_USD: z.string().optional(),
   AI_SUMMARY_EVAL_ENABLED: z.string().optional(),
+  RSS_INGEST_TIMEOUT_MS: z.string().optional(),
+  RSS_INGEST_MAX_ITEMS: z.string().optional(),
+  RSS_INGEST_MAX_CONTENT_BYTES: z.string().optional(),
+  RSS_USER_AGENT: z.string().optional(),
   JOB_QUEUE_EXECUTION_MODE: z.enum(["in_process", "external"]).default("in_process"),
   JOB_WORKER_POLL_INTERVAL_MS: z.string().optional(),
   JOB_QUEUE_MAX_PENDING: z.string().optional(),
   JOB_QUEUE_MAX_RUNNING: z.string().optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:5050"),
+  SENTRY_DSN: z.string().optional(),
+  SENTRY_ENVIRONMENT: z.string().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),
+  POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_HOST: z.string().optional(),
+  POSTHOG_ENABLED: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -155,6 +165,26 @@ export function aiSummaryEvaluationsEnabled() {
   return true;
 }
 
+export function getRssIngestTimeoutMs() {
+  const configured = Number(env.RSS_INGEST_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 1000 ? Math.floor(configured) : 10_000;
+}
+
+export function getRssIngestMaxItems() {
+  const configured = Number(env.RSS_INGEST_MAX_ITEMS);
+  return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 30;
+}
+
+export function getRssIngestMaxContentBytes() {
+  const configured = Number(env.RSS_INGEST_MAX_CONTENT_BYTES);
+  return Number.isFinite(configured) && configured >= 10_000 ? Math.floor(configured) : 2_000_000;
+}
+
+export function getRssUserAgent() {
+  const configured = env.RSS_USER_AGENT?.trim();
+  return configured || "AI-Command-Console/1.0 (+https://example.com)";
+}
+
 export function getJobWorkerPollIntervalMs() {
   const configured = Number(env.JOB_WORKER_POLL_INTERVAL_MS);
   return Number.isFinite(configured) && configured >= 250 ? Math.floor(configured) : 2_000;
@@ -168,6 +198,23 @@ export function getJobQueueMaxPending() {
 export function getJobQueueMaxRunning() {
   const configured = Number(env.JOB_QUEUE_MAX_RUNNING);
   return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 12;
+}
+
+export function sentryEnabled() {
+  return Boolean(env.SENTRY_DSN);
+}
+
+export function getSentryTracesSampleRate() {
+  const configured = Number(env.SENTRY_TRACES_SAMPLE_RATE);
+  return Number.isFinite(configured) && configured >= 0 ? Math.min(1, Math.max(0, configured)) : 0.1;
+}
+
+export function posthogEnabled() {
+  const configured = env.POSTHOG_ENABLED?.toLowerCase();
+  if (configured === "false" || configured === "0" || configured === "no") {
+    return false;
+  }
+  return Boolean(env.POSTHOG_API_KEY);
 }
 
 export function writeLegacyJsonMirrorsEnabled() {

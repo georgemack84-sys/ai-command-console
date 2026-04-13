@@ -4,6 +4,7 @@ import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { createBrief, deleteBrief, listBriefs, updateBrief } from "@/src/server/services/research-service";
 import { executeResearchAction } from "@/src/server/services/research-action-service";
+import { trackEvent } from "@/src/server/observability/analytics";
 
 const createBriefSchema = z.object({
   title: z.string().min(1),
@@ -65,6 +66,12 @@ export async function POST(request: Request) {
       tags: body.tags.map((tag) => tag.trim()).filter(Boolean),
       summary: body.summary.trim(),
       linkedTaskId: null,
+    });
+    trackEvent({
+      event: "research_brief_created",
+      actorId: user.id,
+      workspaceId: user.workspaceId,
+      properties: { briefId: brief.id, priority: brief.priority },
     });
     return apiSuccess({ briefs: await listBriefs(user.workspaceId), brief }, { status: 201 });
   } catch (error) {

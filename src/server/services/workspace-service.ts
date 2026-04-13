@@ -39,6 +39,8 @@ export async function getWorkspaceSnapshot(workspaceId: string): Promise<Workspa
       status: source.status,
       type: source.type,
       updateCadence: source.updateCadence,
+      description: source.description,
+      url: source.url,
     })),
     updates: workspace.updates.map((update) => ({
       id: update.id,

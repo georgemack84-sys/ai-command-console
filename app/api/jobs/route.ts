@@ -4,6 +4,7 @@ import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { cancelBackgroundJob, queueBackgroundJob, readBackgroundJob, readBackgroundJobs, retryBackgroundJob } from "@/src/server/jobs/background-jobs";
 import type { SavedTriageView } from "@/src/server/services/summary-service";
+import { trackEvent } from "@/src/server/observability/analytics";
 
 const viewSchema = z.object({
   name: z.string(),
@@ -76,6 +77,12 @@ export async function POST(request: Request) {
         { workspaceId: body.workspaceId || user.workspaceId },
         { actorId: user.id, actorName: user.name },
       );
+      trackEvent({
+        event: "insight_generation_requested",
+        actorId: user.id,
+        workspaceId: body.workspaceId || user.workspaceId,
+        properties: { jobId: job.id },
+      });
       return apiSuccess({ job }, { status: 202 });
     }
 

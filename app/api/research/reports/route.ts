@@ -3,6 +3,7 @@ import { getSessionUser } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { createReport, deleteReport, listReports, updateReport } from "@/src/server/services/research-service";
+import { trackEvent } from "@/src/server/observability/analytics";
 
 const createReportSchema = z.object({
   briefId: z.string().min(1),
@@ -58,6 +59,12 @@ export async function POST(request: Request) {
       status: body.status,
       excerpt: body.excerpt.trim(),
       keyFindings: body.keyFindings.map((item) => item.trim()).filter(Boolean),
+    });
+    trackEvent({
+      event: "research_report_created",
+      actorId: user.id,
+      workspaceId: user.workspaceId,
+      properties: { reportId: report.id, briefId: report.briefId, format: report.format },
     });
     return apiSuccess({ reports: await listReports(user.workspaceId), report }, { status: 201 });
   } catch (error) {

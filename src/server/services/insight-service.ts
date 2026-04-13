@@ -1,10 +1,10 @@
 import { prisma } from "@/src/server/db/prisma";
 
 export async function generateWorkspaceInsights(workspaceId: string) {
-  const [updates, sources] = await Promise.all([
+  const [updates, sources, latestInsight] = await Promise.all([
     prisma.monitoredUpdate.findMany({
       where: { workspaceId },
-      orderBy: { happenedAt: "desc" },
+      orderBy: { createdAt: "desc" },
       take: 5,
     }),
     prisma.source.findMany({
@@ -12,9 +12,18 @@ export async function generateWorkspaceInsights(workspaceId: string) {
       orderBy: { updatedAt: "desc" },
       take: 3,
     }),
+    prisma.insight.findFirst({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   if (!updates.length) {
+    return [];
+  }
+
+  const latestUpdate = updates[0];
+  if (latestInsight && latestUpdate?.createdAt && latestInsight.createdAt >= latestUpdate.createdAt) {
     return [];
   }
 

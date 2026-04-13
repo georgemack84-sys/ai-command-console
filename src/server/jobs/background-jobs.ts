@@ -1,10 +1,13 @@
 import { createRequire } from "node:module";
 import { AppError } from "@/src/server/api/errors";
 import { generateWorkspaceInsights } from "@/src/server/services/insight-service";
+import { refreshRssSource } from "@/src/server/services/rss-ingestion-service";
 import { createSummaryReportForView, type SavedTriageView } from "@/src/server/services/summary-service";
 import { createTraceId } from "@/src/server/observability/trace-id";
 import { listRuntimeDiagnostics, recordRuntimeDiagnostic, summarizeRuntimeDiagnostics } from "@/src/server/observability/runtime-diagnostics";
 import { env, getJobQueueMaxPending, getJobQueueMaxRunning, getJobWorkerPollIntervalMs } from "@/src/config/env";
+import { captureException } from "@/src/server/observability/sentry";
+import { trackEvent } from "@/src/server/observability/analytics";
 
 const require = createRequire(import.meta.url);
 const {
@@ -24,7 +27,11 @@ const {
 
 let processorsRegistered = false;
 
-export type BackgroundJobType = "workspace:generate-insights" | "workspace:generate-summary" | "workspace:failure-drill";
+export type BackgroundJobType =
+  | "workspace:generate-insights"
+  | "workspace:generate-summary"
+  | "workspace:failure-drill"
+  | "source:refresh";
 
 function buildBackgroundJobDiagnostics(limit = 20) {
   const health = buildQueueHealth(limit);
@@ -61,11 +68,24 @@ export function ensureBackgroundJobProcessors() {
 
   registerJobProcessor("workspace:generate-insights", async (job: { payload: { workspaceId: string }; traceId?: string | null; log: (message: string, meta?: Record<string, unknown>) => void }) => {
     job.log("Generating workspace insights.", { workspaceId: job.payload.workspaceId, traceId: job.traceId || null });
-    const insights = await generateWorkspaceInsights(job.payload.workspaceId);
-    return {
-      generatedCount: insights.length,
-      traceId: job.traceId || null,
-    };
+    try {
+      const insights = await generateWorkspaceInsights(job.payload.workspaceId);
+      if (insights.length) {
+        trackEvent({
+          event: "insight_generated",
+          actorId: "system",
+          workspaceId: job.payload.workspaceId,
+          properties: { count: insights.length, traceId: job.traceId || null },
+        });
+      }
+      return {
+        generatedCount: insights.length,
+        traceId: job.traceId || null,
+      };
+    } catch (error) {
+      captureException(error, { jobType: "workspace:generate-insights", workspaceId: job.payload.workspaceId });
+      throw error;
+    }
   });
 
   registerJobProcessor(
@@ -76,16 +96,21 @@ export function ensureBackgroundJobProcessors() {
         viewName: job.payload.view.name,
         traceId: job.traceId || null,
       });
-      const report = await createSummaryReportForView(job.payload.workspaceId, job.payload.view, {
-        traceId: job.traceId || undefined,
-        maxAttemptsOverride: 1,
-      });
-      return {
-        reportId: report?.reportId ?? null,
-        title: report?.title ?? null,
-        provider: report?.provider ?? "mock",
-        traceId: report?.traceId ?? job.traceId ?? null,
-      };
+      try {
+        const report = await createSummaryReportForView(job.payload.workspaceId, job.payload.view, {
+          traceId: job.traceId || undefined,
+          maxAttemptsOverride: 1,
+        });
+        return {
+          reportId: report?.reportId ?? null,
+          title: report?.title ?? null,
+          provider: report?.provider ?? "mock",
+          traceId: report?.traceId ?? job.traceId ?? null,
+        };
+      } catch (error) {
+        captureException(error, { jobType: "workspace:generate-summary", workspaceId: job.payload.workspaceId });
+        throw error;
+      }
     },
   );
 
@@ -100,6 +125,34 @@ export function ensureBackgroundJobProcessors() {
     },
   );
 
+  registerJobProcessor(
+    "source:refresh",
+    async (job: { payload: { sourceId: string; workspaceId: string; requestedById?: string | null }; traceId?: string | null; log: (message: string, meta?: Record<string, unknown>) => void }) => {
+      job.log("Refreshing source ingestion.", {
+        sourceId: job.payload.sourceId,
+        workspaceId: job.payload.workspaceId,
+        traceId: job.traceId || null,
+      });
+      try {
+        const result = await refreshRssSource({
+          sourceId: job.payload.sourceId,
+          workspaceId: job.payload.workspaceId,
+          requestedById: job.payload.requestedById ?? null,
+          traceId: job.traceId || undefined,
+        });
+        return {
+          sourceId: job.payload.sourceId,
+          createdCount: result.createdCount,
+          skippedCount: result.skippedCount,
+          traceId: result.traceId || job.traceId || null,
+        };
+      } catch (error) {
+        captureException(error, { jobType: "source:refresh", sourceId: job.payload.sourceId });
+        throw error;
+      }
+    },
+  );
+
   processorsRegistered = true;
 }
 
@@ -107,12 +160,13 @@ export function queueBackgroundJob(
   type: BackgroundJobType,
   payload: Record<string, unknown>,
   actor?: { actorId?: string; actorName?: string; traceId?: string },
+  options?: { maxAttempts?: number; retryDelayMs?: number; runtimeLimitMs?: number },
 ) {
   ensureBackgroundJobProcessors();
   const traceId = actor?.traceId || createTraceId("job");
   let job;
   try {
-    job = enqueueJob(type, payload, { ...(actor || {}), traceId });
+    job = enqueueJob(type, payload, { ...(actor || {}), ...(options || {}), traceId });
   } catch (error) {
     if (error instanceof QueueSaturationError || ((error as { code?: string } | null)?.code === "job_queue_saturated")) {
       recordRuntimeDiagnostic({

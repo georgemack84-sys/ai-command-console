@@ -80,10 +80,20 @@ AI_SUMMARY_MODEL=gpt-4.1-mini
 AI_SUMMARY_DAILY_BUDGET_USD=1
 AI_SUMMARY_ESTIMATED_COST_PER_RUN_USD=0.02
 AI_SUMMARY_EVAL_ENABLED=true
+RSS_INGEST_TIMEOUT_MS=10000
+RSS_INGEST_MAX_ITEMS=30
+RSS_INGEST_MAX_CONTENT_BYTES=2000000
+RSS_USER_AGENT=AI-Command-Console/1.0 (+https://example.com)
 JOB_QUEUE_EXECUTION_MODE=external
 JOB_WORKER_POLL_INTERVAL_MS=2000
 JOB_QUEUE_MAX_PENDING=100
 JOB_QUEUE_MAX_RUNNING=12
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=development
+SENTRY_TRACES_SAMPLE_RATE=0.1
+POSTHOG_API_KEY=
+POSTHOG_HOST=https://app.posthog.com
+POSTHOG_ENABLED=true
 AI_COMMAND_CONSOLE_DATA_ROOT=./.codex-temp/runtime-data
 AI_COMMAND_CONSOLE_DATABASE_PATH=./.codex-temp/runtime-data/workspace.sqlite
 AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH=./.codex-temp/runtime-data/agents/console.sqlite
@@ -238,6 +248,51 @@ Demo credentials after seeding:
 - email: `operator@pulse.local`
 - password: `demo-password`
 
+## RSS Ingestion (Phase 1)
+
+1. Create a feed source
+
+```bash
+curl -X POST http://localhost:5050/api/sources \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ops Feed",
+    "type": "feed",
+    "url": "https://example.com/feed.xml",
+    "updateCadence": "Hourly",
+    "description": "Primary RSS feed for operational updates.",
+    "refreshOnCreate": true
+  }'
+```
+
+2. Refresh a feed source (queues ingestion job)
+
+```bash
+curl -X POST http://localhost:5050/api/sources/refresh \
+  -H "Content-Type: application/json" \
+  -d '{ "sourceId": "<source-id>" }'
+```
+
+3. Run the worker (required when JOB_QUEUE_EXECUTION_MODE=external)
+
+```bash
+npm run worker:jobs
+```
+
+4. Verify updates and insights
+
+```bash
+curl http://localhost:5050/api/updates
+curl http://localhost:5050/api/insights
+```
+
+The refresh job ingests new feed entries as monitored updates and then queues insight generation. Insight generation uses the existing summary service and falls back deterministically when an AI provider is not configured.
+
+## Observability (Phase 1)
+
+- Sentry: set `SENTRY_DSN`, optional `SENTRY_ENVIRONMENT`, and `SENTRY_TRACES_SAMPLE_RATE`. Errors from core routes, ingestion, and background jobs will be captured when configured.
+- PostHog: set `POSTHOG_API_KEY`, `POSTHOG_HOST`, and `POSTHOG_ENABLED=true` to track key product events such as logins, source refreshes, update ingestion, and insight generation.
+
 ## Scripts
 
 - `npm run dev`
@@ -279,6 +334,8 @@ Core routes:
 - `GET|PATCH /api/settings/workspace`
 - `POST|DELETE /api/settings/invites`
 - `GET /api/sources`
+- `POST /api/sources`
+- `POST /api/sources/refresh`
 - `GET /api/updates`
 - `GET /api/insights`
 - `POST /api/insights`
@@ -343,7 +400,6 @@ If browser tests fail on signup, health, or readiness, run `npm run dev:doctor` 
 
 ## Recommended Next Steps
 
-- add ingestion jobs for source refresh and external webhook/event intake
 - expand workspace sharing and multi-workspace membership controls
 - add request tracing and external log/metrics sinks
 - broaden Playwright coverage for authenticated desktop and mobile flows
