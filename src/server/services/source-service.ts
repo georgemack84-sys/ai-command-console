@@ -3,6 +3,9 @@ import { AppError } from "@/src/server/api/errors";
 import { isProduction } from "@/src/config/env";
 import { trackEvent } from "@/src/server/observability/analytics";
 import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
+import type { SourceType } from "@prisma/client";
+import { assertConnectorSupportsRefresh } from "@/src/server/ingestion/connector-registry";
+import { requireWorkspaceManager } from "@/src/server/auth/permissions";
 
 function isLocalHost(hostname: string) {
   const normalized = hostname.toLowerCase();
@@ -26,35 +29,17 @@ export function assertValidSourceUrl(url: string) {
   }
 }
 
-async function requireWorkspaceManager(input: {
-  userId: string;
-  userRole: "viewer" | "operator" | "approver" | "admin";
-  workspaceId: string;
-}) {
-  if (input.userRole === "admin") {
-    return;
-  }
-
-  const membership = await prisma.workspaceMember.findFirst({
-    where: { userId: input.userId, workspaceId: input.workspaceId },
-  });
-
-  if (!membership || !["owner", "admin"].includes(membership.role)) {
-    throw new AppError(403, "source_forbidden", "Only workspace owners or admins can manage sources.");
-  }
-}
-
 export async function createSource(input: {
   workspaceId: string;
   userId: string;
   userRole: "viewer" | "operator" | "approver" | "admin";
   name: string;
-  type: "feed";
+  type: SourceType;
   url: string;
   updateCadence?: string;
   description?: string;
 }) {
-  await requireWorkspaceManager(input);
+  await requireWorkspaceManager({ userId: input.userId, userRole: input.userRole, workspaceId: input.workspaceId });
   const normalizedUrl = input.url.trim();
   assertValidSourceUrl(normalizedUrl);
 
@@ -123,9 +108,7 @@ export async function requestSourceRefresh(input: {
     throw new AppError(404, "source_not_found", "Source not found.");
   }
 
-  if (source.type !== "feed") {
-    throw new AppError(400, "source_type_not_supported", "Only feed sources can be refreshed right now.");
-  }
+  assertConnectorSupportsRefresh(source.type);
 
   const job = queueBackgroundJob(
     "source:refresh",

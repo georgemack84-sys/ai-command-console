@@ -26,6 +26,13 @@ The foundation models a believable intelligence platform where users can:
 - create and manage research briefs and reports
 - inspect recent activity and operational state
 
+Phase 2 foundations add:
+- workspace-scoped permission helpers and request guards
+- alert records surfaced in the workspace snapshot and dashboard
+- feature flags for staged rollout (`/api/feature-flags` admin route)
+- connector registry groundwork for multi-source ingestion
+- agent task scaffolding for future automation (`/api/agents/tasks`)
+
 ## Folder Structure
 
 - `app/`
@@ -94,6 +101,12 @@ SENTRY_TRACES_SAMPLE_RATE=0.1
 POSTHOG_API_KEY=
 POSTHOG_HOST=https://app.posthog.com
 POSTHOG_ENABLED=true
+FEATURE_FLAGS_ENABLED=true
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_AUTH_LIMIT=8
+RATE_LIMIT_SOURCE_LIMIT=20
+RATE_LIMIT_JOBS_LIMIT=30
 AI_COMMAND_CONSOLE_DATA_ROOT=./.codex-temp/runtime-data
 AI_COMMAND_CONSOLE_DATABASE_PATH=./.codex-temp/runtime-data/workspace.sqlite
 AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH=./.codex-temp/runtime-data/agents/console.sqlite

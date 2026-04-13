@@ -32,6 +32,12 @@ const envSchema = z.object({
   POSTHOG_API_KEY: z.string().optional(),
   POSTHOG_HOST: z.string().optional(),
   POSTHOG_ENABLED: z.string().optional(),
+  RATE_LIMIT_ENABLED: z.string().optional(),
+  RATE_LIMIT_WINDOW_MS: z.string().optional(),
+  RATE_LIMIT_AUTH_LIMIT: z.string().optional(),
+  RATE_LIMIT_SOURCE_LIMIT: z.string().optional(),
+  RATE_LIMIT_JOBS_LIMIT: z.string().optional(),
+  FEATURE_FLAGS_ENABLED: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -215,6 +221,14 @@ export function posthogEnabled() {
     return false;
   }
   return Boolean(env.POSTHOG_API_KEY);
+}
+
+export function featureFlagsEnabled() {
+  const configured = env.FEATURE_FLAGS_ENABLED?.toLowerCase();
+  if (configured === "false" || configured === "0" || configured === "no") {
+    return false;
+  }
+  return true;
 }
 
 export function writeLegacyJsonMirrorsEnabled() {

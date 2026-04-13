@@ -3,6 +3,7 @@ import { createUserAccount, deleteUserAccount, setSessionCookie } from "@/src/li
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { consumeWorkspaceInvite, readInviteByToken } from "@/src/server/services/invite-service";
+import { enforceRateLimit, getAuthRateLimit, getClientIp, getDefaultWindowMs } from "@/src/server/security/rate-limit";
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -13,6 +14,8 @@ const signupSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    enforceRateLimit(`auth:signup:${ip}`, { limit: getAuthRateLimit(), windowMs: getDefaultWindowMs() });
     const body = signupSchema.parse(await request.json());
     let workspaceOverride: { workspaceId: string; workspaceName: string } | undefined;
     const inviteToken = String(body.inviteToken || "").trim();

@@ -46,6 +46,18 @@ enum SourceStatus {
   paused
 }
 
+enum AlertStatus {
+  unread
+  read
+  archived
+}
+
+enum AlertSeverity {
+  info
+  warning
+  critical
+}
+
 enum UpdateSeverity {
   low
   medium
@@ -64,6 +76,20 @@ enum InsightStatus {
   ready
   draft
   archived
+}
+
+enum AgentTaskStatus {
+  queued
+  running
+  completed
+  failed
+  canceled
+}
+
+enum AgentExecutionStatus {
+  running
+  completed
+  failed
 }
 
 enum BriefStatus {
@@ -108,6 +134,7 @@ model User {
   briefs       ResearchBrief[]
   reports      ResearchReport[]
   savedViews   SavedView[]
+  alerts       Alert[]
   createdInvites WorkspaceInvite[] @relation("CreatedWorkspaceInvites")
   acceptedInvites WorkspaceInvite[] @relation("AcceptedWorkspaceInvites")
 }
@@ -130,6 +157,9 @@ model Workspace {
   briefs      ResearchBrief[]
   reports     ResearchReport[]
   invites     WorkspaceInvite[]
+  alerts      Alert[]
+  featureFlags WorkspaceFeatureFlag[]
+  agentTasks  AgentTask[]
   operationsState WorkspaceOperationsState?
   operationsFollowups OperationsFollowup[]
   incidentApprovals IncidentApprovalRequest[]
@@ -197,6 +227,7 @@ model Source {
   updatedAt     DateTime          @updatedAt
   workspace     Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   updates       MonitoredUpdate[]
+  alerts        Alert[]
 }
 
 model MonitoredUpdate {
@@ -213,6 +244,7 @@ model MonitoredUpdate {
   metadata    Json?
   workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   source      Source         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  alerts      Alert[]
 }
 
 model Insight {
@@ -223,11 +255,91 @@ model Insight {
   type        InsightType
   status      InsightStatus @default(ready)
   confidence  Int
+  score       Int           @default(0)
   sourceIds   String[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   metadata    Json?
   workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  alerts      Alert[]
+}
+
+model Alert {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String?
+  sourceId    String?
+  updateId    String?
+  insightId   String?
+  type        String
+  title       String
+  message     String
+  severity    AlertSeverity @default(info)
+  status      AlertStatus   @default(unread)
+  readAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  source      Source?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  update      MonitoredUpdate? @relation(fields: [updateId], references: [id], onDelete: SetNull)
+  insight     Insight?      @relation(fields: [insightId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status])
+  @@index([userId, status])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workspaceOverrides WorkspaceFeatureFlag[]
+}
+
+model WorkspaceFeatureFlag {
+  id          String   @id @default(cuid())
+  workspaceId String
+  flagId      String
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  flag        FeatureFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, flagId])
+  @@index([workspaceId, enabled])
+}
+
+model AgentTask {
+  id          String        @id @default(cuid())
+  workspaceId String
+  type        String
+  status      AgentTaskStatus @default(queued)
+  input       Json?
+  output      Json?
+  requestedById String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  executions  AgentExecution[]
+
+  @@index([workspaceId, status])
+}
+
+model AgentExecution {
+  id          String            @id @default(cuid())
+  taskId      String
+  status      AgentExecutionStatus @default(running)
+  startedAt   DateTime          @default(now())
+  completedAt DateTime?
+  error       String?
+  metadata    Json?
+  task        AgentTask         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, status])
 }
 
 model ActivityEvent {

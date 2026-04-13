@@ -24,6 +24,14 @@ vi.mock("@/src/server/observability/analytics", () => ({
   trackEvent: vi.fn(),
 }));
 
+vi.mock("@/src/server/feature-flags/feature-flag-service", () => ({
+  isFeatureEnabled: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock("@/src/server/alerts/alert-service", () => ({
+  createAlert: vi.fn(),
+}));
+
 vi.mock("@/src/server/jobs/background-jobs", () => ({
   queueBackgroundJob: vi.fn(),
 }));

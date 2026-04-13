@@ -84,6 +84,7 @@ export type WorkspaceApiSnapshot = {
     summary: string;
     type: string;
     confidence: number;
+    score?: number;
     createdAt: string;
   }>;
   activity: Array<{
@@ -92,5 +93,15 @@ export type WorkspaceApiSnapshot = {
     description: string;
     type: string;
     createdAt: string;
+  }>;
+  alerts: Array<{
+    id: string;
+    title: string;
+    message: string;
+    type: string;
+    severity: string;
+    status: string;
+    createdAt: string;
+    readAt?: string | null;
   }>;
 };

@@ -3,6 +3,7 @@ import { getSessionUser } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { getResearchDeskPreferences, saveResearchDeskPreferences } from "@/src/server/services/preferences-service";
+import { requireWorkspaceMember, requireWorkspaceViewer } from "@/src/server/auth/permissions";
 
 const viewSchema = z.object({
   name: z.string(),
@@ -35,6 +36,7 @@ async function requireUser() {
 export async function GET() {
   try {
     const user = await requireUser();
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const preferences = await getResearchDeskPreferences(user.workspaceId, user.id);
     return apiSuccess(preferences);
   } catch (error) {
@@ -45,6 +47,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const user = await requireUser();
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = bodySchema.parse(await request.json());
     const preferences = await saveResearchDeskPreferences(user.workspaceId, user.id, body);
     return apiSuccess(preferences);

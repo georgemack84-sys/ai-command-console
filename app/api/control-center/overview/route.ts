@@ -3,6 +3,7 @@ import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { ensureDigestScheduler } from "@/services/digestScheduler";
 import { buildControlCenterOverview } from "@/src/server/services/control-center-service";
+import { requireWorkspaceViewer } from "@/src/server/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export async function GET() {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     return apiSuccess({
       overview: await buildControlCenterOverview(user),
     });

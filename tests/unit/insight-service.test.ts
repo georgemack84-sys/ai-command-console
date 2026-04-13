@@ -7,12 +7,21 @@ vi.mock("@/src/server/db/prisma", () => ({
     },
     source: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     insight: {
       findFirst: vi.fn(),
       create: vi.fn(),
     },
   },
+}));
+
+vi.mock("@/src/server/feature-flags/feature-flag-service", () => ({
+  isFeatureEnabled: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock("@/src/server/alerts/alert-service", () => ({
+  createAlert: vi.fn(),
 }));
 
 import { prisma } from "@/src/server/db/prisma";

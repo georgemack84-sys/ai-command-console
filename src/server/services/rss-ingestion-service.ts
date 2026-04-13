@@ -7,6 +7,8 @@ import { recordRuntimeDiagnostic } from "@/src/server/observability/runtime-diag
 import { trackEvent } from "@/src/server/observability/analytics";
 import { getRssIngestMaxContentBytes, getRssIngestMaxItems, getRssIngestTimeoutMs, getRssUserAgent } from "@/src/config/env";
 import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
+import { isFeatureEnabled } from "@/src/server/feature-flags/feature-flag-service";
+import { createAlert } from "@/src/server/alerts/alert-service";
 
 const parser = new Parser();
 
@@ -232,6 +234,17 @@ export async function refreshRssSource(input: {
       },
     });
 
+    if (createdCount > 0 && (await isFeatureEnabled("alerts_v2", source.workspaceId))) {
+      await createAlert({
+        workspaceId: source.workspaceId,
+        sourceId: source.id,
+        type: "source.refresh",
+        title: "New updates ingested",
+        message: `${createdCount} update${createdCount === 1 ? "" : "s"} ingested from ${source.name}.`,
+        severity: "info",
+      });
+    }
+
     if (createdCount > 0) {
       let insightQueued = false;
       try {
@@ -295,8 +308,10 @@ export async function refreshRssSource(input: {
 
     return {
       sourceId: source.id,
+      workspaceId: source.workspaceId,
       createdCount,
       skippedCount,
+      durationMs: Date.now() - startedAt,
       traceId: input.traceId ?? null,
     };
   } catch (error) {

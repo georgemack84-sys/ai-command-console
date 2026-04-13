@@ -4,6 +4,7 @@ import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { createReport, deleteReport, listReports, updateReport } from "@/src/server/services/research-service";
 import { trackEvent } from "@/src/server/observability/analytics";
+import { requireWorkspaceMember, requireWorkspaceViewer } from "@/src/server/auth/permissions";
 
 const createReportSchema = z.object({
   briefId: z.string().min(1),
@@ -40,6 +41,7 @@ async function requireUser() {
 export async function GET() {
   try {
     const user = await requireUser();
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     return apiSuccess({ reports: await listReports(user.workspaceId) });
   } catch (error) {
     return apiError(error, "Unable to load reports.");
@@ -49,6 +51,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = createReportSchema.parse(await request.json());
     const report = await createReport({
       workspaceId: user.workspaceId,
@@ -75,6 +78,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const user = await requireUser();
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = patchReportSchema.parse(await request.json());
     await updateReport({
       workspaceId: user.workspaceId,
@@ -100,6 +104,7 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const user = await requireUser();
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = deleteReportSchema.parse(await request.json());
     await deleteReport(user.workspaceId, body.reportId, user.id, user.role);
     return apiSuccess({ reports: await listReports(user.workspaceId) });

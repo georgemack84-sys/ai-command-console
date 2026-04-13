@@ -3,6 +3,7 @@ import { authenticateUser, setSessionCookie } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { trackEvent } from "@/src/server/observability/analytics";
+import { enforceRateLimit, getAuthRateLimit, getClientIp, getDefaultWindowMs } from "@/src/server/security/rate-limit";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -11,6 +12,8 @@ const loginSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    enforceRateLimit(`auth:login:${ip}`, { limit: getAuthRateLimit(), windowMs: getDefaultWindowMs() });
     const body = loginSchema.parse(await request.json());
     const result = await authenticateUser(body.email, body.password);
     if ("error" in result) {

@@ -2,6 +2,7 @@ import { prisma } from "@/src/server/db/prisma";
 import { getSessionUser } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
+import { requireWorkspaceViewer } from "@/src/server/auth/permissions";
 
 function mapTaskStatus(status: string) {
   if (status === "complete") return "completed";
@@ -18,6 +19,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const { id } = await context.params;
     const brief = await prisma.researchBrief.findFirst({
       where: {

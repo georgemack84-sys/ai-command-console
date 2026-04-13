@@ -4,13 +4,15 @@ import { apiError, apiSuccess } from "@/src/server/api/response";
 import { AppError } from "@/src/server/api/errors";
 import { getWorkspaceSnapshot } from "@/src/server/services/workspace-service";
 import { createSource, requestSourceRefresh } from "@/src/server/services/source-service";
+import { requireWorkspaceViewer, requireWorkspaceManager } from "@/src/server/auth/permissions";
+import { enforceRateLimit, getDefaultWindowMs, getSourceRateLimit } from "@/src/server/security/rate-limit";
 
 const postSchema = z.object({
   name: z.string().min(1),
   url: z.string().min(1),
   updateCadence: z.string().optional(),
   description: z.string().optional(),
-  type: z.literal("feed").default("feed"),
+  type: z.enum(["feed", "website", "repository", "integration", "document"]).default("feed"),
   refreshOnCreate: z.boolean().optional(),
 });
 
@@ -21,6 +23,7 @@ export async function GET() {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const snapshot = await getWorkspaceSnapshot(user.workspaceId);
     return apiSuccess({ sources: snapshot.sources });
   } catch (error) {
@@ -35,6 +38,8 @@ export async function POST(request: Request) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceManager({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
+    enforceRateLimit(`sources:create:${user.id}`, { limit: getSourceRateLimit(), windowMs: getDefaultWindowMs() });
     const body = postSchema.parse(await request.json());
     const source = await createSource({
       workspaceId: user.workspaceId,

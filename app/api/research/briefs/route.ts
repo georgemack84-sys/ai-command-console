@@ -5,6 +5,7 @@ import { apiError, apiSuccess } from "@/src/server/api/response";
 import { createBrief, deleteBrief, listBriefs, updateBrief } from "@/src/server/services/research-service";
 import { executeResearchAction } from "@/src/server/services/research-action-service";
 import { trackEvent } from "@/src/server/observability/analytics";
+import { requireWorkspaceMember, requireWorkspaceViewer } from "@/src/server/auth/permissions";
 
 const createBriefSchema = z.object({
   title: z.string().min(1),
@@ -45,6 +46,7 @@ async function requireUser() {
 export async function GET() {
   try {
     const user = await requireUser();
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     return apiSuccess({ briefs: await listBriefs(user.workspaceId) });
   } catch (error) {
     return apiError(error, "Unable to load briefs.");
@@ -54,6 +56,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = createBriefSchema.parse(await request.json());
     const brief = await createBrief({
       workspaceId: user.workspaceId,
@@ -82,6 +85,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const user = await requireUser();
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = patchBriefSchema.parse(await request.json());
     if (body.routeToQueue) {
       await executeResearchAction(
@@ -121,6 +125,7 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const user = await requireUser();
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = deleteBriefSchema.parse(await request.json());
     await deleteBrief(user.workspaceId, body.briefId, user.id, user.role);
     return apiSuccess({ briefs: await listBriefs(user.workspaceId) });

@@ -1,13 +1,15 @@
 import { createRequire } from "node:module";
 import { AppError } from "@/src/server/api/errors";
 import { generateWorkspaceInsights } from "@/src/server/services/insight-service";
-import { refreshRssSource } from "@/src/server/services/rss-ingestion-service";
+import { refreshSourceByConnector } from "@/src/server/ingestion/connector-registry";
 import { createSummaryReportForView, type SavedTriageView } from "@/src/server/services/summary-service";
 import { createTraceId } from "@/src/server/observability/trace-id";
 import { listRuntimeDiagnostics, recordRuntimeDiagnostic, summarizeRuntimeDiagnostics } from "@/src/server/observability/runtime-diagnostics";
 import { env, getJobQueueMaxPending, getJobQueueMaxRunning, getJobWorkerPollIntervalMs } from "@/src/config/env";
 import { captureException } from "@/src/server/observability/sentry";
 import { trackEvent } from "@/src/server/observability/analytics";
+import { startAgentExecution, completeAgentExecution } from "@/src/server/agents/agent-service";
+import { prisma } from "@/src/server/db/prisma";
 
 const require = createRequire(import.meta.url);
 const {
@@ -31,7 +33,8 @@ export type BackgroundJobType =
   | "workspace:generate-insights"
   | "workspace:generate-summary"
   | "workspace:failure-drill"
-  | "source:refresh";
+  | "source:refresh"
+  | "agent:execute";
 
 function buildBackgroundJobDiagnostics(limit = 20) {
   const health = buildQueueHealth(limit);
@@ -134,9 +137,17 @@ export function ensureBackgroundJobProcessors() {
         traceId: job.traceId || null,
       });
       try {
-        const result = await refreshRssSource({
+        const source = await prisma.source.findUnique({
+          where: { id: job.payload.sourceId },
+          select: { id: true, type: true },
+        });
+        if (!source) {
+          throw new AppError(404, "source_not_found", "Source not found.");
+        }
+        const result = await refreshSourceByConnector({
           sourceId: job.payload.sourceId,
           workspaceId: job.payload.workspaceId,
+          sourceType: source.type,
           requestedById: job.payload.requestedById ?? null,
           traceId: job.traceId || undefined,
         });
@@ -144,10 +155,42 @@ export function ensureBackgroundJobProcessors() {
           sourceId: job.payload.sourceId,
           createdCount: result.createdCount,
           skippedCount: result.skippedCount,
+          durationMs: result.durationMs,
           traceId: result.traceId || job.traceId || null,
         };
       } catch (error) {
         captureException(error, { jobType: "source:refresh", sourceId: job.payload.sourceId });
+        throw error;
+      }
+    },
+  );
+
+  registerJobProcessor(
+    "agent:execute",
+    async (job: { payload: { taskId: string; workspaceId: string }; traceId?: string | null; log: (message: string, meta?: Record<string, unknown>) => void }) => {
+      job.log("Executing agent task.", {
+        taskId: job.payload.taskId,
+        workspaceId: job.payload.workspaceId,
+        traceId: job.traceId || null,
+      });
+      const execution = await startAgentExecution(job.payload.taskId, { traceId: job.traceId || null });
+      try {
+        await completeAgentExecution({
+          executionId: execution.id,
+          status: "completed",
+          output: { note: "Agent execution placeholder completed." },
+        });
+        return {
+          taskId: job.payload.taskId,
+          executionId: execution.id,
+        };
+      } catch (error) {
+        await completeAgentExecution({
+          executionId: execution.id,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error),
+        });
+        captureException(error, { jobType: "agent:execute", taskId: job.payload.taskId });
         throw error;
       }
     },

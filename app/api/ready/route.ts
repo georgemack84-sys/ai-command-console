@@ -4,11 +4,13 @@ import { checkDatabaseHealth } from "@/src/server/health/database-health";
 import { buildRuntimeWarnings } from "@/src/server/health/runtime-warnings";
 import { createRequire } from "node:module";
 import { env, getJobQueueMaxPending, getJobQueueMaxRunning, getJobWorkerPollIntervalMs } from "@/src/config/env";
+import { ensureDefaultFeatureFlags } from "@/src/server/feature-flags/feature-flag-service";
 
 const require = createRequire(import.meta.url);
 const { buildQueueHealth, configureJobQueue } = require("../../../services/jobQueue");
 
 export async function GET() {
+  await ensureDefaultFeatureFlags();
   configureJobQueue({
     executionMode: env.JOB_QUEUE_EXECUTION_MODE,
     workerPollIntervalMs: getJobWorkerPollIntervalMs(),

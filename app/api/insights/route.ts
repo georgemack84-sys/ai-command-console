@@ -6,6 +6,7 @@ import { generateWorkspaceInsights } from "@/src/server/services/insight-service
 import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
 import { z } from "zod";
 import { trackEvent } from "@/src/server/observability/analytics";
+import { requireWorkspaceViewer, requireWorkspaceMember } from "@/src/server/auth/permissions";
 
 const postSchema = z.object({
   async: z.boolean().optional(),
@@ -18,6 +19,7 @@ export async function GET() {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const snapshot = await getWorkspaceSnapshot(user.workspaceId);
     return apiSuccess({ insights: snapshot.insights });
   } catch (error) {
@@ -32,6 +34,7 @@ export async function POST(request: Request) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = postSchema.parse(await request.json().catch(() => ({})));
     if (body.async) {
       const job = queueBackgroundJob(
