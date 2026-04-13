@@ -117,7 +117,7 @@ async function fetchRssXml(url: string) {
 async function parseRssXml(xml: string) {
   try {
     return await parser.parseString(xml);
-  } catch (error) {
+  } catch {
     throw new AppError(400, "rss_parse_failed", "RSS feed could not be parsed.");
   }
 }
