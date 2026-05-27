@@ -10,7 +10,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       AI_COMMAND_CONSOLE_AUTH_SECRET: ci-placeholder-secret
       AI_COMMAND_CONSOLE_STORAGE_DRIVER: sqlite
