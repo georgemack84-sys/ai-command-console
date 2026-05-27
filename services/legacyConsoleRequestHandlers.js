@@ -82,6 +82,26 @@ function createLegacyConsoleRequestHandlers(deps) {
       const actor = deps.getActor(options);
       const startedAt = Date.now();
       const governance = deps.loadCollaborationState().governance;
+      const control = await deps.reviewConsoleRequest(body, actor, options);
+
+      if (control.decision.decision === "blocked") {
+        return {
+          ok: false,
+          error: control.decision.explanation,
+          control,
+          overview: deps.buildOverview(options),
+        };
+      }
+
+      if (control.decision.decision === "simulate") {
+        return {
+          ok: true,
+          output: control.decision.explanation,
+          control,
+          plan: control.plan,
+          overview: deps.buildOverview(options),
+        };
+      }
 
       if (
         !deps.canUseConsoleAction(actor.role, action) ||
@@ -98,6 +118,7 @@ function createLegacyConsoleRequestHandlers(deps) {
         return {
           ok: false,
           error: `Role "${actor.role}" is not allowed to perform ${action}.`,
+          control,
           overview: deps.buildOverview(options),
         };
       }
@@ -145,6 +166,37 @@ function createLegacyConsoleRequestHandlers(deps) {
     const startedAt = Date.now();
     const actor = deps.getActor(options);
     const governance = deps.loadCollaborationState().governance;
+    const control = await deps.reviewConsoleRequest(body, actor, options);
+    if (control.decision.decision === "blocked") {
+      return {
+        ok: false,
+        error: control.decision.explanation,
+        control,
+        overview: deps.buildOverview(options),
+      };
+    }
+    if (control.decision.decision === "simulate") {
+      return {
+        ok: true,
+        output: control.decision.explanation,
+        control,
+        plan: control.plan,
+        overview: deps.buildOverview(options),
+      };
+    }
+    if (
+      control.decision.decision === "confirm_required" &&
+      !control.candidatePlan?.steps?.some((step) => step.unclassified)
+    ) {
+      return {
+        ok: false,
+        error: control.decision.explanation,
+        control,
+        plan: control.plan,
+        requiresConfirmation: true,
+        overview: deps.buildOverview(options),
+      };
+    }
     if (!deps.canExecuteCommands(actor.role, governance)) {
       deps.recordTelemetry({
         type: "command",
@@ -156,6 +208,7 @@ function createLegacyConsoleRequestHandlers(deps) {
       return {
         ok: false,
         error: `Role "${actor.role}" cannot execute console commands.`,
+        control,
         overview: deps.buildOverview(options),
       };
     }
@@ -173,7 +226,7 @@ function createLegacyConsoleRequestHandlers(deps) {
       actorId: actor.id,
       meta: { command: command || "help" },
     });
-    return { ok: true, output, overview: deps.buildOverview(options) };
+    return { ok: true, output, control, overview: deps.buildOverview(options) };
   }
 
   return {

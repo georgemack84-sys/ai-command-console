@@ -1,0 +1,15 @@
+export const EXECUTION_SEMANTIC_TERMS = Object.freeze([
+  "execute",
+  "dispatch",
+  "invoke",
+  "orchestrate",
+  "schedule",
+  "retry",
+  "workflow",
+  "runtime",
+  "queue",
+  "auto-run",
+  "background worker",
+  "start workflow",
+  "trigger execution",
+]);

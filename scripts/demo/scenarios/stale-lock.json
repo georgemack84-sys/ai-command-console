@@ -1,0 +1,31 @@
+{
+  "scenarioId": "stale-lock",
+  "title": "Stale lock risk",
+  "description": "Execution is still running, but the lease and heartbeat are stale.",
+  "executionId": "demo-stale-lock",
+  "seed": {
+    "execution": {
+      "status": "running",
+      "triggerSource": "api"
+    },
+    "lock": {
+      "stale": true,
+      "ownerId": "demo-worker",
+      "leaseOffsetMs": -60000,
+      "heartbeatOffsetMs": -90000
+    },
+    "advisory": [
+      { "type": "created", "advisoryId": "demo-adv-stale-lock", "candidate": { "signalType": "STALE_LOCK" }, "requestedBy": "system" },
+      { "type": "recommended", "advisoryId": "demo-adv-stale-lock", "signal": { "signalType": "STALE_LOCK" }, "recommendation": { "recommendation": "operator_recovery", "requiresOperator": true }, "requestedBy": "system" }
+    ]
+  },
+  "expected": {
+    "readModel": {
+      "advisory.status": "open",
+      "risk.requiresOperatorAttention": true
+    },
+    "evidence": {
+      "warningsIncludes": "MISSING_LEDGER"
+    }
+  }
+}

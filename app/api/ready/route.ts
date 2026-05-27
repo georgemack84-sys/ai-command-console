@@ -8,9 +8,28 @@ import { ensureDefaultFeatureFlags } from "@/src/server/feature-flags/feature-fl
 
 const require = createRequire(import.meta.url);
 const { buildQueueHealth, configureJobQueue } = require("../../../services/jobQueue");
+const FEATURE_FLAG_TIMEOUT_MS = 1500;
+
+async function seedDefaultFlagsWithoutBlockingReadyRoute() {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    await Promise.race([
+      ensureDefaultFeatureFlags(),
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Default feature-flag seeding timed out.")), FEATURE_FLAG_TIMEOUT_MS);
+      }),
+    ]);
+  } catch {
+    // Local health checks should degrade gracefully when Prisma-backed setup is unavailable.
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
 
 export async function GET() {
-  await ensureDefaultFeatureFlags();
+  await seedDefaultFlagsWithoutBlockingReadyRoute();
   configureJobQueue({
     executionMode: env.JOB_QUEUE_EXECUTION_MODE,
     workerPollIntervalMs: getJobWorkerPollIntervalMs(),

@@ -1,0 +1,35 @@
+{
+  "scenarioId": "verification-failed",
+  "title": "Verification failed after recovery",
+  "description": "Recovery completes, but post-commit verification fails and must be surfaced honestly.",
+  "executionId": "demo-verification-failed",
+  "seed": {
+    "execution": {
+      "status": "failed",
+      "triggerSource": "api"
+    },
+    "ledger": [
+      { "eventType": "execution.failed", "payload": {} }
+    ],
+    "recovery": [
+      { "stepId": "step_0", "status": "completed", "sideEffectClass": "safe_repeat", "resultPayload": { "resumed": true } }
+    ],
+    "control": [
+      { "type": "request", "recoveryRequestId": "demo-request-verification-failed", "recoveryMode": "resume", "requestedBy": "operator_demo" },
+      { "type": "approval", "recoveryRequestId": "demo-request-verification-failed", "approvedBy": "operator_demo" }
+    ],
+    "verification": [
+      { "recoveryRequestId": "demo-request-verification-failed", "verification": { "outcome": "FAILED", "verified": false, "reason": "post-state mismatch" }, "requestedBy": "operator_demo" }
+    ]
+  },
+  "expected": {
+    "readModel": {
+      "verification.status": "failed",
+      "risk.hasVerificationFailure": true,
+      "risk.requiresOperatorAttention": true
+    },
+    "evidence": {
+      "state": "normal"
+    }
+  }
+}

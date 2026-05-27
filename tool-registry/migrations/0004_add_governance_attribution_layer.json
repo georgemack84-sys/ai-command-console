@@ -1,0 +1,16 @@
+{
+  "migrationId": "0004_add_governance_attribution_layer",
+  "version": "1.0.0",
+  "description": "Adds immutable governance metadata and governance attribution binding requirements to canonical registry entries.",
+  "createdArtifacts": [
+    "services/governance-attribution",
+    "tool-registry/registry.json",
+    "tool-registry/lineages.json"
+  ],
+  "invariants": [
+    "Governance attribution remains secondary to runtime authority.",
+    "Governance metadata is immutable once a version is published.",
+    "Governance evidence must bind to capabilityHash, sandboxProfileHash, trustZoneHash, replayContainmentHash, and runtimeAuthorityLockHash."
+  ],
+  "registryVersion": "4.3E"
+}

@@ -1,5 +1,9 @@
-import { initSentry } from "@/src/server/observability/sentry";
+export async function register() {
+  if (!process.env.SENTRY_DSN) {
+    return;
+  }
 
-export function register() {
+  const sentryModulePath = "./server/observability/sentry";
+  const { initSentry } = await import(sentryModulePath);
   initSentry();
 }

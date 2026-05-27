@@ -1,0 +1,19 @@
+{
+  "migrationId": "0001_create_canonical_registry",
+  "version": "1.0.0",
+  "description": "Creates the canonical file-backed tool registry and baseline executable tool contracts.",
+  "createdArtifacts": [
+    "tool-registry/registry.json",
+    "tool-registry/schemas/tool-definition.schema.json",
+    "tool-registry/policies/filesystem.write.policy.json",
+    "tool-registry/adapters/filesystem.write.adapter.json"
+  ],
+  "invariants": [
+    "No executable tool can exist outside registry authority.",
+    "Every tool requires input schema, output schema, and policy references.",
+    "High and critical risk tools require approval.",
+    "Replay support requires deterministic metadata.",
+    "Rollback support requires rollback metadata and rollback policy support."
+  ],
+  "registryVersion": "4.3A"
+}

@@ -1,0 +1,26 @@
+{
+  "scenarioId": "advisory-open",
+  "title": "Open advisory awaiting operator",
+  "description": "An advisory is open, recommends operator recovery, and has not yet created a recovery request.",
+  "executionId": "demo-advisory-open",
+  "seed": {
+    "execution": {
+      "status": "failed",
+      "triggerSource": "api"
+    },
+    "advisory": [
+      { "type": "created", "advisoryId": "demo-adv-open", "candidate": { "signalType": "FAILED_EXECUTION" }, "requestedBy": "system" },
+      { "type": "recommended", "advisoryId": "demo-adv-open", "signal": { "signalType": "FAILED_EXECUTION" }, "recommendation": { "recommendation": "operator_recovery", "requiresOperator": true }, "requestedBy": "system" }
+    ]
+  },
+  "expected": {
+    "readModel": {
+      "advisory.status": "open",
+      "risk.requiresOperatorAttention": true
+    },
+    "operatorActions": [
+      "DISMISS_ADVISORY",
+      "ESCALATE_ADVISORY"
+    ]
+  }
+}

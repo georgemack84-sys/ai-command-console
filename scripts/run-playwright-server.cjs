@@ -3,7 +3,7 @@
 const { spawn } = require("child_process");
 const { join } = require("path");
 
-const child = spawn(process.execPath, [join(__dirname, "run-next.cjs"), "dev", "--webpack"], {
+const child = spawn(process.execPath, [join(__dirname, "run-next.cjs"), "dev"], {
   stdio: "inherit",
   env: process.env,
 });

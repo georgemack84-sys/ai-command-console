@@ -1,0 +1,27 @@
+export type AttackSimulationState =
+  | "PENDING"
+  | "VALIDATING"
+  | "SIMULATED"
+  | "ESCALATED"
+  | "CONDITIONALLY_BLOCKED"
+  | "FAIL_CLOSED";
+
+export type AttackScenarioCategory =
+  | "GOVERNANCE_BYPASS"
+  | "ESCALATION_ABUSE"
+  | "DEPENDENCY_CORRUPTION"
+  | "CONFIDENCE_SPOOF"
+  | "APPROVAL_LINEAGE_BREAK"
+  | "REPLAY_LINEAGE_BREAK"
+  | "AUTHORITY_EXPANSION"
+  | "HIDDEN_EXECUTION"
+  | "ORCHESTRATION_DRIFT"
+  | "RECURSIVE_COORDINATION";
+
+export type ConstitutionalWeaknessSeverity =
+  | "INFO"
+  | "LOW"
+  | "MEDIUM"
+  | "HIGH"
+  | "CRITICAL"
+  | "CONSTITUTIONAL_BLOCKER";

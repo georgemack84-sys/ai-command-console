@@ -7,6 +7,28 @@ import type { SessionUser } from "@/src/lib/types";
 
 export { createPasswordHash, verifyPassword } from "@/src/server/auth/password";
 
+const LOCAL_SESSION_LOOKUP_TIMEOUT_MS = 1500;
+
+function canFailOpenForLocalSessionLookup() {
+  return process.env.NODE_ENV === "development";
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 export async function getSessionUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
@@ -15,8 +37,19 @@ export async function getSessionUser() {
     return null;
   }
 
-  const resolved = await resolveSessionUser(payload.sessionId);
-  return resolved?.user ?? null;
+  try {
+    const resolved = await withTimeout(
+      resolveSessionUser(payload.sessionId),
+      LOCAL_SESSION_LOOKUP_TIMEOUT_MS,
+      "Session lookup timed out.",
+    );
+    return resolved?.user ?? null;
+  } catch (error) {
+    if (canFailOpenForLocalSessionLookup()) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function requireSessionUser() {

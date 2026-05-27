@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inspect Memory Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["usageMb"],
+  "properties": {
+    "usageMb": { "type": "number" }
+  }
+}

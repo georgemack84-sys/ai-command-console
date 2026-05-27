@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { getAgentsDataPath } = require("./runtimePaths");
+const VALID_AUDIT_ACTORS = new Set(["system", "operator", "planner", "engine"]);
 
 function getAuditPath() {
   return getAgentsDataPath("audit-log.jsonl");
@@ -17,10 +18,14 @@ function ensureAuditPath() {
 function appendAuditEvent(event) {
   ensureAuditPath();
   const auditPath = getAuditPath();
+  const actor = VALID_AUDIT_ACTORS.has(String(event?.actor || "").trim())
+    ? String(event.actor).trim()
+    : "system";
   const entry = {
     id: `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     timestamp: new Date().toISOString(),
     ...event,
+    actor,
   };
   fs.appendFileSync(auditPath, `${JSON.stringify(entry)}\n`, "utf8");
   return entry;

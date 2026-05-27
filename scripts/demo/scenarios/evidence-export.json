@@ -1,0 +1,20 @@
+{
+  "scenarioId": "evidence-export",
+  "title": "Evidence export integrity",
+  "description": "Builds a bundle and validates stable JSON and Markdown export behavior.",
+  "executionId": "demo-evidence-export",
+  "seed": {
+    "execution": {
+      "status": "failed",
+      "triggerSource": "api"
+    },
+    "ledger": [
+      { "eventType": "execution.failed", "payload": {} }
+    ]
+  },
+  "expected": {
+    "evidence": {
+      "state": "normal"
+    }
+  }
+}

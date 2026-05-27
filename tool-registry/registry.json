@@ -1,0 +1,593 @@
+{
+  "registryVersion": "4.3E",
+  "schemaVersion": "1.0.0",
+  "migrationBaseline": "0004_add_governance_attribution_layer",
+  "tools": [
+    {
+      "toolId": "read_file",
+      "version": "1.0.0",
+      "canonicalId": "read_file@1.0.0",
+      "registryHash": "d71990cde519165c09544902e6c5bef24a5662deb9d064fc819eb515208ac9ac",
+      "status": "published",
+      "publishedAt": "2026-05-14T00:00:00.000Z",
+      "lineageId": "read_file",
+      "displayName": "Read File",
+      "name": "Read File",
+      "description": "Reads a single file path deterministically.",
+      "category": "filesystem",
+      "executionMode": "read_only",
+      "riskLevel": "low",
+      "riskClass": "read_only",
+      "approvalRequired": false,
+      "requiresApprovalDefault": false,
+      "supportsDryRun": true,
+      "supportsReplay": true,
+      "rollbackSupported": false,
+      "enabled": true,
+      "owner": "platform",
+      "plannerEligible": true,
+      "capabilities": [
+        "filesystem.read.file"
+      ],
+      "allowedTargets": [
+        "filesystem"
+      ],
+      "deniedTargets": [
+        "external-host",
+        "localhost"
+      ],
+      "parameterConstraints": {
+        "maxDepth": 6,
+        "allowWildcards": false,
+        "allowExternalHosts": false,
+        "allowRecursiveActions": false
+      },
+      "governanceRestrictions": {
+        "blockedInFreeze": true,
+        "blockedInReplayDrift": true,
+        "blockedWithoutApproval": false
+      },
+      "deterministicReplayMetadata": {
+        "evidenceFields": [
+          "inputSchemaRef",
+          "outputSchemaRef",
+          "policyRef"
+        ],
+        "hashStrategy": "stable-json"
+      },
+      "inputSchemaRef": "schemas/read_file.input.json",
+      "outputSchemaRef": "schemas/read_file.output.json",
+      "policyRef": "policies/read_file.policy.json",
+      "adapterRef": "adapters/read_file.adapter.json",
+      "runtimeCapabilities": [
+        "read"
+      ],
+      "capabilityMetadata": {
+        "read": {
+          "scope": [
+            "filesystem"
+          ]
+        }
+      },
+      "capabilityHash": "f5987cfb8d902be7ec032d414d80fc1db3328252870afba45819451d746c3596",
+      "governanceMetadata": {
+        "riskLevel": "low",
+        "approvalLevel": "none",
+        "dataSensitivity": "internal",
+        "auditLevel": "standard",
+        "governanceLineageRequired": true,
+        "provenanceLevel": "standard"
+      }
+    },
+    {
+      "toolId": "search_repo",
+      "version": "1.0.0",
+      "canonicalId": "search_repo@1.0.0",
+      "registryHash": "eb4541892781ec5b107d1f2d23442221c3051cd250ef0d22a8dadd1784851fb2",
+      "status": "published",
+      "publishedAt": "2026-05-14T00:00:00.000Z",
+      "lineageId": "search_repo",
+      "displayName": "Search Repository",
+      "name": "Search Repository",
+      "description": "Searches repository content within bounded scope.",
+      "category": "filesystem",
+      "executionMode": "read_only",
+      "riskLevel": "low",
+      "riskClass": "read_only",
+      "approvalRequired": false,
+      "requiresApprovalDefault": false,
+      "supportsDryRun": true,
+      "supportsReplay": true,
+      "rollbackSupported": false,
+      "enabled": true,
+      "owner": "platform",
+      "plannerEligible": true,
+      "capabilities": [
+        "filesystem.search"
+      ],
+      "allowedTargets": [
+        "filesystem"
+      ],
+      "deniedTargets": [
+        "external-host"
+      ],
+      "parameterConstraints": {
+        "maxDepth": 6,
+        "allowWildcards": true,
+        "allowExternalHosts": false,
+        "allowRecursiveActions": false
+      },
+      "governanceRestrictions": {
+        "blockedInFreeze": true,
+        "blockedInReplayDrift": true,
+        "blockedWithoutApproval": false
+      },
+      "deterministicReplayMetadata": {
+        "evidenceFields": [
+          "inputSchemaRef",
+          "outputSchemaRef",
+          "policyRef"
+        ],
+        "hashStrategy": "stable-json"
+      },
+      "inputSchemaRef": "schemas/search_repo.input.json",
+      "outputSchemaRef": "schemas/search_repo.output.json",
+      "policyRef": "policies/search_repo.policy.json",
+      "adapterRef": "adapters/search_repo.adapter.json",
+      "runtimeCapabilities": [
+        "read"
+      ],
+      "capabilityMetadata": {
+        "read": {
+          "scope": [
+            "filesystem"
+          ]
+        }
+      },
+      "capabilityHash": "f5987cfb8d902be7ec032d414d80fc1db3328252870afba45819451d746c3596",
+      "governanceMetadata": {
+        "riskLevel": "low",
+        "approvalLevel": "none",
+        "dataSensitivity": "internal",
+        "auditLevel": "standard",
+        "governanceLineageRequired": true,
+        "provenanceLevel": "standard"
+      }
+    },
+    {
+      "toolId": "inspect_memory",
+      "version": "1.0.0",
+      "canonicalId": "inspect_memory@1.0.0",
+      "registryHash": "3c7ff84642e3cb70bb12f45666dcb1d0690762f4eb0904116981106af97b1aa5",
+      "status": "published",
+      "publishedAt": "2026-05-14T00:00:00.000Z",
+      "lineageId": "inspect_memory",
+      "displayName": "Inspect Memory",
+      "name": "Inspect Memory",
+      "description": "Inspects local memory usage without mutation.",
+      "category": "memory",
+      "executionMode": "read_only",
+      "riskLevel": "low",
+      "riskClass": "safe",
+      "approvalRequired": false,
+      "requiresApprovalDefault": false,
+      "supportsDryRun": true,
+      "supportsReplay": true,
+      "rollbackSupported": false,
+      "enabled": true,
+      "owner": "platform",
+      "plannerEligible": true,
+      "capabilities": [
+        "system.memory.inspect"
+      ],
+      "allowedTargets": [
+        "localhost",
+        "system"
+      ],
+      "deniedTargets": [
+        "external-host"
+      ],
+      "parameterConstraints": {
+        "maxDepth": 2,
+        "allowWildcards": false,
+        "allowExternalHosts": false,
+        "allowRecursiveActions": false
+      },
+      "governanceRestrictions": {
+        "blockedInFreeze": true,
+        "blockedInReplayDrift": true,
+        "blockedWithoutApproval": false
+      },
+      "deterministicReplayMetadata": {
+        "evidenceFields": [
+          "inputSchemaRef",
+          "outputSchemaRef",
+          "policyRef"
+        ],
+        "hashStrategy": "stable-json"
+      },
+      "inputSchemaRef": "schemas/inspect_memory.input.json",
+      "outputSchemaRef": "schemas/inspect_memory.output.json",
+      "policyRef": "policies/inspect_memory.policy.json",
+      "adapterRef": "adapters/inspect_memory.adapter.json",
+      "runtimeCapabilities": [
+        "read"
+      ],
+      "capabilityMetadata": {
+        "read": {
+          "scope": [
+            "localhost",
+            "memory",
+            "system"
+          ]
+        }
+      },
+      "capabilityHash": "19769c0b051c1170c1d0c38b63456eb226aaa50f5d668d95b4722dd00588722c",
+      "governanceMetadata": {
+        "riskLevel": "minimal",
+        "approvalLevel": "none",
+        "dataSensitivity": "internal",
+        "auditLevel": "basic",
+        "governanceLineageRequired": true,
+        "provenanceLevel": "basic"
+      }
+    },
+    {
+      "toolId": "scan_ports",
+      "version": "1.0.0",
+      "canonicalId": "scan_ports@1.0.0",
+      "registryHash": "65bd865e76a3c12d74c50699a63fed5681592907a516edc3fda9e76ccc46bd76",
+      "status": "published",
+      "publishedAt": "2026-05-14T00:00:00.000Z",
+      "lineageId": "scan_ports",
+      "displayName": "Scan Ports",
+      "name": "Scan Ports",
+      "description": "Inspects local network ports within explicit approval policy.",
+      "category": "network",
+      "executionMode": "approval_required",
+      "riskLevel": "high",
+      "riskClass": "read_only",
+      "approvalRequired": true,
+      "requiresApprovalDefault": true,
+      "supportsDryRun": true,
+      "supportsReplay": true,
+      "rollbackSupported": false,
+      "enabled": true,
+      "owner": "platform",
+      "plannerEligible": true,
+      "capabilities": [
+        "network.scan.ports"
+      ],
+      "allowedTargets": [
+        "localhost",
+        "network",
+        "port"
+      ],
+      "deniedTargets": [
+        "external-host"
+      ],
+      "parameterConstraints": {
+        "maxDepth": 2,
+        "allowWildcards": false,
+        "allowExternalHosts": false,
+        "allowRecursiveActions": false
+      },
+      "governanceRestrictions": {
+        "blockedInFreeze": true,
+        "blockedInReplayDrift": true,
+        "blockedWithoutApproval": true
+      },
+      "deterministicReplayMetadata": {
+        "evidenceFields": [
+          "inputSchemaRef",
+          "outputSchemaRef",
+          "policyRef"
+        ],
+        "hashStrategy": "stable-json"
+      },
+      "inputSchemaRef": "schemas/scan_ports.input.json",
+      "outputSchemaRef": "schemas/scan_ports.output.json",
+      "policyRef": "policies/scan_ports.policy.json",
+      "adapterRef": "adapters/scan_ports.adapter.json",
+      "runtimeCapabilities": [
+        "network"
+      ],
+      "capabilityMetadata": {
+        "network": {
+          "allowedDomains": [
+            "localhost"
+          ],
+          "allowPrivateNetworks": true,
+          "allowLocalhost": true
+        }
+      },
+      "trustZoneRestrictions": {
+        "allowedZones": [
+          "RESTRICTED",
+          "SANDBOX",
+          "STANDARD"
+        ]
+      },
+      "capabilityHash": "918284ca2acdbdde7f5d87a50ab9a690765b189404817e669ddbdc53ea77167d",
+      "governanceMetadata": {
+        "riskLevel": "high",
+        "approvalLevel": "human-required",
+        "dataSensitivity": "restricted",
+        "auditLevel": "full",
+        "governanceLineageRequired": true,
+        "provenanceLevel": "full"
+      }
+    },
+    {
+      "toolId": "inspect_runtime",
+      "version": "1.0.0",
+      "canonicalId": "inspect_runtime@1.0.0",
+      "registryHash": "155c227628bf6027350f4be5a6993bf8fa28c2d7141dcb35b2c7e1916bfb4897",
+      "status": "published",
+      "publishedAt": "2026-05-14T00:00:00.000Z",
+      "lineageId": "inspect_runtime",
+      "displayName": "Inspect Runtime",
+      "name": "Inspect Runtime",
+      "description": "Inspects runtime and governance surfaces without mutation.",
+      "category": "system",
+      "executionMode": "read_only",
+      "riskLevel": "low",
+      "riskClass": "read_only",
+      "approvalRequired": false,
+      "requiresApprovalDefault": false,
+      "supportsDryRun": true,
+      "supportsReplay": true,
+      "rollbackSupported": false,
+      "enabled": true,
+      "owner": "platform",
+      "plannerEligible": true,
+      "capabilities": [
+        "runtime.inspect",
+        "diagnostics.inspect",
+        "governance.inspect",
+        "recovery.inspect"
+      ],
+      "allowedTargets": [
+        "runtime",
+        "service",
+        "diagnostics",
+        "governance",
+        "recovery",
+        "localhost"
+      ],
+      "deniedTargets": [
+        "external-host"
+      ],
+      "parameterConstraints": {
+        "maxDepth": 4,
+        "allowWildcards": false,
+        "allowExternalHosts": false,
+        "allowRecursiveActions": false
+      },
+      "governanceRestrictions": {
+        "blockedInFreeze": true,
+        "blockedInReplayDrift": true,
+        "blockedWithoutApproval": false
+      },
+      "deterministicReplayMetadata": {
+        "evidenceFields": [
+          "inputSchemaRef",
+          "outputSchemaRef",
+          "policyRef"
+        ],
+        "hashStrategy": "stable-json"
+      },
+      "inputSchemaRef": "schemas/inspect_runtime.input.json",
+      "outputSchemaRef": "schemas/inspect_runtime.output.json",
+      "policyRef": "policies/inspect_runtime.policy.json",
+      "adapterRef": "adapters/inspect_runtime.adapter.json",
+      "runtimeCapabilities": [
+        "read"
+      ],
+      "capabilityMetadata": {
+        "read": {
+          "scope": [
+            "diagnostics",
+            "governance",
+            "localhost",
+            "recovery",
+            "runtime",
+            "service"
+          ]
+        }
+      },
+      "capabilityHash": "e7e8f8111386f50b48bc1f53fb2ae0e9b3a41335e1db2fe8868f1f8a66e088c3",
+      "governanceMetadata": {
+        "riskLevel": "low",
+        "approvalLevel": "none",
+        "dataSensitivity": "confidential",
+        "auditLevel": "elevated",
+        "governanceLineageRequired": true,
+        "provenanceLevel": "standard"
+      }
+    },
+    {
+      "toolId": "restart_service",
+      "version": "1.0.0",
+      "canonicalId": "restart_service@1.0.0",
+      "registryHash": "41b5f1b0451839c34bfb7df226e693e56ad74e59e0b0ad1e5f4053fca9b28ea7",
+      "status": "blocked",
+      "publishedAt": "2026-05-14T00:00:00.000Z",
+      "lineageId": "restart_service",
+      "displayName": "Restart Service",
+      "name": "Restart Service",
+      "description": "Restarts a runtime service inside explicit governance controls.",
+      "category": "system",
+      "executionMode": "disabled",
+      "riskLevel": "critical",
+      "riskClass": "destructive",
+      "approvalRequired": true,
+      "requiresApprovalDefault": true,
+      "supportsDryRun": true,
+      "supportsReplay": false,
+      "rollbackSupported": true,
+      "enabled": false,
+      "owner": "platform",
+      "plannerEligible": false,
+      "capabilities": [
+        "service.restart"
+      ],
+      "allowedTargets": [
+        "runtime",
+        "service"
+      ],
+      "deniedTargets": [
+        "production",
+        "external-host"
+      ],
+      "parameterConstraints": {
+        "maxDepth": 2,
+        "allowWildcards": false,
+        "allowExternalHosts": false,
+        "allowRecursiveActions": false
+      },
+      "governanceRestrictions": {
+        "blockedInFreeze": true,
+        "blockedInReplayDrift": true,
+        "blockedWithoutApproval": true
+      },
+      "rollbackMetadata": {
+        "strategy": "service-restart-reversal",
+        "requiresCheckpoint": true,
+        "policyMode": "operator-approved"
+      },
+      "inputSchemaRef": "schemas/restart_service.input.json",
+      "outputSchemaRef": "schemas/restart_service.output.json",
+      "policyRef": "policies/restart_service.policy.json",
+      "adapterRef": "adapters/restart_service.adapter.json",
+      "runtimeCapabilities": [
+        "execute",
+        "privileged",
+        "recovery"
+      ],
+      "capabilityMetadata": {
+        "execute": {
+          "allowedCommands": [
+            "restart-service"
+          ],
+          "shellAccess": false
+        },
+        "privileged": {
+          "constitutionalApprovalRequired": true
+        },
+        "recovery": {
+          "recoveryScope": [
+            "runtime",
+            "service"
+          ],
+          "rollbackDeclared": true,
+          "reconciliationDeclared": false
+        }
+      },
+      "trustZoneRestrictions": {
+        "allowedZones": [
+          "RESTRICTED"
+        ]
+      },
+      "capabilityHash": "6cb8e7939ab222d5b7cc70638d276f27439d66807bce75127037ec8c6f98a6d6",
+      "governanceMetadata": {
+        "riskLevel": "critical",
+        "approvalLevel": "executive",
+        "dataSensitivity": "regulated",
+        "auditLevel": "forensic",
+        "governanceLineageRequired": true,
+        "provenanceLevel": "forensic"
+      }
+    },
+    {
+      "toolId": "filesystem.write",
+      "version": "1.0.0",
+      "canonicalId": "filesystem.write@1.0.0",
+      "registryHash": "a55cf50b316a032c74eb06df799ea5752c88dfdca8042de557fef307414049a1",
+      "status": "published",
+      "publishedAt": "2026-05-14T00:00:00.000Z",
+      "lineageId": "filesystem.write",
+      "displayName": "Filesystem Write",
+      "name": "Filesystem Write",
+      "description": "Writes deterministic file output.",
+      "category": "filesystem",
+      "executionMode": "controlled",
+      "riskLevel": "high",
+      "riskClass": "write",
+      "approvalRequired": true,
+      "requiresApprovalDefault": true,
+      "supportsDryRun": true,
+      "supportsReplay": true,
+      "rollbackSupported": true,
+      "enabled": true,
+      "owner": "platform",
+      "plannerEligible": false,
+      "capabilities": [
+        "filesystem.write.file"
+      ],
+      "allowedTargets": [
+        "filesystem"
+      ],
+      "deniedTargets": [
+        "external-host",
+        "system32"
+      ],
+      "parameterConstraints": {
+        "maxDepth": 4,
+        "allowWildcards": false,
+        "allowExternalHosts": false,
+        "allowRecursiveActions": false
+      },
+      "governanceRestrictions": {
+        "blockedInFreeze": true,
+        "blockedInReplayDrift": true,
+        "blockedWithoutApproval": true
+      },
+      "deterministicReplayMetadata": {
+        "evidenceFields": [
+          "inputSchemaRef",
+          "outputSchemaRef",
+          "policyRef"
+        ],
+        "hashStrategy": "stable-json"
+      },
+      "rollbackMetadata": {
+        "strategy": "restore-previous-bytes",
+        "requiresCheckpoint": true,
+        "policyMode": "policy-backed"
+      },
+      "inputSchemaRef": "schemas/filesystem.write.input.json",
+      "outputSchemaRef": "schemas/filesystem.write.output.json",
+      "policyRef": "policies/filesystem.write.policy.json",
+      "adapterRef": "adapters/filesystem.write.adapter.json",
+      "runtimeCapabilities": [
+        "write"
+      ],
+      "capabilityMetadata": {
+        "write": {
+          "scope": [
+            "filesystem"
+          ],
+          "rollbackSupported": true,
+          "destructive": false
+        }
+      },
+      "trustZoneRestrictions": {
+        "allowedZones": [
+          "RESTRICTED",
+          "SANDBOX",
+          "STANDARD"
+        ]
+      },
+      "capabilityHash": "a9d1b03041053e75e62eb9940e6a52b55294e284874d06c6ed3f7c7d53387899",
+      "governanceMetadata": {
+        "riskLevel": "high",
+        "approvalLevel": "human-required",
+        "dataSensitivity": "restricted",
+        "auditLevel": "full",
+        "governanceLineageRequired": true,
+        "provenanceLevel": "forensic"
+      }
+    }
+  ]
+}

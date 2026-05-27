@@ -24,6 +24,7 @@ const eslintConfig = defineConfig([
     "plugins/**",
     "scripts/**",
     "services/**",
+    "!services/learningAdvisory.js",
     "tools/**",
     "coverage/**",
     "cli.js",
@@ -32,11 +33,45 @@ const eslintConfig = defineConfig([
     "*.txt",
   ]),
   {
+    files: ["services/learningAdvisory.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "no-restricted-modules": [
+        "error",
+        {
+          paths: [
+            "./executionEngine",
+            "./toolRouter",
+            "./planner",
+            "./runtimeControl",
+            "./stepController",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["stores/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
+    files: ["tests/**/*.{ts,tsx}", "tests/**/*.mts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  {
     files: [
       "prisma/seed.ts",
       "src/server/services/control-center-service.ts",
       "src/server/services/policy-governance-service.ts",
       "src/server/services/terminal-governance-compat-service.ts",
+      "types/recoveryDemoScenario.ts",
+      "types/recoveryEvidence.ts",
+      "types/recoveryTimeline.ts",
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",

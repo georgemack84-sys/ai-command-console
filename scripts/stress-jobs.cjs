@@ -1,3 +1,4 @@
+require("dotenv/config");
 const { clearJobs } = require("../services/jobQueue");
 
 const baseUrl = process.env.STRESS_BASE_URL || "http://localhost:5050";

@@ -1,0 +1,14 @@
+{
+  "policyId": "inspect_runtime.policy",
+  "toolId": "inspect_runtime",
+  "version": "1.0.0",
+  "allowedScopes": ["localhost-read"],
+  "forbiddenScopes": ["external-host"],
+  "timeoutMs": 5000,
+  "sideEffects": [],
+  "dryRun": { "supported": true, "mode": "projected-runtime-inspection" },
+  "replay": { "supported": true, "deterministicMetadataRequired": true },
+  "rollback": { "supported": false, "strategy": null, "policyRequired": false },
+  "audit": { "required": true, "eventTypes": ["tool.inspect_runtime.requested", "tool.inspect_runtime.completed"] },
+  "boundedExecution": { "maxOperations": 1, "maxPayloadBytes": 262144 }
+}

@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { AppError } from "@/src/server/api/errors";
-import { prisma } from "@/src/server/db/prisma";
-import { createReport, updateReport } from "@/src/server/services/research-service";
-import type { SessionUser } from "@/src/lib/types";
+import { AppError } from "../api/errors";
+import { prisma } from "../db/prisma";
+import { createReport, updateReport } from "./research-service";
+import type { SessionUser } from "../../lib/types";
 
 const researchActionSchema = z.discriminatedUnion("action", [
   z.object({

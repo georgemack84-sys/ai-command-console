@@ -1,0 +1,24 @@
+{
+  "scenarioId": "dashboard-normal",
+  "title": "Dashboard normal state",
+  "description": "Evidence is normal and the dashboard presents an unfrozen operator view.",
+  "executionId": "demo-dashboard-normal",
+  "seed": {
+    "execution": {
+      "status": "running",
+      "triggerSource": "api"
+    },
+    "ledger": [
+      { "eventType": "execution.started", "payload": {} }
+    ]
+  },
+  "expected": {
+    "dashboardState": {
+      "systemState": "normal",
+      "evidenceVisible": true,
+      "exportVisible": true,
+      "mutatingActionsFrozen": false,
+      "addNoteAvailable": true
+    }
+  }
+}

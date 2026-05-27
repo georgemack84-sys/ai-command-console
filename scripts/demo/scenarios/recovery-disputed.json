@@ -1,0 +1,33 @@
+{
+  "scenarioId": "recovery-disputed",
+  "title": "Disputed recovery evidence",
+  "description": "Recovery appears completed in state, but the timeline lacks proof of completion.",
+  "executionId": "demo-recovery-disputed",
+  "seed": {
+    "execution": {
+      "status": "failed",
+      "triggerSource": "api"
+    },
+    "ledger": [
+      { "eventType": "execution.failed", "payload": {} }
+    ],
+    "verification": [
+      { "recoveryRequestId": "demo-request-disputed", "verification": { "outcome": "VERIFIED", "verified": true, "reason": "verification present without recovery proof" }, "requestedBy": "operator_demo" }
+    ]
+  },
+  "expected": {
+    "timeline": {
+      "meta.matchesReadModel": false
+    },
+    "evidence": {
+      "state": "disputed"
+    },
+    "dashboardState": {
+      "systemState": "disputed",
+      "evidenceVisible": true,
+      "exportVisible": true,
+      "mutatingActionsFrozen": true,
+      "addNoteAvailable": true
+    }
+  }
+}

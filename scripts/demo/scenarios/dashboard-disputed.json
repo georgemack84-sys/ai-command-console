@@ -1,0 +1,24 @@
+{
+  "scenarioId": "dashboard-disputed",
+  "title": "Dashboard disputed state",
+  "description": "Evidence is disputed, actions are frozen, and export remains visible.",
+  "executionId": "demo-dashboard-disputed",
+  "seed": {
+    "execution": {
+      "status": "failed",
+      "triggerSource": "api"
+    },
+    "verification": [
+      { "recoveryRequestId": "demo-request-dashboard-disputed", "verification": { "outcome": "VERIFIED", "verified": true, "reason": "verification without recovery proof" }, "requestedBy": "operator_demo" }
+    ]
+  },
+  "expected": {
+    "dashboardState": {
+      "systemState": "disputed",
+      "evidenceVisible": true,
+      "exportVisible": true,
+      "mutatingActionsFrozen": true,
+      "addNoteAvailable": true
+    }
+  }
+}

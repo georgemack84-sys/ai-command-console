@@ -88,18 +88,22 @@ export function buildRuntimeWarnings(runtime: RuntimePosture, queueHealth?: Queu
     const criticalRssMb = isDevelopment ? 1800 : 1536;
     const warningHeapPressure = isDevelopment ? 0.9 : 0.8;
     const criticalHeapPressure = isDevelopment ? 0.96 : 0.92;
+    const warningHeapUsedMb = isDevelopment ? 1024 : 512;
+    const criticalHeapUsedMb = isDevelopment ? 1536 : 1024;
     const rssMb = Number(memory.rssMb || 0);
     const heapUsedMb = Number(memory.heapUsedMb || 0);
     const heapTotalMb = Math.max(1, Number(memory.heapTotalMb || 1));
     const heapPressure = heapUsedMb / heapTotalMb;
+    const warningHeapPressureReached = heapUsedMb >= warningHeapUsedMb && heapPressure >= warningHeapPressure;
+    const criticalHeapPressureReached = heapUsedMb >= criticalHeapUsedMb && heapPressure >= criticalHeapPressure;
 
-    if (rssMb >= criticalRssMb || heapPressure >= criticalHeapPressure) {
+    if (rssMb >= criticalRssMb || criticalHeapPressureReached) {
       warnings.push({
         code: "process_memory_critical",
         severity: "critical",
         message: "Process memory usage is critically high and could destabilize the app.",
       });
-    } else if (rssMb >= warningRssMb || heapPressure >= warningHeapPressure) {
+    } else if (rssMb >= warningRssMb || warningHeapPressureReached) {
       warnings.push({
         code: "process_memory_pressure",
         severity: "warning",

@@ -1,0 +1,14 @@
+{
+  "policyId": "scan_ports.policy",
+  "toolId": "scan_ports",
+  "version": "1.0.0",
+  "allowedScopes": ["localhost-network"],
+  "forbiddenScopes": ["external-host"],
+  "timeoutMs": 5000,
+  "sideEffects": [],
+  "dryRun": { "supported": true, "mode": "projected-scan" },
+  "replay": { "supported": true, "deterministicMetadataRequired": true },
+  "rollback": { "supported": false, "strategy": null, "policyRequired": false },
+  "audit": { "required": true, "eventTypes": ["tool.scan_ports.requested", "tool.scan_ports.completed"] },
+  "boundedExecution": { "maxOperations": 1, "maxPayloadBytes": 262144 }
+}

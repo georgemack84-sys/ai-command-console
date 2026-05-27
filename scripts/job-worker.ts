@@ -1,17 +1,21 @@
 import "dotenv/config";
-import { env, getJobWorkerPollIntervalMs } from "@/src/config/env";
 import { ensureBackgroundJobProcessors } from "@/src/server/jobs/background-jobs";
 import { logger } from "@/src/server/observability/logger";
+import { assertRuntimeStartupAllowed } from "@/services/startup/startupGovernor";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { configureJobQueue, runJobWorkerCycle } = require("../services/jobQueue");
+const { initializeExecutionOrchestration } = require("../services/stepController");
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main() {
+  await assertRuntimeStartupAllowed(process.env);
+  const { env, getJobWorkerPollIntervalMs } = await import("@/src/config/env");
+  initializeExecutionOrchestration({ bootstrap: "external_worker" });
   configureJobQueue({
     executionMode: "external",
     workerPollIntervalMs: getJobWorkerPollIntervalMs(),

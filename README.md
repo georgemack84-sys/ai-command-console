@@ -248,6 +248,31 @@ The safer production-style posture is:
 
 The app runs at [http://localhost:5050](http://localhost:5050).
 
+## Production Standalone Startup
+
+The Next.js build is configured with `output: "standalone"`. For production-style runtime validation and deployments, use the standalone server path through the guarded wrapper:
+
+```bash
+npm run build
+npm run start:standalone
+```
+
+That command runs the same production preflight and startup governor checks as `npm run start`, then launches `.next/standalone/server.js`. Keep the external worker in a separate process:
+
+```bash
+npm run worker:jobs
+```
+
+Startup order:
+
+1. Build with `npm run build`.
+2. Configure required production environment variables, including `AI_COMMAND_CONSOLE_AUTH_SECRET`, `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, SQLite storage paths, secure-cookie settings, and continuity/governor flags. Prefer absolute SQLite paths for standalone deployments; the local `start:standalone` wrapper resolves relative app storage paths before launching `.next/standalone/server.js`.
+3. Start the web process with `npm run start:standalone`.
+4. Start the worker with `npm run worker:jobs`.
+5. Verify `/api/health`, `/api/ready`, and worker attachment before routing traffic.
+
+`npm run start` is preserved for local and legacy Next.js start-path checks. Because standalone output is enabled, `next start` may warn that `.next/standalone/server.js` is the correct runtime entrypoint.
+
 To rerun the queue hardening check against a live local app, use:
 
 ```bash
@@ -320,6 +345,7 @@ The refresh job ingests new feed entries as monitored updates and then queues in
 - `npm run stress:jobs`
 - `npm run build`
 - `npm run start`
+- `npm run start:standalone`
 - `npm run lint`
 - `npm run test`
 - `npm run test:unit`

@@ -74,6 +74,20 @@ Your target host still needs the app runtime environment configured outside GitH
 - `AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS`
 - `AI_COMMAND_CONSOLE_ALERT_WEBHOOK_URL`
 
+The build uses Next.js standalone output. Production hosts should start the web process with the guarded standalone command:
+
+```bash
+npm run start:standalone
+```
+
+The underlying runtime entrypoint is `.next/standalone/server.js`; the package script preserves preflight and startup-governor validation before launching it. Use absolute SQLite paths on hosts, or rely on the local guarded wrapper to resolve relative app storage paths before the standalone server changes its working directory. Keep the job worker attached in a separate process:
+
+```bash
+npm run worker:jobs
+```
+
+Use `GET /api/health` for liveness, `GET /api/ready` for readiness, and the worker attachment diagnostic before routing traffic. `npm run start` is retained as a local/legacy `next start` path, but it is not the recommended deployment command when standalone output is enabled.
+
 ## Inventory Helper
 
 Print the expected inventory with:

@@ -1,0 +1,14 @@
+{
+  "policyId": "search_repo.policy",
+  "toolId": "search_repo",
+  "version": "1.0.0",
+  "allowedScopes": ["workspace-read"],
+  "forbiddenScopes": ["external-host"],
+  "timeoutMs": 5000,
+  "sideEffects": [],
+  "dryRun": { "supported": true, "mode": "projected-search" },
+  "replay": { "supported": true, "deterministicMetadataRequired": true },
+  "rollback": { "supported": false, "strategy": null, "policyRequired": false },
+  "audit": { "required": true, "eventTypes": ["tool.search_repo.requested", "tool.search_repo.completed"] },
+  "boundedExecution": { "maxOperations": 1, "maxPayloadBytes": 1048576 }
+}

@@ -10,6 +10,7 @@ const {
   getQueueHealthCounts,
   getQueuedCount,
   getNextRetryAt,
+  recordWorkerHeartbeat,
   clearJobs: clearStoredJobs,
   normalizeEvents,
 } = require("./jobQueueStore");
@@ -557,8 +558,10 @@ function scheduleWorker() {
 }
 
 async function runJobWorkerCycle() {
+  recordWorkerHeartbeat(WORKER_INSTANCE_ID);
   recoverStaleJobs();
   await runPendingJobs();
+  recordWorkerHeartbeat(WORKER_INSTANCE_ID);
   return {
     health: buildQueueHealth(60),
     metrics: buildJobMetrics(60),

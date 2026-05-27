@@ -588,3 +588,126 @@ model PolicyPlaybookRolloutWorkspace {
   @@unique([rolloutId, workspaceId])
   @@index([workspaceId, createdAt])
 }
+
+model ConstitutionalResilienceStateRecord {
+  resilienceId             String   @id @map("resilience_id")
+  resilienceState          String   @map("resilience_state")
+  continuityMode           String   @map("continuity_mode")
+  survivabilityConfidence  Float    @map("survivability_confidence")
+  constitutionalIntegrity  Float    @map("constitutional_integrity")
+  operationalStability     Float    @map("operational_stability")
+  createdAt                DateTime @map("created_at")
+
+  @@map("constitutional_resilience_state")
+}
+
+model ConstitutionalReadinessAssessmentRecord {
+  readinessAssessmentId          String   @id @map("readiness_assessment_id")
+  readinessState                String   @map("readiness_state")
+  readinessConfidence           Float    @map("readiness_confidence")
+  governanceReliability         Float    @map("governance_reliability")
+  auditIntegrity                Float    @map("audit_integrity")
+  containmentSurvivability      Float    @map("containment_survivability")
+  enforcementConsistency        Float    @map("enforcement_consistency")
+  constitutionalSafe            Boolean  @map("constitutional_safe")
+  advisoryOnly                  Boolean  @map("advisory_only")
+  generatedAt                   DateTime @map("generated_at")
+
+  @@map("constitutional_readiness_assessments")
+}
+
+model CollapsePreventionEvent {
+  preventionEventId             String   @id @map("prevention_event_id")
+  collapseRisk                  Float    @map("collapse_risk")
+  protectedDomains              Json     @map("protected_domains")
+  containmentActions            Json     @map("containment_actions")
+  escalationActions             Json     @map("escalation_actions")
+  survivabilityResult           String   @map("survivability_result")
+  createdAt                     DateTime @map("created_at")
+
+  @@map("collapse_prevention_events")
+}
+
+model ConstitutionalSovereigntyStateRecord {
+  sovereigntyId             String   @id @map("sovereignty_id")
+  sovereigntyState          String   @map("sovereignty_state")
+  constitutionalIntegrity   Float    @map("constitutional_integrity")
+  survivabilityConfidence   Float    @map("survivability_confidence")
+  operationalStability      Float    @map("operational_stability")
+  governanceReliability     Float    @map("governance_reliability")
+  createdAt                 DateTime @map("created_at")
+
+  @@map("constitutional_sovereignty_state")
+}
+
+model CivilizationGovernanceLedgerRecord {
+  ledgerId                  String   @id @map("ledger_id")
+  sovereigntyState          String   @map("sovereignty_state")
+  validationState           String   @map("validation_state")
+  operatorSupremacyPreserved Boolean @map("operator_supremacy_preserved")
+  advisoryOnly              Boolean  @map("advisory_only")
+  blockedReasons            Json     @map("blocked_reasons")
+  createdAt                 DateTime @map("created_at")
+
+  @@map("civilization_governance_ledger")
+}
+
+model SovereignRiskRegistryRecord {
+  registryId                String   @id @map("registry_id")
+  sovereigntyState          String   @map("sovereignty_state")
+  systemicRisk              Float    @map("systemic_risk")
+  autonomyRisk              Float    @map("autonomy_risk")
+  civilizationScaleRisk     Float    @map("civilization_scale_risk")
+  unstableSystems           Json     @map("unstable_systems")
+  frozenSystems             Json     @map("frozen_systems")
+  createdAt                 DateTime @map("created_at")
+
+  @@map("sovereign_risk_registry")
+}
+
+model ConstitutionalValidationResultRecord {
+  validationId              String   @id @map("validation_id")
+  validationState           String   @map("validation_state")
+  severity                  String   @map("severity")
+  constitutionalSafe        Boolean  @map("constitutional_safe")
+  survivabilitySafe         Boolean  @map("survivability_safe")
+  autonomySafe              Boolean  @map("autonomy_safe")
+  governanceIntegrity       Float    @map("governance_integrity")
+  containmentIntegrity      Float    @map("containment_integrity")
+  operationalStability      Float    @map("operational_stability")
+  failures                  Json     @map("failures")
+  warnings                  Json     @map("warnings")
+  disputedSystems           Json     @map("disputed_systems")
+  rollbackRequired          Boolean  @map("rollback_required")
+  containmentRequired       Boolean  @map("containment_required")
+  escalationRequired        Boolean  @map("escalation_required")
+  immutableAuditVerified    Boolean  @map("immutable_audit_verified")
+  createdAt                 DateTime @map("created_at")
+
+  @@map("constitutional_validation_results")
+}
+
+model RuntimeChaosEventRecord {
+  chaosEventId              String   @id @map("chaos_event_id")
+  replayCorrupted           Boolean  @map("replay_corrupted")
+  containmentFailed         Boolean  @map("containment_failed")
+  escalationStorm           Boolean  @map("escalation_storm")
+  dependencyCollapse        Boolean  @map("dependency_collapse")
+  validationState           String   @map("validation_state")
+  severity                  String   @map("severity")
+  createdAt                 DateTime @map("created_at")
+
+  @@map("runtime_chaos_events")
+}
+
+model GovernanceConflictEventRecord {
+  conflictEventId           String   @id @map("conflict_event_id")
+  disputedSystems           Json     @map("disputed_systems")
+  constitutionalSafe        Boolean  @map("constitutional_safe")
+  containmentRequired       Boolean  @map("containment_required")
+  escalationRequired        Boolean  @map("escalation_required")
+  blockedReasons            Json     @map("blocked_reasons")
+  createdAt                 DateTime @map("created_at")
+
+  @@map("governance_conflict_events")
+}
