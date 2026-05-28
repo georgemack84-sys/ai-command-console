@@ -37,6 +37,12 @@ export type TimelineEvent = {
   resumeEligibility: string;
   deploymentDecision: string;
   deploymentRisk: string;
+  enforcementMode: string;
+  enforcementDecision: string;
+  enforcementPolicyVersion: string | null;
+  enforcementReasons: string[];
+  deterministicCauses: string[];
+  blocked: boolean;
   failureClass: string | null;
 };
 
@@ -50,6 +56,12 @@ export type DeploymentHardeningReadModel = {
   resumeEligibility: string;
   deploymentDecision: string;
   deploymentRisk: string;
+  enforcementMode: "READ_ONLY" | "WARN_ONLY" | "ENFORCE_SCOPED";
+  enforcementDecision: string;
+  enforcementPolicyVersion: string | null;
+  enforcementReasons: string[];
+  deterministicCauses: string[];
+  blocked: boolean;
   currentStep: string | null;
   currentPartition: string | null;
   lastCompletedPartition: string | null;
@@ -57,7 +69,6 @@ export type DeploymentHardeningReadModel = {
   staleHeartbeat: boolean;
   evidenceAvailable: boolean;
   disputedReasons: string[];
-  enforcementMode: "READ_ONLY";
   artifacts: ArtifactSummary[];
   timeline: TimelineEvent[];
 };
@@ -74,6 +85,8 @@ const REQUIRED_ARTIFACTS = Object.freeze([
   "resume-analysis.json",
   "deployment-decision.json",
   "deployment-decision-summary.json",
+  "deployment-enforcement.json",
+  "deployment-enforcement-summary.json",
 ]);
 
 const ALLOWED_STATES = new Set([
@@ -93,6 +106,8 @@ const ALLOWED_CHECKPOINT_STATUSES = new Set(["UNVERIFIED", "NO_CHECKPOINT", "FOU
 const ALLOWED_RESUME_ELIGIBILITIES = new Set(["UNVERIFIED", "ELIGIBLE", "INELIGIBLE", "DISPUTED", "NOT_APPLICABLE"]);
 const ALLOWED_DECISIONS = new Set(["ALLOW", "OBSERVE", "PAUSE_RECOMMENDED", "ESCALATE", "BLOCK_RECOMMENDED", "DISPUTED"]);
 const ALLOWED_RISKS = new Set(["LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"]);
+const ALLOWED_ENFORCEMENT_MODES = new Set(["READ_ONLY", "WARN_ONLY", "ENFORCE_SCOPED"]);
+const ALLOWED_ENFORCEMENT_DECISIONS = new Set(["ALLOW_CONTINUE", "WARN_CONTINUE", "ENFORCE_BLOCK", "DISPUTED_NO_BLOCK"]);
 
 type ParsedArtifact = {
   name: string;
@@ -122,6 +137,19 @@ function normalizeEnum(value: unknown, allowed: Set<string>, fallback = "DISPUTE
 
 function normalizeState(value: unknown): DeploymentHardeningOverallState {
   return normalizeEnum(value, ALLOWED_STATES, "DISPUTED") as DeploymentHardeningOverallState;
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  return String(value || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function normalizeBoolean(value: unknown) {
+  if (typeof value === "boolean") return value;
+  return String(value || "").trim().toLowerCase() === "true";
 }
 
 function readJson(filePath: string): unknown {
@@ -222,6 +250,12 @@ function normalizeTimelineEvent(record: Record<string, unknown>): TimelineEvent 
     resumeEligibility: normalizeEnum(record.resumeEligibility, ALLOWED_RESUME_ELIGIBILITIES),
     deploymentDecision: normalizeEnum(record.deploymentDecision, ALLOWED_DECISIONS),
     deploymentRisk: normalizeEnum(record.deploymentRisk, ALLOWED_RISKS, "UNKNOWN"),
+    enforcementMode: normalizeEnum(record.enforcementMode, ALLOWED_ENFORCEMENT_MODES, "WARN_ONLY") as "READ_ONLY" | "WARN_ONLY" | "ENFORCE_SCOPED",
+    enforcementDecision: normalizeEnum(record.enforcementDecision, ALLOWED_ENFORCEMENT_DECISIONS, "WARN_CONTINUE"),
+    enforcementPolicyVersion: asString(record.enforcementPolicyVersion),
+    enforcementReasons: normalizeStringList(record.enforcementReasons),
+    deterministicCauses: normalizeStringList(record.deterministicCauses),
+    blocked: normalizeBoolean(record.blocked),
     failureClass: asString(record.failureClass),
   };
 }
@@ -278,6 +312,8 @@ export function buildDeploymentHardeningReadModel(options: {
   const resume = isRecord(byName.get("resume-analysis.json")?.data) ? byName.get("resume-analysis.json")?.data as Record<string, unknown> : {};
   const decision = isRecord(byName.get("deployment-decision.json")?.data) ? byName.get("deployment-decision.json")?.data as Record<string, unknown> : {};
   const decisionSummary = isRecord(byName.get("deployment-decision-summary.json")?.data) ? byName.get("deployment-decision-summary.json")?.data as Record<string, unknown> : {};
+  const enforcement = isRecord(byName.get("deployment-enforcement.json")?.data) ? byName.get("deployment-enforcement.json")?.data as Record<string, unknown> : {};
+  const enforcementSummary = isRecord(byName.get("deployment-enforcement-summary.json")?.data) ? byName.get("deployment-enforcement-summary.json")?.data as Record<string, unknown> : {};
 
   const records = [
     latestTelemetry,
@@ -287,6 +323,8 @@ export function buildDeploymentHardeningReadModel(options: {
     resume,
     decision,
     decisionSummary,
+    enforcement,
+    enforcementSummary,
   ].filter(isRecord);
 
   for (const field of ["workflowId", "deploymentId", "commitSha"]) {
@@ -302,6 +340,20 @@ export function buildDeploymentHardeningReadModel(options: {
   const resumeEligibility = normalizeEnum(resume.resumeEligibility || checkpoint.resumeEligibility || latestTelemetry?.resumeEligibility, ALLOWED_RESUME_ELIGIBILITIES);
   const deploymentDecision = normalizeEnum(decision.decision || decisionSummary.decision || latestTelemetry?.deploymentDecision, ALLOWED_DECISIONS);
   const deploymentRisk = normalizeEnum(decision.risk || decisionSummary.risk || latestTelemetry?.deploymentRisk, ALLOWED_RISKS, "UNKNOWN");
+  const enforcementMode = normalizeEnum(enforcement.enforcementMode || enforcementSummary.enforcementMode || latestTelemetry?.enforcementMode, ALLOWED_ENFORCEMENT_MODES, "WARN_ONLY") as "READ_ONLY" | "WARN_ONLY" | "ENFORCE_SCOPED";
+  const enforcementDecision = normalizeEnum(enforcement.enforcementDecision || enforcementSummary.enforcementDecision || latestTelemetry?.enforcementDecision, ALLOWED_ENFORCEMENT_DECISIONS, "WARN_CONTINUE");
+  const enforcementPolicyVersion = asString(enforcement.policyVersion) || asString(enforcementSummary.policyVersion) || asString(latestTelemetry?.enforcementPolicyVersion);
+  const enforcementReasons = [
+    ...normalizeStringList(enforcement.reasons),
+    ...normalizeStringList(enforcementSummary.reasons),
+    ...normalizeStringList(latestTelemetry?.enforcementReasons),
+  ];
+  const deterministicCauses = [
+    ...normalizeStringList(enforcement.deterministicCauses),
+    ...normalizeStringList(enforcementSummary.deterministicCauses),
+    ...normalizeStringList(latestTelemetry?.deterministicCauses),
+  ];
+  const blocked = normalizeBoolean(enforcement.blocked ?? enforcementSummary.blocked ?? latestTelemetry?.blocked);
   const currentStep = asString(latestTelemetry?.currentStep);
   const currentPartition = asString(latestTelemetry?.currentPartition);
   const lastCompletedPartition = asString(latestTelemetry?.lastCompletedPartition);
@@ -318,6 +370,7 @@ export function buildDeploymentHardeningReadModel(options: {
   if (checkpointStatus === "DISPUTED") reasons.push("CHECKPOINT_STATUS_DISPUTED");
   if (resumeEligibility === "DISPUTED") reasons.push("RESUME_ELIGIBILITY_DISPUTED");
   if (deploymentDecision === "DISPUTED") reasons.push("DEPLOYMENT_DECISION_DISPUTED");
+  if (enforcementDecision === "DISPUTED_NO_BLOCK") reasons.push("ENFORCEMENT_DISPUTED_NO_BLOCK");
   if (staleHeartbeat) reasons.push("HEARTBEAT_STALE_OR_MISSING");
 
   const evidenceAvailable = parsed.every((artifact) => artifact.summary.available && !artifact.summary.malformed);
@@ -336,6 +389,12 @@ export function buildDeploymentHardeningReadModel(options: {
     resumeEligibility,
     deploymentDecision,
     deploymentRisk,
+    enforcementMode,
+    enforcementDecision,
+    enforcementPolicyVersion,
+    enforcementReasons: [...new Set(enforcementReasons)],
+    deterministicCauses: [...new Set(deterministicCauses)],
+    blocked,
     currentStep,
     currentPartition,
     lastCompletedPartition,
@@ -343,7 +402,6 @@ export function buildDeploymentHardeningReadModel(options: {
     staleHeartbeat,
     evidenceAvailable,
     disputedReasons,
-    enforcementMode: "READ_ONLY",
     artifacts: parsed.map((artifact) => artifact.summary),
     timeline,
   };

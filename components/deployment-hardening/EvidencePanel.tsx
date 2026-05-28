@@ -12,6 +12,20 @@ export function EvidencePanel({ model }: { model: DeploymentHardeningReadModel }
       {missing.length ? (
         <p className="mt-3 text-sm text-amber-100">{missing.length} artifact issues require operator review.</p>
       ) : null}
+      <dl className="mt-4 grid gap-3 text-sm text-slate-200 sm:grid-cols-3">
+        <div>
+          <dt className="text-slate-400">Enforcement</dt>
+          <dd>{model.enforcementMode}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Decision</dt>
+          <dd>{model.enforcementDecision}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Blocked</dt>
+          <dd>{model.blocked ? "true" : "false"}</dd>
+        </div>
+      </dl>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[620px] text-left text-sm text-slate-200">
           <thead className="text-xs uppercase text-slate-400">

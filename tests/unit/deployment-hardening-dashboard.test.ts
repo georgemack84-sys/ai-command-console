@@ -15,6 +15,12 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
     resumeEligibility: "ELIGIBLE",
     deploymentDecision: "ALLOW",
     deploymentRisk: "LOW",
+    enforcementMode: "WARN_ONLY",
+    enforcementDecision: "ALLOW_CONTINUE",
+    enforcementPolicyVersion: "dh-scoped-enforcement/v1",
+    enforcementReasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
+    deterministicCauses: [],
+    blocked: false,
     currentStep: "release_test",
     currentPartition: "unit-1",
     lastCompletedPartition: "unit-0",
@@ -57,6 +63,12 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         resumeEligibility: "UNVERIFIED",
         deploymentDecision: "DISPUTED",
         deploymentRisk: "UNKNOWN",
+        enforcementMode: "WARN_ONLY",
+        enforcementDecision: "WARN_CONTINUE",
+        enforcementPolicyVersion: "dh-scoped-enforcement/v1",
+        enforcementReasons: [],
+        deterministicCauses: [],
+        blocked: false,
         failureClass: null,
       },
       {
@@ -74,6 +86,12 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         resumeEligibility: "ELIGIBLE",
         deploymentDecision: "ALLOW",
         deploymentRisk: "LOW",
+        enforcementMode: "WARN_ONLY",
+        enforcementDecision: "ALLOW_CONTINUE",
+        enforcementPolicyVersion: "dh-scoped-enforcement/v1",
+        enforcementReasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
+        deterministicCauses: [],
+        blocked: false,
         failureClass: null,
       },
     ],
@@ -137,6 +155,34 @@ describe("DeploymentHardeningDashboard", () => {
 
     expect(screen.getByTestId("decision-panel")).toHaveTextContent("BLOCK_RECOMMENDED");
     expect(screen.getByText("recommendation only")).toBeVisible();
+  });
+
+  it("renders scoped enforcement state", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({
+        enforcementMode: "ENFORCE_SCOPED",
+        enforcementDecision: "ENFORCE_BLOCK",
+        blocked: true,
+        deterministicCauses: ["CERTIFICATE_INVALID"],
+        enforcementReasons: ["SCOPED_ENFORCEMENT_BLOCK"],
+      }),
+    }));
+
+    expect(screen.getByTestId("deployment-status-panel")).toHaveTextContent("ENFORCE_SCOPED");
+    expect(screen.getByText("Deployment blocked by scoped enforcement policy.")).toBeVisible();
+    expect(screen.getByTestId("decision-panel")).toHaveTextContent("ENFORCE_BLOCK");
+    expect(screen.getByText("CERTIFICATE_INVALID")).toBeVisible();
+  });
+
+  it("renders disputed scoped enforcement as non-blocking in DH-6", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({
+        enforcementDecision: "DISPUTED_NO_BLOCK",
+        enforcementReasons: ["DECISION_ARTIFACT_MISSING"],
+      }),
+    }));
+
+    expect(screen.getByText("Enforcement state disputed. No block applied in DH-6.")).toBeVisible();
   });
 
   it("renders disputed decision as operator review required", () => {

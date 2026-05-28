@@ -41,7 +41,20 @@ export function DeploymentStatusPanel({ model }: { model: DeploymentHardeningRea
           <dt className="text-slate-400">Heartbeat</dt>
           <dd>{model.heartbeatAt ? `${model.heartbeatAt}${model.staleHeartbeat ? " - stale" : ""}` : "Missing"}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Enforcement Mode</dt>
+          <dd>{model.enforcementMode}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Blocked</dt>
+          <dd>{model.blocked ? "true" : "false"}</dd>
+        </div>
       </dl>
+      {model.blocked ? (
+        <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
+          Deployment blocked by scoped enforcement policy.
+        </p>
+      ) : null}
       {model.staleHeartbeat ? (
         <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
           Heartbeat is stale or missing. Operator review is required before inferring safety.

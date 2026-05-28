@@ -35,6 +35,12 @@ function writeValidEvidence(dir: string) {
     resumeEligibility: "ELIGIBLE",
     deploymentDecision: "ALLOW",
     deploymentRisk: "LOW",
+    enforcementMode: "WARN_ONLY",
+    enforcementDecision: "ALLOW_CONTINUE",
+    enforcementPolicyVersion: "dh-scoped-enforcement/v1",
+    enforcementReasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
+    deterministicCauses: [],
+    blocked: false,
     state: "PROGRESSING",
   };
   const earlier = {
@@ -94,6 +100,26 @@ function writeValidEvidence(dir: string) {
     risk: "LOW",
     policyVersion: "dh-deployment-decision/v1",
   });
+  writeJson(path.join(dir, "deployment-enforcement.json"), {
+    ...base,
+    enforcementMode: "WARN_ONLY",
+    enforcementDecision: "ALLOW_CONTINUE",
+    sourceDecision: "ALLOW",
+    sourceRisk: "LOW",
+    deterministicCauses: [],
+    blocked: false,
+    reasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
+    policyVersion: "dh-scoped-enforcement/v1",
+  });
+  writeJson(path.join(dir, "deployment-enforcement-summary.json"), {
+    ...base,
+    enforcementMode: "WARN_ONLY",
+    enforcementDecision: "ALLOW_CONTINUE",
+    blocked: false,
+    deterministicCauses: [],
+    reasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
+    policyVersion: "dh-scoped-enforcement/v1",
+  });
 }
 
 describe("deployment hardening status API", () => {
@@ -125,6 +151,9 @@ describe("deployment hardening status API", () => {
     expect(payload.data.certificateStatus).toBe("VALID");
     expect(payload.data.checkpointStatus).toBe("SAFE");
     expect(payload.data.deploymentDecision).toBe("ALLOW");
+    expect(payload.data.enforcementMode).toBe("WARN_ONLY");
+    expect(payload.data.enforcementDecision).toBe("ALLOW_CONTINUE");
+    expect(payload.data.blocked).toBe(false);
     expect(payload.data.timeline.map((event: { event: string }) => event.event)).toEqual([
       "deploy_start",
       "deployment_decision_complete",

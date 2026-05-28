@@ -64,6 +64,19 @@ const ALLOWED_DEPLOYMENT_RISKS = new Set([
   "UNKNOWN",
 ]);
 
+const ALLOWED_ENFORCEMENT_MODES = new Set([
+  "READ_ONLY",
+  "WARN_ONLY",
+  "ENFORCE_SCOPED",
+]);
+
+const ALLOWED_ENFORCEMENT_DECISIONS = new Set([
+  "ALLOW_CONTINUE",
+  "WARN_CONTINUE",
+  "ENFORCE_BLOCK",
+  "DISPUTED_NO_BLOCK",
+]);
+
 const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "workflowId",
   "deploymentId",
@@ -81,6 +94,11 @@ const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "deploymentRisk",
   "decisionPolicyVersion",
   "decisionReasons",
+  "enforcementMode",
+  "enforcementDecision",
+  "enforcementPolicyVersion",
+  "enforcementReasons",
+  "blocked",
   "attemptCount",
   "state",
 ]);
@@ -170,6 +188,21 @@ function normalizeDecisionReasons(value) {
     .filter(Boolean);
 }
 
+function normalizeEnforcementMode(value) {
+  const normalized = String(value || "WARN_ONLY").trim().toUpperCase().replace(/-/g, "_");
+  return ALLOWED_ENFORCEMENT_MODES.has(normalized) ? normalized : "WARN_ONLY";
+}
+
+function normalizeEnforcementDecision(value) {
+  const normalized = String(value || "WARN_CONTINUE").trim().toUpperCase();
+  return ALLOWED_ENFORCEMENT_DECISIONS.has(normalized) ? normalized : "DISPUTED_NO_BLOCK";
+}
+
+function normalizeBoolean(value) {
+  if (typeof value === "boolean") return value;
+  return String(value || "").trim().toLowerCase() === "true";
+}
+
 function classifyFailure(signal) {
   const raw = String(signal || "").toLowerCase();
   if (!raw.trim()) return undefined;
@@ -213,6 +246,12 @@ function buildTelemetryEvent(input, env = process.env) {
     deploymentRisk: normalizeDeploymentRisk(input.deploymentRisk || env.DEPLOYMENT_RISK),
     decisionPolicyVersion: input.decisionPolicyVersion || env.DEPLOYMENT_DECISION_POLICY_VERSION || "",
     decisionReasons: normalizeDecisionReasons(input.decisionReasons || env.DEPLOYMENT_DECISION_REASONS),
+    enforcementMode: normalizeEnforcementMode(input.enforcementMode || env.DH_ENFORCEMENT_MODE || env.DEPLOYMENT_ENFORCEMENT_MODE),
+    enforcementDecision: normalizeEnforcementDecision(input.enforcementDecision || env.DEPLOYMENT_ENFORCEMENT_DECISION),
+    enforcementPolicyVersion: input.enforcementPolicyVersion || env.DEPLOYMENT_ENFORCEMENT_POLICY_VERSION || "",
+    enforcementReasons: normalizeDecisionReasons(input.enforcementReasons || env.DEPLOYMENT_ENFORCEMENT_REASONS),
+    deterministicCauses: normalizeDecisionReasons(input.deterministicCauses || env.DEPLOYMENT_DETERMINISTIC_CAUSES),
+    blocked: normalizeBoolean(input.blocked || env.DEPLOYMENT_BLOCKED),
     attemptCount: Number(input.attemptCount || env.GITHUB_RUN_ATTEMPT || 1),
     state: normalizeState(input.state),
     artifact: input.artifact,
@@ -255,6 +294,9 @@ function hashDeploymentTelemetryEvidence(evidence) {
     latestResumeEligibility: evidence.latestResumeEligibility,
     latestDeploymentDecision: evidence.latestDeploymentDecision,
     latestDeploymentRisk: evidence.latestDeploymentRisk,
+    latestEnforcementMode: evidence.latestEnforcementMode,
+    latestEnforcementDecision: evidence.latestEnforcementDecision,
+    latestBlocked: evidence.latestBlocked,
     telemetryEvents: evidence.telemetryEvents || [],
     artifactReferences: evidence.artifactReferences || [],
   };
@@ -280,6 +322,9 @@ function buildEvidence(events, generatedAt) {
     latestResumeEligibility: latest.resumeEligibility || "UNVERIFIED",
     latestDeploymentDecision: latest.deploymentDecision || "DISPUTED",
     latestDeploymentRisk: latest.deploymentRisk || "UNKNOWN",
+    latestEnforcementMode: latest.enforcementMode || "WARN_ONLY",
+    latestEnforcementDecision: latest.enforcementDecision || "WARN_CONTINUE",
+    latestBlocked: Boolean(latest.blocked),
     telemetryEvents: events,
     artifactReferences,
   };
@@ -306,6 +351,9 @@ function writeSummaryAndEvidence(options = {}) {
     latestResumeEligibility: latest.resumeEligibility || "UNVERIFIED",
     latestDeploymentDecision: latest.deploymentDecision || "DISPUTED",
     latestDeploymentRisk: latest.deploymentRisk || "UNKNOWN",
+    latestEnforcementMode: latest.enforcementMode || "WARN_ONLY",
+    latestEnforcementDecision: latest.enforcementDecision || "WARN_CONTINUE",
+    latestBlocked: Boolean(latest.blocked),
   };
   const evidence = buildEvidence(events, generatedAt);
 
@@ -366,6 +414,12 @@ function runCli() {
     deploymentRisk: args.deploymentRisk,
     decisionPolicyVersion: args.decisionPolicyVersion,
     decisionReasons: args.decisionReasons,
+    enforcementMode: args.enforcementMode,
+    enforcementDecision: args.enforcementDecision,
+    enforcementPolicyVersion: args.enforcementPolicyVersion,
+    enforcementReasons: args.enforcementReasons,
+    deterministicCauses: args.deterministicCauses,
+    blocked: args.blocked,
     artifact: args.artifact,
     startedAt: args.startedAt,
     timestamp: args.timestamp,
@@ -396,6 +450,8 @@ module.exports = {
   normalizeCheckpointStatus,
   normalizeDeploymentDecision,
   normalizeDeploymentRisk,
+  normalizeEnforcementDecision,
+  normalizeEnforcementMode,
   normalizeResumeEligibility,
   normalizeState,
   readTelemetryEvents,
