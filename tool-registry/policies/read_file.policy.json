@@ -1,0 +1,14 @@
+{
+  "policyId": "read_file.policy",
+  "toolId": "read_file",
+  "version": "1.0.0",
+  "allowedScopes": ["workspace-read"],
+  "forbiddenScopes": ["external-host"],
+  "timeoutMs": 5000,
+  "sideEffects": [],
+  "dryRun": { "supported": true, "mode": "projected-read" },
+  "replay": { "supported": true, "deterministicMetadataRequired": true },
+  "rollback": { "supported": false, "strategy": null, "policyRequired": false },
+  "audit": { "required": true, "eventTypes": ["tool.read_file.requested", "tool.read_file.completed"] },
+  "boundedExecution": { "maxOperations": 1, "maxPayloadBytes": 1048576 }
+}

@@ -86,6 +86,8 @@ const {
 const { buildLegacyRecommendations } = require("./legacyConsoleRecommendations");
 const { buildLegacyOverview } = require("./legacyConsoleOverviewBuilder");
 const { createLegacyConsoleRequestHandlers } = require("./legacyConsoleRequestHandlers");
+const { initializeExecutionOrchestration } = require("./stepController");
+const { reviewRequest: reviewControlRequest } = require("./runtimeControl");
 const {
   generateWorkspaceIncidentSummary,
   defaultIncidentChecklist,
@@ -468,6 +470,8 @@ function ensureJobProcessorsRegistered() {
     return;
   }
 
+  initializeExecutionOrchestration({ bootstrap: "in_process_console" });
+
   registerJobProcessor("watcher:run", async () => evaluateRules());
   registerJobProcessor("alerts:run", async () => runAlertChecks());
   registerJobProcessor("plugin:run", async (job) =>
@@ -701,6 +705,17 @@ const { executeCommand, executeAction, handleConsoleRequest } = createLegacyCons
   canManageGovernanceInEnvironment,
   canExecuteCommands,
   requiresIncidentApproval,
+  reviewConsoleRequest: (body, actor, options = {}) =>
+    reviewControlRequest(body, actor, {
+      identitySource: options.identitySource || "human",
+      planQuality: options.planQuality || "structured_native",
+      workspaceId: actor.workspaceId,
+      modes: {
+        safe: Boolean(options.safe),
+        dryRun: Boolean(options.dryRun),
+        confirmed: Boolean(options.confirmed || options.bypassApproval),
+      },
+    }),
   recordTelemetry,
   appendAuditEvent,
   isGovernanceAction: (action) => governanceCompatActions.has(action),

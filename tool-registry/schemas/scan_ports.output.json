@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scan Ports Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["openPorts"],
+  "properties": {
+    "openPorts": {
+      "type": "array",
+      "items": { "type": "number" }
+    }
+  }
+}

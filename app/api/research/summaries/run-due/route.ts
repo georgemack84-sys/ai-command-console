@@ -3,6 +3,7 @@ import { getSessionUser } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { createSummaryReportForView, generateSummaryForView, isScheduleDue, type SavedTriageView, type SummarySchedule } from "@/src/server/services/summary-service";
+import { requireWorkspaceMember } from "@/src/server/auth/permissions";
 
 const viewSchema = z.object({
   name: z.string(),
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = bodySchema.parse(await request.json());
     const views = body.views as SavedTriageView[];
     const schedules = body.schedules as SummarySchedule[];

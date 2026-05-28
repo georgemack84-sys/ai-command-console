@@ -1,0 +1,10 @@
+export { buildCoordinationContainmentRecord } from "./coordinationContainmentEngine";
+export { validateAntiEmergence } from "./antiEmergenceValidator";
+export { detectHiddenOrchestration } from "./hiddenOrchestrationDetector";
+export { classifyRecursiveLoops } from "./recursiveLoopClassifier";
+export { detectAuthorityExpansion } from "./authorityExpansionDetector";
+export { blockRuntimeMutation } from "./runtimeMutationBlocker";
+export { validateReplayContainment } from "./replayContainmentValidator";
+export { buildContainmentReplay } from "./containmentReplayBuilder";
+export { appendContainmentLedger } from "./containmentLedger";
+export { buildContainmentAuthorityContract, enforceOrchestrationBoundary } from "./orchestrationBoundaryEnforcer";

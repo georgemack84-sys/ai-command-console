@@ -233,6 +233,16 @@ async function main() {
     skipDuplicates: true,
   });
 
+  await prisma.featureFlag.createMany({
+    data: [
+      { key: "alerts_v2", enabled: true, description: "Enable alert records for updates and insights." },
+      { key: "connector_registry", enabled: true, description: "Enable ingestion connector registry." },
+      { key: "intelligence_scoring", enabled: true, description: "Enable insight scoring metadata." },
+      { key: "agent_jobs", enabled: false, description: "Enable agent task execution jobs." },
+    ],
+    skipDuplicates: true,
+  });
+
   const brief = await prisma.researchBrief.upsert({
     where: { id: "seed-brief-market" },
     update: {},

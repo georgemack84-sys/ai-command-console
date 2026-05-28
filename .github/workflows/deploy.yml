@@ -33,7 +33,7 @@ jobs:
         )
       }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 75
     environment:
       name: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || 'staging' }}
     env:
@@ -133,7 +133,7 @@ jobs:
 
       - name: Test
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
-        run: npm test
+        run: npm run test:release
 
       - name: Build standalone bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}

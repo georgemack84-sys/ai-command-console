@@ -1,0 +1,10 @@
+{
+  "adapterId": "inspect_runtime.adapter",
+  "toolId": "inspect_runtime",
+  "version": "1.0.0",
+  "adapterType": "builtin",
+  "importPath": "@/tools/inspect_runtime",
+  "runtimeHandler": "runInspectRuntime",
+  "dryRunHandler": "dryRunInspectRuntime",
+  "rollbackHandler": null
+}

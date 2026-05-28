@@ -1,0 +1,30 @@
+import { z } from "zod";
+
+export const governedIntentSchema = z.object({
+  governedIntentId: z.string().min(1),
+  semanticValid: z.boolean(),
+  governanceApproved: z.boolean(),
+  plannerEligible: z.boolean(),
+  replaySafe: z.boolean(),
+  freezeSafe: z.boolean(),
+  ambiguityResolved: z.boolean(),
+  protectedTargetValidated: z.boolean(),
+  unsafeAssumptionsDetected: z.boolean(),
+  escalationRequired: z.boolean(),
+  clarificationRequired: z.boolean(),
+  approvalRequired: z.boolean(),
+  containmentRequired: z.boolean(),
+  governanceState: z.enum(["VALID", "WARNING", "AMBIGUOUS", "BLOCKED", "ESCALATED", "RESTRICTED", "FROZEN", "REPLAY_BLOCKED", "DENIED"]),
+  riskLevel: z.enum(["safe", "low", "medium", "high", "critical"]),
+  blockedReasons: z.array(z.string()),
+  warnings: z.array(z.string()),
+  governanceActions: z.array(z.string()),
+  escalationTargets: z.array(z.string()),
+  allowedTools: z.array(z.string()),
+  deniedTools: z.array(z.string()),
+  audit: z.object({
+    validatedAt: z.number(),
+    policyVersion: z.string().min(1),
+    validatorVersion: z.string().min(1),
+  }),
+});

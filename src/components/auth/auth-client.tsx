@@ -1,10 +1,12 @@
 "use client";
 
+import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SectionCard } from "@/src/components/shared/section-card";
 
 type Mode = "login" | "signup";
+const devLoginEnabled = process.env.NODE_ENV !== "production";
 
 export function AuthClient() {
   const router = useRouter();
@@ -31,6 +33,7 @@ export function AuthClient() {
             ok?: boolean;
             checks?: {
               database?: {
+                ok?: boolean;
                 details?: string | null;
               };
             };
@@ -41,7 +44,7 @@ export function AuthClient() {
           return;
         }
 
-        if (!payload.data?.ok) {
+        if (!payload.data?.checks?.database?.ok) {
           setDatabaseState({
             ready: false,
             message: payload.data?.checks?.database?.details || "Database is unavailable. Start Postgres and try again.",
@@ -67,7 +70,7 @@ export function AuthClient() {
     };
   }, []);
 
-  async function submit() {
+  async function submit(nextForm = form) {
     setLoading(true);
     setError(null);
 
@@ -75,7 +78,43 @@ export function AuthClient() {
       const response = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, inviteToken }),
+        body: JSON.stringify({ ...nextForm, inviteToken }),
+      });
+      const payload = (await response.json()) as
+        | { ok: true; data: { user: { id: string } } }
+        | { ok: false; error?: { message?: string } };
+
+      if (!response.ok || !payload.ok) {
+        setError(payload.ok ? "Authentication failed." : payload.error?.message || "Authentication failed.");
+        return;
+      }
+
+      router.push(searchParams.get("next") || "/dashboard");
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const submittedForm = new FormData(event.currentTarget);
+    const nextForm = {
+      name: String(submittedForm.get("name") || ""),
+      email: String(submittedForm.get("email") || ""),
+      password: String(submittedForm.get("password") || ""),
+    };
+    setForm(nextForm);
+    void submit(nextForm);
+  }
+
+  async function signInWithDemoAccount() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/dev-login", {
+        method: "POST",
       });
       const payload = (await response.json()) as
         | { ok: true; data: { user: { id: string } } }
@@ -115,7 +154,7 @@ export function AuthClient() {
           ))}
         </div>
 
-        <div className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
           {!databaseState.ready ? (
             <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
               Local database is unavailable. Start Postgres, then retry auth.
@@ -127,28 +166,38 @@ export function AuthClient() {
             </div>
           ) : null}
           {mode === "signup" ? (
-            <Field label="Name" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} />
+            <Field label="Name" name="name" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} />
           ) : null}
-          <Field label="Email" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} />
+          <Field label="Email" name="email" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} />
           <Field
             label="Password"
+            name="password"
             type="password"
             value={form.password}
             onChange={(value) => setForm((current) => ({ ...current, password: value }))}
           />
-        </div>
 
-        {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
-        {!error && !databaseState.ready && databaseState.message ? <p className="mt-4 text-sm text-amber-100/80">{databaseState.message}</p> : null}
+          {error ? <p className="text-sm text-rose-200">{error}</p> : null}
+          {!error && !databaseState.ready && databaseState.message ? <p className="text-sm text-amber-100/80">{databaseState.message}</p> : null}
 
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={loading || !databaseState.ready}
-          className="mt-5 w-full rounded-2xl bg-sky-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-200"
-        >
-          {loading ? "Working..." : !databaseState.ready ? "Database unavailable" : mode === "login" ? "Log in" : "Create account"}
-        </button>
+          <button
+            type="submit"
+            disabled={loading || !databaseState.ready}
+            className="w-full rounded-2xl bg-sky-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-200"
+          >
+            {loading ? "Working..." : !databaseState.ready ? "Database unavailable" : mode === "login" ? "Log in" : "Create account"}
+          </button>
+          {devLoginEnabled && mode === "login" ? (
+            <button
+              type="button"
+              onClick={() => void signInWithDemoAccount()}
+              disabled={loading || !databaseState.ready}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Working..." : "Use local demo account"}
+            </button>
+          ) : null}
+        </form>
       </SectionCard>
     </div>
   );
@@ -156,11 +205,13 @@ export function AuthClient() {
 
 function Field({
   label,
+  name,
   value,
   onChange,
   type = "text",
 }: {
   label: string;
+  name: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
@@ -170,6 +221,7 @@ function Field({
       <span className="mb-2 block text-sm font-medium text-white">{label}</span>
       <input
         suppressHydrationWarning
+        name={name}
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}

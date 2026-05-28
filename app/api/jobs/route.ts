@@ -4,6 +4,9 @@ import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { cancelBackgroundJob, queueBackgroundJob, readBackgroundJob, readBackgroundJobs, retryBackgroundJob } from "@/src/server/jobs/background-jobs";
 import type { SavedTriageView } from "@/src/server/services/summary-service";
+import { trackEvent } from "@/src/server/observability/analytics";
+import { requireWorkspaceMember } from "@/src/server/auth/permissions";
+import { enforceRateLimit, getDefaultWindowMs, getJobsRateLimit } from "@/src/server/security/rate-limit";
 
 const viewSchema = z.object({
   name: z.string(),
@@ -43,6 +46,7 @@ export async function GET(request: Request) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const url = new URL(request.url);
     const jobId = url.searchParams.get("jobId");
     const requestedLimit = Number(url.searchParams.get("limit"));
@@ -68,6 +72,8 @@ export async function POST(request: Request) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
+    enforceRateLimit(`jobs:post:${user.id}`, { limit: getJobsRateLimit(), windowMs: getDefaultWindowMs() });
     const body = postSchema.parse(await request.json());
 
     if (body.type === "workspace:generate-insights") {
@@ -76,6 +82,12 @@ export async function POST(request: Request) {
         { workspaceId: body.workspaceId || user.workspaceId },
         { actorId: user.id, actorName: user.name },
       );
+      trackEvent({
+        event: "insight_generation_requested",
+        actorId: user.id,
+        workspaceId: body.workspaceId || user.workspaceId,
+        properties: { jobId: job.id },
+      });
       return apiSuccess({ job }, { status: 202 });
     }
 

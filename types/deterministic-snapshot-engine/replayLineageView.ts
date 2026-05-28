@@ -1,0 +1,25 @@
+export type ConstitutionalSnapshotErrorCode =
+  | "SNAPSHOT_REPO_CONTEXT_MISSING"
+  | "SNAPSHOT_PAYLOAD_MISSING"
+  | "SNAPSHOT_TYPE_INVALID"
+  | "SNAPSHOT_SCHEMA_INVALID"
+  | "SNAPSHOT_HASH_INVALID"
+  | "SNAPSHOT_INTEGRITY_INVALID"
+  | "SNAPSHOT_LINEAGE_INVALID"
+  | "SNAPSHOT_GOVERNANCE_INVALID"
+  | "SNAPSHOT_AUTHORITY_INVALID"
+  | "SNAPSHOT_REVOCATION_INVALID"
+  | "SNAPSHOT_AUTONOMY_INVALID"
+  | "SNAPSHOT_SUPERVISION_INVALID"
+  | "SNAPSHOT_LEGALITY_INVALID"
+  | "SNAPSHOT_REPLAY_BINDING_INVALID"
+  | "SNAPSHOT_IMMUTABILITY_VIOLATION"
+  | "SNAPSHOT_UNKNOWN_STATE";
+
+export type ConstitutionalSnapshotError = Readonly<{
+  code: ConstitutionalSnapshotErrorCode;
+  message: string;
+  path?: string;
+  expected?: string;
+  actual?: string;
+}>;

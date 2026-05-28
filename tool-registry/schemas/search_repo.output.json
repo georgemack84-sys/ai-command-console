@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Search Repo Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["matches"],
+  "properties": {
+    "matches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "line"],
+        "properties": {
+          "path": { "type": "string" },
+          "line": { "type": "number" }
+        }
+      }
+    }
+  }
+}

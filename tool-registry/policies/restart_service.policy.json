@@ -1,0 +1,14 @@
+{
+  "policyId": "restart_service.policy",
+  "toolId": "restart_service",
+  "version": "1.0.0",
+  "allowedScopes": ["localhost-control"],
+  "forbiddenScopes": ["production", "external-host"],
+  "timeoutMs": 5000,
+  "sideEffects": ["service.restart"],
+  "dryRun": { "supported": true, "mode": "projected-restart" },
+  "replay": { "supported": false, "deterministicMetadataRequired": false },
+  "rollback": { "supported": true, "strategy": "manual-service-recovery", "policyRequired": true },
+  "audit": { "required": true, "eventTypes": ["tool.restart_service.requested", "tool.restart_service.blocked"] },
+  "boundedExecution": { "maxOperations": 1, "maxPayloadBytes": 65536 }
+}

@@ -1,0 +1,26 @@
+{
+  "defaultTimeoutMs": 300000,
+  "heartbeatIntervalMs": 5000,
+  "heartbeatTimeoutMs": 15000,
+  "maxRetries": 1,
+  "allowParallelSafeSteps": true,
+  "safeMode": {
+    "enabled": false,
+    "enteredAt": null,
+    "reason": null
+  },
+  "autoApprovalWindowMs": 60000,
+  "autoApprovalMaxPerWindow": 1000,
+  "maxQueueDepth": 100,
+  "maxQueueWaitMs": 120000,
+  "anomalyThresholds": {
+    "maxExecutionsPerWindow": 1000,
+    "maxFailureRate": 0.35,
+    "maxDurationDeviationMs": 120000,
+    "maxOperatorDisagreementRate": 0.4
+  },
+  "maxSequenceFailureRate": 0.35,
+  "blockedCapabilities": [
+    "credential:access"
+  ]
+}

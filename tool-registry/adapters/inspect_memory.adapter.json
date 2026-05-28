@@ -1,0 +1,10 @@
+{
+  "adapterId": "inspect_memory.adapter",
+  "toolId": "inspect_memory",
+  "version": "1.0.0",
+  "adapterType": "builtin",
+  "importPath": "@/tools/inspect_memory",
+  "runtimeHandler": "runInspectMemory",
+  "dryRunHandler": "dryRunInspectMemory",
+  "rollbackHandler": null
+}

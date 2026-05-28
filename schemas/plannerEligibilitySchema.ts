@@ -1,0 +1,53 @@
+import { z } from "zod";
+
+export const plannerEligibilitySchema = z.object({
+  valid: z.boolean(),
+  canonicalIntent: z.object({
+    action: z.string().min(1),
+    target: z.string().min(1),
+    parameters: z.record(z.string(), z.unknown()),
+  }).nullable(),
+  plannerEligible: z.boolean(),
+  validation: z.object({
+    registryValid: z.boolean(),
+    capabilityValid: z.boolean(),
+    governanceValid: z.boolean(),
+    parameterSafe: z.boolean(),
+    targetAllowed: z.boolean(),
+  }),
+  governance: z.object({
+    risk: z.enum(["safe", "review", "restricted", "blocked"]),
+    approvalRequired: z.boolean(),
+    blocked: z.boolean(),
+  }),
+  registry: z.object({
+    matchedTool: z.string().nullable(),
+    toolEnabled: z.boolean(),
+    plannerEligible: z.boolean(),
+    capabilityMatch: z.boolean(),
+  }),
+  blockedReasons: z.array(z.string()),
+  warnings: z.array(z.string()),
+  semanticGovernance: z.object({
+    valid: z.boolean(),
+    semanticValid: z.boolean(),
+    governanceApproved: z.boolean(),
+    plannerAdmissible: z.boolean(),
+    ambiguityDetected: z.boolean(),
+    escalationRequired: z.boolean(),
+    clarificationRequired: z.boolean(),
+    protectedTargetDetected: z.boolean(),
+    replayDriftDetected: z.boolean(),
+    freezeActive: z.boolean(),
+    riskLevel: z.enum(["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "PROHIBITED"]),
+    violations: z.array(z.string()),
+    warnings: z.array(z.string()),
+    semanticConflicts: z.array(z.string()),
+    governanceReasons: z.array(z.string()),
+    plannerBlockReasons: z.array(z.string()),
+    nextState: z.enum(["ALLOW_PLANNING", "REQUIRE_APPROVAL", "REQUEST_CLARIFICATION", "ESCALATE", "BLOCK", "FREEZE"]),
+    auditId: z.string().min(1),
+  }),
+  auditId: z.string().min(1),
+  timestamp: z.number(),
+});

@@ -146,4 +146,47 @@ describe("runtime warnings", () => {
 
     expect(warnings.some((warning) => warning.code === "process_memory_pressure")).toBe(false);
   });
+
+  it("does not mark compact low-memory heaps as critical from ratio alone", () => {
+    const warnings = buildRuntimeWarnings({
+      environment: "production",
+      jobs: {
+        executionMode: "external",
+        maxPendingJobs: 100,
+        maxRunningJobs: 12,
+        externalWorkerRecommended: false,
+      },
+      process: {
+        memory: {
+          rssMb: 169,
+          heapUsedMb: 92,
+          heapTotalMb: 96,
+        },
+      },
+    });
+
+    expect(warnings.some((warning) => warning.code === "process_memory_critical")).toBe(false);
+    expect(warnings.some((warning) => warning.code === "process_memory_pressure")).toBe(false);
+  });
+
+  it("preserves critical heap pressure when absolute heap usage is high", () => {
+    const warnings = buildRuntimeWarnings({
+      environment: "production",
+      jobs: {
+        executionMode: "external",
+        maxPendingJobs: 100,
+        maxRunningJobs: 12,
+        externalWorkerRecommended: false,
+      },
+      process: {
+        memory: {
+          rssMb: 900,
+          heapUsedMb: 1100,
+          heapTotalMb: 1150,
+        },
+      },
+    });
+
+    expect(warnings.some((warning) => warning.code === "process_memory_critical")).toBe(true);
+  });
 });

@@ -1,0 +1,20 @@
+{
+  "migrationId": "0003_add_executable_capability_authority",
+  "version": "4.3C",
+  "description": "Adds immutable runtime capability contracts, deterministic capability hashing, and replay-safe capability binding to canonical tool entries.",
+  "createdArtifacts": [
+    "tool-registry/registry.json",
+    "tool-registry/lineages.json",
+    "services/registry/capabilityHash.ts",
+    "services/registry/capabilityTypes.ts",
+    "services/registry/capabilityValidator.ts",
+    "services/registry/runtimeCapabilityGuard.ts"
+  ],
+  "invariants": [
+    "runtime capability contracts are declared per toolId@version",
+    "capabilityHash is deterministic and order-insensitive",
+    "replay binding requires exact registryHash and capabilityHash",
+    "published capability changes require a new version"
+  ],
+  "registryVersion": "4.3C"
+}

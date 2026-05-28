@@ -4,27 +4,34 @@ import { createWorkspaceInvite, revokeWorkspaceInvite } from "@/src/server/servi
 import type { WorkspaceApiSnapshot } from "@/src/types/platform";
 
 export async function getWorkspaceSnapshot(workspaceId: string): Promise<WorkspaceApiSnapshot> {
-  const workspace = await prisma.workspace.findUniqueOrThrow({
-    where: { id: workspaceId },
-    include: {
-      members: true,
-      sources: {
-        orderBy: { updatedAt: "desc" },
+  const [workspace, alerts] = await Promise.all([
+    prisma.workspace.findUniqueOrThrow({
+      where: { id: workspaceId },
+      include: {
+        members: true,
+        sources: {
+          orderBy: { updatedAt: "desc" },
+        },
+        updates: {
+          orderBy: { happenedAt: "desc" },
+          take: 8,
+        },
+        insights: {
+          orderBy: { createdAt: "desc" },
+          take: 6,
+        },
+        activity: {
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
       },
-      updates: {
-        orderBy: { happenedAt: "desc" },
-        take: 8,
-      },
-      insights: {
-        orderBy: { createdAt: "desc" },
-        take: 6,
-      },
-      activity: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-    },
-  });
+    }),
+    prisma.alert.findMany({
+      where: { workspaceId },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      take: 6,
+    }),
+  ]);
 
   return {
     workspace: {
@@ -39,6 +46,8 @@ export async function getWorkspaceSnapshot(workspaceId: string): Promise<Workspa
       status: source.status,
       type: source.type,
       updateCadence: source.updateCadence,
+      description: source.description,
+      url: source.url,
     })),
     updates: workspace.updates.map((update) => ({
       id: update.id,
@@ -54,6 +63,7 @@ export async function getWorkspaceSnapshot(workspaceId: string): Promise<Workspa
       summary: insight.summary,
       type: insight.type,
       confidence: insight.confidence,
+      score: insight.score ?? 0,
       createdAt: insight.createdAt.toISOString(),
     })),
     activity: workspace.activity.map((event) => ({
@@ -62,6 +72,16 @@ export async function getWorkspaceSnapshot(workspaceId: string): Promise<Workspa
       description: event.description,
       type: event.type,
       createdAt: event.createdAt.toISOString(),
+    })),
+    alerts: alerts.map((alert) => ({
+      id: alert.id,
+      title: alert.title,
+      message: alert.message,
+      type: alert.type,
+      severity: alert.severity,
+      status: alert.status,
+      createdAt: alert.createdAt.toISOString(),
+      readAt: alert.readAt?.toISOString() ?? null,
     })),
   };
 }

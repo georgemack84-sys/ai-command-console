@@ -1,0 +1,10 @@
+{
+  "adapterId": "scan_ports.adapter",
+  "toolId": "scan_ports",
+  "version": "1.0.0",
+  "adapterType": "builtin",
+  "importPath": "@/tools/scan_ports",
+  "runtimeHandler": "runScanPorts",
+  "dryRunHandler": "dryRunScanPorts",
+  "rollbackHandler": null
+}

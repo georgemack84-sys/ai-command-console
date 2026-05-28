@@ -1,0 +1,46 @@
+{
+  "scenarioId": "recovery-normal",
+  "title": "Normal recovery lifecycle",
+  "description": "Execution fails, advisory opens, request is created, recovery completes, and verification passes.",
+  "executionId": "demo-recovery-normal",
+  "seed": {
+    "execution": {
+      "status": "failed",
+      "triggerSource": "api"
+    },
+    "ledger": [
+      { "eventType": "execution.failed", "payload": {} }
+    ],
+    "recovery": [
+      { "stepId": "step_0", "status": "completed", "sideEffectClass": "safe_repeat", "resultPayload": { "resumed": true } }
+    ],
+    "control": [
+      { "type": "request", "recoveryRequestId": "demo-request-normal", "recoveryMode": "resume", "requestedBy": "operator_demo" },
+      { "type": "approval", "recoveryRequestId": "demo-request-normal", "approvedBy": "operator_demo" }
+    ],
+    "advisory": [
+      { "type": "created", "advisoryId": "demo-adv-normal", "candidate": { "signalType": "FAILED_EXECUTION" }, "requestedBy": "system" },
+      { "type": "recommended", "advisoryId": "demo-adv-normal", "signal": { "signalType": "FAILED_EXECUTION" }, "recommendation": { "recommendation": "resume", "requiresOperator": false }, "requestedBy": "system" },
+      { "type": "request_created", "advisoryId": "demo-adv-normal", "requestedBy": "operator_demo", "recoveryRequest": { "recoveryRequestId": "demo-request-normal" } }
+    ],
+    "verification": [
+      { "recoveryRequestId": "demo-request-normal", "verification": { "outcome": "VERIFIED", "verified": true, "reason": "post-state confirmed" }, "requestedBy": "operator_demo" }
+    ]
+  },
+  "expected": {
+    "readModel": {
+      "recovery.status": "completed",
+      "verification.status": "passed"
+    },
+    "timeline": {
+      "meta.matchesReadModel": true
+    },
+    "evidence": {
+      "state": "normal"
+    },
+    "operatorActions": [
+      "ADD_NOTE",
+      "VIEW_EVIDENCE"
+    ]
+  }
+}

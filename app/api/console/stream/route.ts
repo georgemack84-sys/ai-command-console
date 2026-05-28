@@ -1,6 +1,7 @@
 import { getTerminalOverview, queueTerminalDigestSweep } from "../core";
 import { getSessionUser } from "@/src/lib/auth";
 import { ensureDigestScheduler } from "@/services/digestScheduler";
+import { requireWorkspaceMember } from "@/src/server/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export async function GET() {
   if (!user) {
     return new Response("Authentication required.", { status: 401 });
   }
+  await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
   const context = {
     id: user.id,
     workspaceId: user.workspaceId,

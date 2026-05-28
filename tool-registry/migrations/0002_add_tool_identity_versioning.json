@@ -1,0 +1,16 @@
+{
+  "migrationId": "0002_add_tool_identity_versioning",
+  "version": "1.0.0",
+  "description": "Adds immutable canonical tool identities, deterministic registry hashing, replay binding, and lineage manifests to the canonical registry.",
+  "createdArtifacts": [
+    "tool-registry/lineages.json",
+    "tool-registry/migrations/version-migrations.json"
+  ],
+  "invariants": [
+    "Every executable capability is identified by toolId@version.",
+    "Published versions are immutable and hash-bound.",
+    "Replay binds to exact published tool versions.",
+    "Lineage corruption fails closed."
+  ],
+  "registryVersion": "4.3B"
+}

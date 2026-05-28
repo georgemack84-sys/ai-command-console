@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Read File Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["content", "encoding"],
+  "properties": {
+    "content": { "type": "string" },
+    "encoding": { "type": "string", "enum": ["utf8"] }
+  }
+}

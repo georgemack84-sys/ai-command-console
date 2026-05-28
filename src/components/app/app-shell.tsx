@@ -1,9 +1,8 @@
 "use client";
 
-import { useContext } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Command, LayoutDashboard, Sparkles } from "lucide-react";
-import { PathnameContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
 import { useAppSession } from "@/src/components/app/app-provider";
 import { buttonVariants } from "@/src/components/ui/button";
 import { cn } from "@/src/lib/utils";
@@ -92,13 +91,8 @@ const pageMeta: Array<{
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathnameContext = useContext(PathnameContext);
-  const pathname = pathnameContext ?? "/";
+  const pathname = usePathname() ?? "/";
   const { user, logout, authLoading } = useAppSession();
-
-  if (pathnameContext === null) {
-    return <main className="min-h-screen bg-black text-zinc-100">{children}</main>;
-  }
 
   const meta = pageMeta.find((item) => item.match(pathname)) ?? pageMeta[0];
   const visiblePrimaryNavItems = primaryNavItems.filter((item) => !item.protected || user);

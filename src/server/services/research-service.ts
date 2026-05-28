@@ -1,7 +1,7 @@
 import type { BriefPriority, BriefStatus, ReportFormat, ReportStatus } from "@prisma/client";
-import { prisma } from "@/src/server/db/prisma";
-import type { ResearchBrief, ResearchReport } from "@/src/lib/types";
-import { AppError } from "@/src/server/api/errors";
+import { prisma } from "../db/prisma";
+import type { ResearchBrief, ResearchReport } from "../../lib/types";
+import { AppError } from "../api/errors";
 
 function mapBrief(brief: {
   id: string;

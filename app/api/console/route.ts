@@ -4,6 +4,7 @@ import { executeTerminalRequest, getTerminalOverview } from "./core";
 import { ensureDigestScheduler } from "@/services/digestScheduler";
 import { AppError } from "@/src/server/api/errors";
 import { apiError } from "@/src/server/api/response";
+import { requireWorkspaceMember } from "@/src/server/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export async function GET() {
     if (!user) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     return NextResponse.json({
       ok: true,
       overview: await getTerminalOverview(user),
@@ -31,6 +33,7 @@ export async function POST(request: Request) {
     if (!user) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = (await request.json()) as { command?: string; action?: string; payload?: Record<string, unknown> };
     const result = await executeTerminalRequest(body, user);
     return NextResponse.json(result, { status: result.ok ? 200 : 400 });

@@ -2,6 +2,14 @@
 
 import { startTransition, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import terminalCommandCatalog from "@/src/data/terminal-command-catalog.json";
+import {
+  groupPaletteItems,
+  rankPaletteItems,
+  saveTerminalView,
+  type PaletteItem,
+  type SavedTerminalView,
+  type TerminalFilterSnapshot,
+} from "@/src/components/terminal-phase2";
 
 type QueueItem = {
   id: string;
@@ -525,6 +533,43 @@ type ApiResponse = {
   ok: boolean;
   output?: string;
   error?: string;
+  requiresConfirmation?: boolean;
+  control?: {
+    decision?: {
+      decision?: string | null;
+      explanation?: string | null;
+      reviewMode?: string | null;
+      reviewModeReason?: string | null;
+    } | null;
+  } | null;
+  review?: {
+    reviewMode?: string | null;
+    reviewModeReason?: string | null;
+    deltaAnalysis?: {
+      summary?: string | null;
+      status?: string | null;
+    } | null;
+    operatorPatternInsights?: {
+      summary?: string | null;
+    } | null;
+    recommendation?: {
+      title?: string | null;
+      detail?: string | null;
+    } | null;
+    attentionPoints?: Array<{
+      title?: string | null;
+      detail?: string | null;
+      priority?: string | null;
+    }>;
+    summary?: {
+      headline?: string | null;
+      bullets?: string[];
+    } | null;
+  } | null;
+  plan?: {
+    reviewStatus?: string | null;
+    finalMode?: string | null;
+  } | null;
   detail?: {
     job?: Overview["jobs"]["items"][number];
   };
@@ -539,6 +584,101 @@ type HistoryEntry = {
   createdAt: string;
   kind: "command" | "action";
 };
+
+type OperatorRecoveryAction = {
+  action: string;
+  label: string;
+  requiresReason: boolean;
+  updatedInputRequired?: boolean;
+  riskLevel?: string;
+  notes?: string[];
+  constraints?: string[];
+};
+
+type OperatorRecoverySurface = {
+  planId: string;
+  executionId?: string | null;
+  status: string;
+  whyPaused: string;
+  whatHappened: string;
+  riskLevel: string;
+  recommendedAction?: {
+    action: string;
+    label: string;
+    reason: string;
+    basis?: Record<string, unknown>;
+  } | null;
+  recommendedAlternatives?: Array<{
+    action: string;
+    label: string;
+    whyNotRecommended: string;
+    riskLevel: string;
+  }>;
+  safeActions: OperatorRecoveryAction[];
+  currentFocus?: {
+    stage?: {
+      id: string;
+      name?: string | null;
+      status?: string | null;
+    } | null;
+    step?: {
+      id: string;
+      action?: string | null;
+      status?: string | null;
+      pauseReason?: string | null;
+      sideEffectSafety?: {
+        class: string;
+        replaySafety: string;
+        explanation: string;
+      };
+    } | null;
+  };
+  timelineSummary?: {
+    totalEvents: number;
+    latestEventType?: string | null;
+    latestEventAt?: string | number | null;
+    failureCount?: number;
+    pauseCount?: number;
+  };
+  timelineNarrative?: string[];
+  recommendationContext?: {
+    pauseReason?: string;
+    sideEffectSafety?: {
+      class: string;
+      replaySafety: string;
+      explanation: string;
+    };
+  };
+};
+
+type OperatorRecoveryResult = {
+  ok: boolean;
+  data?: {
+    planId: string;
+    action: string;
+    preview?: {
+      willWrite: boolean;
+      whyRecommended?: string | null;
+      alternativeSummary?: Array<{
+        action: string;
+        label: string;
+        whyNotRecommended: string;
+        riskLevel: string;
+      }>;
+      stateChanges?: Record<string, string>;
+    };
+    surface?: OperatorRecoverySurface;
+    transition?: Record<string, unknown>;
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
+  overview?: Overview;
+  surface?: OperatorRecoverySurface;
+};
+
+type OperatorRecoveryPreview = NonNullable<NonNullable<OperatorRecoveryResult["data"]>["preview"]>;
 
 type Macro = {
   name: string;
@@ -558,12 +698,25 @@ type Toast = {
 };
 
 type TabKey = "dashboard" | "console" | "workflows" | "ops";
+type LayoutMode = "expanded" | "dense";
+type TerminalProps = {
+  initialTab?: TabKey;
+  initialOperatorRecoveryPlanId?: string;
+};
 
 const HISTORY_KEY = "ai-console-command-history";
 const MACRO_KEY = "ai-console-macros";
 const SESSION_KEY = "ai-console-sessions";
+const SAVED_VIEWS_KEY = "ai-console-filter-views";
+const LAYOUT_MODE_KEY = "ai-console-layout-mode";
 const MAX_HISTORY = 14;
 const STREAM_CONNECT_DELAY_MS = 1200;
+const DEFAULT_FILTERS: TerminalFilterSnapshot = {
+  queue: "all",
+  review: "all",
+  alert: "all",
+  schedule: "all",
+};
 
 const COMMANDS = terminalCommandCatalog.commands;
 
@@ -921,6 +1074,58 @@ async function postConsole(body: Record<string, unknown>) {
   return (await response.json()) as ApiResponse;
 }
 
+async function getOperatorRecoverySurface(planId: string) {
+  const response = await fetch(`/api/console/operator-recovery?planId=${encodeURIComponent(planId)}`, {
+    cache: "no-store",
+  });
+  return (await response.json()) as OperatorRecoveryResult;
+}
+
+async function postOperatorRecovery(body: Record<string, unknown>) {
+  const response = await fetch("/api/console/operator-recovery", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return (await response.json()) as OperatorRecoveryResult;
+}
+
+function makeIdempotencyKey(prefix: string) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function buildReviewPrompt(response: ApiResponse) {
+  const parts = [
+    response.error || response.output || "This request requires confirmation before execution.",
+    response.review?.summary?.headline || null,
+    response.review?.recommendation?.title || null,
+    response.review?.recommendation?.detail || null,
+    response.review?.deltaAnalysis?.summary || null,
+    response.review?.operatorPatternInsights?.summary || null,
+    ...(response.review?.attentionPoints || []).slice(0, 3).map((item) => item.title || item.detail || null),
+  ].filter(Boolean);
+
+  return `${parts.join("\n\n")}\n\nProceed?`;
+}
+
+async function postConsoleWithConfirmation(body: Record<string, unknown>) {
+  const initial = await postConsole(body);
+
+  if (!initial.requiresConfirmation) {
+    return initial;
+  }
+
+  const prompt = buildReviewPrompt(initial);
+  if (typeof window !== "undefined" && !window.confirm(prompt)) {
+    return initial;
+  }
+
+  return postConsole({ ...body, confirmed: true });
+}
+
 function Panel({
   title,
   note,
@@ -959,9 +1164,12 @@ function Stat({
   );
 }
 
-export default function Terminal() {
+export default function Terminal({
+  initialTab = "dashboard",
+  initialOperatorRecoveryPlanId = "",
+}: TerminalProps) {
   const commandInputRef = useRef<HTMLInputElement | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabKey>(initialOperatorRecoveryPlanId ? "console" : initialTab);
   const [overview, setOverview] = useState<Overview>(EMPTY_OVERVIEW);
   const [previousOverview, setPreviousOverview] = useState<Overview | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -1009,8 +1217,12 @@ export default function Terminal() {
   const [followups, setFollowups] = useState<Record<string, { agentName: string; description: string }>>({});
   const [alertNotes, setAlertNotes] = useState<Record<string, string>>({});
   const [automationOwnerDrafts, setAutomationOwnerDrafts] = useState<Record<string, string>>({});
-  const [queueFilter, setQueueFilter] = useState("all");
-  const [reviewFilter, setReviewFilter] = useState("all");
+  const [queueFilter, setQueueFilter] = useState(DEFAULT_FILTERS.queue);
+  const [reviewFilter, setReviewFilter] = useState(DEFAULT_FILTERS.review);
+  const [alertFilter, setAlertFilter] = useState(DEFAULT_FILTERS.alert);
+  const [scheduleFilter, setScheduleFilter] = useState(DEFAULT_FILTERS.schedule);
+  const [savedViews, setSavedViews] = useState<SavedTerminalView[]>([]);
+  const [savedViewName, setSavedViewName] = useState("");
   const [activityFilter, setActivityFilter] = useState("");
   const [historyFilter, setHistoryFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -1023,16 +1235,24 @@ export default function Terminal() {
     preferredChannel: "inbox",
     includeTrustReport: false,
     trustAudience: "self",
-    trustEnvironment: "all",
-    immediateOnTrustDrop: false,
+      trustEnvironment: "all",
+      immediateOnTrustDrop: false,
   });
-  const [layoutMode, setLayoutMode] = useState<"comfort" | "dense">("comfort");
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("expanded");
+  const [operatorRecoveryPlanId, setOperatorRecoveryPlanId] = useState(initialOperatorRecoveryPlanId);
+  const [operatorRecoverySurface, setOperatorRecoverySurface] = useState<OperatorRecoverySurface | null>(null);
+  const [operatorRecoveryAction, setOperatorRecoveryAction] = useState("approve_resume");
+  const [operatorRecoveryReason, setOperatorRecoveryReason] = useState("");
+  const [operatorRecoveryUpdatedInput, setOperatorRecoveryUpdatedInput] = useState("");
+  const [operatorRecoveryPreview, setOperatorRecoveryPreview] = useState<OperatorRecoveryPreview | null>(null);
+  const [operatorRecoveryRunning, setOperatorRecoveryRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamStatus, setStreamStatus] = useState("connecting");
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const recoveryBootstrapRef = useRef<string | null>(null);
 
   async function copyTraceId(traceId?: string | null) {
     if (!traceId || typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
@@ -1059,11 +1279,37 @@ export default function Terminal() {
   const handleShortcutExecute = useEffectEvent(() => {
     void executeCommand(command);
   });
+  const handleShortcutRefresh = useEffectEvent(() => {
+    void refresh();
+  });
+  const handleShortcutApprove = useEffectEvent(() => {
+    const nextReview = filteredReviews.find((item) => item.status.toLowerCase() === "pending");
+    if (!nextReview) {
+      return;
+    }
+
+    void runProtectedAction(`Approve review for ${nextReview.taskId}?`, "review:approve", { taskId: nextReview.taskId }, `approve ${nextReview.taskId}`);
+  });
+  const handleShortcutRevise = useEffectEvent(() => {
+    const nextReview = filteredReviews.find((item) => item.status.toLowerCase() === "pending");
+    if (!nextReview) {
+      return;
+    }
+
+    void runProtectedAction(
+      `Request revision for ${nextReview.taskId}?`,
+      "review:revise",
+      { taskId: nextReview.taskId, note: reviewNotes[nextReview.taskId] || "Please revise the brief and resubmit." },
+      `revise ${nextReview.taskId}`,
+    );
+  });
 
   useEffect(() => {
     setHistory(readStore(HISTORY_KEY, [] as HistoryEntry[]));
     setMacros(readStore(MACRO_KEY, DEFAULT_MACROS));
     setSessions(readStore(SESSION_KEY, DEFAULT_SESSIONS));
+    setSavedViews(readStore(SAVED_VIEWS_KEY, [] as SavedTerminalView[]));
+    setLayoutMode(readStore(LAYOUT_MODE_KEY, "expanded" as LayoutMode));
   }, []);
 
   useEffect(() => {
@@ -1102,12 +1348,39 @@ export default function Terminal() {
   }, [history]);
 
   useEffect(() => {
+    const normalizedPlanId = initialOperatorRecoveryPlanId.trim();
+    if (!normalizedPlanId) {
+      return;
+    }
+
+    setActiveTab("console");
+    setOperatorRecoveryPlanId((current) => (current.trim() ? current : normalizedPlanId));
+
+    if (recoveryBootstrapRef.current === normalizedPlanId || operatorRecoveryRunning) {
+      return;
+    }
+
+    recoveryBootstrapRef.current = normalizedPlanId;
+    void loadOperatorRecoverySurface(normalizedPlanId);
+    // Bootstrap should only respond to the initial recovery plan signal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialOperatorRecoveryPlanId, operatorRecoveryRunning]);
+
+  useEffect(() => {
     writeStore(MACRO_KEY, macros);
   }, [macros]);
 
   useEffect(() => {
     writeStore(SESSION_KEY, sessions);
   }, [sessions]);
+
+  useEffect(() => {
+    writeStore(SAVED_VIEWS_KEY, savedViews);
+  }, [savedViews]);
+
+  useEffect(() => {
+    writeStore(LAYOUT_MODE_KEY, layoutMode);
+  }, [layoutMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1195,6 +1468,10 @@ export default function Terminal() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      const isTyping =
+        event.target instanceof HTMLElement &&
+        (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA" || event.target.isContentEditable);
+
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setCommandPaletteOpen((current) => !current);
@@ -1213,12 +1490,33 @@ export default function Terminal() {
         return;
       }
 
-      if (event.key === "/" && event.target instanceof HTMLElement) {
-        const tag = event.target.tagName;
-        if (tag !== "INPUT" && tag !== "TEXTAREA" && !event.target.isContentEditable) {
-          event.preventDefault();
-          commandInputRef.current?.focus();
-        }
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        handleShortcutRefresh();
+        return;
+      }
+
+      if (!isTyping && event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        handleShortcutApprove();
+        return;
+      }
+
+      if (!isTyping && event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        handleShortcutRevise();
+        return;
+      }
+
+      if (!isTyping && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        handleShortcutRefresh();
+        return;
+      }
+
+      if (event.key === "/" && !isTyping) {
+        event.preventDefault();
+        commandInputRef.current?.focus();
       }
 
       if (event.key === "Escape") {
@@ -1277,6 +1575,41 @@ export default function Terminal() {
       return (item.decision || "").toLowerCase() === reviewFilter;
     });
   }, [overview.reviews, reviewFilter]);
+
+  const filteredAlerts = useMemo(() => {
+    if (alertFilter === "all") {
+      return overview.alerts.items;
+    }
+
+    return overview.alerts.items.filter((item) => {
+      if (alertFilter === "unacknowledged") {
+        return !item.acknowledged;
+      }
+      if (alertFilter === "acknowledged") {
+        return Boolean(item.acknowledged);
+      }
+      return item.severity.toLowerCase() === alertFilter || item.status.toLowerCase() === alertFilter;
+    });
+  }, [alertFilter, overview.alerts.items]);
+
+  const filteredSchedules = useMemo(() => {
+    if (scheduleFilter === "all") {
+      return overview.schedules;
+    }
+
+    return overview.schedules.filter((item) => {
+      if (scheduleFilter === "errors") {
+        return Boolean(item.lastError);
+      }
+      if (scheduleFilter === "enabled") {
+        return item.enabled;
+      }
+      if (scheduleFilter === "disabled") {
+        return !item.enabled;
+      }
+      return false;
+    });
+  }, [overview.schedules, scheduleFilter]);
 
   const filteredActivity = useMemo(() => {
     const query = activityFilter.trim().toLowerCase();
@@ -1355,43 +1688,38 @@ export default function Terminal() {
     });
   }, [jobLogFilter, selectedJob]);
 
-  const paletteItems = useMemo(() => {
-    const groups = [
+  const paletteItems = useMemo<PaletteItem[]>(() => {
+    const groups: PaletteItem[] = [
       ...overview.recommendations.map((item) => ({
         key: `recommendation:${item.id}`,
         label: item.title,
         value: item.command,
-        meta: "recommendation",
+        meta: "recommendation" as const,
       })),
       ...macros.map((macro) => ({
         key: `macro:${macro.name}`,
         label: macro.name,
         value: macro.command,
-        meta: "macro",
+        meta: "macro" as const,
       })),
       ...sessions.map((session) => ({
         key: `session:${session.name}`,
         label: session.name,
         value: session.draftCommand,
-        meta: "session",
+        meta: "session" as const,
       })),
       ...COMMANDS.map((commandItem) => ({
         key: `command:${commandItem}`,
         label: commandItem,
         value: commandItem,
-        meta: "command",
+        meta: "command" as const,
       })),
     ];
 
-    const query = paletteQuery.trim().toLowerCase();
-    if (!query) {
-      return groups.slice(0, 16);
-    }
-
-    return groups
-      .filter((item) => item.label.toLowerCase().includes(query) || item.value.toLowerCase().includes(query))
-      .slice(0, 16);
+    return rankPaletteItems(groups, paletteQuery);
   }, [macros, overview.recommendations, paletteQuery, sessions]);
+
+  const groupedPaletteItems = useMemo(() => groupPaletteItems(paletteItems), [paletteItems]);
 
   async function refresh() {
     try {
@@ -1413,7 +1741,7 @@ export default function Terminal() {
 
     try {
       setRunning(true);
-      const payload = await postConsole({ command: trimmed });
+      const payload = await postConsoleWithConfirmation({ command: trimmed });
       setPreviousOverview(overview);
       setOverview(payload.overview);
       setLastSyncAt(new Date().toISOString());
@@ -1432,7 +1760,7 @@ export default function Terminal() {
   async function runAction(action: string, payload: Record<string, unknown>, label: string) {
     try {
       setRunning(true);
-      const response = await postConsole({ action, payload });
+      const response = await postConsoleWithConfirmation({ action, payload });
       setPreviousOverview(overview);
       setOverview(response.overview);
       setLastSyncAt(new Date().toISOString());
@@ -1470,6 +1798,144 @@ export default function Terminal() {
     }
 
     await runAction(action, payload, label);
+  }
+
+  async function loadOperatorRecoverySurface(planId = operatorRecoveryPlanId) {
+    const normalizedPlanId = planId.trim();
+    if (!normalizedPlanId) {
+      setError("Plan ID is required to load operator recovery state.");
+      return;
+    }
+
+    try {
+      setOperatorRecoveryRunning(true);
+      const response = await getOperatorRecoverySurface(normalizedPlanId);
+      if (!response.ok || !response.data) {
+        setError(response.error?.message || "Unable to load operator recovery surface.");
+        if (response.surface) {
+          setOperatorRecoverySurface(response.surface);
+        }
+        return;
+      }
+      const surface = response.data.surface ?? response.surface;
+      if (!surface) {
+        setError("Unable to load operator recovery surface.");
+        return;
+      }
+      setOperatorRecoverySurface(surface);
+      setOperatorRecoveryPreview(null);
+      setOperatorRecoveryAction(surface.recommendedAction?.action || surface.safeActions?.[0]?.action || "approve_resume");
+      setOperatorRecoveryPlanId(surface.planId);
+      setError(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to load operator recovery surface.");
+    } finally {
+      setOperatorRecoveryRunning(false);
+    }
+  }
+
+  async function previewOperatorRecovery() {
+    const planId = operatorRecoverySurface?.planId || operatorRecoveryPlanId;
+    if (!planId.trim()) {
+      setError("Plan ID is required before previewing an operator recovery action.");
+      return;
+    }
+
+    try {
+      setOperatorRecoveryRunning(true);
+      const response = await postOperatorRecovery({
+        planId,
+        action: operatorRecoveryAction,
+        preview: true,
+        payload: {
+          idempotencyKey: makeIdempotencyKey("preview"),
+          ...(operatorRecoveryReason.trim() ? { reason: operatorRecoveryReason.trim() } : {}),
+          ...(operatorRecoveryUpdatedInput.trim() ? { updatedInput: operatorRecoveryUpdatedInput.trim() } : {}),
+        },
+      });
+      if (!response.ok) {
+        setError(response.error?.message || "Unable to preview operator recovery action.");
+        if (response.surface) {
+          setOperatorRecoverySurface(response.surface);
+        }
+        return;
+      }
+      setOperatorRecoveryPreview(response.data?.preview || null);
+      if (response.data?.surface) {
+        setOperatorRecoverySurface(response.data.surface);
+      }
+      setError(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to preview operator recovery action.");
+    } finally {
+      setOperatorRecoveryRunning(false);
+    }
+  }
+
+  async function applyOperatorRecovery() {
+    const planId = operatorRecoverySurface?.planId || operatorRecoveryPlanId;
+    if (!planId.trim()) {
+      setError("Plan ID is required before applying an operator recovery action.");
+      return;
+    }
+
+    try {
+      setOperatorRecoveryRunning(true);
+      const payload: Record<string, unknown> = {
+        idempotencyKey: makeIdempotencyKey("operator"),
+      };
+      if (operatorRecoveryReason.trim()) {
+        payload.reason = operatorRecoveryReason.trim();
+      }
+      if (operatorRecoveryUpdatedInput.trim()) {
+        payload.updatedInput = operatorRecoveryUpdatedInput.trim();
+      }
+
+      const response = await postOperatorRecovery({
+        planId,
+        action: operatorRecoveryAction,
+        payload,
+      });
+
+      if (response.overview) {
+        setPreviousOverview(overview);
+        setOverview(response.overview);
+        setLastSyncAt(new Date().toISOString());
+      }
+
+      if (!response.ok) {
+        setError(response.error?.message || "Unable to apply operator recovery action.");
+        if (response.surface) {
+          setOperatorRecoverySurface(response.surface);
+        }
+        return;
+      }
+
+      if (response.data?.surface) {
+        setOperatorRecoverySurface(response.data.surface);
+      } else {
+        await loadOperatorRecoverySurface(planId);
+      }
+      setOperatorRecoveryPreview(null);
+      pushHistory(setHistory, {
+        id: id(),
+        command: `operator recovery ${operatorRecoveryAction} ${planId}`,
+        output: response.data?.action || operatorRecoveryAction,
+        ok: true,
+        createdAt: new Date().toISOString(),
+        kind: "action",
+      });
+      pushToast(setToasts, {
+        id: id(),
+        tone: "success",
+        message: `Applied ${operatorRecoveryAction} to ${planId}.`,
+      });
+      setError(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to apply operator recovery action.");
+    } finally {
+      setOperatorRecoveryRunning(false);
+    }
   }
 
   useEffect(() => {
@@ -1514,6 +1980,42 @@ export default function Terminal() {
       ...items.filter((item) => item.name !== name),
     ].slice(0, 6));
     setSessionName("");
+  }
+
+  function applyFilterSnapshot(filters: TerminalFilterSnapshot) {
+    setQueueFilter(filters.queue);
+    setReviewFilter(filters.review);
+    setAlertFilter(filters.alert);
+    setScheduleFilter(filters.schedule);
+  }
+
+  function saveCurrentView() {
+    const nextViews = saveTerminalView(
+      savedViews,
+      savedViewName,
+      {
+        queue: queueFilter,
+        review: reviewFilter,
+        alert: alertFilter,
+        schedule: scheduleFilter,
+      },
+      id,
+      new Date().toISOString(),
+    );
+
+    setSavedViews(nextViews);
+    if (nextViews !== savedViews) {
+      setSavedViewName("");
+      pushToast(setToasts, {
+        id: id(),
+        tone: "success",
+        message: `Saved ${nextViews[0]?.name || "view"} for quick recall.`,
+      });
+    }
+  }
+
+  function deleteSavedView(viewId: string) {
+    setSavedViews((current) => current.filter((view) => view.id !== viewId));
   }
 
   async function shareCurrentSession() {
@@ -1562,10 +2064,10 @@ export default function Terminal() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLayoutMode((current) => (current === "comfort" ? "dense" : "comfort"))}
+                  onClick={() => setLayoutMode((current) => (current === "expanded" ? "dense" : "expanded"))}
                   className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 transition hover:bg-white/10"
                 >
-                  {layoutMode === "comfort" ? "Dense Mode" : "Comfort Mode"}
+                  {layoutMode === "expanded" ? "Dense Mode" : "Expanded Mode"}
                 </button>
                 <button
                   type="button"
@@ -1599,7 +2101,7 @@ export default function Terminal() {
               ))}
             </div>
             <p className="mt-3 break-words text-xs text-zinc-500">
-              Shortcuts: <span className="text-zinc-300">Ctrl/Cmd+K</span> command palette, <span className="text-zinc-300">Ctrl/Cmd+Enter</span> run command, <span className="text-zinc-300">Alt+1..4</span> switch tabs, <span className="text-zinc-300">/</span> focus input.
+              Shortcuts: <span className="text-zinc-300">Ctrl/Cmd+K</span> command palette, <span className="text-zinc-300">Ctrl/Cmd+Enter</span> run command, <span className="text-zinc-300">R</span> refresh, <span className="text-zinc-300">Shift+A</span> approve, <span className="text-zinc-300">Shift+V</span> revise, <span className="text-zinc-300">Alt+1..4</span> switch tabs, <span className="text-zinc-300">/</span> focus input.
             </p>
           </div>
 
@@ -1633,7 +2135,7 @@ export default function Terminal() {
                     {running ? "Running..." : "Execute"}
                   </button>
                 </div>
-                <p className="mt-3 text-xs text-zinc-500">Shortcuts: press `/` to focus the command bar and `Ctrl+Enter` or `Cmd+Enter` to run.</p>
+                <p className="mt-3 text-xs text-zinc-500">Shortcuts: press `/` to focus the command bar, `Ctrl+Enter` or `Cmd+Enter` to run, and `R` to refresh the current state.</p>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
@@ -1811,6 +2313,171 @@ export default function Terminal() {
             <Panel title="Structured Output" note="Command history renders payloads in a readable format instead of a flat terminal dump.">
               <div className="space-y-3">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-white">Operator Recovery</p>
+                      <p className="mt-1 text-xs text-zinc-500">Load a paused or failed execution by plan ID, inspect the governed recovery surface, preview safe actions, and apply a human decision through the D-3 route.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void loadOperatorRecoverySurface()}
+                      disabled={operatorRecoveryRunning}
+                      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 disabled:opacity-50"
+                    >
+                      {operatorRecoveryRunning ? "Loading..." : "Load Surface"}
+                    </button>
+                  </div>
+                  <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                    <input
+                      value={operatorRecoveryPlanId}
+                      onChange={(event) => setOperatorRecoveryPlanId(event.target.value)}
+                      placeholder="Execution plan ID"
+                      className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none"
+                    />
+                    <select
+                      value={operatorRecoveryAction}
+                      onChange={(event) => setOperatorRecoveryAction(event.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none"
+                    >
+                      {operatorRecoverySurface?.safeActions?.length
+                        ? operatorRecoverySurface.safeActions.map((entry) => (
+                            <option key={entry.action} value={entry.action}>
+                              {entry.label}
+                            </option>
+                          ))
+                        : (
+                          <option value="approve_resume">Approve Resume</option>
+                        )}
+                    </select>
+                  </div>
+                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                    <textarea
+                      value={operatorRecoveryReason}
+                      onChange={(event) => setOperatorRecoveryReason(event.target.value)}
+                      className="min-h-24 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none"
+                      placeholder="Operator reason (required for cancel, retry, reject, or modify)"
+                    />
+                    <textarea
+                      value={operatorRecoveryUpdatedInput}
+                      onChange={(event) => setOperatorRecoveryUpdatedInput(event.target.value)}
+                      className="min-h-24 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none"
+                      placeholder="Updated input for modify-and-resume"
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void previewOperatorRecovery()}
+                      disabled={operatorRecoveryRunning}
+                      className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100 disabled:opacity-50"
+                    >
+                      Preview Action
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void applyOperatorRecovery()}
+                      disabled={operatorRecoveryRunning}
+                      className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100 disabled:opacity-50"
+                    >
+                      Apply Action
+                    </button>
+                  </div>
+                  {operatorRecoverySurface ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="grid gap-3 lg:grid-cols-3">
+                        <div className="rounded-xl bg-black/30 p-3">
+                          <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Status</p>
+                          <p className="mt-2 text-sm font-medium text-white">{operatorRecoverySurface.status}</p>
+                        </div>
+                        <div className="rounded-xl bg-black/30 p-3">
+                          <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Risk</p>
+                          <p className="mt-2 text-sm font-medium text-white">{operatorRecoverySurface.riskLevel}</p>
+                        </div>
+                        <div className="rounded-xl bg-black/30 p-3">
+                          <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Latest Event</p>
+                          <p className="mt-2 text-sm font-medium text-white">{operatorRecoverySurface.timelineSummary?.latestEventType || "unknown"}</p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-black/30 p-4">
+                        <p className="text-sm font-medium text-white">Recommended Action</p>
+                        <p className="mt-2 text-sm text-zinc-200">
+                          {operatorRecoverySurface.recommendedAction?.label || "No recommendation available"}
+                        </p>
+                        <p className="mt-1 text-sm text-zinc-400">
+                          {operatorRecoverySurface.recommendedAction?.reason || operatorRecoverySurface.whyPaused}
+                        </p>
+                        {operatorRecoverySurface.recommendedAlternatives?.length ? (
+                          <ul className="mt-3 space-y-2 text-sm text-zinc-400">
+                            {operatorRecoverySurface.recommendedAlternatives.map((entry) => (
+                              <li key={entry.action}>
+                                <span className="text-zinc-200">{entry.label}:</span> {entry.whyNotRecommended}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        <div className="rounded-xl bg-black/30 p-4">
+                          <p className="text-sm font-medium text-white">Current Focus</p>
+                          <p className="mt-2 text-sm text-zinc-200">
+                            {operatorRecoverySurface.currentFocus?.stage?.name || "Unknown stage"}
+                            {operatorRecoverySurface.currentFocus?.step?.id ? ` -> ${operatorRecoverySurface.currentFocus.step.id}` : ""}
+                          </p>
+                          <p className="mt-1 text-sm text-zinc-400">
+                            {operatorRecoverySurface.currentFocus?.step?.sideEffectSafety?.explanation || operatorRecoverySurface.whyPaused}
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-black/30 p-4">
+                          <p className="text-sm font-medium text-white">Timeline</p>
+                          <ul className="mt-2 space-y-1 text-sm text-zinc-400">
+                            {(operatorRecoverySurface.timelineNarrative || []).map((line, index) => (
+                              <li key={`${index}_${line}`}>{line}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-black/30 p-4">
+                        <p className="text-sm font-medium text-white">Safe Actions</p>
+                        <div className="mt-3 space-y-3">
+                          {operatorRecoverySurface.safeActions.map((entry) => (
+                            <div key={entry.action} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm text-white">{entry.label}</p>
+                                <span className={`rounded-full border px-2 py-1 text-[11px] ${toneClass(entry.riskLevel || "warning")}`}>
+                                  {entry.riskLevel || "medium"}
+                                </span>
+                              </div>
+                              {entry.notes?.length ? (
+                                <ul className="mt-2 space-y-1 text-sm text-zinc-300">
+                                  {entry.notes.map((note) => <li key={note}>{note}</li>)}
+                                </ul>
+                              ) : null}
+                              {entry.constraints?.length ? (
+                                <ul className="mt-2 space-y-1 text-xs text-zinc-500">
+                                  {entry.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}
+                                </ul>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {operatorRecoveryPreview ? (
+                        <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+                          <p className="text-sm font-medium text-cyan-50">Preview</p>
+                          <p className="mt-2 text-sm text-cyan-100">
+                            {operatorRecoveryPreview.whyRecommended || "This preview does not change persisted state."}
+                          </p>
+                          {operatorRecoveryPreview.stateChanges ? (
+                            <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-cyan-50">
+                              {JSON.stringify(operatorRecoveryPreview.stateChanges, null, 2)}
+                            </pre>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <input
                     value={historyFilter}
                     onChange={(event) => setHistoryFilter(event.target.value)}
@@ -1937,11 +2604,25 @@ export default function Terminal() {
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-white">Research Signal Recovery</p>
-                    <span className="text-xs text-zinc-500">{overview.alerts.activeCount} active</span>
+                    <span className="text-xs text-zinc-500">{filteredAlerts.length} visible</span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {["all", "unacknowledged", "acknowledged", "high", "medium", "low"].map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => setAlertFilter(status)}
+                        className={`rounded-full border px-3 py-2 text-xs uppercase tracking-[0.18em] transition ${
+                          alertFilter === status ? "border-cyan-300/50 bg-cyan-300 text-slate-950" : "border-white/10 bg-black/25 text-zinc-400"
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
                   </div>
                   <div className="mt-4 space-y-3">
-                    {overview.alerts.items.length ? (
-                      overview.alerts.items.map((alert) => (
+                    {filteredAlerts.length ? (
+                      filteredAlerts.map((alert) => (
                         <div key={alert.id} className="rounded-2xl bg-black/30 p-4">
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-sm text-white">{alert.title}</p>
@@ -1963,7 +2644,7 @@ export default function Terminal() {
                         </div>
                       ))
                     ) : (
-                      <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-zinc-500">No active research signals to recover.</div>
+                      <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-zinc-500">No research signals match this filter.</div>
                     )}
                   </div>
                 </div>
@@ -1973,6 +2654,62 @@ export default function Terminal() {
 
           {activeTab === "ops" ? (
             <Panel title="Operations Surfaces" note="Queue, schedules, alerts, and plugins are all visible without dropping back to raw command output.">
+              <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">Saved Views</p>
+                    <p className="mt-1 text-xs text-zinc-500">Recall filter combinations for queue, reviews, alerts, and schedules.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => applyFilterSnapshot(DEFAULT_FILTERS)}
+                    className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-sm text-zinc-300"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+                <div className="mt-4 flex flex-col gap-3 lg:flex-row">
+                  <input
+                    value={savedViewName}
+                    onChange={(event) => setSavedViewName(event.target.value)}
+                    placeholder="Save current filters as..."
+                    className="flex-1 rounded-xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveCurrentView}
+                    className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-100"
+                  >
+                    Save View
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {savedViews.length ? (
+                    savedViews.map((view) => (
+                      <div key={view.id} className="flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => applyFilterSnapshot(view.filters)}
+                          className="text-sm text-zinc-100"
+                        >
+                          {view.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteSavedView(view.id)}
+                          className="text-xs uppercase tracking-[0.18em] text-zinc-500"
+                          aria-label={`Delete saved view ${view.name}`}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-zinc-500">No saved views yet.</p>
+                  )}
+                </div>
+              </div>
+
               <div className="grid gap-4 xl:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-center justify-between">
@@ -2016,34 +2753,54 @@ export default function Terminal() {
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-white">Agent Schedules</p>
-                    <span className="text-xs text-zinc-500">{overview.schedules.length} agents</span>
+                    <p className="text-sm font-medium text-white">Agent Schedules</p>
+                    <span className="text-xs text-zinc-500">{filteredSchedules.length} visible</span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {["all", "enabled", "disabled", "errors"].map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => setScheduleFilter(status)}
+                        className={`rounded-full border px-3 py-2 text-xs uppercase tracking-[0.18em] transition ${
+                          scheduleFilter === status ? "border-cyan-300/50 bg-cyan-300 text-slate-950" : "border-white/10 bg-black/25 text-zinc-400"
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
                   </div>
                   <div className="mt-4 space-y-3">
-                    {overview.schedules.map((schedule) => (
-                      <div key={schedule.agentName} className="rounded-2xl bg-black/30 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm text-white">{schedule.agentName}</p>
-                          <span className={`rounded-full border px-3 py-1 text-xs ${toneClass(schedule.enabled ? "active" : "paused")}`}>
-                            {schedule.enabled ? "enabled" : "disabled"}
-                          </span>
+                    {filteredSchedules.length ? (
+                      filteredSchedules.map((schedule) => (
+                        <div key={schedule.agentName} className="rounded-2xl bg-black/30 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm text-white">{schedule.agentName}</p>
+                            <span className={`rounded-full border px-3 py-1 text-xs ${toneClass(schedule.enabled ? "active" : "paused")}`}>
+                              {schedule.enabled ? "enabled" : "disabled"}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-zinc-400">
+                            <div className="rounded-xl bg-zinc-950/70 p-3">Cycles {schedule.cycleCount}</div>
+                            <div className="rounded-xl bg-zinc-950/70 p-3">Max {schedule.maxCycles}</div>
+                            <div className="rounded-xl bg-zinc-950/70 p-3">{schedule.intervalSeconds}s</div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button type="button" onClick={() => void executeCommand(`schedule:run ${schedule.agentName}`, "action")} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100">
+                              Run Tick
+                            </button>
+                            <button type="button" onClick={() => void executeCommand(`schedule:status ${schedule.agentName}`, "action")} className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-sm text-zinc-300">
+                              Inspect
+                            </button>
+                          </div>
+                          {schedule.lastError ? <p className="mt-3 text-xs text-rose-200">{schedule.lastError}</p> : null}
                         </div>
-                        <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-zinc-400">
-                          <div className="rounded-xl bg-zinc-950/70 p-3">Cycles {schedule.cycleCount}</div>
-                          <div className="rounded-xl bg-zinc-950/70 p-3">Max {schedule.maxCycles}</div>
-                          <div className="rounded-xl bg-zinc-950/70 p-3">{schedule.intervalSeconds}s</div>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button type="button" onClick={() => void executeCommand(`schedule:run ${schedule.agentName}`, "action")} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100">
-                            Run Tick
-                          </button>
-                          <button type="button" onClick={() => void executeCommand(`schedule:status ${schedule.agentName}`, "action")} className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-sm text-zinc-300">
-                            Inspect
-                          </button>
-                        </div>
-                        {schedule.lastError ? <p className="mt-3 text-xs text-rose-200">{schedule.lastError}</p> : null}
+                      ))
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-zinc-500">
+                        <p className="text-sm text-zinc-500">No schedules match this filter.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -3408,24 +4165,29 @@ export default function Terminal() {
               className="mt-4 w-full rounded-2xl border border-cyan-400/20 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-500"
             />
             <div className="mt-4 max-h-[60vh] space-y-2 overflow-y-auto">
-              {paletteItems.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => {
-                    setCommand(item.value);
-                    setCommandPaletteOpen(false);
-                    commandInputRef.current?.focus();
-                  }}
-                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-black/40"
-                >
-                  <span className="text-sm text-zinc-100">{item.label}</span>
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
-                    {item.meta}
-                  </span>
-                </button>
+              {groupedPaletteItems.map((group) => (
+                <div key={group.meta} className="space-y-2">
+                  <p className="px-1 text-xs uppercase tracking-[0.18em] text-zinc-500">{group.title}</p>
+                  {group.items.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        setCommand(item.value);
+                        setCommandPaletteOpen(false);
+                        commandInputRef.current?.focus();
+                      }}
+                      className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-black/40"
+                    >
+                      <span className="text-sm text-zinc-100">{item.label}</span>
+                      <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
+                        {item.meta}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               ))}
-              {!paletteItems.length ? (
+              {!groupedPaletteItems.length ? (
                 <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-zinc-500">
                   No commands or sessions match this search.
                 </div>

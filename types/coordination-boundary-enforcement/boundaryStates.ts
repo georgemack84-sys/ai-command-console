@@ -1,0 +1,35 @@
+export type CoordinationBoundaryVerdict =
+  | "VALID_BOUND_COORDINATION"
+  | "INVALID_EXECUTION_SEMANTICS"
+  | "INVALID_RECURSIVE_ORCHESTRATION"
+  | "INVALID_HIDDEN_SCHEDULING"
+  | "INVALID_AUTHORITY_EXPANSION"
+  | "INVALID_REPLAY_LINEAGE"
+  | "INVALID_GOVERNANCE_LINKAGE"
+  | "INVALID_ORCHESTRATION_DRIFT"
+  | "FAIL_CLOSED";
+
+export type OrchestrationDriftType =
+  | "SCOPE_DRIFT"
+  | "CEILING_DRIFT"
+  | "ROUTE_DRIFT"
+  | "TOPOLOGY_DRIFT"
+  | "GOVERNANCE_DRIFT"
+  | "REPLAY_DRIFT"
+  | "APPROVAL_DRIFT";
+
+export type BoundaryViolationType =
+  | "COORDINATION_BECAME_EXECUTION"
+  | "RECURSIVE_ORCHESTRATION"
+  | "HIDDEN_SCHEDULING"
+  | "AUTHORITY_EXPANSION"
+  | "REPLAY_LINEAGE_BREAK"
+  | "GOVERNANCE_LINKAGE_MISSING"
+  | "ORCHESTRATION_BOUNDARY_DRIFT";
+
+export type CoordinationBoundaryState =
+  | "bounded"
+  | "restricted"
+  | "frozen"
+  | "invalid"
+  | "fail_closed";

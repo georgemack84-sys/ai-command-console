@@ -1,0 +1,14 @@
+{
+  "policyId": "filesystem.write.policy",
+  "toolId": "filesystem.write",
+  "version": "1.0.0",
+  "allowedScopes": ["workspace-write"],
+  "forbiddenScopes": ["system32", "external-host"],
+  "timeoutMs": 5000,
+  "sideEffects": ["filesystem.write"],
+  "dryRun": { "supported": true, "mode": "projected-write" },
+  "replay": { "supported": true, "deterministicMetadataRequired": true },
+  "rollback": { "supported": true, "strategy": "restore-previous-bytes", "policyRequired": true },
+  "audit": { "required": true, "eventTypes": ["tool.filesystem_write.requested", "tool.filesystem_write.completed"] },
+  "boundedExecution": { "maxOperations": 1, "maxPayloadBytes": 1048576 }
+}

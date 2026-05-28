@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Filesystem Write Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["path", "bytesWritten"],
+  "properties": {
+    "path": { "type": "string" },
+    "bytesWritten": { "type": "number" }
+  }
+}

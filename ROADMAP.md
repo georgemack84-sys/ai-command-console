@@ -32,14 +32,16 @@ Next:
 
 ## Phase 2: Operator Speed
 
+Status: Completed on April 16, 2026
+
 Goals:
 - Faster navigation and lower cognitive load
 - Better filtering for queue, reviews, schedules, and alerts
 - Command palette improvements and keyboard shortcuts
 
-Planned features:
+Delivered:
 - Fuzzy command palette with grouped actions
-- Saved filters for queue and alert states
+- Saved views for queue, review, alert, and schedule filters
 - Agent detail drawer with richer status and history
 - Keyboard shortcuts for review triage and refresh
 - Dense/expanded layout modes

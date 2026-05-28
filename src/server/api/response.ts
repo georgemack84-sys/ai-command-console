@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { isAppError } from "@/src/server/api/errors";
 import { normalizeDatabaseError } from "@/src/server/db/errors";
 import { logger } from "@/src/server/observability/logger";
+import { captureException } from "@/src/server/observability/sentry";
 
 export function apiSuccess<T>(data: T, init?: ResponseInit) {
   return NextResponse.json({ ok: true, data }, init);
@@ -26,6 +27,9 @@ export function apiError(error: unknown, fallbackMessage = "Unexpected server er
   }
 
   if (isAppError(normalizedError)) {
+    if (normalizedError.status >= 500) {
+      captureException(normalizedError, { code: normalizedError.code });
+    }
     return NextResponse.json(
       {
         ok: false,
@@ -42,6 +46,7 @@ export function apiError(error: unknown, fallbackMessage = "Unexpected server er
   logger.error("Unhandled route error", {
     message: normalizedError instanceof Error ? normalizedError.message : String(normalizedError),
   });
+  captureException(normalizedError);
 
   return NextResponse.json(
     {

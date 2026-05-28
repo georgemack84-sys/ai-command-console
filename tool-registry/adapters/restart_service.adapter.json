@@ -1,0 +1,10 @@
+{
+  "adapterId": "restart_service.adapter",
+  "toolId": "restart_service",
+  "version": "1.0.0",
+  "adapterType": "builtin",
+  "importPath": "@/tools/restart_service",
+  "runtimeHandler": "runRestartService",
+  "dryRunHandler": "dryRunRestartService",
+  "rollbackHandler": "rollbackRestartService"
+}

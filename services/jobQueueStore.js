@@ -86,6 +86,12 @@ function initializeJobStore() {
     CREATE INDEX IF NOT EXISTS idx_jobs_status_created_at ON jobs(status, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_jobs_next_retry_at ON jobs(next_retry_at);
     CREATE INDEX IF NOT EXISTS idx_jobs_lease_expires_at ON jobs(lease_expires_at);
+    CREATE TABLE IF NOT EXISTS job_worker_heartbeats (
+      worker_id TEXT PRIMARY KEY,
+      heartbeat_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_job_worker_heartbeats_at ON job_worker_heartbeats(heartbeat_at DESC);
   `);
 
   statements = {
@@ -147,10 +153,17 @@ function initializeJobStore() {
       FROM jobs
     `),
     activeWorkers: database.prepare(`
-      SELECT COUNT(DISTINCT worker_id) AS count
-      FROM jobs
-      WHERE status = 'running' AND worker_id IS NOT NULL AND worker_id != ''
+      SELECT COUNT(*) AS count
+      FROM job_worker_heartbeats
+      WHERE heartbeat_at >= ?
     `),
+    upsertWorkerHeartbeat: database.prepare(`
+      INSERT INTO job_worker_heartbeats (worker_id, heartbeat_at, created_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(worker_id) DO UPDATE SET
+        heartbeat_at = excluded.heartbeat_at
+    `),
+    pruneWorkerHeartbeats: database.prepare("DELETE FROM job_worker_heartbeats WHERE heartbeat_at < ?"),
     nextRetry: database.prepare(`
       SELECT next_retry_at
       FROM jobs
@@ -160,6 +173,7 @@ function initializeJobStore() {
     `),
     queuedCount: database.prepare("SELECT COUNT(*) AS count FROM jobs WHERE status = 'queued'"),
     deleteAllJobs: database.prepare("DELETE FROM jobs"),
+    deleteWorkerHeartbeats: database.prepare("DELETE FROM job_worker_heartbeats"),
     pruneTerminalJobs: database.prepare(`
       DELETE FROM jobs
       WHERE id IN (
@@ -409,6 +423,7 @@ function getQueueCounts() {
 
 function getQueueHealthCounts(staleThresholdMs) {
   openJobStore();
+  const activeWorkerCutoffIso = new Date(Date.now() - 10_000).toISOString();
   const counts = statements.queueHealth.get({
     nowIso: new Date().toISOString(),
     staleIso: new Date(Date.now() - staleThresholdMs).toISOString(),
@@ -419,7 +434,7 @@ function getQueueHealthCounts(staleThresholdMs) {
     queued: Number(counts.queued || 0),
     scheduledRetries: Number(counts.scheduled_retries || 0),
     staleRunning: Number(counts.stale_running || 0),
-    activeWorkers: Number((statements.activeWorkers.get() || {}).count || 0),
+    activeWorkers: Number((statements.activeWorkers.get(activeWorkerCutoffIso) || {}).count || 0),
   };
 }
 
@@ -441,9 +456,26 @@ function closeJobStore() {
   }
 }
 
+function recordWorkerHeartbeat(workerId, heartbeatAt = new Date().toISOString()) {
+  openJobStore();
+  const normalizedWorkerId = String(workerId || "").trim();
+  if (!normalizedWorkerId) {
+    return null;
+  }
+
+  const normalizedHeartbeatAt = new Date(heartbeatAt).toISOString();
+  statements.upsertWorkerHeartbeat.run(normalizedWorkerId, normalizedHeartbeatAt, normalizedHeartbeatAt);
+  statements.pruneWorkerHeartbeats.run(new Date(Date.now() - 10 * 60_000).toISOString());
+  return {
+    workerId: normalizedWorkerId,
+    heartbeatAt: normalizedHeartbeatAt,
+  };
+}
+
 function clearJobs() {
   openJobStore();
   statements.deleteAllJobs.run();
+  statements.deleteWorkerHeartbeats.run();
   try {
     fs.rmSync(JOBS_PATH, { force: true });
   } catch {}
@@ -461,6 +493,7 @@ module.exports = {
   getQueueHealthCounts,
   getQueuedCount,
   getNextRetryAt,
+  recordWorkerHeartbeat,
   closeJobStore,
   clearJobs,
   normalizeEvents,

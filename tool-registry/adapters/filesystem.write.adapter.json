@@ -1,0 +1,10 @@
+{
+  "adapterId": "filesystem.write.adapter",
+  "toolId": "filesystem.write",
+  "version": "1.0.0",
+  "adapterType": "builtin",
+  "importPath": "@/tools/filesystem_write",
+  "runtimeHandler": "runFilesystemWrite",
+  "dryRunHandler": "dryRunFilesystemWrite",
+  "rollbackHandler": "rollbackFilesystemWrite"
+}

@@ -7,7 +7,12 @@ vi.mock("@/src/server/db/prisma", () => ({
     insight: { findMany: vi.fn() },
     activityEvent: { findMany: vi.fn() },
     source: { findMany: vi.fn() },
+    alert: { findFirst: vi.fn() },
   },
+}));
+
+vi.mock("@/src/server/feature-flags/feature-flag-service", () => ({
+  isFeatureEnabled: vi.fn().mockResolvedValue(false),
 }));
 
 import { prisma } from "@/src/server/db/prisma";

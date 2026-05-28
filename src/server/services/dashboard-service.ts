@@ -1,4 +1,5 @@
 import { prisma } from "@/src/server/db/prisma";
+import { isFeatureEnabled } from "@/src/server/feature-flags/feature-flag-service";
 import type { DashboardSnapshot } from "@/src/types/platform";
 
 function relativeTime(date: Date) {
@@ -23,7 +24,8 @@ function toneFromSeverity(severity?: string) {
 }
 
 export async function buildDashboardSnapshot(workspaceId: string): Promise<DashboardSnapshot> {
-  const [workspace, updates, insights, activity, sources, activeTopAlert] = await Promise.all([
+  const alertsEnabled = await isFeatureEnabled("alerts_v2", workspaceId);
+  const [workspace, updates, insights, activity, sources, activeTopAlert, latestAlert] = await Promise.all([
     prisma.workspace.findUniqueOrThrow({
       where: { id: workspaceId },
       include: { members: true },
@@ -57,6 +59,12 @@ export async function buildDashboardSnapshot(workspaceId: string): Promise<Dashb
       },
       orderBy: { happenedAt: "desc" },
     }),
+    alertsEnabled
+      ? prisma.alert.findFirst({
+          where: { workspaceId, status: "unread" },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve(null),
   ]);
 
   const highSeverityCount = updates.filter(
@@ -153,15 +161,24 @@ export async function buildDashboardSnapshot(workspaceId: string): Promise<Dashb
       tone: index === 0 ? "highlight" : "default",
       href: "/reports",
     })),
-    topAlert: activeTopAlert
+    topAlert: latestAlert
       ? {
-          id: activeTopAlert.id,
-          title: activeTopAlert.title,
-          type: activeTopAlert.category,
-          severity: activeTopAlert.severity,
+          id: latestAlert.id,
+          title: latestAlert.title,
+          type: latestAlert.type,
+          severity: latestAlert.severity,
           owner: null,
           href: "/reports",
         }
-      : null,
+      : activeTopAlert
+        ? {
+            id: activeTopAlert.id,
+            title: activeTopAlert.title,
+            type: activeTopAlert.category,
+            severity: activeTopAlert.severity,
+            owner: null,
+            href: "/reports",
+          }
+        : null,
   };
 }

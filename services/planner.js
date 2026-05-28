@@ -21,6 +21,19 @@ function makeMultiStep(steps, extra = {}) {
   };
 }
 
+function attachPlannerMetadata(plan, input, modes = {}) {
+  if (!plan || typeof plan !== "object") {
+    return plan;
+  }
+
+  return {
+    ...plan,
+    originalRequest: String(plan.originalRequest || input || "").trim(),
+    plannerVersion: 2,
+    modes: plan.modes || modes,
+  };
+}
+
 function parseWriteCommand(input) {
   const match = input.match(/^write\s+(.+?)\s*:\s*([\s\S]+)$/i);
   if (!match) return null;
@@ -157,7 +170,7 @@ async function createPlan(input, memory, modes = {}) {
   const intent = classifyIntent(input);
 
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "your_api_key_here") {
-    return buildFallbackPlan(input, modes);
+    return attachPlannerMetadata(buildFallbackPlan(input, modes), input, modes);
   }
 
   try {
@@ -292,22 +305,22 @@ ${JSON.stringify(memory || {}, null, 2)}
     const content = response.choices?.[0]?.message?.content?.trim();
 
     if (!content) {
-      return buildFallbackPlan(input, modes);
+      return attachPlannerMetadata(buildFallbackPlan(input, modes), input, modes);
     }
 
     const parsed = JSON.parse(content);
 
     if (!parsed.type) {
-      return buildFallbackPlan(input, modes);
+      return attachPlannerMetadata(buildFallbackPlan(input, modes), input, modes);
     }
 
-    return {
+    return attachPlannerMetadata({
       ...parsed,
       intent: parsed.intent || intent,
       modes,
-    };
+    }, input, modes);
   } catch (error) {
-    return buildFallbackPlan(input, modes);
+    return attachPlannerMetadata(buildFallbackPlan(input, modes), input, modes);
   }
 }
 

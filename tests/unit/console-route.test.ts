@@ -77,6 +77,82 @@ describe("console route", () => {
     );
   });
 
+  it("forwards confirmed console requests for authenticated users", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({
+      id: "user_1",
+      email: "operator@example.com",
+      name: "Operator",
+      role: "admin",
+      status: "active",
+      workspaceId: "workspace_1",
+      workspaceName: "Pulse Workspace",
+    });
+    vi.mocked(executeTerminalRequest).mockResolvedValue({
+      ok: true,
+      output: "plugin ran",
+      overview: {},
+    } as never);
+
+    const response = await POST(
+      new Request("http://localhost/api/console", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: "run plugin helloPlugin", confirmed: true }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect(executeTerminalRequest).toHaveBeenCalledWith(
+      { command: "run plugin helloPlugin", confirmed: true },
+      expect.objectContaining({ id: "user_1" }),
+    );
+  });
+
+  it("forwards operator override acknowledgments through the api review surface", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({
+      id: "user_1",
+      email: "operator@example.com",
+      name: "Operator",
+      role: "admin",
+      status: "active",
+      workspaceId: "workspace_1",
+      workspaceName: "Pulse Workspace",
+    });
+    vi.mocked(executeTerminalRequest).mockResolvedValue({
+      ok: true,
+      output: "override accepted",
+      overview: {},
+    } as never);
+
+    const response = await POST(
+      new Request("http://localhost/api/console", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "workflow:create-task",
+          payload: { agentName: "researcher", description: "Trace signal drift" },
+          confirmed: true,
+          operatorOverride: { planId: "plan_1", acknowledgment: "BLOCKED_STATE" },
+        }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect(executeTerminalRequest).toHaveBeenCalledWith(
+      {
+        action: "workflow:create-task",
+        payload: { agentName: "researcher", description: "Trace signal drift" },
+        confirmed: true,
+        operatorOverride: { planId: "plan_1", acknowledgment: "BLOCKED_STATE" },
+      },
+      expect.objectContaining({ id: "user_1" }),
+    );
+  });
+
   it("rejects anonymous requests", async () => {
     vi.mocked(getSessionUser).mockResolvedValue(null);
 

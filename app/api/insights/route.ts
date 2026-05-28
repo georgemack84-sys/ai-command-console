@@ -5,6 +5,8 @@ import { getWorkspaceSnapshot } from "@/src/server/services/workspace-service";
 import { generateWorkspaceInsights } from "@/src/server/services/insight-service";
 import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
 import { z } from "zod";
+import { trackEvent } from "@/src/server/observability/analytics";
+import { requireWorkspaceViewer, requireWorkspaceMember } from "@/src/server/auth/permissions";
 
 const postSchema = z.object({
   async: z.boolean().optional(),
@@ -17,6 +19,7 @@ export async function GET() {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const snapshot = await getWorkspaceSnapshot(user.workspaceId);
     return apiSuccess({ insights: snapshot.insights });
   } catch (error) {
@@ -31,6 +34,7 @@ export async function POST(request: Request) {
       throw new AppError(401, "unauthorized", "Authentication required.");
     }
 
+    await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = postSchema.parse(await request.json().catch(() => ({})));
     if (body.async) {
       const job = queueBackgroundJob(
@@ -38,10 +42,24 @@ export async function POST(request: Request) {
         { workspaceId: user.workspaceId },
         { actorId: user.id, actorName: user.name },
       );
+      trackEvent({
+        event: "insight_generation_requested",
+        actorId: user.id,
+        workspaceId: user.workspaceId,
+        properties: { jobId: job.id },
+      });
       return apiSuccess({ job }, { status: 202 });
     }
 
     const insights = await generateWorkspaceInsights(user.workspaceId);
+    if (insights.length) {
+      trackEvent({
+        event: "insight_generated",
+        actorId: user.id,
+        workspaceId: user.workspaceId,
+        properties: { count: insights.length },
+      });
+    }
     return apiSuccess({ insights }, { status: 201 });
   } catch (error) {
     return apiError(error, "Unable to generate insights.");
