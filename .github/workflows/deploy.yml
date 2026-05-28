@@ -56,6 +56,7 @@ jobs:
       DEPLOY_VALIDATION_PATHS: ${{ vars.DEPLOY_VALIDATION_PATHS }}
       DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_TELEMETRY_DIR: artifacts/deployment-telemetry
 
     steps:
       - name: Resolve deployment metadata
@@ -98,6 +99,94 @@ jobs:
         with:
           ref: ${{ steps.metadata.outputs.source_sha }}
 
+      - name: Emit deployment telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deploy_start --step "Check out repository" --partition checkout --state RUNNING --certificateStatus UNVERIFIED
+
+      - name: Emit certificate verification telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event certificate_verify_start --step "Certificate verification" --partition certificate_verify --lastCompletedPartition checkout --state PROGRESSING --certificateStatus UNVERIFIED
+
+      - name: Verify deployment certificate
+        id: certificate_verify
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-certificate-verify.cjs verify --certificate release-evidence/certificate.json --commit "${{ steps.metadata.outputs.source_sha }}" --workflowRunId "${{ github.run_id }}"
+
+      - name: Emit certificate verification telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event certificate_verify_complete --step "Certificate verification" --partition certificate_verify --lastCompletedPartition certificate_verify --state "${{ steps.certificate_verify.outputs.telemetry_state || 'DISPUTED' }}" --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'DISPUTED' }}" --failureClass "${{ steps.certificate_verify.outputs.failure_class }}"
+
+      - name: Emit certificate verification telemetry disputed
+        if: ${{ steps.metadata.outputs.rollback_release == '' && steps.certificate_verify.outputs.certificate_status != 'VALID' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event certificate_verify_disputed --step "Certificate verification" --partition certificate_verify --lastCompletedPartition certificate_verify --state DISPUTED --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'DISPUTED' }}" --failureClass "${{ steps.certificate_verify.outputs.failure_class || 'UNKNOWN_FAILURE' }}"
+
+      - name: Emit certificate verification telemetry failed
+        if: ${{ steps.metadata.outputs.rollback_release == '' && steps.certificate_verify.outcome == 'failure' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event certificate_verify_failed --step "Certificate verification" --partition certificate_verify --lastCompletedPartition certificate_verify --state DISPUTED --certificateStatus DISPUTED --failureClass UNKNOWN_FAILURE
+
+      - name: Emit checkpoint validation telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event checkpoint_validate_start --step "Checkpoint validation" --partition checkpoint_validate --lastCompletedPartition certificate_verify --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus UNVERIFIED --resumeEligibility UNVERIFIED
+
+      - name: Validate deployment checkpoint
+        id: checkpoint_validate
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-checkpoint-validate.cjs verify --checkpoint .codex-temp/test-release-progress.json --commit "${{ steps.metadata.outputs.source_sha }}" --workflowRunId "${{ github.run_id }}" --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --certificateId "${{ steps.certificate_verify.outputs.certificate_hash }}" --certificateHash "${{ steps.certificate_verify.outputs.certificate_hash }}"
+
+      - name: Emit checkpoint validation telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event checkpoint_validate_complete --step "Checkpoint validation" --partition checkpoint_validate --lastCompletedPartition checkpoint_validate --state "${{ steps.checkpoint_validate.outputs.telemetry_state || 'DISPUTED' }}" --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus "${{ steps.checkpoint_validate.outputs.checkpoint_status || 'DISPUTED' }}" --resumeEligibility "${{ steps.checkpoint_validate.outputs.resume_eligibility || 'DISPUTED' }}" --checkpointHash "${{ steps.checkpoint_validate.outputs.checkpoint_hash }}" --environmentHash "${{ steps.checkpoint_validate.outputs.environment_hash }}" --failureClass "${{ steps.checkpoint_validate.outputs.failure_class }}"
+
+      - name: Emit checkpoint validation telemetry disputed
+        if: ${{ steps.metadata.outputs.rollback_release == '' && steps.checkpoint_validate.outputs.checkpoint_status != 'SAFE' && steps.checkpoint_validate.outputs.checkpoint_status != 'NO_CHECKPOINT' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event checkpoint_validate_disputed --step "Checkpoint validation" --partition checkpoint_validate --lastCompletedPartition checkpoint_validate --state DISPUTED --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus "${{ steps.checkpoint_validate.outputs.checkpoint_status || 'DISPUTED' }}" --resumeEligibility "${{ steps.checkpoint_validate.outputs.resume_eligibility || 'DISPUTED' }}" --checkpointHash "${{ steps.checkpoint_validate.outputs.checkpoint_hash }}" --environmentHash "${{ steps.checkpoint_validate.outputs.environment_hash }}" --failureClass "${{ steps.checkpoint_validate.outputs.failure_class || 'UNKNOWN_FAILURE' }}"
+
+      - name: Emit checkpoint validation telemetry failed
+        if: ${{ steps.metadata.outputs.rollback_release == '' && steps.checkpoint_validate.outcome == 'failure' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event checkpoint_validate_failed --step "Checkpoint validation" --partition checkpoint_validate --lastCompletedPartition checkpoint_validate --state DISPUTED --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus DISPUTED --resumeEligibility DISPUTED --failureClass UNKNOWN_FAILURE
+
+      - name: Emit resume analysis telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event resume_analysis_complete --step "Resume analysis" --partition resume_analysis --lastCompletedPartition checkpoint_validate --state "${{ steps.checkpoint_validate.outputs.telemetry_state || 'DISPUTED' }}" --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus "${{ steps.checkpoint_validate.outputs.checkpoint_status || 'DISPUTED' }}" --resumeEligibility "${{ steps.checkpoint_validate.outputs.resume_eligibility || 'DISPUTED' }}" --checkpointHash "${{ steps.checkpoint_validate.outputs.checkpoint_hash }}" --environmentHash "${{ steps.checkpoint_validate.outputs.environment_hash }}" --failureClass "${{ steps.checkpoint_validate.outputs.failure_class }}"
+
+      - name: Emit deployment decision telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deployment_decision_start --step "Deployment decision" --partition deployment_decision --lastCompletedPartition resume_analysis --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus "${{ steps.checkpoint_validate.outputs.checkpoint_status || 'UNVERIFIED' }}" --resumeEligibility "${{ steps.checkpoint_validate.outputs.resume_eligibility || 'UNVERIFIED' }}" --checkpointHash "${{ steps.checkpoint_validate.outputs.checkpoint_hash }}" --environmentHash "${{ steps.checkpoint_validate.outputs.environment_hash }}" --deploymentDecision DISPUTED --deploymentRisk UNKNOWN --decisionPolicyVersion dh-deployment-decision/v1 --decisionReasons "DECISION_NOT_EVALUATED"
+
+      - name: Evaluate deployment decision
+        id: deployment_decision
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-decision-engine.cjs evaluate --evidence-dir artifacts/deployment-telemetry --output-dir artifacts/deployment-telemetry
+
+      - name: Emit deployment decision telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deployment_decision_complete --step "Deployment decision" --partition deployment_decision --lastCompletedPartition deployment_decision --state "${{ steps.deployment_decision.outputs.telemetry_state || 'DISPUTED' }}" --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus "${{ steps.checkpoint_validate.outputs.checkpoint_status || 'UNVERIFIED' }}" --resumeEligibility "${{ steps.checkpoint_validate.outputs.resume_eligibility || 'UNVERIFIED' }}" --checkpointHash "${{ steps.checkpoint_validate.outputs.checkpoint_hash }}" --environmentHash "${{ steps.checkpoint_validate.outputs.environment_hash }}" --failureClass "${{ steps.deployment_decision.outputs.failure_class }}" --deploymentDecision "${{ steps.deployment_decision.outputs.deployment_decision || 'DISPUTED' }}" --deploymentRisk "${{ steps.deployment_decision.outputs.deployment_risk || 'UNKNOWN' }}" --decisionPolicyVersion "${{ steps.deployment_decision.outputs.decision_policy_version || 'dh-deployment-decision/v1' }}" --decisionReasons "${{ steps.deployment_decision.outputs.decision_reasons }}"
+
+      - name: Emit deployment decision telemetry disputed
+        if: ${{ steps.metadata.outputs.rollback_release == '' && steps.deployment_decision.outputs.deployment_decision == 'DISPUTED' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deployment_decision_disputed --step "Deployment decision" --partition deployment_decision --lastCompletedPartition deployment_decision --state DISPUTED --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus "${{ steps.checkpoint_validate.outputs.checkpoint_status || 'DISPUTED' }}" --resumeEligibility "${{ steps.checkpoint_validate.outputs.resume_eligibility || 'DISPUTED' }}" --checkpointHash "${{ steps.checkpoint_validate.outputs.checkpoint_hash }}" --environmentHash "${{ steps.checkpoint_validate.outputs.environment_hash }}" --failureClass "${{ steps.deployment_decision.outputs.failure_class || 'UNKNOWN_FAILURE' }}" --deploymentDecision DISPUTED --deploymentRisk UNKNOWN --decisionPolicyVersion "${{ steps.deployment_decision.outputs.decision_policy_version || 'dh-deployment-decision/v1' }}" --decisionReasons "${{ steps.deployment_decision.outputs.decision_reasons }}"
+
+      - name: Emit deployment decision telemetry failed
+        if: ${{ steps.metadata.outputs.rollback_release == '' && steps.deployment_decision.outcome == 'failure' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deployment_decision_failed --step "Deployment decision" --partition deployment_decision --lastCompletedPartition deployment_decision --state DISPUTED --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus DISPUTED --resumeEligibility DISPUTED --failureClass UNKNOWN_FAILURE --deploymentDecision DISPUTED --deploymentRisk UNKNOWN --decisionPolicyVersion dh-deployment-decision/v1 --decisionReasons "DECISION_ENGINE_ERROR"
+
       - name: Guard production branch
         if: ${{ github.event_name == 'workflow_dispatch' && steps.metadata.outputs.target_environment == 'production' }}
         shell: bash
@@ -114,32 +203,92 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Emit install telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event install_start --step "Install dependencies" --partition install --lastCompletedPartition deployment_decision --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --checkpointStatus "${{ steps.checkpoint_validate.outputs.checkpoint_status || 'UNVERIFIED' }}" --resumeEligibility "${{ steps.checkpoint_validate.outputs.resume_eligibility || 'UNVERIFIED' }}" --checkpointHash "${{ steps.checkpoint_validate.outputs.checkpoint_hash }}" --environmentHash "${{ steps.checkpoint_validate.outputs.environment_hash }}" --deploymentDecision "${{ steps.deployment_decision.outputs.deployment_decision || 'DISPUTED' }}" --deploymentRisk "${{ steps.deployment_decision.outputs.deployment_risk || 'UNKNOWN' }}" --decisionPolicyVersion "${{ steps.deployment_decision.outputs.decision_policy_version || 'dh-deployment-decision/v1' }}" --decisionReasons "${{ steps.deployment_decision.outputs.decision_reasons }}"
+
       - name: Install dependencies
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
         run: npm ci
+
+      - name: Emit install telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event install_complete --step "Install dependencies" --partition install --lastCompletedPartition install --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Emit deploy config telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deploy_config_start --step "Validate deploy configuration" --partition deploy_config --lastCompletedPartition install --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
 
       - name: Validate deploy configuration
         run: npm run validate:deploy-config
         env:
           DEPLOY_TARGET_ENVIRONMENT: ${{ steps.metadata.outputs.target_environment }}
 
+      - name: Emit deploy config telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deploy_config_complete --step "Validate deploy configuration" --partition deploy_config --lastCompletedPartition deploy_config --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Emit preflight telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event preflight_start --step "Run preflight" --partition preflight --lastCompletedPartition deploy_config --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
       - name: Run preflight
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
         run: npm run preflight
+
+      - name: Emit preflight telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event preflight_complete --step "Run preflight" --partition preflight --lastCompletedPartition preflight --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
 
       - name: Lint
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
         run: npm run lint
 
+      - name: Emit release test telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event release_test_start --step "Test" --partition test:release --lastCompletedPartition lint --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Emit release test telemetry heartbeat
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event release_test_running --step "Test" --partition test:release --lastCompletedPartition lint --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
       - name: Test
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
         run: npm run test:release
+
+      - name: Emit release test telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event release_test_complete --step "Test" --partition test:release --lastCompletedPartition test:release --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Emit build telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event build_start --step "Build standalone bundle" --partition build --lastCompletedPartition test:release --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
 
       - name: Build standalone bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
         env:
           NODE_ENV: production
         run: npm run build
+
+      - name: Emit build telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event build_complete --step "Build standalone bundle" --partition build --lastCompletedPartition build --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Emit bundle telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event bundle_start --step "Assemble deploy bundle" --partition bundle --lastCompletedPartition build --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
 
       - name: Assemble deploy bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
@@ -164,6 +313,16 @@ jobs:
           EOF
           tar -czf "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz" -C release .
 
+      - name: Emit bundle telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event bundle_complete --step "Assemble deploy bundle" --partition bundle --lastCompletedPartition bundle --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --artifact "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz"
+
+      - name: Emit artifact upload telemetry start
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event artifact_upload_start --step "Upload deploy bundle" --partition artifact_upload --lastCompletedPartition bundle --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --artifact "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz"
+
       - name: Upload deploy bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
         uses: actions/upload-artifact@v6
@@ -171,6 +330,16 @@ jobs:
           name: ai-command-console-release-${{ steps.metadata.outputs.release_version }}
           path: ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz
           if-no-files-found: error
+
+      - name: Emit artifact upload telemetry complete
+        if: ${{ steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event artifact_upload_complete --step "Upload deploy bundle" --partition artifact_upload --lastCompletedPartition artifact_upload --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}" --artifact "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz"
+
+      - name: Emit SSH deploy telemetry start
+        if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' && steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event ssh_deploy_start --step "Deploy over SSH" --partition ssh_deploy --lastCompletedPartition artifact_upload --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
 
       - name: Deploy over SSH
         if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
@@ -213,6 +382,16 @@ jobs:
               if [ -n \"$DEPLOY_RESTART_COMMAND\" ]; then eval \"$DEPLOY_RESTART_COMMAND\"; fi"
           fi
 
+      - name: Emit SSH deploy telemetry complete
+        if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' && steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event ssh_deploy_complete --step "Deploy over SSH" --partition ssh_deploy --lastCompletedPartition ssh_deploy --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Emit smoke telemetry start
+        if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' && steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event smoke_start --step "Post-deploy smoke check" --partition smoke --lastCompletedPartition ssh_deploy --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
       - name: Post-deploy smoke check
         if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
         env:
@@ -226,6 +405,11 @@ jobs:
             export DEPLOY_VALIDATION_PATHS="$DEPLOY_HEALTHCHECK_PATH"
           fi
           npm run validate:deploy
+
+      - name: Emit smoke telemetry complete
+        if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' && steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event smoke_complete --step "Post-deploy smoke check" --partition smoke --lastCompletedPartition smoke --state PROGRESSING --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
 
       - name: Prune old remote releases
         if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
@@ -262,6 +446,25 @@ jobs:
               fi; \
               rm -rf \"\$RELEASE_ROOT/\$RELEASE_DIR\"; \
             done"
+
+      - name: Emit deployment telemetry complete
+        if: ${{ success() && steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deploy_complete --step "Summarize deployment" --partition complete --lastCompletedPartition smoke --state PASSED --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Emit deployment telemetry failed
+        if: ${{ failure() && steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        run: node scripts/deploy-telemetry.cjs emit --event deploy_failed --step "Deploy workflow" --partition failed --state FAILED --failureSignal "deploy workflow failed" --certificateStatus "${{ steps.certificate_verify.outputs.certificate_status || 'UNVERIFIED' }}"
+
+      - name: Upload deployment telemetry
+        if: ${{ always() && steps.metadata.outputs.rollback_release == '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: deployment-telemetry-${{ steps.metadata.outputs.release_version }}
+          path: artifacts/deployment-telemetry/
+          if-no-files-found: ignore
 
       - name: Summarize deployment
         shell: bash

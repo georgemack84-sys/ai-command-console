@@ -1,0 +1,201 @@
+import React from "react";
+import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { DeploymentHardeningDashboard } from "@/components/deployment-hardening/DeploymentHardeningDashboard";
+import type { DeploymentHardeningReadModel } from "@/services/deployment-hardening/deploymentHardeningReadModel";
+
+function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): DeploymentHardeningReadModel {
+  return {
+    workflowId: "deploy",
+    deploymentId: "run_100",
+    commitSha: "abc123",
+    overallState: "PROGRESSING",
+    certificateStatus: "VALID",
+    checkpointStatus: "SAFE",
+    resumeEligibility: "ELIGIBLE",
+    deploymentDecision: "ALLOW",
+    deploymentRisk: "LOW",
+    currentStep: "release_test",
+    currentPartition: "unit-1",
+    lastCompletedPartition: "unit-0",
+    heartbeatAt: "2026-05-28T12:00:00.000Z",
+    staleHeartbeat: false,
+    evidenceAvailable: true,
+    disputedReasons: [],
+    enforcementMode: "READ_ONLY",
+    artifacts: [
+      {
+        name: "certificate-verification.json",
+        path: "artifacts/deployment-telemetry/certificate-verification.json",
+        available: true,
+        malformed: false,
+        hash: "sha256:cert",
+        reason: null,
+      },
+      {
+        name: "checkpoint-validation.json",
+        path: "artifacts/deployment-telemetry/checkpoint-validation.json",
+        available: true,
+        malformed: false,
+        hash: "sha256:checkpoint",
+        reason: null,
+      },
+    ],
+    timeline: [
+      {
+        event: "deploy_start",
+        timestamp: "2026-05-28T11:59:00.000Z",
+        workflowId: "deploy",
+        deploymentId: "run_100",
+        commitSha: "abc123",
+        state: "RUNNING",
+        currentStep: "deploy_start",
+        currentPartition: "deploy_start",
+        lastCompletedPartition: "none",
+        certificateStatus: "UNVERIFIED",
+        checkpointStatus: "UNVERIFIED",
+        resumeEligibility: "UNVERIFIED",
+        deploymentDecision: "DISPUTED",
+        deploymentRisk: "UNKNOWN",
+        failureClass: null,
+      },
+      {
+        event: "deployment_decision_complete",
+        timestamp: "2026-05-28T12:00:00.000Z",
+        workflowId: "deploy",
+        deploymentId: "run_100",
+        commitSha: "abc123",
+        state: "PROGRESSING",
+        currentStep: "deployment_decision",
+        currentPartition: "deployment_decision",
+        lastCompletedPartition: "checkpoint_validate",
+        certificateStatus: "VALID",
+        checkpointStatus: "SAFE",
+        resumeEligibility: "ELIGIBLE",
+        deploymentDecision: "ALLOW",
+        deploymentRisk: "LOW",
+        failureClass: null,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+describe("DeploymentHardeningDashboard", () => {
+  it("renders valid deployment state", () => {
+    render(React.createElement(DeploymentHardeningDashboard, { model: createModel() }));
+
+    expect(screen.getByTestId("deployment-hardening-dashboard")).toHaveTextContent("Operator visibility");
+    expect(screen.getByTestId("deployment-status-panel")).toHaveTextContent("PROGRESSING");
+    expect(screen.getAllByText("READ_ONLY").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("ENFORCEMENT_DISABLED").length).toBeGreaterThan(0);
+  });
+
+  it("renders missing certificate evidence without inferring safety", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({
+        overallState: "DISPUTED",
+        certificateStatus: "MISSING",
+        evidenceAvailable: false,
+        disputedReasons: ["EVIDENCE_MISSING:certificate-verification.json"],
+      }),
+    }));
+
+    expect(screen.getByTestId("certificate-panel")).toHaveTextContent("MISSING");
+    expect(screen.getAllByText("Evidence incomplete. Do not infer safety.").length).toBeGreaterThan(0);
+  });
+
+  it("renders invalid certificate status", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ certificateStatus: "INVALID", overallState: "DISPUTED" }),
+    }));
+
+    expect(screen.getByTestId("certificate-panel")).toHaveTextContent("INVALID");
+    expect(screen.getByText("Certificate evidence is not sufficient for safety inference.")).toBeVisible();
+  });
+
+  it("renders unsafe checkpoint and drift visibility", () => {
+    const { rerender } = render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ checkpointStatus: "UNSAFE", resumeEligibility: "INELIGIBLE", overallState: "DISPUTED" }),
+    }));
+
+    expect(screen.getByTestId("checkpoint-panel")).toHaveTextContent("UNSAFE");
+    expect(screen.getByTestId("checkpoint-panel")).toHaveTextContent("INELIGIBLE");
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ checkpointStatus: "DRIFTED", resumeEligibility: "INELIGIBLE", overallState: "DISPUTED" }),
+    }));
+
+    expect(screen.getByTestId("checkpoint-panel")).toHaveTextContent("DRIFTED");
+    expect(screen.getByTestId("checkpoint-panel")).toHaveTextContent("Detected");
+  });
+
+  it("renders block recommendation as recommendation only", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ deploymentDecision: "BLOCK_RECOMMENDED", deploymentRisk: "CRITICAL" }),
+    }));
+
+    expect(screen.getByTestId("decision-panel")).toHaveTextContent("BLOCK_RECOMMENDED");
+    expect(screen.getByText("recommendation only")).toBeVisible();
+  });
+
+  it("renders disputed decision as operator review required", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ deploymentDecision: "DISPUTED", deploymentRisk: "UNKNOWN", disputedReasons: ["UNKNOWN_STATE"] }),
+    }));
+
+    expect(screen.getByTestId("decision-panel")).toHaveTextContent("DISPUTED");
+    expect(screen.getByText("operator review required")).toBeVisible();
+    expect(screen.getByText("UNKNOWN_STATE")).toBeVisible();
+  });
+
+  it("handles missing artifacts", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({
+        evidenceAvailable: false,
+        artifacts: [
+          {
+            name: "deployment-evidence.json",
+            path: "artifacts/deployment-telemetry/deployment-evidence.json",
+            available: false,
+            malformed: false,
+            hash: null,
+            reason: "missing",
+          },
+        ],
+      }),
+    }));
+
+    expect(screen.getByTestId("evidence-panel")).toHaveTextContent("missing");
+    expect(screen.getAllByText("Evidence incomplete. Do not infer safety.").length).toBeGreaterThan(0);
+  });
+
+  it("handles malformed artifacts", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({
+        evidenceAvailable: false,
+        artifacts: [
+          {
+            name: "deployment-decision.json",
+            path: "artifacts/deployment-telemetry/deployment-decision.json",
+            available: true,
+            malformed: true,
+            hash: null,
+            reason: "malformed",
+          },
+        ],
+      }),
+    }));
+
+    expect(screen.getByTestId("evidence-panel")).toHaveTextContent("malformed");
+  });
+
+  it("renders timeline ordering deterministically from the supplied read model", () => {
+    render(React.createElement(DeploymentHardeningDashboard, { model: createModel() }));
+
+    const timeline = screen.getByTestId("telemetry-timeline");
+    const items = within(timeline).getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("deploy_start");
+    expect(items[1]).toHaveTextContent("deployment_decision_complete");
+  });
+});
