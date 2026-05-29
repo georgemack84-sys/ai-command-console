@@ -49,6 +49,14 @@ export function DeploymentStatusPanel({ model }: { model: DeploymentHardeningRea
           <dt className="text-slate-400">Blocked</dt>
           <dd>{model.blocked ? "true" : "false"}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Override Mode</dt>
+          <dd>{model.overrideMode}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Override Decision</dt>
+          <dd>{model.overrideDecision}</dd>
+        </div>
       </dl>
       {model.blocked ? (
         <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
@@ -58,6 +66,21 @@ export function DeploymentStatusPanel({ model }: { model: DeploymentHardeningRea
       {model.staleHeartbeat ? (
         <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
           Heartbeat is stale or missing. Operator review is required before inferring safety.
+        </p>
+      ) : null}
+      {model.overrideDecision === "OVERRIDE_VALID" ? (
+        <p className="mt-4 rounded border border-emerald-400/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-100">
+          Deployment continued under governed override.
+        </p>
+      ) : null}
+      {model.overrideDecision === "REQUEST_CREATED" ? (
+        <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
+          Approval request created. Deployment remains blocked.
+        </p>
+      ) : null}
+      {model.overrideDecision === "OVERRIDE_EXPIRED" ? (
+        <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
+          Override expired. Deployment remains blocked.
         </p>
       ) : null}
     </section>

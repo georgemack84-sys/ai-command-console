@@ -77,6 +77,21 @@ const ALLOWED_ENFORCEMENT_DECISIONS = new Set([
   "DISPUTED_NO_BLOCK",
 ]);
 
+const ALLOWED_OVERRIDE_MODES = new Set([
+  "OVERRIDE_DISABLED",
+  "OVERRIDE_REQUEST_ONLY",
+  "OVERRIDE_ALLOWED_WITH_ARTIFACT",
+]);
+
+const ALLOWED_OVERRIDE_DECISIONS = new Set([
+  "NO_OVERRIDE",
+  "REQUEST_CREATED",
+  "OVERRIDE_VALID",
+  "OVERRIDE_REJECTED",
+  "OVERRIDE_EXPIRED",
+  "OVERRIDE_DISPUTED",
+]);
+
 const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "workflowId",
   "deploymentId",
@@ -99,6 +114,14 @@ const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "enforcementPolicyVersion",
   "enforcementReasons",
   "blocked",
+  "overrideMode",
+  "overrideDecision",
+  "overridePolicyVersion",
+  "operatorId",
+  "overrideExpiresAt",
+  "overrideReasons",
+  "sourceEnforcementDecision",
+  "sourceBlocked",
   "attemptCount",
   "state",
 ]);
@@ -198,6 +221,19 @@ function normalizeEnforcementDecision(value) {
   return ALLOWED_ENFORCEMENT_DECISIONS.has(normalized) ? normalized : "DISPUTED_NO_BLOCK";
 }
 
+function normalizeOverrideMode(value) {
+  const normalized = String(value || "OVERRIDE_REQUEST_ONLY").trim().toUpperCase().replace(/-/g, "_");
+  if (normalized === "DISABLED") return "OVERRIDE_DISABLED";
+  if (normalized === "REQUEST_ONLY") return "OVERRIDE_REQUEST_ONLY";
+  if (normalized === "ALLOWED_WITH_ARTIFACT") return "OVERRIDE_ALLOWED_WITH_ARTIFACT";
+  return ALLOWED_OVERRIDE_MODES.has(normalized) ? normalized : "OVERRIDE_REQUEST_ONLY";
+}
+
+function normalizeOverrideDecision(value) {
+  const normalized = String(value || "NO_OVERRIDE").trim().toUpperCase();
+  return ALLOWED_OVERRIDE_DECISIONS.has(normalized) ? normalized : "OVERRIDE_DISPUTED";
+}
+
 function normalizeBoolean(value) {
   if (typeof value === "boolean") return value;
   return String(value || "").trim().toLowerCase() === "true";
@@ -252,6 +288,14 @@ function buildTelemetryEvent(input, env = process.env) {
     enforcementReasons: normalizeDecisionReasons(input.enforcementReasons || env.DEPLOYMENT_ENFORCEMENT_REASONS),
     deterministicCauses: normalizeDecisionReasons(input.deterministicCauses || env.DEPLOYMENT_DETERMINISTIC_CAUSES),
     blocked: normalizeBoolean(input.blocked || env.DEPLOYMENT_BLOCKED),
+    overrideMode: normalizeOverrideMode(input.overrideMode || env.DH_OVERRIDE_MODE || env.DEPLOYMENT_OVERRIDE_MODE),
+    overrideDecision: normalizeOverrideDecision(input.overrideDecision || env.DEPLOYMENT_OVERRIDE_DECISION),
+    overridePolicyVersion: input.overridePolicyVersion || env.DEPLOYMENT_OVERRIDE_POLICY_VERSION || "",
+    operatorId: input.operatorId || env.DEPLOYMENT_OVERRIDE_OPERATOR_ID || "",
+    overrideExpiresAt: input.overrideExpiresAt || env.DEPLOYMENT_OVERRIDE_EXPIRES_AT || "",
+    overrideReasons: normalizeDecisionReasons(input.overrideReasons || env.DEPLOYMENT_OVERRIDE_REASONS),
+    sourceEnforcementDecision: normalizeEnforcementDecision(input.sourceEnforcementDecision || env.DEPLOYMENT_SOURCE_ENFORCEMENT_DECISION),
+    sourceBlocked: normalizeBoolean(input.sourceBlocked || env.DEPLOYMENT_SOURCE_BLOCKED),
     attemptCount: Number(input.attemptCount || env.GITHUB_RUN_ATTEMPT || 1),
     state: normalizeState(input.state),
     artifact: input.artifact,
@@ -297,6 +341,11 @@ function hashDeploymentTelemetryEvidence(evidence) {
     latestEnforcementMode: evidence.latestEnforcementMode,
     latestEnforcementDecision: evidence.latestEnforcementDecision,
     latestBlocked: evidence.latestBlocked,
+    latestOverrideMode: evidence.latestOverrideMode,
+    latestOverrideDecision: evidence.latestOverrideDecision,
+    latestOperatorId: evidence.latestOperatorId,
+    latestOverrideExpiresAt: evidence.latestOverrideExpiresAt,
+    latestSourceBlocked: evidence.latestSourceBlocked,
     telemetryEvents: evidence.telemetryEvents || [],
     artifactReferences: evidence.artifactReferences || [],
   };
@@ -325,6 +374,11 @@ function buildEvidence(events, generatedAt) {
     latestEnforcementMode: latest.enforcementMode || "WARN_ONLY",
     latestEnforcementDecision: latest.enforcementDecision || "WARN_CONTINUE",
     latestBlocked: Boolean(latest.blocked),
+    latestOverrideMode: latest.overrideMode || "OVERRIDE_REQUEST_ONLY",
+    latestOverrideDecision: latest.overrideDecision || "NO_OVERRIDE",
+    latestOperatorId: latest.operatorId || "",
+    latestOverrideExpiresAt: latest.overrideExpiresAt || "",
+    latestSourceBlocked: Boolean(latest.sourceBlocked),
     telemetryEvents: events,
     artifactReferences,
   };
@@ -354,6 +408,9 @@ function writeSummaryAndEvidence(options = {}) {
     latestEnforcementMode: latest.enforcementMode || "WARN_ONLY",
     latestEnforcementDecision: latest.enforcementDecision || "WARN_CONTINUE",
     latestBlocked: Boolean(latest.blocked),
+    latestOverrideMode: latest.overrideMode || "OVERRIDE_REQUEST_ONLY",
+    latestOverrideDecision: latest.overrideDecision || "NO_OVERRIDE",
+    latestSourceBlocked: Boolean(latest.sourceBlocked),
   };
   const evidence = buildEvidence(events, generatedAt);
 
@@ -420,6 +477,14 @@ function runCli() {
     enforcementReasons: args.enforcementReasons,
     deterministicCauses: args.deterministicCauses,
     blocked: args.blocked,
+    overrideMode: args.overrideMode,
+    overrideDecision: args.overrideDecision,
+    overridePolicyVersion: args.overridePolicyVersion,
+    operatorId: args.operatorId,
+    overrideExpiresAt: args.overrideExpiresAt,
+    overrideReasons: args.overrideReasons,
+    sourceEnforcementDecision: args.sourceEnforcementDecision,
+    sourceBlocked: args.sourceBlocked,
     artifact: args.artifact,
     startedAt: args.startedAt,
     timestamp: args.timestamp,
@@ -452,6 +517,8 @@ module.exports = {
   normalizeDeploymentRisk,
   normalizeEnforcementDecision,
   normalizeEnforcementMode,
+  normalizeOverrideDecision,
+  normalizeOverrideMode,
   normalizeResumeEligibility,
   normalizeState,
   readTelemetryEvents,

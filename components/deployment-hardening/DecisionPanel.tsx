@@ -39,7 +39,26 @@ export function DecisionPanel({ model }: { model: DeploymentHardeningReadModel }
           <dt className="text-slate-400">Enforcement Policy</dt>
           <dd>{model.enforcementPolicyVersion || "Unavailable"}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Override Mode</dt>
+          <dd>{model.overrideMode}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Override Decision</dt>
+          <dd>{model.overrideDecision}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Operator</dt>
+          <dd>{model.operatorId || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Override Expires</dt>
+          <dd>{model.overrideExpiresAt || "Unavailable"}</dd>
+        </div>
       </dl>
+      <p className="mt-4 rounded border border-slate-600 bg-slate-900/50 px-3 py-2 text-sm text-slate-200">
+        Override does not erase enforcement evidence.
+      </p>
       {model.enforcementMode === "WARN_ONLY" ? (
         <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
           Scoped enforcement is warning only. Deployment is not blocked.
@@ -65,6 +84,16 @@ export function DecisionPanel({ model }: { model: DeploymentHardeningReadModel }
           <p className="text-slate-400">Enforcement Reasons</p>
           <ul className="mt-1 space-y-1">
             {model.enforcementReasons.slice(0, 5).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {model.overrideReasons.length ? (
+        <div className="mt-4 text-sm text-slate-200">
+          <p className="text-slate-400">Override Reasons</p>
+          <ul className="mt-1 space-y-1">
+            {model.overrideReasons.slice(0, 5).map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>

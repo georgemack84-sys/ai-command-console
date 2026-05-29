@@ -17,6 +17,7 @@ function writeJson(filePath: string, value: unknown) {
 }
 
 function writeValidEvidence(dir: string) {
+  const heartbeatAt = new Date(Date.now() + 60_000).toISOString();
   const base = {
     workflowId: "deploy",
     deploymentId: "run_100",
@@ -24,12 +25,12 @@ function writeValidEvidence(dir: string) {
   };
   const first = {
     event: "deployment_decision_complete",
-    timestamp: "2026-05-28T12:00:00.000Z",
+    timestamp: heartbeatAt,
     ...base,
     currentStep: "deployment_decision",
     currentPartition: "decision",
     lastCompletedPartition: "checkpoint",
-    heartbeatAt: "2026-05-28T12:00:00.000Z",
+    heartbeatAt,
     certificateStatus: "VALID",
     checkpointStatus: "SAFE",
     resumeEligibility: "ELIGIBLE",
@@ -41,6 +42,14 @@ function writeValidEvidence(dir: string) {
     enforcementReasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
     deterministicCauses: [],
     blocked: false,
+    overrideMode: "OVERRIDE_REQUEST_ONLY",
+    overrideDecision: "NO_OVERRIDE",
+    overridePolicyVersion: "dh-override-governance/v1",
+    operatorId: "",
+    overrideExpiresAt: "",
+    overrideReasons: ["SOURCE_NOT_BLOCKED"],
+    sourceEnforcementDecision: "ALLOW_CONTINUE",
+    sourceBlocked: false,
     state: "PROGRESSING",
   };
   const earlier = {
@@ -120,6 +129,40 @@ function writeValidEvidence(dir: string) {
     reasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
     policyVersion: "dh-scoped-enforcement/v1",
   });
+  writeJson(path.join(dir, "deployment-override-governance.json"), {
+    ...base,
+    overrideMode: "OVERRIDE_REQUEST_ONLY",
+    overrideDecision: "NO_OVERRIDE",
+    sourceEnforcementDecision: "ALLOW_CONTINUE",
+    sourceBlocked: false,
+    operatorId: null,
+    approvalReason: null,
+    approvalArtifactHash: null,
+    expiresAt: null,
+    reasons: ["SOURCE_NOT_BLOCKED"],
+    policyVersion: "dh-override-governance/v1",
+  });
+  writeJson(path.join(dir, "deployment-override-request.json"), {
+    ...base,
+    sourceEnforcementDecision: "ALLOW_CONTINUE",
+    sourceBlocked: false,
+    sourceEnforcementHash: "sha256:enforcement",
+    requestedAt: "2026-05-28T12:00:00.000Z",
+    reasons: ["SOURCE_NOT_BLOCKED"],
+    policyVersion: "dh-override-governance/v1",
+  });
+  writeJson(path.join(dir, "deployment-override-summary.json"), {
+    ...base,
+    overrideMode: "OVERRIDE_REQUEST_ONLY",
+    overrideDecision: "NO_OVERRIDE",
+    sourceEnforcementDecision: "ALLOW_CONTINUE",
+    sourceBlocked: false,
+    operatorId: null,
+    approvalArtifactHash: null,
+    expiresAt: null,
+    reasons: ["SOURCE_NOT_BLOCKED"],
+    policyVersion: "dh-override-governance/v1",
+  });
 }
 
 describe("deployment hardening status API", () => {
@@ -154,6 +197,9 @@ describe("deployment hardening status API", () => {
     expect(payload.data.enforcementMode).toBe("WARN_ONLY");
     expect(payload.data.enforcementDecision).toBe("ALLOW_CONTINUE");
     expect(payload.data.blocked).toBe(false);
+    expect(payload.data.overrideMode).toBe("OVERRIDE_REQUEST_ONLY");
+    expect(payload.data.overrideDecision).toBe("NO_OVERRIDE");
+    expect(payload.data.sourceBlocked).toBe(false);
     expect(payload.data.timeline.map((event: { event: string }) => event.event)).toEqual([
       "deploy_start",
       "deployment_decision_complete",

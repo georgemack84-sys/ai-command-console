@@ -43,6 +43,14 @@ export type TimelineEvent = {
   enforcementReasons: string[];
   deterministicCauses: string[];
   blocked: boolean;
+  overrideMode: string;
+  overrideDecision: string;
+  overridePolicyVersion: string | null;
+  operatorId: string | null;
+  overrideExpiresAt: string | null;
+  overrideReasons: string[];
+  sourceEnforcementDecision: string;
+  sourceBlocked: boolean;
   failureClass: string | null;
 };
 
@@ -62,6 +70,16 @@ export type DeploymentHardeningReadModel = {
   enforcementReasons: string[];
   deterministicCauses: string[];
   blocked: boolean;
+  overrideMode: "OVERRIDE_DISABLED" | "OVERRIDE_REQUEST_ONLY" | "OVERRIDE_ALLOWED_WITH_ARTIFACT";
+  overrideDecision: string;
+  overridePolicyVersion: string | null;
+  operatorId: string | null;
+  approvalReasonPresent: boolean;
+  approvalArtifactHash: string | null;
+  overrideExpiresAt: string | null;
+  overrideReasons: string[];
+  sourceEnforcementDecision: string;
+  sourceBlocked: boolean;
   currentStep: string | null;
   currentPartition: string | null;
   lastCompletedPartition: string | null;
@@ -87,6 +105,9 @@ const REQUIRED_ARTIFACTS = Object.freeze([
   "deployment-decision-summary.json",
   "deployment-enforcement.json",
   "deployment-enforcement-summary.json",
+  "deployment-override-governance.json",
+  "deployment-override-request.json",
+  "deployment-override-summary.json",
 ]);
 
 const ALLOWED_STATES = new Set([
@@ -108,6 +129,8 @@ const ALLOWED_DECISIONS = new Set(["ALLOW", "OBSERVE", "PAUSE_RECOMMENDED", "ESC
 const ALLOWED_RISKS = new Set(["LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"]);
 const ALLOWED_ENFORCEMENT_MODES = new Set(["READ_ONLY", "WARN_ONLY", "ENFORCE_SCOPED"]);
 const ALLOWED_ENFORCEMENT_DECISIONS = new Set(["ALLOW_CONTINUE", "WARN_CONTINUE", "ENFORCE_BLOCK", "DISPUTED_NO_BLOCK"]);
+const ALLOWED_OVERRIDE_MODES = new Set(["OVERRIDE_DISABLED", "OVERRIDE_REQUEST_ONLY", "OVERRIDE_ALLOWED_WITH_ARTIFACT"]);
+const ALLOWED_OVERRIDE_DECISIONS = new Set(["NO_OVERRIDE", "REQUEST_CREATED", "OVERRIDE_VALID", "OVERRIDE_REJECTED", "OVERRIDE_EXPIRED", "OVERRIDE_DISPUTED"]);
 
 type ParsedArtifact = {
   name: string;
@@ -256,6 +279,14 @@ function normalizeTimelineEvent(record: Record<string, unknown>): TimelineEvent 
     enforcementReasons: normalizeStringList(record.enforcementReasons),
     deterministicCauses: normalizeStringList(record.deterministicCauses),
     blocked: normalizeBoolean(record.blocked),
+    overrideMode: normalizeEnum(record.overrideMode, ALLOWED_OVERRIDE_MODES, "OVERRIDE_REQUEST_ONLY"),
+    overrideDecision: normalizeEnum(record.overrideDecision, ALLOWED_OVERRIDE_DECISIONS, "NO_OVERRIDE"),
+    overridePolicyVersion: asString(record.overridePolicyVersion),
+    operatorId: asString(record.operatorId),
+    overrideExpiresAt: asString(record.overrideExpiresAt),
+    overrideReasons: normalizeStringList(record.overrideReasons),
+    sourceEnforcementDecision: normalizeEnum(record.sourceEnforcementDecision, ALLOWED_ENFORCEMENT_DECISIONS, "WARN_CONTINUE"),
+    sourceBlocked: normalizeBoolean(record.sourceBlocked),
     failureClass: asString(record.failureClass),
   };
 }
@@ -314,6 +345,9 @@ export function buildDeploymentHardeningReadModel(options: {
   const decisionSummary = isRecord(byName.get("deployment-decision-summary.json")?.data) ? byName.get("deployment-decision-summary.json")?.data as Record<string, unknown> : {};
   const enforcement = isRecord(byName.get("deployment-enforcement.json")?.data) ? byName.get("deployment-enforcement.json")?.data as Record<string, unknown> : {};
   const enforcementSummary = isRecord(byName.get("deployment-enforcement-summary.json")?.data) ? byName.get("deployment-enforcement-summary.json")?.data as Record<string, unknown> : {};
+  const overrideGovernance = isRecord(byName.get("deployment-override-governance.json")?.data) ? byName.get("deployment-override-governance.json")?.data as Record<string, unknown> : {};
+  const overrideRequest = isRecord(byName.get("deployment-override-request.json")?.data) ? byName.get("deployment-override-request.json")?.data as Record<string, unknown> : {};
+  const overrideSummary = isRecord(byName.get("deployment-override-summary.json")?.data) ? byName.get("deployment-override-summary.json")?.data as Record<string, unknown> : {};
 
   const records = [
     latestTelemetry,
@@ -325,6 +359,9 @@ export function buildDeploymentHardeningReadModel(options: {
     decisionSummary,
     enforcement,
     enforcementSummary,
+    overrideGovernance,
+    overrideRequest,
+    overrideSummary,
   ].filter(isRecord);
 
   for (const field of ["workflowId", "deploymentId", "commitSha"]) {
@@ -354,6 +391,20 @@ export function buildDeploymentHardeningReadModel(options: {
     ...normalizeStringList(latestTelemetry?.deterministicCauses),
   ];
   const blocked = normalizeBoolean(enforcement.blocked ?? enforcementSummary.blocked ?? latestTelemetry?.blocked);
+  const overrideMode = normalizeEnum(overrideGovernance.overrideMode || overrideSummary.overrideMode || latestTelemetry?.overrideMode, ALLOWED_OVERRIDE_MODES, "OVERRIDE_REQUEST_ONLY") as "OVERRIDE_DISABLED" | "OVERRIDE_REQUEST_ONLY" | "OVERRIDE_ALLOWED_WITH_ARTIFACT";
+  const overrideDecision = normalizeEnum(overrideGovernance.overrideDecision || overrideSummary.overrideDecision || latestTelemetry?.overrideDecision, ALLOWED_OVERRIDE_DECISIONS, "NO_OVERRIDE");
+  const overridePolicyVersion = asString(overrideGovernance.policyVersion) || asString(overrideSummary.policyVersion) || asString(latestTelemetry?.overridePolicyVersion);
+  const operatorId = asString(overrideGovernance.operatorId) || asString(overrideSummary.operatorId) || asString(latestTelemetry?.operatorId);
+  const approvalReason = asString(overrideGovernance.approvalReason);
+  const approvalArtifactHash = asString(overrideGovernance.approvalArtifactHash) || asString(overrideSummary.approvalArtifactHash);
+  const overrideExpiresAt = asString(overrideGovernance.expiresAt) || asString(overrideSummary.expiresAt) || asString(latestTelemetry?.overrideExpiresAt);
+  const overrideReasons = [
+    ...normalizeStringList(overrideGovernance.reasons),
+    ...normalizeStringList(overrideSummary.reasons),
+    ...normalizeStringList(latestTelemetry?.overrideReasons),
+  ];
+  const sourceEnforcementDecision = normalizeEnum(overrideGovernance.sourceEnforcementDecision || overrideSummary.sourceEnforcementDecision || latestTelemetry?.sourceEnforcementDecision, ALLOWED_ENFORCEMENT_DECISIONS, "WARN_CONTINUE");
+  const sourceBlocked = normalizeBoolean(overrideGovernance.sourceBlocked ?? overrideSummary.sourceBlocked ?? latestTelemetry?.sourceBlocked);
   const currentStep = asString(latestTelemetry?.currentStep);
   const currentPartition = asString(latestTelemetry?.currentPartition);
   const lastCompletedPartition = asString(latestTelemetry?.lastCompletedPartition);
@@ -371,6 +422,7 @@ export function buildDeploymentHardeningReadModel(options: {
   if (resumeEligibility === "DISPUTED") reasons.push("RESUME_ELIGIBILITY_DISPUTED");
   if (deploymentDecision === "DISPUTED") reasons.push("DEPLOYMENT_DECISION_DISPUTED");
   if (enforcementDecision === "DISPUTED_NO_BLOCK") reasons.push("ENFORCEMENT_DISPUTED_NO_BLOCK");
+  if (overrideDecision === "OVERRIDE_DISPUTED") reasons.push("OVERRIDE_GOVERNANCE_DISPUTED");
   if (staleHeartbeat) reasons.push("HEARTBEAT_STALE_OR_MISSING");
 
   const evidenceAvailable = parsed.every((artifact) => artifact.summary.available && !artifact.summary.malformed);
@@ -395,6 +447,16 @@ export function buildDeploymentHardeningReadModel(options: {
     enforcementReasons: [...new Set(enforcementReasons)],
     deterministicCauses: [...new Set(deterministicCauses)],
     blocked,
+    overrideMode,
+    overrideDecision,
+    overridePolicyVersion,
+    operatorId,
+    approvalReasonPresent: Boolean(approvalReason),
+    approvalArtifactHash,
+    overrideExpiresAt,
+    overrideReasons: [...new Set(overrideReasons)],
+    sourceEnforcementDecision,
+    sourceBlocked,
     currentStep,
     currentPartition,
     lastCompletedPartition,

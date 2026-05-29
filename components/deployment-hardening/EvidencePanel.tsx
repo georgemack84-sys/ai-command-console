@@ -25,6 +25,18 @@ export function EvidencePanel({ model }: { model: DeploymentHardeningReadModel }
           <dt className="text-slate-400">Blocked</dt>
           <dd>{model.blocked ? "true" : "false"}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Override</dt>
+          <dd>{model.overrideDecision}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Approval Artifact</dt>
+          <dd className="break-all">{model.approvalArtifactHash || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Reason Present</dt>
+          <dd>{model.approvalReasonPresent ? "true" : "false"}</dd>
+        </div>
       </dl>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[620px] text-left text-sm text-slate-200">

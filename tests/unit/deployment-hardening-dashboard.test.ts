@@ -21,6 +21,16 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
     enforcementReasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
     deterministicCauses: [],
     blocked: false,
+    overrideMode: "OVERRIDE_REQUEST_ONLY",
+    overrideDecision: "NO_OVERRIDE",
+    overridePolicyVersion: "dh-override-governance/v1",
+    operatorId: null,
+    approvalReasonPresent: false,
+    approvalArtifactHash: null,
+    overrideExpiresAt: null,
+    overrideReasons: ["SOURCE_NOT_BLOCKED"],
+    sourceEnforcementDecision: "ALLOW_CONTINUE",
+    sourceBlocked: false,
     currentStep: "release_test",
     currentPartition: "unit-1",
     lastCompletedPartition: "unit-0",
@@ -69,6 +79,14 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         enforcementReasons: [],
         deterministicCauses: [],
         blocked: false,
+        overrideMode: "OVERRIDE_REQUEST_ONLY",
+        overrideDecision: "NO_OVERRIDE",
+        overridePolicyVersion: "dh-override-governance/v1",
+        operatorId: null,
+        overrideExpiresAt: null,
+        overrideReasons: [],
+        sourceEnforcementDecision: "WARN_CONTINUE",
+        sourceBlocked: false,
         failureClass: null,
       },
       {
@@ -92,6 +110,14 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         enforcementReasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
         deterministicCauses: [],
         blocked: false,
+        overrideMode: "OVERRIDE_REQUEST_ONLY",
+        overrideDecision: "NO_OVERRIDE",
+        overridePolicyVersion: "dh-override-governance/v1",
+        operatorId: null,
+        overrideExpiresAt: null,
+        overrideReasons: ["SOURCE_NOT_BLOCKED"],
+        sourceEnforcementDecision: "ALLOW_CONTINUE",
+        sourceBlocked: false,
         failureClass: null,
       },
     ],
@@ -183,6 +209,39 @@ describe("DeploymentHardeningDashboard", () => {
     }));
 
     expect(screen.getByText("Enforcement state disputed. No block applied in DH-6.")).toBeVisible();
+  });
+
+  it("renders override governance state", () => {
+    render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({
+        overrideMode: "OVERRIDE_ALLOWED_WITH_ARTIFACT",
+        overrideDecision: "OVERRIDE_VALID",
+        operatorId: "operator@example.com",
+        approvalReasonPresent: true,
+        approvalArtifactHash: "sha256:override",
+        overrideExpiresAt: "2026-05-28T12:30:00.000Z",
+        overrideReasons: ["OVERRIDE_VALIDATED"],
+        sourceEnforcementDecision: "ENFORCE_BLOCK",
+        sourceBlocked: true,
+      }),
+    }));
+
+    expect(screen.getByTestId("deployment-status-panel")).toHaveTextContent("OVERRIDE_ALLOWED_WITH_ARTIFACT");
+    expect(screen.getByText("Deployment continued under governed override.")).toBeVisible();
+    expect(screen.getByText("Override does not erase enforcement evidence.")).toBeVisible();
+    expect(screen.getByText("operator@example.com")).toBeVisible();
+  });
+
+  it("renders override request and expired warnings", () => {
+    const { rerender } = render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ overrideDecision: "REQUEST_CREATED", sourceBlocked: true }),
+    }));
+    expect(screen.getByText("Approval request created. Deployment remains blocked.")).toBeVisible();
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ overrideDecision: "OVERRIDE_EXPIRED", sourceBlocked: true }),
+    }));
+    expect(screen.getByText("Override expired. Deployment remains blocked.")).toBeVisible();
   });
 
   it("renders disputed decision as operator review required", () => {
