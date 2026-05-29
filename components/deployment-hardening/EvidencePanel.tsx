@@ -37,7 +37,41 @@ export function EvidencePanel({ model }: { model: DeploymentHardeningReadModel }
           <dt className="text-slate-400">Reason Present</dt>
           <dd>{model.approvalReasonPresent ? "true" : "false"}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Certification</dt>
+          <dd>{model.certificationStatus}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Evidence Hash</dt>
+          <dd className="break-all">{model.evidenceHash || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Lineage Hash</dt>
+          <dd className="break-all">{model.lineageHash || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Override Lineage</dt>
+          <dd className="break-all">{model.overrideLineageHash || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Certified Scopes</dt>
+          <dd>{model.certifiedScopes.length ? model.certifiedScopes.join(", ") : "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Missing Scopes</dt>
+          <dd>{model.missingScopes.length ? model.missingScopes.join(", ") : "None"}</dd>
+        </div>
       </dl>
+      {model.certificationReasons.length ? (
+        <div className="mt-4 text-sm text-slate-200">
+          <p className="text-slate-400">Certification Reasons</p>
+          <ul className="mt-1 space-y-1">
+            {model.certificationReasons.slice(0, 5).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[620px] text-left text-sm text-slate-200">
           <thead className="text-xs uppercase text-slate-400">

@@ -51,6 +51,13 @@ export type TimelineEvent = {
   overrideReasons: string[];
   sourceEnforcementDecision: string;
   sourceBlocked: boolean;
+  certificationStatus: string;
+  completenessScore: number;
+  evidenceHash: string | null;
+  lineageHash: string | null;
+  overrideLineageHash: string | null;
+  certificationPolicyVersion: string | null;
+  certificationReasons: string[];
   failureClass: string | null;
 };
 
@@ -80,6 +87,15 @@ export type DeploymentHardeningReadModel = {
   overrideReasons: string[];
   sourceEnforcementDecision: string;
   sourceBlocked: boolean;
+  certificationStatus: "CERTIFIED" | "PARTIAL" | "DISPUTED" | "FAILED";
+  completenessScore: number;
+  evidenceHash: string | null;
+  lineageHash: string | null;
+  overrideLineageHash: string | null;
+  certifiedScopes: string[];
+  missingScopes: string[];
+  certificationReasons: string[];
+  certificationPolicyVersion: string | null;
   currentStep: string | null;
   currentPartition: string | null;
   lastCompletedPartition: string | null;
@@ -108,6 +124,9 @@ const REQUIRED_ARTIFACTS = Object.freeze([
   "deployment-override-governance.json",
   "deployment-override-request.json",
   "deployment-override-summary.json",
+  "deployment-audit-certification.json",
+  "deployment-lineage.json",
+  "deployment-certification-summary.json",
 ]);
 
 const ALLOWED_STATES = new Set([
@@ -131,6 +150,7 @@ const ALLOWED_ENFORCEMENT_MODES = new Set(["READ_ONLY", "WARN_ONLY", "ENFORCE_SC
 const ALLOWED_ENFORCEMENT_DECISIONS = new Set(["ALLOW_CONTINUE", "WARN_CONTINUE", "ENFORCE_BLOCK", "DISPUTED_NO_BLOCK"]);
 const ALLOWED_OVERRIDE_MODES = new Set(["OVERRIDE_DISABLED", "OVERRIDE_REQUEST_ONLY", "OVERRIDE_ALLOWED_WITH_ARTIFACT"]);
 const ALLOWED_OVERRIDE_DECISIONS = new Set(["NO_OVERRIDE", "REQUEST_CREATED", "OVERRIDE_VALID", "OVERRIDE_REJECTED", "OVERRIDE_EXPIRED", "OVERRIDE_DISPUTED"]);
+const ALLOWED_CERTIFICATION_STATUSES = new Set(["CERTIFIED", "PARTIAL", "DISPUTED", "FAILED"]);
 
 type ParsedArtifact = {
   name: string;
@@ -287,6 +307,13 @@ function normalizeTimelineEvent(record: Record<string, unknown>): TimelineEvent 
     overrideReasons: normalizeStringList(record.overrideReasons),
     sourceEnforcementDecision: normalizeEnum(record.sourceEnforcementDecision, ALLOWED_ENFORCEMENT_DECISIONS, "WARN_CONTINUE"),
     sourceBlocked: normalizeBoolean(record.sourceBlocked),
+    certificationStatus: normalizeEnum(record.certificationStatus, ALLOWED_CERTIFICATION_STATUSES),
+    completenessScore: Number(record.completenessScore || 0),
+    evidenceHash: asString(record.evidenceHash),
+    lineageHash: asString(record.lineageHash),
+    overrideLineageHash: asString(record.overrideLineageHash),
+    certificationPolicyVersion: asString(record.certificationPolicyVersion),
+    certificationReasons: normalizeStringList(record.certificationReasons),
     failureClass: asString(record.failureClass),
   };
 }
@@ -348,6 +375,9 @@ export function buildDeploymentHardeningReadModel(options: {
   const overrideGovernance = isRecord(byName.get("deployment-override-governance.json")?.data) ? byName.get("deployment-override-governance.json")?.data as Record<string, unknown> : {};
   const overrideRequest = isRecord(byName.get("deployment-override-request.json")?.data) ? byName.get("deployment-override-request.json")?.data as Record<string, unknown> : {};
   const overrideSummary = isRecord(byName.get("deployment-override-summary.json")?.data) ? byName.get("deployment-override-summary.json")?.data as Record<string, unknown> : {};
+  const auditCertification = isRecord(byName.get("deployment-audit-certification.json")?.data) ? byName.get("deployment-audit-certification.json")?.data as Record<string, unknown> : {};
+  const lineage = isRecord(byName.get("deployment-lineage.json")?.data) ? byName.get("deployment-lineage.json")?.data as Record<string, unknown> : {};
+  const certificationSummary = isRecord(byName.get("deployment-certification-summary.json")?.data) ? byName.get("deployment-certification-summary.json")?.data as Record<string, unknown> : {};
 
   const records = [
     latestTelemetry,
@@ -362,6 +392,9 @@ export function buildDeploymentHardeningReadModel(options: {
     overrideGovernance,
     overrideRequest,
     overrideSummary,
+    auditCertification,
+    lineage,
+    certificationSummary,
   ].filter(isRecord);
 
   for (const field of ["workflowId", "deploymentId", "commitSha"]) {
@@ -405,6 +438,19 @@ export function buildDeploymentHardeningReadModel(options: {
   ];
   const sourceEnforcementDecision = normalizeEnum(overrideGovernance.sourceEnforcementDecision || overrideSummary.sourceEnforcementDecision || latestTelemetry?.sourceEnforcementDecision, ALLOWED_ENFORCEMENT_DECISIONS, "WARN_CONTINUE");
   const sourceBlocked = normalizeBoolean(overrideGovernance.sourceBlocked ?? overrideSummary.sourceBlocked ?? latestTelemetry?.sourceBlocked);
+  const certificationStatus = normalizeEnum(auditCertification.certificationStatus || certificationSummary.certificationStatus || latestTelemetry?.certificationStatus, ALLOWED_CERTIFICATION_STATUSES) as "CERTIFIED" | "PARTIAL" | "DISPUTED" | "FAILED";
+  const completenessScore = Number(auditCertification.completenessScore ?? certificationSummary.completenessScore ?? latestTelemetry?.completenessScore ?? 0);
+  const evidenceHash = asString(auditCertification.evidenceHash) || asString(certificationSummary.evidenceHash) || asString(lineage.evidenceHash) || asString(latestTelemetry?.evidenceHash);
+  const lineageHash = asString(auditCertification.lineageHash) || asString(certificationSummary.lineageHash) || asString(lineage.lineageHash) || asString(latestTelemetry?.lineageHash);
+  const overrideLineageHash = asString(auditCertification.overrideLineageHash) || asString(certificationSummary.overrideLineageHash) || asString(lineage.overrideLineageHash) || asString(latestTelemetry?.overrideLineageHash);
+  const certifiedScopes = normalizeStringList(auditCertification.certifiedScopes);
+  const missingScopes = normalizeStringList(auditCertification.missingScopes);
+  const certificationPolicyVersion = asString(auditCertification.policyVersion) || asString(certificationSummary.policyVersion) || asString(latestTelemetry?.certificationPolicyVersion);
+  const certificationReasons = [
+    ...normalizeStringList(auditCertification.reasons),
+    ...normalizeStringList(certificationSummary.reasons),
+    ...normalizeStringList(latestTelemetry?.certificationReasons),
+  ];
   const currentStep = asString(latestTelemetry?.currentStep);
   const currentPartition = asString(latestTelemetry?.currentPartition);
   const lastCompletedPartition = asString(latestTelemetry?.lastCompletedPartition);
@@ -423,6 +469,8 @@ export function buildDeploymentHardeningReadModel(options: {
   if (deploymentDecision === "DISPUTED") reasons.push("DEPLOYMENT_DECISION_DISPUTED");
   if (enforcementDecision === "DISPUTED_NO_BLOCK") reasons.push("ENFORCEMENT_DISPUTED_NO_BLOCK");
   if (overrideDecision === "OVERRIDE_DISPUTED") reasons.push("OVERRIDE_GOVERNANCE_DISPUTED");
+  if (certificationStatus === "DISPUTED") reasons.push("AUDIT_CERTIFICATION_DISPUTED");
+  if (certificationStatus === "FAILED") reasons.push("AUDIT_CERTIFICATION_FAILED");
   if (staleHeartbeat) reasons.push("HEARTBEAT_STALE_OR_MISSING");
 
   const evidenceAvailable = parsed.every((artifact) => artifact.summary.available && !artifact.summary.malformed);
@@ -457,6 +505,15 @@ export function buildDeploymentHardeningReadModel(options: {
     overrideReasons: [...new Set(overrideReasons)],
     sourceEnforcementDecision,
     sourceBlocked,
+    certificationStatus,
+    completenessScore,
+    evidenceHash,
+    lineageHash,
+    overrideLineageHash,
+    certifiedScopes: [...new Set(certifiedScopes)],
+    missingScopes: [...new Set(missingScopes)],
+    certificationReasons: [...new Set(certificationReasons)],
+    certificationPolicyVersion,
     currentStep,
     currentPartition,
     lastCompletedPartition,

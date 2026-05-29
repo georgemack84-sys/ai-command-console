@@ -92,6 +92,13 @@ const ALLOWED_OVERRIDE_DECISIONS = new Set([
   "OVERRIDE_DISPUTED",
 ]);
 
+const ALLOWED_CERTIFICATION_STATUSES = new Set([
+  "CERTIFIED",
+  "PARTIAL",
+  "DISPUTED",
+  "FAILED",
+]);
+
 const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "workflowId",
   "deploymentId",
@@ -122,6 +129,12 @@ const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "overrideReasons",
   "sourceEnforcementDecision",
   "sourceBlocked",
+  "certificationStatus",
+  "completenessScore",
+  "lineageHash",
+  "evidenceHash",
+  "certificationPolicyVersion",
+  "certificationReasons",
   "attemptCount",
   "state",
 ]);
@@ -234,6 +247,11 @@ function normalizeOverrideDecision(value) {
   return ALLOWED_OVERRIDE_DECISIONS.has(normalized) ? normalized : "OVERRIDE_DISPUTED";
 }
 
+function normalizeCertificationStatus(value) {
+  const normalized = String(value || "DISPUTED").trim().toUpperCase();
+  return ALLOWED_CERTIFICATION_STATUSES.has(normalized) ? normalized : "DISPUTED";
+}
+
 function normalizeBoolean(value) {
   if (typeof value === "boolean") return value;
   return String(value || "").trim().toLowerCase() === "true";
@@ -296,6 +314,12 @@ function buildTelemetryEvent(input, env = process.env) {
     overrideReasons: normalizeDecisionReasons(input.overrideReasons || env.DEPLOYMENT_OVERRIDE_REASONS),
     sourceEnforcementDecision: normalizeEnforcementDecision(input.sourceEnforcementDecision || env.DEPLOYMENT_SOURCE_ENFORCEMENT_DECISION),
     sourceBlocked: normalizeBoolean(input.sourceBlocked || env.DEPLOYMENT_SOURCE_BLOCKED),
+    certificationStatus: normalizeCertificationStatus(input.certificationStatus || env.DEPLOYMENT_CERTIFICATION_STATUS),
+    completenessScore: Number(input.completenessScore || env.DEPLOYMENT_COMPLETENESS_SCORE || 0),
+    lineageHash: input.lineageHash || env.DEPLOYMENT_LINEAGE_HASH || "",
+    evidenceHash: input.evidenceHash || env.DEPLOYMENT_AUDIT_EVIDENCE_HASH || "",
+    certificationPolicyVersion: input.certificationPolicyVersion || env.DEPLOYMENT_CERTIFICATION_POLICY_VERSION || "",
+    certificationReasons: normalizeDecisionReasons(input.certificationReasons || env.DEPLOYMENT_CERTIFICATION_REASONS),
     attemptCount: Number(input.attemptCount || env.GITHUB_RUN_ATTEMPT || 1),
     state: normalizeState(input.state),
     artifact: input.artifact,
@@ -346,6 +370,10 @@ function hashDeploymentTelemetryEvidence(evidence) {
     latestOperatorId: evidence.latestOperatorId,
     latestOverrideExpiresAt: evidence.latestOverrideExpiresAt,
     latestSourceBlocked: evidence.latestSourceBlocked,
+    latestCertificationStatus: evidence.latestCertificationStatus,
+    latestCompletenessScore: evidence.latestCompletenessScore,
+    latestLineageHash: evidence.latestLineageHash,
+    latestEvidenceHash: evidence.latestEvidenceHash,
     telemetryEvents: evidence.telemetryEvents || [],
     artifactReferences: evidence.artifactReferences || [],
   };
@@ -379,6 +407,10 @@ function buildEvidence(events, generatedAt) {
     latestOperatorId: latest.operatorId || "",
     latestOverrideExpiresAt: latest.overrideExpiresAt || "",
     latestSourceBlocked: Boolean(latest.sourceBlocked),
+    latestCertificationStatus: latest.certificationStatus || "DISPUTED",
+    latestCompletenessScore: Number(latest.completenessScore || 0),
+    latestLineageHash: latest.lineageHash || "",
+    latestEvidenceHash: latest.evidenceHash || "",
     telemetryEvents: events,
     artifactReferences,
   };
@@ -411,6 +443,10 @@ function writeSummaryAndEvidence(options = {}) {
     latestOverrideMode: latest.overrideMode || "OVERRIDE_REQUEST_ONLY",
     latestOverrideDecision: latest.overrideDecision || "NO_OVERRIDE",
     latestSourceBlocked: Boolean(latest.sourceBlocked),
+    latestCertificationStatus: latest.certificationStatus || "DISPUTED",
+    latestCompletenessScore: Number(latest.completenessScore || 0),
+    latestLineageHash: latest.lineageHash || "",
+    latestEvidenceHash: latest.evidenceHash || "",
   };
   const evidence = buildEvidence(events, generatedAt);
 
@@ -485,6 +521,12 @@ function runCli() {
     overrideReasons: args.overrideReasons,
     sourceEnforcementDecision: args.sourceEnforcementDecision,
     sourceBlocked: args.sourceBlocked,
+    certificationStatus: args.certificationStatus,
+    completenessScore: args.completenessScore,
+    lineageHash: args.lineageHash,
+    evidenceHash: args.evidenceHash,
+    certificationPolicyVersion: args.certificationPolicyVersion,
+    certificationReasons: args.certificationReasons,
     artifact: args.artifact,
     startedAt: args.startedAt,
     timestamp: args.timestamp,
@@ -519,6 +561,7 @@ module.exports = {
   normalizeEnforcementMode,
   normalizeOverrideDecision,
   normalizeOverrideMode,
+  normalizeCertificationStatus,
   normalizeResumeEligibility,
   normalizeState,
   readTelemetryEvents,

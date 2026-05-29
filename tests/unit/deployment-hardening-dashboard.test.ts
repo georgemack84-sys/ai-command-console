@@ -15,7 +15,7 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
     resumeEligibility: "ELIGIBLE",
     deploymentDecision: "ALLOW",
     deploymentRisk: "LOW",
-    enforcementMode: "WARN_ONLY",
+    enforcementMode: "READ_ONLY",
     enforcementDecision: "ALLOW_CONTINUE",
     enforcementPolicyVersion: "dh-scoped-enforcement/v1",
     enforcementReasons: ["SCOPED_ENFORCEMENT_ALLOW_CONTINUE"],
@@ -31,6 +31,15 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
     overrideReasons: ["SOURCE_NOT_BLOCKED"],
     sourceEnforcementDecision: "ALLOW_CONTINUE",
     sourceBlocked: false,
+    certificationStatus: "CERTIFIED",
+    completenessScore: 1,
+    evidenceHash: "sha256:audit-evidence",
+    lineageHash: "sha256:lineage",
+    overrideLineageHash: null,
+    certifiedScopes: ["TELEMETRY", "CERTIFICATE", "CHECKPOINT", "DECISION", "ENFORCEMENT", "OVERRIDE"],
+    missingScopes: [],
+    certificationReasons: [],
+    certificationPolicyVersion: "dh-post-override-audit/v1",
     currentStep: "release_test",
     currentPartition: "unit-1",
     lastCompletedPartition: "unit-0",
@@ -38,7 +47,6 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
     staleHeartbeat: false,
     evidenceAvailable: true,
     disputedReasons: [],
-    enforcementMode: "READ_ONLY",
     artifacts: [
       {
         name: "certificate-verification.json",
@@ -87,6 +95,13 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         overrideReasons: [],
         sourceEnforcementDecision: "WARN_CONTINUE",
         sourceBlocked: false,
+        certificationStatus: "DISPUTED",
+        completenessScore: 0,
+        evidenceHash: null,
+        lineageHash: null,
+        overrideLineageHash: null,
+        certificationPolicyVersion: "dh-post-override-audit/v1",
+        certificationReasons: [],
         failureClass: null,
       },
       {
@@ -118,6 +133,13 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         overrideReasons: ["SOURCE_NOT_BLOCKED"],
         sourceEnforcementDecision: "ALLOW_CONTINUE",
         sourceBlocked: false,
+        certificationStatus: "CERTIFIED",
+        completenessScore: 1,
+        evidenceHash: "sha256:audit-evidence",
+        lineageHash: "sha256:lineage",
+        overrideLineageHash: null,
+        certificationPolicyVersion: "dh-post-override-audit/v1",
+        certificationReasons: [],
         failureClass: null,
       },
     ],
@@ -242,6 +264,29 @@ describe("DeploymentHardeningDashboard", () => {
       model: createModel({ overrideDecision: "OVERRIDE_EXPIRED", sourceBlocked: true }),
     }));
     expect(screen.getByText("Override expired. Deployment remains blocked.")).toBeVisible();
+  });
+
+  it("renders audit certification state", () => {
+    const { rerender } = render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel(),
+    }));
+    expect(screen.getByText("Governance chain certified.")).toBeVisible();
+    expect(screen.getByTestId("evidence-panel")).toHaveTextContent("sha256:lineage");
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ certificationStatus: "PARTIAL", missingScopes: ["OVERRIDE"], certificationReasons: ["OVERRIDE_SCOPE_NOT_APPLICABLE:NO_OVERRIDE"] }),
+    }));
+    expect(screen.getByText("Certification incomplete but lineage remains valid.")).toBeVisible();
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ certificationStatus: "DISPUTED", disputedReasons: ["AUDIT_CERTIFICATION_DISPUTED"] }),
+    }));
+    expect(screen.getByText("Governance lineage conflict detected.")).toBeVisible();
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ certificationStatus: "FAILED", disputedReasons: ["AUDIT_CERTIFICATION_FAILED"] }),
+    }));
+    expect(screen.getByText("Audit certification failed.")).toBeVisible();
   });
 
   it("renders disputed decision as operator review required", () => {

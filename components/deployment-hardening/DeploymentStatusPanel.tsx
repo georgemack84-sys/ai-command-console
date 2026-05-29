@@ -57,6 +57,14 @@ export function DeploymentStatusPanel({ model }: { model: DeploymentHardeningRea
           <dt className="text-slate-400">Override Decision</dt>
           <dd>{model.overrideDecision}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Audit Certification</dt>
+          <dd>{model.certificationStatus}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Completeness</dt>
+          <dd>{model.completenessScore}</dd>
+        </div>
       </dl>
       {model.blocked ? (
         <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
@@ -81,6 +89,26 @@ export function DeploymentStatusPanel({ model }: { model: DeploymentHardeningRea
       {model.overrideDecision === "OVERRIDE_EXPIRED" ? (
         <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
           Override expired. Deployment remains blocked.
+        </p>
+      ) : null}
+      {model.certificationStatus === "CERTIFIED" ? (
+        <p className="mt-4 rounded border border-emerald-400/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-100">
+          Governance chain certified.
+        </p>
+      ) : null}
+      {model.certificationStatus === "PARTIAL" ? (
+        <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
+          Certification incomplete but lineage remains valid.
+        </p>
+      ) : null}
+      {model.certificationStatus === "DISPUTED" ? (
+        <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
+          Governance lineage conflict detected.
+        </p>
+      ) : null}
+      {model.certificationStatus === "FAILED" ? (
+        <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
+          Audit certification failed.
         </p>
       ) : null}
     </section>

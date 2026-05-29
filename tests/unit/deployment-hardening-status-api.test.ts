@@ -50,6 +50,13 @@ function writeValidEvidence(dir: string) {
     overrideReasons: ["SOURCE_NOT_BLOCKED"],
     sourceEnforcementDecision: "ALLOW_CONTINUE",
     sourceBlocked: false,
+    certificationStatus: "CERTIFIED",
+    completenessScore: 1,
+    evidenceHash: "sha256:audit-evidence",
+    lineageHash: "sha256:lineage",
+    overrideLineageHash: "",
+    certificationPolicyVersion: "dh-post-override-audit/v1",
+    certificationReasons: [],
     state: "PROGRESSING",
   };
   const earlier = {
@@ -163,6 +170,36 @@ function writeValidEvidence(dir: string) {
     reasons: ["SOURCE_NOT_BLOCKED"],
     policyVersion: "dh-override-governance/v1",
   });
+  writeJson(path.join(dir, "deployment-audit-certification.json"), {
+    ...base,
+    certificationStatus: "CERTIFIED",
+    certifiedScopes: ["TELEMETRY", "CERTIFICATE", "CHECKPOINT", "DECISION", "ENFORCEMENT", "OVERRIDE"],
+    missingScopes: [],
+    evidenceHash: "sha256:audit-evidence",
+    lineageHash: "sha256:lineage",
+    overrideLineageHash: null,
+    completenessScore: 1,
+    reasons: [],
+    certifiedAt: "2026-05-28T12:00:00.000Z",
+    policyVersion: "dh-post-override-audit/v1",
+  });
+  writeJson(path.join(dir, "deployment-lineage.json"), {
+    ...base,
+    evidenceHash: "sha256:audit-evidence",
+    lineageHash: "sha256:lineage",
+    overrideLineageHash: null,
+    policyVersion: "dh-post-override-audit/v1",
+  });
+  writeJson(path.join(dir, "deployment-certification-summary.json"), {
+    ...base,
+    certificationStatus: "CERTIFIED",
+    completenessScore: 1,
+    evidenceHash: "sha256:audit-evidence",
+    lineageHash: "sha256:lineage",
+    overrideLineageHash: null,
+    reasons: [],
+    policyVersion: "dh-post-override-audit/v1",
+  });
 }
 
 describe("deployment hardening status API", () => {
@@ -200,6 +237,8 @@ describe("deployment hardening status API", () => {
     expect(payload.data.overrideMode).toBe("OVERRIDE_REQUEST_ONLY");
     expect(payload.data.overrideDecision).toBe("NO_OVERRIDE");
     expect(payload.data.sourceBlocked).toBe(false);
+    expect(payload.data.certificationStatus).toBe("CERTIFIED");
+    expect(payload.data.lineageHash).toBe("sha256:lineage");
     expect(payload.data.timeline.map((event: { event: string }) => event.event)).toEqual([
       "deploy_start",
       "deployment_decision_complete",

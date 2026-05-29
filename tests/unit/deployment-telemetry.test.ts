@@ -164,6 +164,29 @@ describe("deploy telemetry script", () => {
     });
   });
 
+  it("emits audit certification visibility fields", () => {
+    const event = telemetry.buildTelemetryEvent({
+      event: "audit_certification_complete",
+      step: "Audit certification",
+      state: "PROGRESSING",
+      certificationStatus: "CERTIFIED",
+      completenessScore: "1",
+      evidenceHash: "sha256:audit-evidence",
+      lineageHash: "sha256:lineage",
+      certificationPolicyVersion: "dh-post-override-audit/v1",
+      certificationReasons: "CERTIFIED",
+    }, baseEnv);
+
+    expect(event).toMatchObject({
+      certificationStatus: "CERTIFIED",
+      completenessScore: 1,
+      evidenceHash: "sha256:audit-evidence",
+      lineageHash: "sha256:lineage",
+      certificationPolicyVersion: "dh-post-override-audit/v1",
+      certificationReasons: ["CERTIFIED"],
+    });
+  });
+
   it("telemetry emission failure does not alter deploy result", () => {
     const filePath = path.join(tmpdir(), `deploy-telemetry-file-${Date.now()}.json`);
     writeFileSync(filePath, "not a directory");
