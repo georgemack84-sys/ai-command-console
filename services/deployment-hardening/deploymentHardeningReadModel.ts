@@ -58,6 +58,13 @@ export type TimelineEvent = {
   overrideLineageHash: string | null;
   certificationPolicyVersion: string | null;
   certificationReasons: string[];
+  replayStatus: string;
+  driftDetected: boolean;
+  driftReasons: string[];
+  replayHash: string | null;
+  expectedLineageHash: string | null;
+  reconstructedLineageHash: string | null;
+  replayPolicyVersion: string | null;
   failureClass: string | null;
 };
 
@@ -96,6 +103,15 @@ export type DeploymentHardeningReadModel = {
   missingScopes: string[];
   certificationReasons: string[];
   certificationPolicyVersion: string | null;
+  replayStatus: "CONSISTENT" | "PARTIAL" | "DRIFTED" | "DISPUTED" | "FAILED";
+  driftDetected: boolean;
+  driftReasons: string[];
+  replayHash: string | null;
+  expectedLineageHash: string | null;
+  reconstructedLineageHash: string | null;
+  reconstructedScopes: string[];
+  replayMissingScopes: string[];
+  replayPolicyVersion: string | null;
   currentStep: string | null;
   currentPartition: string | null;
   lastCompletedPartition: string | null;
@@ -127,6 +143,10 @@ const REQUIRED_ARTIFACTS = Object.freeze([
   "deployment-audit-certification.json",
   "deployment-lineage.json",
   "deployment-certification-summary.json",
+  "deployment-governance-replay.json",
+  "deployment-replay-lineage.json",
+  "deployment-drift-report.json",
+  "deployment-replay-summary.json",
 ]);
 
 const ALLOWED_STATES = new Set([
@@ -151,6 +171,7 @@ const ALLOWED_ENFORCEMENT_DECISIONS = new Set(["ALLOW_CONTINUE", "WARN_CONTINUE"
 const ALLOWED_OVERRIDE_MODES = new Set(["OVERRIDE_DISABLED", "OVERRIDE_REQUEST_ONLY", "OVERRIDE_ALLOWED_WITH_ARTIFACT"]);
 const ALLOWED_OVERRIDE_DECISIONS = new Set(["NO_OVERRIDE", "REQUEST_CREATED", "OVERRIDE_VALID", "OVERRIDE_REJECTED", "OVERRIDE_EXPIRED", "OVERRIDE_DISPUTED"]);
 const ALLOWED_CERTIFICATION_STATUSES = new Set(["CERTIFIED", "PARTIAL", "DISPUTED", "FAILED"]);
+const ALLOWED_REPLAY_STATUSES = new Set(["CONSISTENT", "PARTIAL", "DRIFTED", "DISPUTED", "FAILED"]);
 
 type ParsedArtifact = {
   name: string;
@@ -314,6 +335,13 @@ function normalizeTimelineEvent(record: Record<string, unknown>): TimelineEvent 
     overrideLineageHash: asString(record.overrideLineageHash),
     certificationPolicyVersion: asString(record.certificationPolicyVersion),
     certificationReasons: normalizeStringList(record.certificationReasons),
+    replayStatus: normalizeEnum(record.replayStatus, ALLOWED_REPLAY_STATUSES),
+    driftDetected: normalizeBoolean(record.driftDetected),
+    driftReasons: normalizeStringList(record.driftReasons),
+    replayHash: asString(record.replayHash),
+    expectedLineageHash: asString(record.expectedLineageHash),
+    reconstructedLineageHash: asString(record.reconstructedLineageHash),
+    replayPolicyVersion: asString(record.replayPolicyVersion),
     failureClass: asString(record.failureClass),
   };
 }
@@ -378,6 +406,10 @@ export function buildDeploymentHardeningReadModel(options: {
   const auditCertification = isRecord(byName.get("deployment-audit-certification.json")?.data) ? byName.get("deployment-audit-certification.json")?.data as Record<string, unknown> : {};
   const lineage = isRecord(byName.get("deployment-lineage.json")?.data) ? byName.get("deployment-lineage.json")?.data as Record<string, unknown> : {};
   const certificationSummary = isRecord(byName.get("deployment-certification-summary.json")?.data) ? byName.get("deployment-certification-summary.json")?.data as Record<string, unknown> : {};
+  const governanceReplay = isRecord(byName.get("deployment-governance-replay.json")?.data) ? byName.get("deployment-governance-replay.json")?.data as Record<string, unknown> : {};
+  const replayLineage = isRecord(byName.get("deployment-replay-lineage.json")?.data) ? byName.get("deployment-replay-lineage.json")?.data as Record<string, unknown> : {};
+  const driftReport = isRecord(byName.get("deployment-drift-report.json")?.data) ? byName.get("deployment-drift-report.json")?.data as Record<string, unknown> : {};
+  const replaySummary = isRecord(byName.get("deployment-replay-summary.json")?.data) ? byName.get("deployment-replay-summary.json")?.data as Record<string, unknown> : {};
 
   const records = [
     latestTelemetry,
@@ -395,6 +427,9 @@ export function buildDeploymentHardeningReadModel(options: {
     auditCertification,
     lineage,
     certificationSummary,
+    governanceReplay,
+    replayLineage,
+    replaySummary,
   ].filter(isRecord);
 
   for (const field of ["workflowId", "deploymentId", "commitSha"]) {
@@ -451,6 +486,22 @@ export function buildDeploymentHardeningReadModel(options: {
     ...normalizeStringList(certificationSummary.reasons),
     ...normalizeStringList(latestTelemetry?.certificationReasons),
   ];
+  const replayStatus = normalizeEnum(governanceReplay.replayStatus || replaySummary.replayStatus || latestTelemetry?.replayStatus, ALLOWED_REPLAY_STATUSES) as "CONSISTENT" | "PARTIAL" | "DRIFTED" | "DISPUTED" | "FAILED";
+  const driftReasonsFromReport = Array.isArray(driftReport.driftReasons)
+    ? driftReport.driftReasons.map((entry) => isRecord(entry) ? String(entry.reason || "") : String(entry)).filter(Boolean)
+    : [];
+  const driftReasons = [
+    ...normalizeStringList(governanceReplay.driftReasons).map((reason) => reason),
+    ...driftReasonsFromReport,
+    ...normalizeStringList(latestTelemetry?.driftReasons),
+  ];
+  const driftDetected = normalizeBoolean(governanceReplay.driftDetected ?? replaySummary.driftDetected ?? latestTelemetry?.driftDetected);
+  const replayHash = asString(governanceReplay.replayHash) || asString(replaySummary.replayHash) || asString(latestTelemetry?.replayHash);
+  const expectedLineageHash = asString(governanceReplay.expectedLineageHash) || asString(replaySummary.expectedLineageHash) || asString(replayLineage.expectedLineageHash) || asString(latestTelemetry?.expectedLineageHash);
+  const reconstructedLineageHash = asString(governanceReplay.reconstructedLineageHash) || asString(replaySummary.reconstructedLineageHash) || asString(replayLineage.reconstructedLineageHash) || asString(latestTelemetry?.reconstructedLineageHash);
+  const reconstructedScopes = normalizeStringList(governanceReplay.reconstructedScopes);
+  const replayMissingScopes = normalizeStringList(governanceReplay.missingScopes);
+  const replayPolicyVersion = asString(governanceReplay.policyVersion) || asString(replaySummary.policyVersion) || asString(latestTelemetry?.replayPolicyVersion);
   const currentStep = asString(latestTelemetry?.currentStep);
   const currentPartition = asString(latestTelemetry?.currentPartition);
   const lastCompletedPartition = asString(latestTelemetry?.lastCompletedPartition);
@@ -471,6 +522,9 @@ export function buildDeploymentHardeningReadModel(options: {
   if (overrideDecision === "OVERRIDE_DISPUTED") reasons.push("OVERRIDE_GOVERNANCE_DISPUTED");
   if (certificationStatus === "DISPUTED") reasons.push("AUDIT_CERTIFICATION_DISPUTED");
   if (certificationStatus === "FAILED") reasons.push("AUDIT_CERTIFICATION_FAILED");
+  if (replayStatus === "DRIFTED") reasons.push("GOVERNANCE_REPLAY_DRIFTED");
+  if (replayStatus === "DISPUTED") reasons.push("GOVERNANCE_REPLAY_DISPUTED");
+  if (replayStatus === "FAILED") reasons.push("GOVERNANCE_REPLAY_FAILED");
   if (staleHeartbeat) reasons.push("HEARTBEAT_STALE_OR_MISSING");
 
   const evidenceAvailable = parsed.every((artifact) => artifact.summary.available && !artifact.summary.malformed);
@@ -514,6 +568,15 @@ export function buildDeploymentHardeningReadModel(options: {
     missingScopes: [...new Set(missingScopes)],
     certificationReasons: [...new Set(certificationReasons)],
     certificationPolicyVersion,
+    replayStatus,
+    driftDetected,
+    driftReasons: [...new Set(driftReasons)],
+    replayHash,
+    expectedLineageHash,
+    reconstructedLineageHash,
+    reconstructedScopes: [...new Set(reconstructedScopes)],
+    replayMissingScopes: [...new Set(replayMissingScopes)],
+    replayPolicyVersion,
     currentStep,
     currentPartition,
     lastCompletedPartition,

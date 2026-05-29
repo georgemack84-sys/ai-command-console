@@ -187,6 +187,31 @@ describe("deploy telemetry script", () => {
     });
   });
 
+  it("emits governance replay visibility fields", () => {
+    const event = telemetry.buildTelemetryEvent({
+      event: "governance_replay_complete",
+      step: "Governance replay",
+      state: "PROGRESSING",
+      replayStatus: "CONSISTENT",
+      driftDetected: "false",
+      driftReasons: "",
+      replayHash: "sha256:replay",
+      expectedLineageHash: "sha256:lineage",
+      reconstructedLineageHash: "sha256:lineage",
+      replayPolicyVersion: "dh-governance-replay/v1",
+    }, baseEnv);
+
+    expect(event).toMatchObject({
+      replayStatus: "CONSISTENT",
+      driftDetected: false,
+      driftReasons: [],
+      replayHash: "sha256:replay",
+      expectedLineageHash: "sha256:lineage",
+      reconstructedLineageHash: "sha256:lineage",
+      replayPolicyVersion: "dh-governance-replay/v1",
+    });
+  });
+
   it("telemetry emission failure does not alter deploy result", () => {
     const filePath = path.join(tmpdir(), `deploy-telemetry-file-${Date.now()}.json`);
     writeFileSync(filePath, "not a directory");

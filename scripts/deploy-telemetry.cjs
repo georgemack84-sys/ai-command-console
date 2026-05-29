@@ -99,6 +99,14 @@ const ALLOWED_CERTIFICATION_STATUSES = new Set([
   "FAILED",
 ]);
 
+const ALLOWED_REPLAY_STATUSES = new Set([
+  "CONSISTENT",
+  "PARTIAL",
+  "DRIFTED",
+  "DISPUTED",
+  "FAILED",
+]);
+
 const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "workflowId",
   "deploymentId",
@@ -135,6 +143,13 @@ const REQUIRED_TELEMETRY_FIELDS = Object.freeze([
   "evidenceHash",
   "certificationPolicyVersion",
   "certificationReasons",
+  "replayStatus",
+  "driftDetected",
+  "driftReasons",
+  "replayHash",
+  "expectedLineageHash",
+  "reconstructedLineageHash",
+  "replayPolicyVersion",
   "attemptCount",
   "state",
 ]);
@@ -252,6 +267,11 @@ function normalizeCertificationStatus(value) {
   return ALLOWED_CERTIFICATION_STATUSES.has(normalized) ? normalized : "DISPUTED";
 }
 
+function normalizeReplayStatus(value) {
+  const normalized = String(value || "DISPUTED").trim().toUpperCase();
+  return ALLOWED_REPLAY_STATUSES.has(normalized) ? normalized : "DISPUTED";
+}
+
 function normalizeBoolean(value) {
   if (typeof value === "boolean") return value;
   return String(value || "").trim().toLowerCase() === "true";
@@ -320,6 +340,13 @@ function buildTelemetryEvent(input, env = process.env) {
     evidenceHash: input.evidenceHash || env.DEPLOYMENT_AUDIT_EVIDENCE_HASH || "",
     certificationPolicyVersion: input.certificationPolicyVersion || env.DEPLOYMENT_CERTIFICATION_POLICY_VERSION || "",
     certificationReasons: normalizeDecisionReasons(input.certificationReasons || env.DEPLOYMENT_CERTIFICATION_REASONS),
+    replayStatus: normalizeReplayStatus(input.replayStatus || env.DEPLOYMENT_REPLAY_STATUS),
+    driftDetected: normalizeBoolean(input.driftDetected || env.DEPLOYMENT_DRIFT_DETECTED),
+    driftReasons: normalizeDecisionReasons(input.driftReasons || env.DEPLOYMENT_DRIFT_REASONS),
+    replayHash: input.replayHash || env.DEPLOYMENT_REPLAY_HASH || "",
+    expectedLineageHash: input.expectedLineageHash || env.DEPLOYMENT_EXPECTED_LINEAGE_HASH || "",
+    reconstructedLineageHash: input.reconstructedLineageHash || env.DEPLOYMENT_RECONSTRUCTED_LINEAGE_HASH || "",
+    replayPolicyVersion: input.replayPolicyVersion || env.DEPLOYMENT_REPLAY_POLICY_VERSION || "",
     attemptCount: Number(input.attemptCount || env.GITHUB_RUN_ATTEMPT || 1),
     state: normalizeState(input.state),
     artifact: input.artifact,
@@ -374,6 +401,11 @@ function hashDeploymentTelemetryEvidence(evidence) {
     latestCompletenessScore: evidence.latestCompletenessScore,
     latestLineageHash: evidence.latestLineageHash,
     latestEvidenceHash: evidence.latestEvidenceHash,
+    latestReplayStatus: evidence.latestReplayStatus,
+    latestDriftDetected: evidence.latestDriftDetected,
+    latestReplayHash: evidence.latestReplayHash,
+    latestExpectedLineageHash: evidence.latestExpectedLineageHash,
+    latestReconstructedLineageHash: evidence.latestReconstructedLineageHash,
     telemetryEvents: evidence.telemetryEvents || [],
     artifactReferences: evidence.artifactReferences || [],
   };
@@ -411,6 +443,11 @@ function buildEvidence(events, generatedAt) {
     latestCompletenessScore: Number(latest.completenessScore || 0),
     latestLineageHash: latest.lineageHash || "",
     latestEvidenceHash: latest.evidenceHash || "",
+    latestReplayStatus: latest.replayStatus || "DISPUTED",
+    latestDriftDetected: Boolean(latest.driftDetected),
+    latestReplayHash: latest.replayHash || "",
+    latestExpectedLineageHash: latest.expectedLineageHash || "",
+    latestReconstructedLineageHash: latest.reconstructedLineageHash || "",
     telemetryEvents: events,
     artifactReferences,
   };
@@ -447,6 +484,11 @@ function writeSummaryAndEvidence(options = {}) {
     latestCompletenessScore: Number(latest.completenessScore || 0),
     latestLineageHash: latest.lineageHash || "",
     latestEvidenceHash: latest.evidenceHash || "",
+    latestReplayStatus: latest.replayStatus || "DISPUTED",
+    latestDriftDetected: Boolean(latest.driftDetected),
+    latestReplayHash: latest.replayHash || "",
+    latestExpectedLineageHash: latest.expectedLineageHash || "",
+    latestReconstructedLineageHash: latest.reconstructedLineageHash || "",
   };
   const evidence = buildEvidence(events, generatedAt);
 
@@ -527,6 +569,13 @@ function runCli() {
     evidenceHash: args.evidenceHash,
     certificationPolicyVersion: args.certificationPolicyVersion,
     certificationReasons: args.certificationReasons,
+    replayStatus: args.replayStatus,
+    driftDetected: args.driftDetected,
+    driftReasons: args.driftReasons,
+    replayHash: args.replayHash,
+    expectedLineageHash: args.expectedLineageHash,
+    reconstructedLineageHash: args.reconstructedLineageHash,
+    replayPolicyVersion: args.replayPolicyVersion,
     artifact: args.artifact,
     startedAt: args.startedAt,
     timestamp: args.timestamp,
@@ -562,6 +611,7 @@ module.exports = {
   normalizeOverrideDecision,
   normalizeOverrideMode,
   normalizeCertificationStatus,
+  normalizeReplayStatus,
   normalizeResumeEligibility,
   normalizeState,
   readTelemetryEvents,

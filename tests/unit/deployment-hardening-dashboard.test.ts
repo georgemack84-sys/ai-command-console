@@ -40,6 +40,15 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
     missingScopes: [],
     certificationReasons: [],
     certificationPolicyVersion: "dh-post-override-audit/v1",
+    replayStatus: "CONSISTENT",
+    driftDetected: false,
+    driftReasons: [],
+    replayHash: "sha256:replay",
+    expectedLineageHash: "sha256:lineage",
+    reconstructedLineageHash: "sha256:lineage",
+    reconstructedScopes: ["TELEMETRY", "CERTIFICATE", "CHECKPOINT", "DECISION", "ENFORCEMENT", "OVERRIDE", "CERTIFICATION"],
+    replayMissingScopes: [],
+    replayPolicyVersion: "dh-governance-replay/v1",
     currentStep: "release_test",
     currentPartition: "unit-1",
     lastCompletedPartition: "unit-0",
@@ -102,6 +111,13 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         overrideLineageHash: null,
         certificationPolicyVersion: "dh-post-override-audit/v1",
         certificationReasons: [],
+        replayStatus: "DISPUTED",
+        driftDetected: false,
+        driftReasons: [],
+        replayHash: null,
+        expectedLineageHash: null,
+        reconstructedLineageHash: null,
+        replayPolicyVersion: "dh-governance-replay/v1",
         failureClass: null,
       },
       {
@@ -140,6 +156,13 @@ function createModel(overrides: Partial<DeploymentHardeningReadModel> = {}): Dep
         overrideLineageHash: null,
         certificationPolicyVersion: "dh-post-override-audit/v1",
         certificationReasons: [],
+        replayStatus: "CONSISTENT",
+        driftDetected: false,
+        driftReasons: [],
+        replayHash: "sha256:replay",
+        expectedLineageHash: "sha256:lineage",
+        reconstructedLineageHash: "sha256:lineage",
+        replayPolicyVersion: "dh-governance-replay/v1",
         failureClass: null,
       },
     ],
@@ -287,6 +310,35 @@ describe("DeploymentHardeningDashboard", () => {
       model: createModel({ certificationStatus: "FAILED", disputedReasons: ["AUDIT_CERTIFICATION_FAILED"] }),
     }));
     expect(screen.getByText("Audit certification failed.")).toBeVisible();
+  });
+
+  it("renders governance replay state", () => {
+    const { rerender } = render(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel(),
+    }));
+    expect(screen.getByText("Replay reproduced governance state.")).toBeVisible();
+    expect(screen.getByTestId("evidence-panel")).toHaveTextContent("sha256:replay");
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ replayStatus: "PARTIAL", replayMissingScopes: ["OVERRIDE"] }),
+    }));
+    expect(screen.getByText("Replay incomplete but no critical drift detected.")).toBeVisible();
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ replayStatus: "DRIFTED", driftDetected: true, driftReasons: ["LINEAGE_DRIFT"] }),
+    }));
+    expect(screen.getByText("Reconstructed outputs differ from certified lineage.")).toBeVisible();
+    expect(screen.getByText("LINEAGE_DRIFT")).toBeVisible();
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ replayStatus: "DISPUTED", disputedReasons: ["GOVERNANCE_REPLAY_DISPUTED"] }),
+    }));
+    expect(screen.getByText("Conflicting reconstruction paths detected.")).toBeVisible();
+
+    rerender(React.createElement(DeploymentHardeningDashboard, {
+      model: createModel({ replayStatus: "FAILED", disputedReasons: ["GOVERNANCE_REPLAY_FAILED"] }),
+    }));
+    expect(screen.getByText("Governance replay failed.")).toBeVisible();
   });
 
   it("renders disputed decision as operator review required", () => {

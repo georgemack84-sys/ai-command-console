@@ -61,12 +61,42 @@ export function EvidencePanel({ model }: { model: DeploymentHardeningReadModel }
           <dt className="text-slate-400">Missing Scopes</dt>
           <dd>{model.missingScopes.length ? model.missingScopes.join(", ") : "None"}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Replay Hash</dt>
+          <dd className="break-all">{model.replayHash || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Expected Lineage</dt>
+          <dd className="break-all">{model.expectedLineageHash || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Reconstructed Lineage</dt>
+          <dd className="break-all">{model.reconstructedLineageHash || "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Reconstructed Scopes</dt>
+          <dd>{model.reconstructedScopes.length ? model.reconstructedScopes.join(", ") : "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Replay Missing Scopes</dt>
+          <dd>{model.replayMissingScopes.length ? model.replayMissingScopes.join(", ") : "None"}</dd>
+        </div>
       </dl>
       {model.certificationReasons.length ? (
         <div className="mt-4 text-sm text-slate-200">
           <p className="text-slate-400">Certification Reasons</p>
           <ul className="mt-1 space-y-1">
             {model.certificationReasons.slice(0, 5).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {model.driftReasons.length ? (
+        <div className="mt-4 text-sm text-slate-200">
+          <p className="text-slate-400">Drift Reasons</p>
+          <ul className="mt-1 space-y-1">
+            {model.driftReasons.slice(0, 5).map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>

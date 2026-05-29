@@ -65,6 +65,14 @@ export function DeploymentStatusPanel({ model }: { model: DeploymentHardeningRea
           <dt className="text-slate-400">Completeness</dt>
           <dd>{model.completenessScore}</dd>
         </div>
+        <div>
+          <dt className="text-slate-400">Governance Replay</dt>
+          <dd>{model.replayStatus}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Drift Detected</dt>
+          <dd>{model.driftDetected ? "true" : "false"}</dd>
+        </div>
       </dl>
       {model.blocked ? (
         <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
@@ -109,6 +117,31 @@ export function DeploymentStatusPanel({ model }: { model: DeploymentHardeningRea
       {model.certificationStatus === "FAILED" ? (
         <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
           Audit certification failed.
+        </p>
+      ) : null}
+      {model.replayStatus === "CONSISTENT" ? (
+        <p className="mt-4 rounded border border-emerald-400/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-100">
+          Replay reproduced governance state.
+        </p>
+      ) : null}
+      {model.replayStatus === "PARTIAL" ? (
+        <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
+          Replay incomplete but no critical drift detected.
+        </p>
+      ) : null}
+      {model.replayStatus === "DRIFTED" ? (
+        <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
+          Reconstructed outputs differ from certified lineage.
+        </p>
+      ) : null}
+      {model.replayStatus === "DISPUTED" ? (
+        <p className="mt-4 rounded border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
+          Conflicting reconstruction paths detected.
+        </p>
+      ) : null}
+      {model.replayStatus === "FAILED" ? (
+        <p className="mt-4 rounded border border-rose-400/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
+          Governance replay failed.
         </p>
       ) : null}
     </section>

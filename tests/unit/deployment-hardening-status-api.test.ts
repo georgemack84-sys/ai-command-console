@@ -57,6 +57,13 @@ function writeValidEvidence(dir: string) {
     overrideLineageHash: "",
     certificationPolicyVersion: "dh-post-override-audit/v1",
     certificationReasons: [],
+    replayStatus: "CONSISTENT",
+    driftDetected: false,
+    driftReasons: [],
+    replayHash: "sha256:replay",
+    expectedLineageHash: "sha256:lineage",
+    reconstructedLineageHash: "sha256:lineage",
+    replayPolicyVersion: "dh-governance-replay/v1",
     state: "PROGRESSING",
   };
   const earlier = {
@@ -200,6 +207,37 @@ function writeValidEvidence(dir: string) {
     reasons: [],
     policyVersion: "dh-post-override-audit/v1",
   });
+  writeJson(path.join(dir, "deployment-governance-replay.json"), {
+    ...base,
+    replayStatus: "CONSISTENT",
+    reconstructedScopes: ["TELEMETRY", "CERTIFICATE", "CHECKPOINT", "DECISION", "ENFORCEMENT", "OVERRIDE", "CERTIFICATION"],
+    missingScopes: [],
+    replayHash: "sha256:replay",
+    reconstructedLineageHash: "sha256:lineage",
+    expectedLineageHash: "sha256:lineage",
+    driftDetected: false,
+    driftReasons: [],
+    replayedAt: "2026-05-28T12:01:00.000Z",
+    policyVersion: "dh-governance-replay/v1",
+  });
+  writeJson(path.join(dir, "deployment-replay-lineage.json"), {
+    ...base,
+    reconstructedLineageHash: "sha256:lineage",
+    expectedLineageHash: "sha256:lineage",
+    policyVersion: "dh-governance-replay/v1",
+  });
+  writeJson(path.join(dir, "deployment-drift-report.json"), {
+    driftReasons: [],
+  });
+  writeJson(path.join(dir, "deployment-replay-summary.json"), {
+    ...base,
+    replayStatus: "CONSISTENT",
+    driftDetected: false,
+    replayHash: "sha256:replay",
+    reconstructedLineageHash: "sha256:lineage",
+    expectedLineageHash: "sha256:lineage",
+    policyVersion: "dh-governance-replay/v1",
+  });
 }
 
 describe("deployment hardening status API", () => {
@@ -239,6 +277,8 @@ describe("deployment hardening status API", () => {
     expect(payload.data.sourceBlocked).toBe(false);
     expect(payload.data.certificationStatus).toBe("CERTIFIED");
     expect(payload.data.lineageHash).toBe("sha256:lineage");
+    expect(payload.data.replayStatus).toBe("CONSISTENT");
+    expect(payload.data.replayHash).toBe("sha256:replay");
     expect(payload.data.timeline.map((event: { event: string }) => event.event)).toEqual([
       "deploy_start",
       "deployment_decision_complete",
