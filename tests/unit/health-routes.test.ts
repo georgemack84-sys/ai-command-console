@@ -214,4 +214,75 @@ describe("health and readiness routes", () => {
     expect(payload.data.warnings[0].code).toBe("jobs_external_worker_recommended");
   });
 
+  it("keeps health and readiness as live operational probes, not observability snapshots", async () => {
+    vi.mocked(getRuntimePosture).mockReturnValue({
+      environment: "production",
+      storageDriver: "sqlite",
+      authSecretConfigured: true,
+      secureCookies: true,
+      sessionMaxAgeSeconds: 120,
+      databaseUrlConfigured: true,
+      aiSummary: {
+        providerMode: "auto",
+        model: "gpt-4.1-mini",
+        timeoutMs: 8000,
+        maxAttempts: 2,
+        allowMockFallback: true,
+        openAiConfigured: true,
+        dailyBudgetUsd: 1,
+        estimatedCostPerRunUsd: 0.02,
+        evaluationsEnabled: true,
+      },
+      jobs: {
+        executionMode: "external",
+        workerPollIntervalMs: 2000,
+        maxPendingJobs: 100,
+        maxRunningJobs: 12,
+        externalWorkerRecommended: false,
+      },
+      process: {
+        pid: 1234,
+        uptimeSeconds: 120,
+        memory: {
+          rssMb: 128,
+          heapUsedMb: 64,
+          heapTotalMb: 96,
+          externalMb: 12,
+        },
+      },
+    });
+    vi.mocked(checkDatabaseHealth).mockResolvedValue({
+      ok: true,
+      status: "ok",
+      details: null,
+    });
+
+    const healthResponse = await getHealth();
+    const readyResponse = await getReady();
+    const healthPayload = await healthResponse.json();
+    const readyPayload = await readyResponse.json();
+
+    expect(healthPayload.data).toMatchObject({
+      status: "ok",
+      runtime: expect.any(Object),
+      checks: {
+        database: expect.any(Object),
+        jobs: expect.any(Object),
+      },
+    });
+    expect(readyPayload.data).toMatchObject({
+      status: "ready",
+      runtime: expect.any(Object),
+      checks: {
+        authSecret: expect.any(Object),
+        database: expect.any(Object),
+        jobs: expect.any(Object),
+      },
+    });
+    expect(healthPayload.data.contractVersion).toBeUndefined();
+    expect(healthPayload.data.snapshotId).toBeUndefined();
+    expect(readyPayload.data.contractVersion).toBeUndefined();
+    expect(readyPayload.data.snapshotId).toBeUndefined();
+  });
+
 });

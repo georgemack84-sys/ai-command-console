@@ -77,6 +77,21 @@ describe("observability api routes", () => {
     expect(vi.mocked(runSamBridge)).not.toHaveBeenCalled();
   });
 
+  it("keeps observability health as a tenant-scoped contract snapshot, not a live readiness probe", async () => {
+    const response = await HealthGET(new Request("http://localhost/api/v1/observability/health"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data).toMatchObject({
+      status: "DEGRADED",
+      contractVersion: "v1",
+      contractHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(payload.data.runtime).toBeUndefined();
+    expect(payload.data.checks).toBeUndefined();
+    expect(payload.data.warnings).toBeUndefined();
+  });
+
   it("returns a stable metrics response", async () => {
     const response = await MetricsGET(new Request("http://localhost/api/v1/observability/metrics"));
     const payload = await response.json();

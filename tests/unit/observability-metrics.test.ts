@@ -58,6 +58,19 @@ describe("observability metrics", () => {
     expect(snapshot.unknownSignals).toContain("lockContentionRate");
   });
 
+  it("builds deterministic snapshot identifiers when generatedAt is controlled", async () => {
+    const first = await buildMetricSnapshot({
+      generatedAt: "2026-05-07T00:00:00.000Z",
+    });
+    const second = await buildMetricSnapshot({
+      generatedAt: "2026-05-07T00:00:00.000Z",
+    });
+
+    expect(second.snapshotId).toBe(first.snapshotId);
+    expect(second.generatedAt).toBe(first.generatedAt);
+    expect(second.metrics.map((metric) => metric.name)).toEqual(first.metrics.map((metric) => metric.name));
+  });
+
   it("does not invent lock data when no safe source exists", async () => {
     const snapshot = await buildMetricSnapshot({
       generatedAt: "2026-05-07T00:00:00.000Z",
