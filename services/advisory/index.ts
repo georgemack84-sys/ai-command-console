@@ -25,6 +25,9 @@ export {
 export {
   buildAdvisoryEvidenceLifecycleExportBundle,
 } from "./advisoryEvidenceLifecycleExportBundle";
+export {
+  verifyAdvisoryEvidenceLifecycleBundle,
+} from "./advisoryEvidenceLifecycleBundleVerification";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -63,6 +66,10 @@ export type {
   AdvisoryEvidenceLifecycleExportBundlePolicyVersions,
   BuildAdvisoryEvidenceLifecycleExportBundleInput,
 } from "./advisoryEvidenceLifecycleExportBundle";
+export type {
+  AdvisoryLifecycleBundleVerificationResult,
+  AdvisoryLifecycleBundleVerificationStatus,
+} from "./advisoryEvidenceLifecycleBundleVerification";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
