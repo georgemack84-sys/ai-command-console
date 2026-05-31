@@ -19,6 +19,9 @@ export {
 export {
   summarizeAdvisoryEvidenceArchive,
 } from "./advisoryEvidenceArchiveSummary";
+export {
+  classifyAdvisoryEvidenceRetention,
+} from "./advisoryEvidenceRetentionPolicy";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -46,6 +49,11 @@ export type {
   AdvisoryEvidenceArchiveSummary,
   AdvisoryEvidenceArchiveSummaryStatus,
 } from "./advisoryEvidenceArchiveSummary";
+export type {
+  AdvisoryEvidenceRetentionResult,
+  AdvisoryRetentionStatus,
+  ClassifyAdvisoryEvidenceRetentionOptions,
+} from "./advisoryEvidenceRetentionPolicy";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
