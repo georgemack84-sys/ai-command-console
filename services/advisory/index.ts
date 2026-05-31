@@ -22,6 +22,9 @@ export {
 export {
   classifyAdvisoryEvidenceRetention,
 } from "./advisoryEvidenceRetentionPolicy";
+export {
+  buildAdvisoryEvidenceLifecycleExportBundle,
+} from "./advisoryEvidenceLifecycleExportBundle";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -54,6 +57,12 @@ export type {
   AdvisoryRetentionStatus,
   ClassifyAdvisoryEvidenceRetentionOptions,
 } from "./advisoryEvidenceRetentionPolicy";
+export type {
+  AdvisoryEvidenceLifecycleExportBundle,
+  AdvisoryEvidenceLifecycleExportBundleAuthority,
+  AdvisoryEvidenceLifecycleExportBundlePolicyVersions,
+  BuildAdvisoryEvidenceLifecycleExportBundleInput,
+} from "./advisoryEvidenceLifecycleExportBundle";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
