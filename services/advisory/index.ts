@@ -13,6 +13,9 @@ export {
 export {
   reviewAdvisorySnapshotOffline,
 } from "./advisorySnapshotOfflineReview";
+export {
+  indexAdvisoryEvidenceReference,
+} from "./advisoryEvidenceArchiveIndex";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -30,6 +33,12 @@ export type {
   AdvisorySnapshotOfflineReviewStatus,
   AdvisorySnapshotReviewFinding,
 } from "./advisorySnapshotOfflineReview";
+export type {
+  AdvisoryEvidenceArchiveEntry,
+  AdvisoryEvidenceArchiveSource,
+  AdvisoryEvidenceArchiveStatus,
+  IndexAdvisoryEvidenceReferenceOptions,
+} from "./advisoryEvidenceArchiveIndex";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
