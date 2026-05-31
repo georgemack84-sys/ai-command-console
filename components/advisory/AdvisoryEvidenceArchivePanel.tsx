@@ -1,8 +1,10 @@
 import type { AdvisoryEvidenceArchiveEntry } from "@/services/advisory/advisoryEvidenceArchiveIndex";
 import { summarizeAdvisoryEvidenceArchive } from "@/services/advisory/advisoryEvidenceArchiveSummary";
+import { classifyAdvisoryEvidenceRetention } from "@/services/advisory/advisoryEvidenceRetentionPolicy";
 import { AdvisoryEvidenceArchiveDetailPanel } from "./AdvisoryEvidenceArchiveDetailPanel";
 import { AdvisoryEvidenceArchiveSummaryPanel } from "./AdvisoryEvidenceArchiveSummaryPanel";
 import { AdvisoryEvidenceArchiveTable } from "./AdvisoryEvidenceArchiveTable";
+import { AdvisoryEvidenceRetentionPolicyPanel } from "./AdvisoryEvidenceRetentionPolicyPanel";
 
 function stateMessage(status: string) {
   if (status === "INDEXED") return "Reference indexed. This does not mark evidence trusted.";
@@ -14,6 +16,10 @@ function stateMessage(status: string) {
 export function AdvisoryEvidenceArchivePanel({ entries }: { entries: readonly AdvisoryEvidenceArchiveEntry[] }) {
   const statuses = [...new Set(entries.map((entry) => entry.archiveStatus))];
   const summary = summarizeAdvisoryEvidenceArchive(entries);
+  const retentionResults = entries.map((entry) => classifyAdvisoryEvidenceRetention(entry, {
+    retentionClass: "STANDARD",
+    retentionUntil: null,
+  }));
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8" data-testid="advisory-evidence-archive-panel">
@@ -37,6 +43,7 @@ export function AdvisoryEvidenceArchivePanel({ entries }: { entries: readonly Ad
       </section>
 
       <AdvisoryEvidenceArchiveSummaryPanel summary={summary} />
+      <AdvisoryEvidenceRetentionPolicyPanel retentions={retentionResults} />
 
       <section className="rounded-lg border border-slate-700 bg-slate-950/80 p-5" data-testid="archive-reference-state-messages">
         <p className="text-xs uppercase text-sky-200">Reference State Messages</p>
