@@ -1,10 +1,8 @@
 import type { AdvisoryEvidenceArchiveEntry } from "@/services/advisory/advisoryEvidenceArchiveIndex";
+import { summarizeAdvisoryEvidenceArchive } from "@/services/advisory/advisoryEvidenceArchiveSummary";
 import { AdvisoryEvidenceArchiveDetailPanel } from "./AdvisoryEvidenceArchiveDetailPanel";
+import { AdvisoryEvidenceArchiveSummaryPanel } from "./AdvisoryEvidenceArchiveSummaryPanel";
 import { AdvisoryEvidenceArchiveTable } from "./AdvisoryEvidenceArchiveTable";
-
-function countStatus(entries: readonly AdvisoryEvidenceArchiveEntry[], status: string) {
-  return entries.filter((entry) => entry.archiveStatus === status).length;
-}
 
 function stateMessage(status: string) {
   if (status === "INDEXED") return "Reference indexed. This does not mark evidence trusted.";
@@ -15,6 +13,7 @@ function stateMessage(status: string) {
 
 export function AdvisoryEvidenceArchivePanel({ entries }: { entries: readonly AdvisoryEvidenceArchiveEntry[] }) {
   const statuses = [...new Set(entries.map((entry) => entry.archiveStatus))];
+  const summary = summarizeAdvisoryEvidenceArchive(entries);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8" data-testid="advisory-evidence-archive-panel">
@@ -37,13 +36,10 @@ export function AdvisoryEvidenceArchivePanel({ entries }: { entries: readonly Ad
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-700 bg-slate-950/80 p-5" data-testid="archive-summary">
-        <p className="text-xs uppercase text-sky-200">Archive Summary</p>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div className="rounded border border-slate-700 bg-slate-900/60 p-3 text-slate-100">{countStatus(entries, "INDEXED")} indexed</div>
-          <div className="rounded border border-slate-700 bg-slate-900/60 p-3 text-slate-100">{countStatus(entries, "DISPUTED_REFERENCE")} disputed</div>
-          <div className="rounded border border-slate-700 bg-slate-900/60 p-3 text-slate-100">{countStatus(entries, "FAILED_REFERENCE")} failed</div>
-        </div>
+      <AdvisoryEvidenceArchiveSummaryPanel summary={summary} />
+
+      <section className="rounded-lg border border-slate-700 bg-slate-950/80 p-5" data-testid="archive-reference-state-messages">
+        <p className="text-xs uppercase text-sky-200">Reference State Messages</p>
         <div className="mt-4 space-y-2">
           {(statuses.length > 0 ? statuses : ["UNKNOWN_REFERENCE"]).map((status) => (
             <p className="rounded border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-200" key={status}>

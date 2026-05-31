@@ -37,11 +37,11 @@ describe("AdvisoryEvidenceArchivePanel", () => {
     render(React.createElement(AdvisoryEvidenceArchivePanel, { entries: [entry()] }));
 
     expect(screen.getByTestId("advisory-evidence-archive-panel")).toHaveTextContent("Advisory evidence archive");
-    expect(screen.getByText("READ_ONLY")).toBeVisible();
+    expect(screen.getAllByText("READ_ONLY").length).toBeGreaterThan(0);
     expect(screen.getByText("ARCHIVE_REFERENCE_ONLY")).toBeVisible();
-    expect(screen.getByText("NOT_TRUSTED")).toBeVisible();
-    expect(screen.getByText("NOT_IMPORTED_TO_LIVE_STATE")).toBeVisible();
-    expect(screen.getByText("NO_CONTROL_AUTHORITY")).toBeVisible();
+    expect(screen.getAllByText("NOT_TRUSTED").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("NOT_IMPORTED_TO_LIVE_STATE").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("NO_CONTROL_AUTHORITY").length).toBeGreaterThan(0);
     expect(screen.getByText("Reference indexed. This does not mark evidence trusted.")).toBeVisible();
     expect(screen.getByTestId("archive-reference-table")).toHaveTextContent("sha256:reference");
     expect(screen.getByTestId("archive-reference-table")).toHaveTextContent("sha256:id");
@@ -94,9 +94,9 @@ describe("AdvisoryEvidenceArchivePanel", () => {
       ],
     }));
 
-    expect(screen.getByTestId("archive-summary")).toHaveTextContent("1 indexed");
-    expect(screen.getByTestId("archive-summary")).toHaveTextContent("1 disputed");
-    expect(screen.getByTestId("archive-summary")).toHaveTextContent("1 failed");
+    expect(screen.getByTestId("archive-status-counts")).toHaveTextContent("1 indexed");
+    expect(screen.getByTestId("archive-status-counts")).toHaveTextContent("1 disputed");
+    expect(screen.getByTestId("archive-status-counts")).toHaveTextContent("1 failed");
     expect(within(screen.getByTestId("archive-reference-table")).getAllByRole("row").map((row) => row.textContent)).toEqual([
       "StatusEvidence refSourceReference hashSnapshot IDSnapshot hashReviewVerification",
       "INDEXEDaOFFLINE_REVIEWsha256:asha256:idsha256:snapshotREVIEWABLEVALID",
