@@ -16,6 +16,9 @@ export {
 export {
   indexAdvisoryEvidenceReference,
 } from "./advisoryEvidenceArchiveIndex";
+export {
+  summarizeAdvisoryEvidenceArchive,
+} from "./advisoryEvidenceArchiveSummary";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -39,6 +42,10 @@ export type {
   AdvisoryEvidenceArchiveStatus,
   IndexAdvisoryEvidenceReferenceOptions,
 } from "./advisoryEvidenceArchiveIndex";
+export type {
+  AdvisoryEvidenceArchiveSummary,
+  AdvisoryEvidenceArchiveSummaryStatus,
+} from "./advisoryEvidenceArchiveSummary";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
