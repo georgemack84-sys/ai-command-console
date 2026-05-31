@@ -10,6 +10,9 @@ export {
 export {
   verifyAdvisorySnapshot,
 } from "./advisorySnapshotVerification";
+export {
+  reviewAdvisorySnapshotOffline,
+} from "./advisorySnapshotOfflineReview";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -22,6 +25,11 @@ export type {
   AdvisorySnapshotVerificationResult,
   AdvisorySnapshotVerificationStatus,
 } from "./advisorySnapshotVerification";
+export type {
+  AdvisorySnapshotOfflineReview,
+  AdvisorySnapshotOfflineReviewStatus,
+  AdvisorySnapshotReviewFinding,
+} from "./advisorySnapshotOfflineReview";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
