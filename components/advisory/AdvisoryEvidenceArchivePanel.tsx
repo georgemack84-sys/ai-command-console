@@ -4,6 +4,8 @@ import { classifyAdvisoryEvidenceRetention } from "@/services/advisory/advisoryE
 import { AdvisoryEvidenceArchiveDetailPanel } from "./AdvisoryEvidenceArchiveDetailPanel";
 import { AdvisoryEvidenceArchiveSummaryPanel } from "./AdvisoryEvidenceArchiveSummaryPanel";
 import { AdvisoryEvidenceArchiveTable } from "./AdvisoryEvidenceArchiveTable";
+import { AdvisoryEvidenceLifecycleRollupPanel } from "./AdvisoryEvidenceLifecycleRollupPanel";
+import type { AdvisoryEvidenceLifecycleRollup } from "./AdvisoryEvidenceLifecycleRollupPanel";
 import { AdvisoryEvidenceRetentionPolicyPanel } from "./AdvisoryEvidenceRetentionPolicyPanel";
 
 function stateMessage(status: string) {
@@ -20,6 +22,49 @@ export function AdvisoryEvidenceArchivePanel({ entries }: { entries: readonly Ad
     retentionClass: "STANDARD",
     retentionUntil: null,
   }));
+  const firstEntry = entries[0] || null;
+  const firstRetention = retentionResults[0] || null;
+  const lifecycleStatus: AdvisoryEvidenceLifecycleRollup["lifecycleStatus"] = summary.summaryStatus === "FAILED_SUMMARY" || firstRetention?.retentionStatus === "RETENTION_FAILED"
+    ? "LIFECYCLE_FAILED"
+    : summary.summaryStatus === "DISPUTED_SUMMARY" || firstRetention?.retentionStatus === "RETENTION_DISPUTED" || firstRetention?.reviewRequired
+      ? "LIFECYCLE_DISPUTED"
+      : "LIFECYCLE_AVAILABLE";
+  const lifecycleRollup = {
+    lifecycleStatus,
+    exportStatus: null,
+    verificationStatus: firstEntry?.verificationStatus ?? null,
+    reviewStatus: firstEntry?.reviewStatus ?? null,
+    archiveStatus: firstEntry?.archiveStatus ?? null,
+    summaryStatus: summary.summaryStatus,
+    retentionStatus: firstRetention?.retentionStatus ?? null,
+    snapshotId: firstEntry?.snapshotId ?? null,
+    snapshotHash: firstEntry?.snapshotHash ?? null,
+    summaryHash: summary.summaryHash,
+    retentionHash: firstRetention?.retentionHash ?? null,
+    policyVersions: [...new Set([
+      ...entries.map((entry) => entry.policyVersion).filter((version): version is string => Boolean(version)),
+      ...(firstRetention ? [firstRetention.policyVersion] : []),
+    ])].sort(),
+    reviewRequired: retentionResults.some((retention) => retention.reviewRequired),
+    trusted: false as const,
+    importedToLiveState: false as const,
+    authority: "READ_ONLY" as const,
+    mayDeploy: false as const,
+    mayRetry: false as const,
+    mayRollback: false as const,
+    mayCancel: false as const,
+    mayResume: false as const,
+    mayApprove: false as const,
+    mayOverride: false as const,
+    mayDelete: false as const,
+    mayCompact: false as const,
+    mayArchiveMutate: false as const,
+    mayImportToLiveState: false as const,
+    reasons: [...new Set([
+      ...summary.reasons,
+      ...retentionResults.flatMap((retention) => retention.reasons),
+    ])].sort(),
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8" data-testid="advisory-evidence-archive-panel">
@@ -43,6 +88,7 @@ export function AdvisoryEvidenceArchivePanel({ entries }: { entries: readonly Ad
       </section>
 
       <AdvisoryEvidenceArchiveSummaryPanel summary={summary} />
+      <AdvisoryEvidenceLifecycleRollupPanel rollup={lifecycleRollup} />
       <AdvisoryEvidenceRetentionPolicyPanel retentions={retentionResults} />
 
       <section className="rounded-lg border border-slate-700 bg-slate-950/80 p-5" data-testid="archive-reference-state-messages">

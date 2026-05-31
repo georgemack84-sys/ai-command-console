@@ -37,6 +37,8 @@ describe("AdvisoryEvidenceArchivePanel", () => {
     render(React.createElement(AdvisoryEvidenceArchivePanel, { entries: [entry()] }));
 
     expect(screen.getByTestId("advisory-evidence-archive-panel")).toHaveTextContent("Advisory evidence archive");
+    expect(screen.getByTestId("advisory-lifecycle-rollup-panel")).toHaveTextContent("Lifecycle Summary");
+    expect(screen.getByTestId("advisory-lifecycle-rollup-panel")).toHaveTextContent("LIFECYCLE_ROLLUP_ONLY");
     expect(screen.getByTestId("advisory-retention-policy-panel")).toHaveTextContent("Retention Summary");
     expect(screen.getByTestId("advisory-retention-policy-panel")).toHaveTextContent("RETENTION_METADATA_ONLY");
     expect(screen.getAllByText("READ_ONLY").length).toBeGreaterThan(0);
