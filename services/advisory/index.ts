@@ -28,6 +28,10 @@ export {
 export {
   verifyAdvisoryEvidenceLifecycleBundle,
 } from "./advisoryEvidenceLifecycleBundleVerification";
+export {
+  certifyAdvisoryEvidenceLifecycle,
+  REQUIRED_ADVISORY_EVIDENCE_LIFECYCLE_PHASES,
+} from "./advisoryEvidenceLifecycleCertificationGate";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -70,6 +74,13 @@ export type {
   AdvisoryLifecycleBundleVerificationResult,
   AdvisoryLifecycleBundleVerificationStatus,
 } from "./advisoryEvidenceLifecycleBundleVerification";
+export type {
+  AdvisoryEvidenceLifecycleCertification,
+  AdvisoryEvidenceLifecycleCertificationChecks,
+  AdvisoryEvidenceLifecycleCertificationInput,
+  AdvisoryEvidenceLifecycleCertificationStatus,
+  AdvisoryEvidenceLifecyclePhaseCertification,
+} from "./advisoryEvidenceLifecycleCertificationGate";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
