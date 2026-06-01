@@ -7,6 +7,7 @@ export * from "./confidenceDriftValidator";
 export * from "./confidenceEvidenceValidator";
 export * from "./confidenceFailClosedGuard";
 export * from "./confidenceGovernanceAdjuster";
+export * from "./governanceAwareCautionBridge";
 export * from "./confidenceGovernanceSnapshotRegistry";
 export * from "./confidenceHashEngine";
 export * from "./confidenceIntegrityValidator";
