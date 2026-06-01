@@ -60,6 +60,10 @@ export {
   buildGovernanceMaintenanceFramework,
   RECOMMENDED_GOVERNANCE_MAINTENANCE_FRAMEWORK_TRACKS,
 } from "./advisoryGovernanceMaintenanceFramework";
+export {
+  certifyGovernanceSustainability,
+  RECOMMENDED_GOVERNANCE_SUSTAINABILITY_TRACKS,
+} from "./advisoryGovernanceSustainabilityCertificationGate";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -161,6 +165,18 @@ export type {
   RegressionMaintenancePolicy,
   SealMaintenancePolicy,
 } from "./advisoryGovernanceMaintenanceFramework";
+export type {
+  AdrContinuity,
+  ArtifactPreservation,
+  DocumentationSurvivability,
+  DriftResistance,
+  GovernanceSustainabilityCertification,
+  GovernanceSustainabilityCertificationInput,
+  GovernanceSustainabilityStatus,
+  GovernanceSustainabilityTrack,
+  SealPreservationCoverage,
+  SustainabilityDomainCoverage,
+} from "./advisoryGovernanceSustainabilityCertificationGate";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
