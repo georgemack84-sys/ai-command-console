@@ -42,6 +42,12 @@ export {
 export {
   verifyAdvisoryEvidenceLifecycleCompletionBundle,
 } from "./advisoryEvidenceLifecycleCompletionBundleVerification";
+export {
+  certifyAdvisoryGovernanceProcess,
+  OPTIONAL_GOVERNANCE_META_DOCUMENTS,
+  REQUIRED_GOVERNANCE_META_DOCUMENTS,
+  REQUIRED_GOVERNANCE_META_SEALS,
+} from "./advisoryGovernanceMetaCertification";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -112,6 +118,14 @@ export type {
   CompletionBundleVerificationStatus,
   VerifyAdvisoryEvidenceLifecycleCompletionBundleInput,
 } from "./advisoryEvidenceLifecycleCompletionBundleVerification";
+export type {
+  GovernanceMetaCertification,
+  GovernanceMetaCertificationArtifact,
+  GovernanceMetaCertificationInput,
+  GovernanceMetaCertificationProcessChecks,
+  GovernanceMetaCertificationSeal,
+  GovernanceMetaCertificationStatus,
+} from "./advisoryGovernanceMetaCertification";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
