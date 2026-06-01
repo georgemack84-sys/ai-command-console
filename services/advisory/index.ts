@@ -39,6 +39,9 @@ export {
 export {
   buildAdvisoryEvidenceLifecycleCompletionExportBundle,
 } from "./advisoryEvidenceLifecycleCompletionExportBundle";
+export {
+  verifyAdvisoryEvidenceLifecycleCompletionBundle,
+} from "./advisoryEvidenceLifecycleCompletionBundleVerification";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -104,6 +107,11 @@ export type {
   AdvisoryEvidenceLifecycleCompletionExportSummary,
   BuildAdvisoryEvidenceLifecycleCompletionExportBundleInput,
 } from "./advisoryEvidenceLifecycleCompletionExportBundle";
+export type {
+  CompletionBundleVerificationResult,
+  CompletionBundleVerificationStatus,
+  VerifyAdvisoryEvidenceLifecycleCompletionBundleInput,
+} from "./advisoryEvidenceLifecycleCompletionBundleVerification";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
