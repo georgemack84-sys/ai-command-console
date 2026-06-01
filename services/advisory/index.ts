@@ -36,6 +36,9 @@ export {
   buildAdvisoryEvidenceLifecycleCompletionReport,
   REQUIRED_ADVISORY_EVIDENCE_LIFECYCLE_SEALS,
 } from "./advisoryEvidenceLifecycleCompletionReport";
+export {
+  buildAdvisoryEvidenceLifecycleCompletionExportBundle,
+} from "./advisoryEvidenceLifecycleCompletionExportBundle";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -95,6 +98,12 @@ export type {
   AdvisoryEvidenceLifecycleOptionalExtension,
   AdvisoryEvidenceLifecycleSeal,
 } from "./advisoryEvidenceLifecycleCompletionReport";
+export type {
+  AdvisoryEvidenceLifecycleCompletionExportBundle,
+  AdvisoryEvidenceLifecycleCompletionExportStatus,
+  AdvisoryEvidenceLifecycleCompletionExportSummary,
+  BuildAdvisoryEvidenceLifecycleCompletionExportBundleInput,
+} from "./advisoryEvidenceLifecycleCompletionExportBundle";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
