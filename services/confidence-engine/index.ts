@@ -9,6 +9,7 @@ export * from "./confidenceFailClosedGuard";
 export * from "./confidenceGovernanceAdjuster";
 export * from "./governanceAwareCautionBridge";
 export * from "./riskEscalationLayer";
+export * from "./scopeTighteningFramework";
 export * from "./confidenceGovernanceSnapshotRegistry";
 export * from "./confidenceHashEngine";
 export * from "./confidenceIntegrityValidator";
