@@ -48,6 +48,14 @@ export {
   REQUIRED_GOVERNANCE_META_DOCUMENTS,
   REQUIRED_GOVERNANCE_META_SEALS,
 } from "./advisoryGovernanceMetaCertification";
+export {
+  buildGovernanceProgramCompletionReport,
+  RECOMMENDED_GOVERNANCE_MAINTENANCE_TRACKS,
+  REQUIRED_GOVERNANCE_PROGRAM_ADRS,
+  REQUIRED_GOVERNANCE_PROGRAM_CHAINS,
+  REQUIRED_GOVERNANCE_PROGRAM_DOCUMENTS,
+  REQUIRED_GOVERNANCE_PROGRAM_SEALS,
+} from "./advisoryGovernanceProgramCompletionReport";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -126,6 +134,17 @@ export type {
   GovernanceMetaCertificationSeal,
   GovernanceMetaCertificationStatus,
 } from "./advisoryGovernanceMetaCertification";
+export type {
+  GovernanceProgramChain,
+  GovernanceProgramCompletionReport,
+  GovernanceProgramCompletionReportInput,
+  GovernanceProgramCoverageItem,
+  GovernanceProgramGuarantees,
+  GovernanceProgramMaintenanceTrack,
+  GovernanceProgramSeal,
+  GovernanceProgramStatus,
+  GovernanceProgramSummary,
+} from "./advisoryGovernanceProgramCompletionReport";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
