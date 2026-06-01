@@ -32,6 +32,10 @@ export {
   certifyAdvisoryEvidenceLifecycle,
   REQUIRED_ADVISORY_EVIDENCE_LIFECYCLE_PHASES,
 } from "./advisoryEvidenceLifecycleCertificationGate";
+export {
+  buildAdvisoryEvidenceLifecycleCompletionReport,
+  REQUIRED_ADVISORY_EVIDENCE_LIFECYCLE_SEALS,
+} from "./advisoryEvidenceLifecycleCompletionReport";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -81,6 +85,16 @@ export type {
   AdvisoryEvidenceLifecycleCertificationStatus,
   AdvisoryEvidenceLifecyclePhaseCertification,
 } from "./advisoryEvidenceLifecycleCertificationGate";
+export type {
+  AdvisoryEvidenceLifecycleCertificationSummary,
+  AdvisoryEvidenceLifecycleCompletionReport,
+  AdvisoryEvidenceLifecycleCompletionReportInput,
+  AdvisoryEvidenceLifecycleCompletionStatus,
+  AdvisoryEvidenceLifecycleGuarantees,
+  AdvisoryEvidenceLifecycleOperatorVisibilitySummary,
+  AdvisoryEvidenceLifecycleOptionalExtension,
+  AdvisoryEvidenceLifecycleSeal,
+} from "./advisoryEvidenceLifecycleCompletionReport";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
