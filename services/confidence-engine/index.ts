@@ -7,6 +7,36 @@ export * from "./confidenceDriftValidator";
 export * from "./confidenceEvidenceValidator";
 export * from "./confidenceFailClosedGuard";
 export * from "./confidenceGovernanceAdjuster";
+export {
+  ChronologyReconstructionService,
+  ConfidenceLineageEngine,
+  ConfidenceReplayEngine,
+  HashVerificationService,
+  LineageGraphBuilder,
+  LineageIntegrityValidator,
+  ReplayBoundaryValidator,
+  ReplayCertificationService,
+  ReplayReasonGenerator,
+  ReplayRequestValidator,
+  buildConfidenceLineageRecord,
+  buildLineageGraph,
+  reconstructChronology,
+  replayConfidenceLineage,
+  validateReplayRequest,
+  verifyReplayHashes,
+} from "./confidenceLineageReplayFramework";
+export type {
+  ConfidenceLineageRecord as ConfidenceReplayLineageRecord,
+  ConfidenceReplayPhase,
+  ConfidenceReplayReasonCode,
+  ConfidenceReplayRequest,
+  ConfidenceReplayResult,
+  ConfidenceReplayStatus,
+  LineageReferenceChain,
+  PhaseOutput,
+  ReplayCertification,
+  ReplayHashVerification,
+} from "./confidenceLineageReplayFramework";
 export * from "./governanceAwareCautionBridge";
 export * from "./riskEscalationLayer";
 export * from "./scopeTighteningFramework";
