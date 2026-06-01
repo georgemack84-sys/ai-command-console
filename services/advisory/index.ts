@@ -64,6 +64,9 @@ export {
   certifyGovernanceSustainability,
   RECOMMENDED_GOVERNANCE_SUSTAINABILITY_TRACKS,
 } from "./advisoryGovernanceSustainabilityCertificationGate";
+export {
+  integrateOperationalGovernanceVisibility,
+} from "./advisoryOperationalGovernanceIntegration";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -177,6 +180,13 @@ export type {
   SealPreservationCoverage,
   SustainabilityDomainCoverage,
 } from "./advisoryGovernanceSustainabilityCertificationGate";
+export type {
+  OperationalGovernanceIntegration,
+  OperationalGovernanceIntegrationInput,
+  OperationalGovernanceIntegrationStatus,
+  OperationalGovernanceReplayReadiness,
+  OperationalGovernanceVisibilityState,
+} from "./advisoryOperationalGovernanceIntegration";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
