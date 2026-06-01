@@ -56,6 +56,10 @@ export {
   REQUIRED_GOVERNANCE_PROGRAM_DOCUMENTS,
   REQUIRED_GOVERNANCE_PROGRAM_SEALS,
 } from "./advisoryGovernanceProgramCompletionReport";
+export {
+  buildGovernanceMaintenanceFramework,
+  RECOMMENDED_GOVERNANCE_MAINTENANCE_FRAMEWORK_TRACKS,
+} from "./advisoryGovernanceMaintenanceFramework";
 export type {
   AdvisoryReadModel,
   BuildAdvisoryReadModelOptions,
@@ -145,6 +149,18 @@ export type {
   GovernanceProgramStatus,
   GovernanceProgramSummary,
 } from "./advisoryGovernanceProgramCompletionReport";
+export type {
+  AdrMaintenancePolicy,
+  ArtifactDeprecationPolicy,
+  AuditCadencePolicy,
+  DocumentationMaintenancePolicy,
+  GovernanceMaintenanceFramework,
+  GovernanceMaintenanceFrameworkInput,
+  GovernanceMaintenanceStatus,
+  GovernanceMaintenanceTrack,
+  RegressionMaintenancePolicy,
+  SealMaintenancePolicy,
+} from "./advisoryGovernanceMaintenanceFramework";
 export type {
   AdvisorySource,
   UnifiedAdvisoryAggregationInput,
