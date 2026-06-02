@@ -387,3 +387,106 @@ export type SealedSimulationSandboxRecord = Readonly<{
   workerAccessAllowed: false;
   writeAccessAllowed: false;
 }>;
+
+export type GovernanceForecastType =
+  | "ESCALATION_FORECAST"
+  | "APPROVAL_PRESSURE"
+  | "CONTAINMENT_FORECAST"
+  | "POLICY_ALIGNMENT";
+
+export type GovernanceForecastStatus =
+  | "PASS"
+  | "LIMIT_SCOPE"
+  | "ESCALATE"
+  | "FREEZE";
+
+export interface GovernanceForecastRequest {
+  simulationId: string;
+  sandboxId: string;
+  replayId: string;
+  contractId: string;
+  riskCertificationReference: string;
+  governanceVersion: string;
+  forecastType: GovernanceForecastType;
+  lineageReferences: readonly string[];
+}
+
+export interface GovernanceForecastResult {
+  forecastId: string;
+  simulationId: string;
+  forecastType: GovernanceForecastType;
+  forecastStatus: GovernanceForecastStatus;
+  governancePressure: number;
+  forecastHash: string;
+  lineageHash: string;
+  replayIntegrity: boolean;
+  containmentIntegrity: boolean;
+  escalationReason?: string;
+}
+
+export type GovernanceForecastReasonCode =
+  | "CONTRACT_VALID"
+  | "CONTRACT_INVALID"
+  | "REPLAY_VALID"
+  | "REPLAY_INTEGRITY_FAILED"
+  | "SANDBOX_VALID"
+  | "SANDBOX_CONTAINMENT_FAILED"
+  | "CERTIFICATION_VALID"
+  | "CERTIFICATION_INVALID"
+  | "GOVERNANCE_VERSION_PRESENT"
+  | "GOVERNANCE_VERSION_MISSING"
+  | "LINEAGE_PRESENT"
+  | "LINEAGE_MISSING"
+  | "CROSS_TENANT_INPUTS_BLOCKED"
+  | "FORECAST_REFERENCES_SEALED_ARTIFACTS"
+  | "FORECAST_REFERENCES_UNSEALED_ARTIFACTS"
+  | "POLICY_CONFLICT_SURFACED"
+  | "FORECAST_IS_NOT_APPROVAL"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type GovernanceForecastInput = Readonly<{
+  request: GovernanceForecastRequest;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplay: SealedBranchReplayRecord;
+  sandbox: SealedSimulationSandboxRecord;
+  tenantId: string;
+  policyConflict?: boolean;
+  approvalComplexity?: number;
+  containmentStress?: number;
+}>;
+
+export type GovernanceForecastValidation = Readonly<{
+  forecastStatus: GovernanceForecastStatus;
+  reasonCodes: readonly GovernanceForecastReasonCode[];
+  replayIntegrity: boolean;
+  containmentIntegrity: boolean;
+  governancePressure: number;
+  deterministic: true;
+  readOnly: true;
+  authorityBounded: boolean;
+  governanceAuthoritative: true;
+}>;
+
+export type GovernanceForecastObservability = Readonly<{
+  forecastId: string;
+  forecastType: GovernanceForecastType;
+  forecastStatus: GovernanceForecastStatus;
+  governancePressure: number;
+  forecastHash: string;
+  replayIntegrity: boolean;
+  containmentIntegrity: boolean;
+}>;
+
+export type SealedGovernanceForecastRecord = Readonly<{
+  result: Readonly<GovernanceForecastResult>;
+  validation: GovernanceForecastValidation;
+  observability: GovernanceForecastObservability;
+  sealed: true;
+  readOnly: true;
+  advisoryOnly: true;
+  approvalAuthorized: false;
+  rejectionAuthorized: false;
+  policyMutationAllowed: false;
+  executionAuthorized: false;
+  authorityMutationAllowed: false;
+}>;
