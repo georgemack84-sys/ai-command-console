@@ -55,6 +55,17 @@ export type SimulationBoundaryReasonCode =
 
 export type SimulationBoundaryReplayStatus = "REPLAYABLE" | "FREEZE_REPLAY" | "ESCALATE_REPLAY";
 
+export type BranchReplayType =
+  | "HISTORICAL_REPLAY"
+  | "COMPARATIVE_REPLAY"
+  | "LINEAGE_REPLAY";
+
+export type BranchReplayStatus =
+  | "PASS"
+  | "LIMIT_SCOPE"
+  | "ESCALATE"
+  | "FREEZE";
+
 export type SimulationBranchDefinition = Readonly<{
   branchId: string;
   parentBranchId?: string;
@@ -147,4 +158,96 @@ export type SealedSimulationBoundaryRecord = Readonly<{
   schedulingAllowed: false;
   authorityMutationAllowed: false;
   persistenceAllowed: false;
+}>;
+
+export interface ReplayRequest {
+  simulationId: string;
+  contractId: string;
+  replayReferenceIds: readonly string[];
+  replayDepth: number;
+  branchIds: readonly string[];
+  riskCertificationReference: string;
+  replayType: BranchReplayType;
+}
+
+export interface ReplayResult {
+  replayId: string;
+  simulationId: string;
+  replayType: BranchReplayType;
+  replayStatus: BranchReplayStatus;
+  replayHash: string;
+  deterministicHash: string;
+  reconstructedBranches: readonly string[];
+  replayLineageHash: string;
+  branchCount: number;
+  replayDepth: number;
+  escalationReason?: string;
+}
+
+export type BranchReplayReasonCode =
+  | "SEALED_CONTRACT_VALID"
+  | "SEALED_CONTRACT_MISSING"
+  | "CONTRACT_EXECUTION_AUTHORITY_BLOCKED"
+  | "CONTRACT_RUNTIME_MUTATION_BLOCKED"
+  | "RISK_CERTIFICATION_VALID"
+  | "RISK_CERTIFICATION_MISSING"
+  | "RISK_CERTIFICATION_MISMATCH"
+  | "REPLAY_DEPTH_LIMITED"
+  | "BRANCH_COUNT_LIMITED"
+  | "CROSS_TENANT_REPLAY_BLOCKED"
+  | "BRANCH_SCOPE_VALID"
+  | "BRANCH_SCOPE_INVALID"
+  | "RECURSIVE_REPLAY_BLOCKED"
+  | "NESTED_REPLAY_BLOCKED"
+  | "BRANCH_GENERATION_BLOCKED"
+  | "REPLAY_GROWTH_BLOCKED"
+  | "LINEAGE_REFERENCE_MISSING"
+  | "REPLAY_IS_NOT_EXECUTION"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type BranchReplayInput = Readonly<{
+  request: ReplayRequest;
+  sealedContract?: SealedSimulationBoundaryRecord;
+  tenantId: string;
+  lineageReferenceIds: readonly string[];
+  nestedReplay?: boolean;
+  recursiveReplay?: boolean;
+  generatedBranchIds?: readonly string[];
+}>;
+
+export type BranchReplayValidation = Readonly<{
+  replayStatus: BranchReplayStatus;
+  reasonCodes: readonly BranchReplayReasonCode[];
+  branchCount: number;
+  replayDepth: number;
+  escalationState: "NONE" | "ESCALATE" | "FREEZE" | "LIMIT_SCOPE";
+  deterministic: true;
+  readOnly: true;
+  authorityBounded: boolean;
+  executionImpossible: boolean;
+}>;
+
+export type BranchReplayObservability = Readonly<{
+  replayId: string;
+  replayType: BranchReplayType;
+  replayDepth: number;
+  branchCount: number;
+  replayHash: string;
+  replayStatus: BranchReplayStatus;
+  escalationState: "NONE" | "ESCALATE" | "FREEZE" | "LIMIT_SCOPE";
+}>;
+
+export type SealedBranchReplayRecord = Readonly<{
+  result: Readonly<ReplayResult>;
+  validation: BranchReplayValidation;
+  observability: BranchReplayObservability;
+  sealed: true;
+  readOnly: true;
+  advisoryOnly: true;
+  executionAuthorized: false;
+  runtimeMutationAllowed: false;
+  schedulingAllowed: false;
+  authorityMutationAllowed: false;
+  persistenceAllowed: false;
+  branchGenerationAllowed: false;
 }>;
