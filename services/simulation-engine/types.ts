@@ -251,3 +251,139 @@ export type SealedBranchReplayRecord = Readonly<{
   persistenceAllowed: false;
   branchGenerationAllowed: false;
 }>;
+
+export type SimulationSandboxLifecycleStep =
+  | "CREATE_SANDBOX"
+  | "VALIDATE_CONTRACT"
+  | "VALIDATE_REPLAY"
+  | "ISOLATE_CONTEXT"
+  | "GENERATE_HASH"
+  | "SEAL_SANDBOX"
+  | "ALLOW_SIMULATION";
+
+export type SimulationSandboxStatus = "ACTIVE" | "LIMITED" | "FROZEN";
+
+export type SandboxResultStatus =
+  | "PASS"
+  | "LIMIT_SCOPE"
+  | "ESCALATE"
+  | "FREEZE";
+
+export interface SimulationSandboxContext {
+  sandboxId: string;
+  simulationId: string;
+  tenantId: string;
+  contractId: string;
+  replayId: string;
+  sandboxStatus: SimulationSandboxStatus;
+  isolationLevel: "STRICT" | "HIGH";
+  permittedResources: readonly string[];
+  createdAt: string;
+  immutableHash: string;
+  runtimeAccessAllowed: false;
+  persistenceAllowed: false;
+  networkAccessAllowed: false;
+  authorityMutationAllowed: false;
+  schedulerAccessAllowed: false;
+}
+
+export interface SandboxResult {
+  sandboxId: string;
+  simulationId: string;
+  sandboxStatus: SandboxResultStatus;
+  isolationHash: string;
+  replayIntegrity: boolean;
+  containmentState: string;
+  resourceUsageSummary: object;
+}
+
+export type SimulationSandboxReasonCode =
+  | "CONTRACT_VALID"
+  | "CONTRACT_INVALID"
+  | "REPLAY_VALID"
+  | "REPLAY_INTEGRITY_FAILED"
+  | "RUNTIME_ACCESS_BLOCKED"
+  | "PERSISTENCE_BLOCKED"
+  | "NETWORK_ACCESS_BLOCKED"
+  | "SCHEDULER_ACCESS_BLOCKED"
+  | "AUTHORITY_MUTATION_BLOCKED"
+  | "CROSS_TENANT_ACCESS_BLOCKED"
+  | "TENANT_CONTEXT_IMMUTABLE"
+  | "PERMISSIONS_IMMUTABLE"
+  | "RESOURCE_SCOPE_LIMITED"
+  | "REPLAY_CONTEXT_LIMITED"
+  | "SANDBOX_DURATION_LIMITED"
+  | "WORKERS_BLOCKED"
+  | "WRITES_BLOCKED"
+  | "SANDBOX_ESCAPE_BLOCKED"
+  | "SANDBOX_IS_NOT_EXECUTION"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type SimulationSandboxRequest = Readonly<{
+  sandboxId: string;
+  tenantId: string;
+  contractId: string;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplay: SealedBranchReplayRecord;
+  permittedResources: readonly string[];
+  createdAt: string;
+  isolationLevel: "STRICT" | "HIGH";
+  requestedDurationSeconds?: number;
+  replayContextIds?: readonly string[];
+  runtimeAccessAllowed?: boolean;
+  persistenceAllowed?: boolean;
+  networkAccessAllowed?: boolean;
+  authorityMutationAllowed?: boolean;
+  schedulerAccessAllowed?: boolean;
+  workerAccessAllowed?: boolean;
+  writeAccessAllowed?: boolean;
+  sandboxPermissionsMutated?: boolean;
+}>;
+
+export type SimulationSandboxValidation = Readonly<{
+  sandboxStatus: SandboxResultStatus;
+  reasonCodes: readonly SimulationSandboxReasonCode[];
+  lifecycle: readonly SimulationSandboxLifecycleStep[];
+  replayIntegrity: boolean;
+  containmentState: "CONTAINED" | "LIMITED" | "ESCALATED" | "FROZEN";
+  resourceUsageSummary: Readonly<{
+    permittedResourceCount: number;
+    replayContextCount: number;
+    requestedDurationSeconds: number;
+    maxSandboxDuration: number;
+    maxReplayContexts: number;
+    maxResourceScope: number;
+  }>;
+  deterministic: true;
+  readOnly: true;
+  authorityBounded: boolean;
+  runtimeInaccessible: boolean;
+  networkInaccessible: boolean;
+  stateProtected: boolean;
+}>;
+
+export type SimulationSandboxObservability = Readonly<{
+  sandboxId: string;
+  sandboxStatus: SandboxResultStatus;
+  isolationLevel: "STRICT" | "HIGH";
+  replayIntegrity: boolean;
+  containmentState: string;
+  isolationHash: string;
+}>;
+
+export type SealedSimulationSandboxRecord = Readonly<{
+  context: Readonly<SimulationSandboxContext>;
+  validation: SimulationSandboxValidation;
+  result: Readonly<SandboxResult>;
+  observability: SimulationSandboxObservability;
+  sealed: true;
+  readOnly: true;
+  advisoryOnly: true;
+  runtimeAccessAllowed: false;
+  persistenceAllowed: false;
+  networkAccessAllowed: false;
+  authorityMutationAllowed: false;
+  schedulerAccessAllowed: false;
+  workerAccessAllowed: false;
+  writeAccessAllowed: false;
+}>;
