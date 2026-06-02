@@ -490,3 +490,116 @@ export type SealedGovernanceForecastRecord = Readonly<{
   executionAuthorized: false;
   authorityMutationAllowed: false;
 }>;
+
+export type AlternatePathAnalysisType =
+  | "TRADEOFF_ANALYSIS"
+  | "PATH_COMPARISON"
+  | "CONSTRAINT_ANALYSIS"
+  | "OUTCOME_DIFFERENTIATION";
+
+export type AlternatePathAnalysisStatus =
+  | "PASS"
+  | "LIMIT_SCOPE"
+  | "ESCALATE"
+  | "FREEZE";
+
+export interface AlternatePathRequest {
+  simulationId: string;
+  contractId: string;
+  replayIds: readonly string[];
+  sandboxIds: readonly string[];
+  forecastIds: readonly string[];
+  pathIds: readonly string[];
+  analysisType: AlternatePathAnalysisType;
+  lineageReferences: readonly string[];
+}
+
+export interface AlternatePathResult {
+  analysisId: string;
+  simulationId: string;
+  analysisType: AlternatePathAnalysisType;
+  analysisStatus: AlternatePathAnalysisStatus;
+  comparedPathCount: number;
+  analysisHash: string;
+  lineageHash: string;
+  governancePressureDelta: number;
+  containmentDelta: number;
+  replayIntegrity: boolean;
+  containmentIntegrity: boolean;
+  escalationReason?: string;
+}
+
+export type AlternatePathReasonCode =
+  | "CONTRACT_VALID"
+  | "CONTRACT_INVALID"
+  | "REPLAY_OUTPUTS_VALID"
+  | "REPLAY_INTEGRITY_FAILED"
+  | "SANDBOX_OUTPUTS_VALID"
+  | "CONTAINMENT_INTEGRITY_FAILED"
+  | "FORECAST_OUTPUTS_VALID"
+  | "INVALID_FORECAST"
+  | "APPROVED_PATHS_VALID"
+  | "UNAPPROVED_PATH_DETECTED"
+  | "GENERATED_PATH_BLOCKED"
+  | "RECURSIVE_ANALYSIS_BLOCKED"
+  | "NESTED_ANALYSIS_BLOCKED"
+  | "PATH_COUNT_INVALID"
+  | "PATH_COUNT_LIMITED"
+  | "ANALYSIS_DEPTH_LIMITED"
+  | "CROSS_TENANT_PATHS_BLOCKED"
+  | "LINEAGE_PRESENT"
+  | "LINEAGE_MISSING"
+  | "ANALYSIS_REFERENCES_SEALED_ARTIFACTS"
+  | "ANALYSIS_REFERENCES_UNSEALED_ARTIFACTS"
+  | "ANALYSIS_IS_NOT_DECISION"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type AlternatePathAnalysisInput = Readonly<{
+  request: AlternatePathRequest;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplays: readonly SealedBranchReplayRecord[];
+  sandboxes: readonly SealedSimulationSandboxRecord[];
+  forecasts: readonly SealedGovernanceForecastRecord[];
+  tenantId: string;
+  analysisDepth?: number;
+  generatedPathIds?: readonly string[];
+  nestedAnalysis?: boolean;
+  recursiveAnalysis?: boolean;
+}>;
+
+export type AlternatePathValidation = Readonly<{
+  analysisStatus: AlternatePathAnalysisStatus;
+  reasonCodes: readonly AlternatePathReasonCode[];
+  comparedPathCount: number;
+  replayIntegrity: boolean;
+  containmentIntegrity: boolean;
+  deterministic: true;
+  readOnly: true;
+  authorityBounded: boolean;
+  governanceAuthoritative: true;
+}>;
+
+export type AlternatePathObservability = Readonly<{
+  analysisId: string;
+  analysisType: AlternatePathAnalysisType;
+  comparedPathCount: number;
+  analysisStatus: AlternatePathAnalysisStatus;
+  governancePressureDelta: number;
+  containmentDelta: number;
+  analysisHash: string;
+}>;
+
+export type SealedAlternatePathAnalysisRecord = Readonly<{
+  result: Readonly<AlternatePathResult>;
+  validation: AlternatePathValidation;
+  observability: AlternatePathObservability;
+  sealed: true;
+  readOnly: true;
+  advisoryOnly: true;
+  pathSelectionAuthorized: false;
+  executionRecommended: false;
+  optimizationAllowed: false;
+  pathGenerationAllowed: false;
+  workflowMutationAllowed: false;
+  authorityMutationAllowed: false;
+}>;
