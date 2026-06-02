@@ -49,6 +49,7 @@ export * from "./confidenceNormalizationEngine";
 export * from "./confidencePolicyValidator";
 export * from "./confidenceProposalValidator";
 export * from "./riskObservabilityLayer";
+export * from "./operatorRiskVisibilityLayer";
 export * from "./confidenceReplayAuditor";
 export * from "./confidenceReplayBindings";
 export * from "./confidenceReplayValidator";
