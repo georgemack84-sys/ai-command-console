@@ -8,3 +8,4 @@ export * from "./simulationReplayLedger";
 export * from "./simulationResultModel";
 export * from "./intentSimulationCertificationGate";
 export * from "./simulationCertificationReplayFramework";
+export * from "./simulationObservabilityLayer";

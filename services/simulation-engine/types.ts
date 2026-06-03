@@ -1018,3 +1018,105 @@ export type SealedCertificationReplayRecord = Readonly<{
   persistenceAllowed: false;
   schedulingAllowed: false;
 }>;
+
+export interface SimulationObservabilityRequest {
+  simulationId: string;
+  tenantId: string;
+  visibilityScope:
+    | "HEALTH"
+    | "LINEAGE"
+    | "CERTIFICATION"
+    | "CONTAINMENT"
+    | "FULL";
+  artifactReferences: string[];
+}
+
+export interface SimulationObservabilityResult {
+  observabilityId: string;
+  simulationId: string;
+  observabilityState:
+    | "HEALTHY"
+    | "DEGRADED"
+    | "LIMITED"
+    | "ESCALATED"
+    | "FROZEN";
+  replayVisible: boolean;
+  lineageVisible: boolean;
+  certificationVisible: boolean;
+  containmentVisible: boolean;
+  reconstructionVisible: boolean;
+  lineageIntegrity: boolean;
+  observabilityHash: string;
+}
+
+export type SimulationObservabilityReasonCode =
+  | "ARTIFACTS_SEALED"
+  | "ARTIFACT_UNSEALED"
+  | "TENANT_SCOPE_VALID"
+  | "CROSS_TENANT_ARTIFACTS_BLOCKED"
+  | "VISIBILITY_SCOPE_VALID"
+  | "VISIBILITY_SCOPE_INVALID"
+  | "ARTIFACT_REFERENCES_PRESENT"
+  | "ARTIFACT_REFERENCES_MISSING"
+  | "REPLAY_VISIBLE"
+  | "REPLAY_NOT_VISIBLE"
+  | "LINEAGE_VISIBLE"
+  | "LINEAGE_NOT_VISIBLE"
+  | "CERTIFICATION_VISIBLE"
+  | "CERTIFICATION_NOT_VISIBLE"
+  | "CONTAINMENT_VISIBLE"
+  | "CONTAINMENT_NOT_VISIBLE"
+  | "RECONSTRUCTION_VISIBLE"
+  | "RECONSTRUCTION_NOT_VISIBLE"
+  | "LINEAGE_INTEGRITY_VALID"
+  | "LINEAGE_INTEGRITY_FAILED"
+  | "CONTAINMENT_HEALTHY"
+  | "CONTAINMENT_FAILURE"
+  | "CERTIFICATION_HEALTHY"
+  | "CERTIFICATION_FAILURE"
+  | "OBSERVABILITY_IS_NOT_CONTROL"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type SimulationObservabilityInput = Readonly<{
+  request: SimulationObservabilityRequest;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplays: readonly SealedBranchReplayRecord[];
+  sandboxes: readonly SealedSimulationSandboxRecord[];
+  forecasts: readonly SealedGovernanceForecastRecord[];
+  analyses: readonly SealedAlternatePathAnalysisRecord[];
+  replayLedger: SealedSimulationReplayLedgerRecord;
+  resultModel: SealedSimulationResultModelRecord;
+  certification: SealedIntentSimulationCertificationRecord;
+  certificationReplay: SealedCertificationReplayRecord;
+}>;
+
+export type SimulationObservabilityValidation = Readonly<{
+  observabilityState: SimulationObservabilityResult["observabilityState"];
+  reasonCodes: readonly SimulationObservabilityReasonCode[];
+  replayVisible: boolean;
+  lineageVisible: boolean;
+  certificationVisible: boolean;
+  containmentVisible: boolean;
+  reconstructionVisible: boolean;
+  lineageIntegrity: boolean;
+  deterministic: true;
+  readOnly: true;
+  visibilityOnly: true;
+  authorityBounded: true;
+}>;
+
+export type SealedSimulationObservabilityRecord = Readonly<{
+  result: Readonly<SimulationObservabilityResult>;
+  validation: SimulationObservabilityValidation;
+  sealed: true;
+  readOnly: true;
+  visibilityOnly: true;
+  executionAuthorized: false;
+  workflowMutationAllowed: false;
+  governanceMutationAllowed: false;
+  authorityMutationAllowed: false;
+  artifactMutationAllowed: false;
+  remediationAllowed: false;
+  persistenceAllowed: false;
+  schedulingAllowed: false;
+}>;
