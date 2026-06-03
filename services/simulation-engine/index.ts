@@ -4,3 +4,4 @@ export * from "./branchReplayEngine";
 export * from "./simulationIsolationSandbox";
 export * from "./governanceForecastingEngine";
 export * from "./alternatePathAnalysisEngine";
+export * from "./simulationReplayLedger";

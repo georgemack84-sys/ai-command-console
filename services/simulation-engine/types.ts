@@ -603,3 +603,108 @@ export type SealedAlternatePathAnalysisRecord = Readonly<{
   workflowMutationAllowed: false;
   authorityMutationAllowed: false;
 }>;
+
+export interface SimulationReplayLedgerEntry {
+  ledgerId: string;
+  simulationId: string;
+  tenantId: string;
+  contractHash: string;
+  replayHash: string;
+  sandboxHash: string;
+  forecastHash: string;
+  analysisHash: string;
+  lineageHash: string;
+  governanceVersion: string;
+  replayOrder: number;
+  createdAt: string;
+  immutableHash: string;
+  sealed: true;
+}
+
+export interface SimulationReplayBundle {
+  bundleId: string;
+  simulationId: string;
+  ledgerEntries: string[];
+  reconstructionHash: string;
+  replayable: boolean;
+  lineageIntegrity: boolean;
+  bundleStatus:
+    | "PASS"
+    | "LIMIT_SCOPE"
+    | "ESCALATE"
+    | "FREEZE";
+}
+
+export type SimulationReplayLedgerReasonCode =
+  | "CONTRACT_ARTIFACT_SEALED"
+  | "CONTRACT_ARTIFACT_UNSEALED"
+  | "REPLAY_ARTIFACTS_SEALED"
+  | "REPLAY_ARTIFACT_UNSEALED"
+  | "SANDBOX_ARTIFACTS_SEALED"
+  | "SANDBOX_ARTIFACT_UNSEALED"
+  | "FORECAST_ARTIFACTS_SEALED"
+  | "FORECAST_ARTIFACT_UNSEALED"
+  | "ANALYSIS_ARTIFACTS_SEALED"
+  | "ANALYSIS_ARTIFACT_UNSEALED"
+  | "LINEAGE_INTEGRITY_VALID"
+  | "LINEAGE_INTEGRITY_FAILED"
+  | "TENANT_BOUNDARY_PRESERVED"
+  | "CROSS_TENANT_ARTIFACTS_BLOCKED"
+  | "REPLAY_ORDER_VALID"
+  | "REPLAY_ORDER_INVALID"
+  | "GOVERNANCE_VERSION_PRESENT"
+  | "GOVERNANCE_VERSION_MISSING"
+  | "RECONSTRUCTION_HASH_VALID"
+  | "RECONSTRUCTION_HASH_MISMATCH"
+  | "LEDGER_IS_NOT_EXECUTION"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type SimulationReplayLedgerInput = Readonly<{
+  simulationId: string;
+  tenantId: string;
+  createdAt: string;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplays: readonly SealedBranchReplayRecord[];
+  sandboxes: readonly SealedSimulationSandboxRecord[];
+  forecasts: readonly SealedGovernanceForecastRecord[];
+  analyses: readonly SealedAlternatePathAnalysisRecord[];
+  replayOrder?: readonly string[];
+  expectedReconstructionHash?: string;
+}>;
+
+export type SimulationReplayLedgerValidation = Readonly<{
+  bundleStatus: SimulationReplayBundle["bundleStatus"];
+  reasonCodes: readonly SimulationReplayLedgerReasonCode[];
+  lineageIntegrity: boolean;
+  tenantBoundaryPreserved: boolean;
+  replayOrderValid: boolean;
+  reconstructionHashValid: boolean;
+  deterministic: true;
+  readOnly: true;
+  authorityBounded: true;
+  governanceAuthoritative: true;
+}>;
+
+export type SimulationReplayLedgerObservability = Readonly<{
+  ledgerId: string;
+  simulationId: string;
+  replayOrder: number;
+  reconstructionHash: string;
+  lineageIntegrity: boolean;
+  bundleStatus: SimulationReplayBundle["bundleStatus"];
+}>;
+
+export type SealedSimulationReplayLedgerRecord = Readonly<{
+  entries: readonly Readonly<SimulationReplayLedgerEntry>[];
+  bundle: Readonly<SimulationReplayBundle>;
+  validation: SimulationReplayLedgerValidation;
+  observability: SimulationReplayLedgerObservability;
+  sealed: true;
+  readOnly: true;
+  advisoryOnly: true;
+  executionAuthorized: false;
+  workflowMutationAllowed: false;
+  authorityMutationAllowed: false;
+  persistenceAllowed: false;
+  schedulingAllowed: false;
+}>;
