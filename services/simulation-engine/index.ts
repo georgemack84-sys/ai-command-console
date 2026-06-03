@@ -5,3 +5,4 @@ export * from "./simulationIsolationSandbox";
 export * from "./governanceForecastingEngine";
 export * from "./alternatePathAnalysisEngine";
 export * from "./simulationReplayLedger";
+export * from "./simulationResultModel";

@@ -708,3 +708,110 @@ export type SealedSimulationReplayLedgerRecord = Readonly<{
   persistenceAllowed: false;
   schedulingAllowed: false;
 }>;
+
+export interface SimulationResultModel {
+  resultId: string;
+  simulationId: string;
+  tenantId: string;
+  contractHash: string;
+  replayHash: string;
+  sandboxHash: string;
+  forecastHash: string;
+  analysisHash: string;
+  reconstructionHash: string;
+  lineageHash: string;
+  governanceVersion: string;
+  resultVersion: string;
+  replayable: boolean;
+  lineageIntegrity: boolean;
+  resultStatus:
+    | "PASS"
+    | "LIMIT_SCOPE"
+    | "ESCALATE"
+    | "FREEZE";
+  evidenceReferences: string[];
+  createdAt: string;
+  immutableHash: string;
+}
+
+export type SimulationResultModelReasonCode =
+  | "CONTRACT_ARTIFACT_SEALED"
+  | "CONTRACT_ARTIFACT_UNSEALED"
+  | "REPLAY_ARTIFACTS_SEALED"
+  | "REPLAY_ARTIFACT_UNSEALED"
+  | "SANDBOX_ARTIFACTS_SEALED"
+  | "SANDBOX_ARTIFACT_UNSEALED"
+  | "FORECAST_ARTIFACTS_SEALED"
+  | "FORECAST_ARTIFACT_UNSEALED"
+  | "ANALYSIS_ARTIFACTS_SEALED"
+  | "ANALYSIS_ARTIFACT_UNSEALED"
+  | "LEDGER_ARTIFACT_SEALED"
+  | "LEDGER_ARTIFACT_UNSEALED"
+  | "LINEAGE_INTEGRITY_VALID"
+  | "LINEAGE_INTEGRITY_FAILED"
+  | "REPLAYABLE"
+  | "REPLAYABLE_FALSE"
+  | "TENANT_BOUNDARY_PRESERVED"
+  | "CROSS_TENANT_ARTIFACTS_BLOCKED"
+  | "RECONSTRUCTION_HASH_PRESENT"
+  | "RECONSTRUCTION_HASH_MISSING"
+  | "GOVERNANCE_VERSION_PRESENT"
+  | "GOVERNANCE_VERSION_MISSING"
+  | "EVIDENCE_REFERENCES_PRESENT"
+  | "EVIDENCE_REFERENCES_MISSING"
+  | "RESULT_IS_NOT_DECISION"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type SimulationResultModelInput = Readonly<{
+  simulationId: string;
+  tenantId: string;
+  createdAt: string;
+  resultVersion: string;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplays: readonly SealedBranchReplayRecord[];
+  sandboxes: readonly SealedSimulationSandboxRecord[];
+  forecasts: readonly SealedGovernanceForecastRecord[];
+  analyses: readonly SealedAlternatePathAnalysisRecord[];
+  replayLedger: SealedSimulationReplayLedgerRecord;
+  evidenceReferences?: readonly string[];
+}>;
+
+export type SimulationResultModelValidation = Readonly<{
+  resultStatus: SimulationResultModel["resultStatus"];
+  reasonCodes: readonly SimulationResultModelReasonCode[];
+  lineageIntegrity: boolean;
+  replayable: boolean;
+  tenantBoundaryPreserved: boolean;
+  evidenceReferencesPreserved: boolean;
+  deterministic: true;
+  readOnly: true;
+  authorityBounded: true;
+  governanceAuthoritative: true;
+}>;
+
+export type SimulationResultModelObservability = Readonly<{
+  resultId: string;
+  simulationId: string;
+  resultStatus: SimulationResultModel["resultStatus"];
+  replayable: boolean;
+  lineageIntegrity: boolean;
+  immutableHash: string;
+}>;
+
+export type SealedSimulationResultModelRecord = Readonly<{
+  result: Readonly<SimulationResultModel>;
+  validation: SimulationResultModelValidation;
+  observability: SimulationResultModelObservability;
+  sealed: true;
+  readOnly: true;
+  advisoryOnly: true;
+  decisionAuthorized: false;
+  recommendationAllowed: false;
+  rankingAllowed: false;
+  executionAuthorized: false;
+  workflowMutationAllowed: false;
+  authorityMutationAllowed: false;
+  evidenceMutationAllowed: false;
+  persistenceAllowed: false;
+  schedulingAllowed: false;
+}>;
