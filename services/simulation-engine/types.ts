@@ -922,3 +922,99 @@ export type SealedIntentSimulationCertificationRecord = Readonly<{
   persistenceAllowed: false;
   schedulingAllowed: false;
 }>;
+
+export interface CertificationReplayRequest {
+  certificationId: string;
+  simulationId: string;
+  tenantId: string;
+  certificationHash: string;
+  reconstructionMode:
+    | "FULL_REPLAY"
+    | "LINEAGE_REPLAY"
+    | "HASH_REPLAY";
+  lineageReferences: string[];
+}
+
+export interface CertificationReplayResult {
+  replayId: string;
+  certificationId: string;
+  replayStatus:
+    | "PASS"
+    | "LIMIT_SCOPE"
+    | "ESCALATE"
+    | "FAIL";
+  reconstructedHash: string;
+  lineageIntegrity: boolean;
+  reconstructionDeterministic: boolean;
+  replayable: boolean;
+  escalationReason?: string;
+}
+
+export type CertificationReplayReasonCode =
+  | "CERTIFICATION_ARTIFACT_SEALED"
+  | "CERTIFICATION_ARTIFACT_UNSEALED"
+  | "LEDGER_ARTIFACT_SEALED"
+  | "LEDGER_ARTIFACT_UNSEALED"
+  | "RESULT_MODEL_ARTIFACT_SEALED"
+  | "RESULT_MODEL_ARTIFACT_UNSEALED"
+  | "CERTIFICATION_HASH_PRESENT"
+  | "CERTIFICATION_HASH_MISSING"
+  | "REPLAY_EVIDENCE_PRESENT"
+  | "REPLAY_EVIDENCE_MISSING"
+  | "LINEAGE_INTEGRITY_VALID"
+  | "LINEAGE_INTEGRITY_FAILED"
+  | "TENANT_BOUNDARY_PRESERVED"
+  | "CROSS_TENANT_REFERENCES_BLOCKED"
+  | "RECONSTRUCTED_HASH_VALID"
+  | "RECONSTRUCTED_HASH_MISMATCH"
+  | "REPLAY_REFERENCES_IMMUTABLE"
+  | "REPLAY_REFERENCES_MUTATED"
+  | "REPLAY_IS_NOT_RECERTIFICATION"
+  | "AUTHORITY_BOUNDARY_PRESERVED";
+
+export type CertificationReplayInput = Readonly<{
+  request: CertificationReplayRequest;
+  certification: SealedIntentSimulationCertificationRecord;
+  replayLedger: SealedSimulationReplayLedgerRecord;
+  resultModel: SealedSimulationResultModelRecord;
+}>;
+
+export type CertificationReplayValidation = Readonly<{
+  replayStatus: CertificationReplayResult["replayStatus"];
+  reasonCodes: readonly CertificationReplayReasonCode[];
+  lineageIntegrity: boolean;
+  reconstructionDeterministic: boolean;
+  replayable: boolean;
+  tenantBoundaryPreserved: boolean;
+  deterministic: true;
+  readOnly: true;
+  replayOnly: true;
+}>;
+
+export type CertificationReplayObservability = Readonly<{
+  replayId: string;
+  certificationId: string;
+  replayStatus: CertificationReplayResult["replayStatus"];
+  replayable: boolean;
+  lineageIntegrity: boolean;
+  reconstructedHash: string;
+}>;
+
+export type SealedCertificationReplayRecord = Readonly<{
+  result: Readonly<CertificationReplayResult>;
+  validation: CertificationReplayValidation;
+  observability: CertificationReplayObservability;
+  sealed: true;
+  readOnly: true;
+  replayOnly: true;
+  recertificationAllowed: false;
+  artifactMutationAllowed: false;
+  lineageMutationAllowed: false;
+  executionAuthorized: false;
+  workflowMutationAllowed: false;
+  governanceMutationAllowed: false;
+  authorityMutationAllowed: false;
+  remediationAllowed: false;
+  persistenceAllowed: false;
+  schedulingAllowed: false;
+}>;
