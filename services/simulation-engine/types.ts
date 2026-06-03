@@ -815,3 +815,110 @@ export type SealedSimulationResultModelRecord = Readonly<{
   persistenceAllowed: false;
   schedulingAllowed: false;
 }>;
+
+export interface SimulationCertificationRequest {
+  simulationId: string;
+  tenantId: string;
+  contractHash: string;
+  replayHash: string;
+  sandboxHash: string;
+  forecastHash: string;
+  analysisHash: string;
+  reconstructionHash: string;
+  resultHash: string;
+  lineageReferences: string[];
+  governanceVersion: string;
+}
+
+export interface SimulationCertificationResult {
+  certificationId: string;
+  simulationId: string;
+  certificationStatus:
+    | "PASS"
+    | "CONDITIONAL_PASS"
+    | "FAIL";
+  deterministicReplay: boolean;
+  containmentVerified: boolean;
+  governanceVerified: boolean;
+  lineageIntegrity: boolean;
+  tenantIsolationVerified: boolean;
+  authorityBounded: boolean;
+  certificationHash: string;
+  escalationReason?: string;
+}
+
+export type IntentSimulationCertificationReasonCode =
+  | "ARTIFACTS_SEALED"
+  | "ARTIFACT_UNSEALED"
+  | "ARTIFACT_HASHES_MATCH"
+  | "ARTIFACT_HASH_MISMATCH"
+  | "DETERMINISTIC_REPLAY_VERIFIED"
+  | "DETERMINISTIC_REPLAY_FAILED"
+  | "CONTAINMENT_VERIFIED"
+  | "CONTAINMENT_FAILED"
+  | "GOVERNANCE_VERIFIED"
+  | "GOVERNANCE_VERSION_MISSING"
+  | "GOVERNANCE_VIOLATION"
+  | "LINEAGE_INTEGRITY_VALID"
+  | "LINEAGE_INTEGRITY_FAILED"
+  | "LINEAGE_REFERENCES_PRESENT"
+  | "LINEAGE_REFERENCES_MISSING"
+  | "TENANT_ISOLATION_VERIFIED"
+  | "CROSS_TENANT_LEAKAGE"
+  | "AUTHORITY_BOUNDED"
+  | "AUTHORITY_EXPANSION_DETECTED"
+  | "CERTIFICATION_IS_NOT_CONTROL"
+  | "NO_REMEDIATION_AUTHORITY";
+
+export type IntentSimulationCertificationInput = Readonly<{
+  request: SimulationCertificationRequest;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplays: readonly SealedBranchReplayRecord[];
+  sandboxes: readonly SealedSimulationSandboxRecord[];
+  forecasts: readonly SealedGovernanceForecastRecord[];
+  analyses: readonly SealedAlternatePathAnalysisRecord[];
+  replayLedger: SealedSimulationReplayLedgerRecord;
+  resultModel: SealedSimulationResultModelRecord;
+}>;
+
+export type IntentSimulationCertificationValidation = Readonly<{
+  certificationStatus: SimulationCertificationResult["certificationStatus"];
+  reasonCodes: readonly IntentSimulationCertificationReasonCode[];
+  deterministicReplay: boolean;
+  containmentVerified: boolean;
+  governanceVerified: boolean;
+  lineageIntegrity: boolean;
+  tenantIsolationVerified: boolean;
+  authorityBounded: boolean;
+  deterministic: true;
+  readOnly: true;
+  certificationOnly: true;
+}>;
+
+export type IntentSimulationCertificationObservability = Readonly<{
+  certificationId: string;
+  certificationStatus: SimulationCertificationResult["certificationStatus"];
+  deterministicReplay: boolean;
+  containmentVerified: boolean;
+  governanceVerified: boolean;
+  authorityBounded: boolean;
+  certificationHash: string;
+}>;
+
+export type SealedIntentSimulationCertificationRecord = Readonly<{
+  result: Readonly<SimulationCertificationResult>;
+  validation: IntentSimulationCertificationValidation;
+  observability: IntentSimulationCertificationObservability;
+  sealed: true;
+  readOnly: true;
+  certificationOnly: true;
+  executionAuthorized: false;
+  repairAuthorized: false;
+  approvalAuthorized: false;
+  remediationAllowed: false;
+  workflowMutationAllowed: false;
+  governanceMutationAllowed: false;
+  authorityMutationAllowed: false;
+  persistenceAllowed: false;
+  schedulingAllowed: false;
+}>;
