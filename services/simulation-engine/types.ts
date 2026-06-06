@@ -1120,3 +1120,107 @@ export type SealedSimulationObservabilityRecord = Readonly<{
   persistenceAllowed: false;
   schedulingAllowed: false;
 }>;
+
+export interface SimulationBoundaryVerificationRequest {
+  verificationId: string;
+  simulationId: string;
+  tenantId: string;
+  verificationScope:
+    | "EXECUTION_BOUNDARY"
+    | "MUTATION_BOUNDARY"
+    | "AUTHORITY_BOUNDARY"
+    | "GOVERNANCE_BOUNDARY"
+    | "OBSERVABILITY_BOUNDARY"
+    | "FULL";
+  artifactReferences: string[];
+  lineageReferences: string[];
+}
+
+export interface SimulationBoundaryVerificationResult {
+  verificationId: string;
+  simulationId: string;
+  verificationStatus:
+    | "PASS"
+    | "BLOCK"
+    | "FREEZE"
+    | "ESCALATE"
+    | "AUDIT";
+  executionBoundaryVerified: boolean;
+  mutationBoundaryVerified: boolean;
+  authorityBoundaryVerified: boolean;
+  governanceBoundaryVerified: boolean;
+  observabilityBoundaryVerified: boolean;
+  lineageIntegrity: boolean;
+  verificationHash: string;
+  escalationReason?: string;
+}
+
+export type SimulationBoundaryVerificationReasonCode =
+  | "ARTIFACTS_SEALED"
+  | "ARTIFACT_UNSEALED"
+  | "TENANT_SCOPE_VALID"
+  | "CROSS_TENANT_ARTIFACTS_BLOCKED"
+  | "LINEAGE_INTEGRITY_VALID"
+  | "LINEAGE_INTEGRITY_FAILED"
+  | "ARTIFACT_REFERENCES_PRESENT"
+  | "ARTIFACT_REFERENCES_MISSING"
+  | "LINEAGE_REFERENCES_PRESENT"
+  | "LINEAGE_REFERENCES_MISSING"
+  | "VERIFICATION_SCOPE_VALID"
+  | "VERIFICATION_SCOPE_INVALID"
+  | "EXECUTION_BOUNDARY_VERIFIED"
+  | "EXECUTION_PATH_DETECTED"
+  | "MUTATION_BOUNDARY_VERIFIED"
+  | "MUTATION_PATH_DETECTED"
+  | "AUTHORITY_BOUNDARY_VERIFIED"
+  | "AUTHORITY_EXPANSION_DETECTED"
+  | "GOVERNANCE_BOUNDARY_VERIFIED"
+  | "GOVERNANCE_BOUNDARY_VIOLATION"
+  | "OBSERVABILITY_BOUNDARY_VERIFIED"
+  | "OBSERVABILITY_CONTROL_DETECTED"
+  | "VERIFICATION_IS_NOT_AUTHORITY";
+
+export type SimulationBoundaryVerificationInput = Readonly<{
+  request: SimulationBoundaryVerificationRequest;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplays: readonly SealedBranchReplayRecord[];
+  sandboxes: readonly SealedSimulationSandboxRecord[];
+  forecasts: readonly SealedGovernanceForecastRecord[];
+  analyses: readonly SealedAlternatePathAnalysisRecord[];
+  replayLedger: SealedSimulationReplayLedgerRecord;
+  resultModel: SealedSimulationResultModelRecord;
+  certification: SealedIntentSimulationCertificationRecord;
+  certificationReplay: SealedCertificationReplayRecord;
+  observability: SealedSimulationObservabilityRecord;
+}>;
+
+export type SimulationBoundaryVerificationValidation = Readonly<{
+  verificationStatus: SimulationBoundaryVerificationResult["verificationStatus"];
+  reasonCodes: readonly SimulationBoundaryVerificationReasonCode[];
+  executionBoundaryVerified: boolean;
+  mutationBoundaryVerified: boolean;
+  authorityBoundaryVerified: boolean;
+  governanceBoundaryVerified: boolean;
+  observabilityBoundaryVerified: boolean;
+  lineageIntegrity: boolean;
+  deterministic: true;
+  readOnly: true;
+  verificationOnly: true;
+}>;
+
+export type SealedSimulationBoundaryVerificationRecord = Readonly<{
+  result: Readonly<SimulationBoundaryVerificationResult>;
+  validation: SimulationBoundaryVerificationValidation;
+  sealed: true;
+  readOnly: true;
+  verificationOnly: true;
+  executionAuthorized: false;
+  workflowMutationAllowed: false;
+  artifactMutationAllowed: false;
+  governanceMutationAllowed: false;
+  authorityMutationAllowed: false;
+  approvalAuthorized: false;
+  remediationAllowed: false;
+  persistenceAllowed: false;
+  schedulingAllowed: false;
+}>;
