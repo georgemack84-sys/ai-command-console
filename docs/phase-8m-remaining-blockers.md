@@ -449,6 +449,29 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.36 EdgeBook Foundation Bundle
+
+EdgeBook foundation committed: Phase 8M.36 isolated EdgeBook foundation commit completed.
+
+Validation summary:
+
+- EdgeBook targeted Vitest: PASS, 17 files and 318 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: 7 by post-commit classifier.
+
+Source blockers remaining: 5 by post-commit classifier.
+
+Deferred test repair:
+
+- `src/tests/**` remains unstaged because it contains README-only scaffolding, not executable EdgeBook test repair code.
+
+Certification state: FAIL.
+
+Recommended next repair phase: source-change reclassification and remaining residual artifact disposition.
+
 ## Phase 8M.31 Runtime Simulation Completion Follow-Up
 
 Status: Runtime Simulation Completion follow-up validated for commit.

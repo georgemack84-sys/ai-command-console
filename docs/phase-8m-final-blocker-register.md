@@ -174,3 +174,35 @@ Source blockers remaining: expected 9 after the Phase 8M.35 commit.
 Certification state: FAIL. Remaining certification blockers include residual generated artifacts, source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
 
 Next repair bundle: Phase 8M.36 EdgeBook Foundation Bundle.
+
+## Phase 8M.36 EdgeBook Foundation Bundle
+
+Status: EdgeBook foundation bundle validated and ready for isolated commit.
+
+Files committed:
+
+- `src/core/`
+- `src/edgebook/`
+- `src/modules/`
+- `src/index.ts`
+- `tests/unit/edgebook/`
+- `docs/phase-1-*`
+- `docs/phase-8m-edgebook-foundation-bundle.md`
+
+Test repair disposition: deferred. `src/tests/**` contains only README scaffolding for future fixtures, integration tests, and unit tests, so it remains unstaged for a separate disposition.
+
+Validation:
+
+- Stage guard: PASS, 174 staged files and 0 forbidden paths.
+- EdgeBook targeted Vitest: PASS, 17 files and 318 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: 7 by post-commit classifier.
+
+Source blockers remaining: 5 by post-commit classifier.
+
+Certification state: FAIL. Remaining certification blockers include residual generated artifacts, source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
+
+Next repair bundle: source-change reclassification and remaining residual artifact disposition.
