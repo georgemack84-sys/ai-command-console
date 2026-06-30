@@ -226,6 +226,139 @@ Post-commit classifier:
 
 Certification remains blocked until residual generated artifacts are classified or removed, source changes are reviewed, documentation entries are reconciled, test repair is resolved, full unit suite passes, production build passes, and release validation succeeds.
 
+## Phase 8M.26 Residual Generated Resolution
+
+Residual generated artifacts: 40.
+
+Disposition complete: YES. Each residual generated entry has a disposition: commit with existing domain, move to a new generated bundle, or manual review required.
+
+Bundle C source inventory: complete for 14 classifier source entries.
+
+Dependency analysis: complete; 11 of 14 source entries are blocked by residual generated or generated-like artifacts.
+
+Validation status:
+
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Classifier after Phase 8M.26 documentation updates:
+
+- Total dirty entries: 72.
+- Generated Phase Expansion: 40.
+- Source Changes: 14.
+- Phase 8M Stabilization: 8.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Certification state: FAIL.
+
+Certification remains blocked until residual generated artifacts are acted on, Bundle C source changes are reconciled, documentation and test repair are resolved, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.27 Bundle C Stage 1
+
+Infrastructure files prepared for commit:
+
+- `app/globals.css`
+- `app/layout.tsx`
+- `next.config.ts`
+
+Validation status:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script.
+- Stage verification: PASS, 3 staged files and 0 unexpected paths.
+
+Certification state: FAIL.
+
+Certification remains blocked until residual generated artifacts are resolved according to their dispositions, remaining Bundle C source changes are integrated, documentation and test repair are resolved, Phase 8M stabilization leftovers are closed, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.27 Bundle C Stage 1 Post-Commit
+
+Infrastructure files committed: `d656b74 Phase 8M.27: Integrate Bundle C infrastructure source changes (Stage 1)`.
+
+Post-commit classifier:
+
+- Total dirty entries: 71.
+- Generated Phase Expansion: 40.
+- Phase 8M Stabilization: 10.
+- Documentation: 9.
+- Source Changes: 11.
+- Test Repairs: 1.
+
+Certification state: FAIL.
+
+Certification remains blocked until residual generated artifacts are resolved, remaining Bundle C source entries are integrated, documentation reconciliation is complete, test repair is resolved, Phase 8M stabilization leftovers are closed, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.28 Bundle C Stage 2 Post-Commit
+
+Runtime/service changes committed: `7f677c6 Phase 8M.28: Integrate Bundle C runtime and service source changes (Stage 2)`.
+
+Post-commit classifier:
+
+- Total dirty entries: 72.
+- Phase 8M Stabilization: 12.
+- Generated Phase Expansion: 39.
+- Documentation: 9.
+- Source Changes: 11.
+- Test Repairs: 1.
+
+Certification state: FAIL.
+
+Certification remains blocked until residual generated artifacts are resolved according to disposition, remaining service source entries are integrated, documentation reconciliation is complete, test repair is resolved, Phase 8M stabilization leftovers are closed, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.29 Documentation & Stabilization
+
+Documentation committed: pending.
+
+Evidence consolidated: Phase 8M evidence reports, repository maintenance report, certification reports, validation reports, blocker reports, and QCI documentation are prepared for a documentation-only commit.
+
+Test repair status: blocked and deferred because `src/tests/` belongs with the deferred EdgeBook foundation source/test bundle.
+
+Remaining generated artifacts: 39.
+
+Remaining blocked source changes: 11.
+
+Certification status: FAIL.
+
+Certification remains blocked until residual generated artifacts are resolved, blocked source changes are reconciled, the deferred test repair is resolved, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.29 Documentation & Stabilization Post-Commit
+
+Documentation committed: `fb1bcd8 Phase 8M.29: Consolidate Phase 8M documentation and stabilization evidence`.
+
+Evidence consolidated: YES.
+
+Test repair status: deferred and still blocked.
+
+Post-commit classifier:
+
+- Total dirty entries: 51.
+- Generated Phase Expansion: 39.
+- Source Changes: 11.
+- Test Repairs: 1.
+
+Certification status: FAIL.
+
+Certification remains blocked by residual generated artifacts, blocked source changes, deferred test repair, full unit suite, production build, and release validation.
+
+## Phase 8M.28 Bundle C Stage 2
+
+Runtime/service changes prepared for commit:
+
+- `app/api/v1/runtime/health/route.ts`
+
+Validation status:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script.
+- Runtime route targeted validation: PASS.
+
+Certification state: FAIL.
+
+Certification remains blocked until residual generated artifacts are resolved, remaining Bundle C source entries are integrated, documentation reconciliation is complete, test repair is resolved, Phase 8M stabilization leftovers are closed, full unit suite passes, production build passes, and release validation succeeds.
+
 ## Phase 8M.21 Recommendation Generated Domain
 
 Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.

@@ -231,6 +231,121 @@ Remaining bundles:
 
 Certification state: FAIL.
 
+## Phase 8M.27 Bundle C Stage 1
+
+Infrastructure files prepared for commit:
+
+- `app/globals.css`
+- `app/layout.tsx`
+- `next.config.ts`
+
+Validation summary:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script.
+- Stage verification: PASS, exactly 3 staged files and 0 unexpected paths.
+
+Repository status: Bundle C has transitioned from planning to implementation.
+
+Remaining Bundle C entries: 11.
+
+Residual generated artifacts remaining: 40.
+
+Certification state: FAIL.
+
+Next implementation stage: choose the smallest bounded follow-up from the Phase 8M.26 dependency sequence.
+
+## Phase 8M.27 Bundle C Stage 1 Post-Commit
+
+Infrastructure files committed: `d656b74 Phase 8M.27: Integrate Bundle C infrastructure source changes (Stage 1)`.
+
+Post-commit classifier:
+
+- Total dirty entries: 71.
+- Generated Phase Expansion: 40.
+- Phase 8M Stabilization: 10.
+- Documentation: 9.
+- Source Changes: 11.
+- Test Repairs: 1.
+
+Repository status: Bundle C implementation has started with the lowest-risk infrastructure source changes.
+
+Next implementation stage: runtime simulation completion follow-up or recommendation constraint export follow-up.
+
+## Phase 8M.28 Bundle C Stage 2
+
+Runtime/service changes prepared for commit:
+
+- `app/api/v1/runtime/health/route.ts`
+
+Validation summary:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script.
+- Stage verification: PASS, exactly 1 staged file and 0 unexpected paths.
+
+Repository status: Bundle C Stage 2 is limited to the approved runtime API route because no remaining service source file is classified ready in the Phase 8M.26 source inventory.
+
+Residual generated artifacts: 40.
+
+Certification state: FAIL.
+
+Next repair phase: runtime simulation completion follow-up or recommendation constraint export follow-up.
+
+## Phase 8M.29 Documentation & Stabilization
+
+Documentation committed: pending.
+
+Evidence consolidated: Phase 8M reports and QCI documentation are prepared for a documentation-only stabilization commit.
+
+Test repair status: blocked and deferred.
+
+Remaining generated artifacts: 39.
+
+Remaining blocked source changes: 11.
+
+Certification status: FAIL.
+
+Next repair phase: residual generated artifact implementation or blocked source-change follow-up, beginning with the smallest independently validated bundle.
+
+## Phase 8M.29 Documentation & Stabilization Post-Commit
+
+Documentation committed: `fb1bcd8 Phase 8M.29: Consolidate Phase 8M documentation and stabilization evidence`.
+
+Evidence consolidated: YES.
+
+Test repair status: deferred.
+
+Post-commit classifier:
+
+- Total dirty entries: 51.
+- Generated Phase Expansion: 39.
+- Source Changes: 11.
+- Test Repairs: 1.
+
+Repository status: documentation and stabilization evidence are consolidated. Remaining work is implementation-only: residual generated artifact resolution, blocked source-change resolution, and deferred test repair.
+
+Certification status: FAIL.
+
+## Phase 8M.28 Bundle C Stage 2 Post-Commit
+
+Runtime/service changes committed: `7f677c6 Phase 8M.28: Integrate Bundle C runtime and service source changes (Stage 2)`.
+
+Post-commit classifier:
+
+- Total dirty entries: 72.
+- Phase 8M Stabilization: 12.
+- Generated Phase Expansion: 39.
+- Documentation: 9.
+- Source Changes: 11.
+- Test Repairs: 1.
+
+Repository status: Stage 2 integrated the approved runtime health route only. No service source file was included because the Phase 8M.26 source inventory did not classify any remaining service file as ready.
+
+Next repair phase: runtime simulation completion follow-up or recommendation constraint export follow-up.
+
 Next domain: Autonomy or Delegation.
 
 ## Phase 8M.15 Autonomy Generated Domain
@@ -421,6 +536,44 @@ Generated-domain reconciliation state:
 Certification state: FAIL.
 
 Next phase: Phase 8M.26 Bundle C Source Changes Reconciliation, with residual generated artifacts classified before staging source changes.
+
+## Phase 8M.26 Residual Generated Resolution
+
+Residual generated artifacts: 40.
+
+Disposition complete: YES.
+
+Bundle C source inventory: complete.
+
+Dependency analysis: complete.
+
+Repository status: discovery complete; implementation not staged.
+
+Validation status:
+
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Classifier after Phase 8M.26 documentation updates:
+
+- Total dirty entries: 72.
+- Generated Phase Expansion: 40.
+- Source Changes: 14.
+- Phase 8M Stabilization: 8.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Next implementation sequence:
+
+1. Narrow source stabilization commit for UI/build deterministic changes.
+2. Runtime simulation completion follow-up.
+3. Recommendation constraint export follow-up.
+4. Predictive intelligence residual generated bundle.
+5. Governance risk/intelligence residual generated bundle.
+6. EdgeBook foundation bundle.
+7. Manual review bundle for remaining generated-like services.
+
+Certification state: FAIL.
 
 ## Phase 8M.21 Recommendation Generated Domain
 
