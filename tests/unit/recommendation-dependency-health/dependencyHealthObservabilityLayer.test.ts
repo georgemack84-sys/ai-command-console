@@ -1,0 +1,1800 @@
+import { describe, expect, it } from "vitest";
+import {
+  sealDependencyCertification,
+  sealDependencyObservability,
+} from "@/services/recommendation-dependency";
+import {
+  buildDependencyRiskAnalysisRequest,
+  buildDependencyRiskCertificationRequest,
+  buildDependencyRiskObservabilityRequest,
+  buildDependencyRiskReplayRequest,
+  sealDependencyRiskAnalysis,
+  sealDependencyRiskCertification,
+  sealDependencyRiskFoundation,
+  sealDependencyRiskObservability,
+  sealDependencyRiskReplay,
+  type DependencyRiskAnalysisInput,
+  type DependencyRiskCertificationInput,
+  type DependencyRiskFoundationInput,
+  type DependencyRiskObservabilityInput,
+  type DependencyRiskReplayInput,
+} from "@/services/recommendation-dependency-risk";
+import {
+  buildRecommendationOpportunityFoundationRequest,
+  buildOpportunityAnalysisRequest,
+  buildOpportunityObservabilityRequest,
+  buildOpportunityCertificationRequest,
+  buildOpportunityReplayRequest,
+  sealOpportunityAnalysis,
+  sealOpportunityCertification,
+  sealOpportunityObservability,
+  sealOpportunityReplay,
+  sealRecommendationOpportunityFoundation,
+  type OpportunityCertificationInput,
+  type OpportunityReplayInput,
+  type OpportunityObservabilityInput,
+  type OpportunityAnalysisInput,
+  type RecommendationOpportunityFoundationInput,
+} from "@/services/recommendation-opportunity";
+import {
+  buildConstraintAnalysisRequest,
+  buildConstraintCertificationRequest,
+  buildConstraintObservabilityRequest,
+  buildConstraintReplayRequest,
+  buildRecommendationConstraintFoundationRequest,
+  sealConstraintAnalysis,
+  sealConstraintCertification,
+  sealConstraintObservability,
+  sealConstraintReplay,
+  sealRecommendationConstraintFoundation,
+  type ConstraintAnalysisInput,
+  type ConstraintCertificationInput,
+  type ConstraintObservabilityInput,
+  type ConstraintReplayInput,
+  type RecommendationConstraintFoundationInput,
+} from "@/services/recommendation-constraint";
+import {
+  buildDependencyHealthAnalysisRequest,
+  buildDependencyHealthObservabilityRequest,
+  createDependencyHealthObservabilityEvidencePath,
+  sealDependencyHealthAnalysis,
+  sealDependencyHealthObservability,
+  buildRecommendationDependencyHealthFoundationRequest,
+  type DependencyHealthAnalysisInput,
+  type DependencyHealthObservabilityInput,
+  sealRecommendationDependencyHealthFoundation,
+  type RecommendationDependencyHealthFoundationInput,
+} from "@/services/recommendation-dependency-health";
+import { sealImpactCertification } from "@/services/recommendation-impact";
+import {
+  buildDriftCertificationRequest,
+  buildDriftObservabilityRequest,
+  buildDriftReplayRequest,
+  sealDriftAnalysis,
+  sealDriftCertification,
+  sealDriftObservability,
+  sealDriftReplay,
+  sealRecommendationDriftFoundation,
+  type DriftAnalysisInput,
+  type DriftCertificationInput,
+  type DriftObservabilityInput,
+  type DriftReplayInput,
+} from "@/services/recommendation-drift";
+import {
+  buildRecommendationResilienceFoundationRequest,
+  buildResilienceAnalysisRequest,
+  buildResilienceCertificationRequest,
+  buildResilienceObservabilityRequest,
+  buildResilienceReplayRequest,
+  sealRecommendationResilienceFoundation,
+  sealResilienceAnalysis,
+  sealResilienceCertification,
+  sealResilienceObservability,
+  sealResilienceReplay,
+  type RecommendationResilienceFoundationInput,
+  type ResilienceAnalysisInput,
+  type ResilienceCertificationInput,
+  type ResilienceObservabilityInput,
+  type ResilienceReplayInput,
+} from "@/services/recommendation-resilience";
+import {
+  sealPortfolioCertification,
+  sealPortfolioObservability,
+} from "@/services/recommendation-portfolio";
+import {
+  buildRecommendationTrustFoundationRequest,
+  buildTrustAnalysisRequest,
+  buildTrustCertificationRequest,
+  buildTrustObservabilityRequest,
+  buildTrustReplayRequest,
+  sealRecommendationTrustFoundation,
+  sealTrustAnalysis,
+  sealTrustCertification,
+  sealTrustObservability,
+  sealTrustReplay,
+  type RecommendationTrustFoundationInput,
+  type TrustAnalysisInput,
+  type TrustCertificationInput,
+  type TrustObservabilityInput,
+  type TrustReplayInput,
+} from "@/services/recommendation-trust";
+import {
+  alignedPortfolioInput,
+  dependencyCertificationInput,
+  dependencyObservabilityInput,
+  driftAnalysisInput,
+  driftFoundationInput,
+  impactCertificationInput,
+  portfolioCertificationInput,
+  portfolioObservabilityInput,
+} from "../recommendation-drift/recommendationDriftFixtures";
+
+const cachedSource = alignedPortfolioInput();
+const cachedDependencyInput = dependencyCertificationInput(cachedSource);
+const cachedDependencyCertification = sealDependencyCertification(cachedDependencyInput);
+const cachedDependencyObservability = sealDependencyObservability(dependencyObservabilityInput(cachedSource));
+const cachedImpactInput = impactCertificationInput();
+const cachedImpactFoundation = cachedImpactInput.foundation;
+const cachedImpactAnalysis = cachedImpactInput.analysis;
+const cachedImpactCertification = sealImpactCertification(cachedImpactInput);
+const cachedPortfolioCertification = sealPortfolioCertification(portfolioCertificationInput(cachedSource));
+const cachedPortfolioObservability = sealPortfolioObservability(portfolioObservabilityInput(cachedSource));
+const cachedStableRecommendations = driftFoundationInput().currentRecommendations;
+const cachedDriftAnalysisInput = driftAnalysisInput();
+
+function buildDriftScenario(
+  overrides: Partial<{
+    foundation: ReturnType<typeof sealRecommendationDriftFoundation>;
+    analysis: ReturnType<typeof sealDriftAnalysis>;
+    observability: ReturnType<typeof sealDriftObservability>;
+    replay: ReturnType<typeof sealDriftReplay>;
+    certification: ReturnType<typeof sealDriftCertification>;
+    recommendations: DriftAnalysisInput["recommendations"];
+  }> = {},
+) {
+  const foundation = overrides.foundation ?? sealRecommendationDriftFoundation(driftFoundationInput());
+  const recommendations = overrides.recommendations ?? cachedStableRecommendations;
+  const analysis = overrides.analysis ?? sealDriftAnalysis({
+    ...cachedDriftAnalysisInput,
+    foundation,
+    recommendations,
+  });
+  const observability = overrides.observability ?? sealDriftObservability({
+    request: buildDriftObservabilityRequest({
+      tenantId: "tenant-alpha",
+      observabilityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    impactFoundation: cachedImpactInput.foundation,
+    impactAnalysis: cachedImpactInput.analysis,
+    impactObservability: cachedImpactInput.observability,
+    impactReplay: cachedImpactInput.replay,
+    impactCertification: cachedImpactCertification,
+    dependencyFoundation: cachedDriftAnalysisInput.dependencyFoundation,
+    dependencyAnalysis: cachedDriftAnalysisInput.dependencyAnalysis,
+    dependencyObservability: cachedDependencyObservability,
+    dependencyReplay: cachedDriftAnalysisInput.dependencyReplay,
+    dependencyCertification: cachedDriftAnalysisInput.dependencyCertification,
+    portfolio: cachedDriftAnalysisInput.portfolio,
+    relationshipAnalysis: cachedDriftAnalysisInput.relationshipAnalysis,
+    portfolioObservability: cachedPortfolioObservability,
+    portfolioReplay: cachedDriftAnalysisInput.portfolioReplay,
+    portfolioCertification: cachedDriftAnalysisInput.portfolioCertification,
+    recommendations,
+  } satisfies DriftObservabilityInput);
+  const replay = overrides.replay ?? sealDriftReplay({
+    request: buildDriftReplayRequest({
+      tenantId: "tenant-alpha",
+      replayScope: "FULL",
+      replayVersion: "drift-replay/v1",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    impactFoundation: cachedImpactInput.foundation,
+    impactAnalysis: cachedImpactInput.analysis,
+    impactObservability: cachedImpactInput.observability,
+    impactReplay: cachedImpactInput.replay,
+    impactCertification: cachedImpactCertification,
+    dependencyFoundation: cachedDriftAnalysisInput.dependencyFoundation,
+    dependencyAnalysis: cachedDriftAnalysisInput.dependencyAnalysis,
+    dependencyObservability: cachedDependencyObservability,
+    dependencyReplay: cachedDriftAnalysisInput.dependencyReplay,
+    dependencyCertification: cachedDriftAnalysisInput.dependencyCertification,
+    portfolio: cachedDriftAnalysisInput.portfolio,
+    relationshipAnalysis: cachedDriftAnalysisInput.relationshipAnalysis,
+    portfolioObservability: cachedPortfolioObservability,
+    portfolioReplay: cachedDriftAnalysisInput.portfolioReplay,
+    portfolioCertification: cachedDriftAnalysisInput.portfolioCertification,
+    recommendations,
+  } satisfies DriftReplayInput);
+  const certification = overrides.certification ?? sealDriftCertification({
+    request: buildDriftCertificationRequest({
+      tenantId: "tenant-alpha",
+      certificationScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    replay,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations,
+  } satisfies DriftCertificationInput);
+  return { foundation, analysis, observability, replay, certification, recommendations };
+}
+
+function trustInput(overrides: Partial<RecommendationTrustFoundationInput> = {}): RecommendationTrustFoundationInput {
+  const drift = buildDriftScenario();
+  return Object.freeze({
+    request: buildRecommendationTrustFoundationRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-beta", "recommendation-alpha"],
+      trustScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    driftFoundation: drift.foundation,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: drift.recommendations,
+    ...overrides,
+  } satisfies RecommendationTrustFoundationInput);
+}
+
+function trustAnalysisInput(overrides: Partial<TrustAnalysisInput> = {}): TrustAnalysisInput {
+  const base = trustInput();
+  const foundation = overrides.foundation ?? sealRecommendationTrustFoundation(base);
+  return Object.freeze({
+    request: buildTrustAnalysisRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-beta", "recommendation-alpha"],
+      analysisScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies TrustAnalysisInput);
+}
+
+function trustObservabilityInput(overrides: Partial<TrustObservabilityInput> = {}): TrustObservabilityInput {
+  const base = trustInput();
+  const foundation = overrides.foundation ?? sealRecommendationTrustFoundation(base);
+  const analysis = overrides.analysis ?? sealTrustAnalysis(trustAnalysisInput({
+    foundation,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  return Object.freeze({
+    request: buildTrustObservabilityRequest({
+      tenantId: "tenant-alpha",
+      observabilityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies TrustObservabilityInput);
+}
+
+function trustReplayInput(overrides: Partial<TrustReplayInput> = {}): TrustReplayInput {
+  const base = trustInput();
+  const foundation = overrides.foundation ?? sealRecommendationTrustFoundation(base);
+  const analysis = overrides.analysis ?? sealTrustAnalysis(trustAnalysisInput({
+    foundation,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  const observability = overrides.observability ?? sealTrustObservability(trustObservabilityInput({
+    foundation,
+    analysis,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  return Object.freeze({
+    request: buildTrustReplayRequest({
+      tenantId: "tenant-alpha",
+      replayScope: "FULL",
+      replayVersion: "trust-replay/v1",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies TrustReplayInput);
+}
+
+function trustCertificationInput(overrides: Partial<TrustCertificationInput> = {}): TrustCertificationInput {
+  const base = trustInput();
+  const foundation = overrides.foundation ?? sealRecommendationTrustFoundation(base);
+  const analysis = overrides.analysis ?? sealTrustAnalysis(trustAnalysisInput({
+    foundation,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  const observability = overrides.observability ?? sealTrustObservability(trustObservabilityInput({
+    foundation,
+    analysis,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  const replay = overrides.replay ?? sealTrustReplay(trustReplayInput({
+    foundation,
+    analysis,
+    observability,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  return Object.freeze({
+    request: buildTrustCertificationRequest({
+      tenantId: "tenant-alpha",
+      certificationScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    replay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies TrustCertificationInput);
+}
+
+function resilienceFoundationInput(overrides: Partial<RecommendationResilienceFoundationInput> = {}): RecommendationResilienceFoundationInput {
+  const drift = buildDriftScenario();
+  const trustFoundation = overrides.trustFoundation ?? sealRecommendationTrustFoundation(trustInput({
+    driftFoundation: drift.foundation,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const analysis = sealTrustAnalysis(trustAnalysisInput({
+    foundation: trustFoundation,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const observability = sealTrustObservability(trustObservabilityInput({
+    foundation: trustFoundation,
+    analysis,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const trustReplay = overrides.trustReplay ?? sealTrustReplay(trustReplayInput({
+    foundation: trustFoundation,
+    analysis,
+    observability,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const trustCertification = overrides.trustCertification ?? sealTrustCertification(trustCertificationInput({
+    foundation: trustFoundation,
+    analysis,
+    observability,
+    replay: trustReplay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  return Object.freeze({
+    request: buildRecommendationResilienceFoundationRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-beta", "recommendation-alpha"],
+      resilienceScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    trustFoundation,
+    trustReplay,
+    trustCertification,
+    driftFoundation: overrides.driftFoundation ?? drift.foundation,
+    driftReplay: overrides.driftReplay ?? drift.replay,
+    driftCertification: overrides.driftCertification ?? drift.certification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? drift.recommendations,
+    ...overrides,
+  } satisfies RecommendationResilienceFoundationInput);
+}
+
+function resilienceAnalysisInput(overrides: Partial<ResilienceAnalysisInput> = {}): ResilienceAnalysisInput {
+  const base = resilienceFoundationInput();
+  const foundation = overrides.foundation ?? sealRecommendationResilienceFoundation(base);
+  return Object.freeze({
+    request: buildResilienceAnalysisRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-beta", "recommendation-alpha"],
+      analysisScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies ResilienceAnalysisInput);
+}
+
+function resilienceObservabilityInput(overrides: Partial<ResilienceObservabilityInput> = {}): ResilienceObservabilityInput {
+  const base = resilienceFoundationInput();
+  const foundation = overrides.foundation ?? sealRecommendationResilienceFoundation(base);
+  const analysis = overrides.analysis ?? sealResilienceAnalysis(resilienceAnalysisInput({
+    foundation,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  return Object.freeze({
+    request: buildResilienceObservabilityRequest({
+      tenantId: "tenant-alpha",
+      observabilityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies ResilienceObservabilityInput);
+}
+
+function resilienceReplayInput(overrides: Partial<ResilienceReplayInput> = {}): ResilienceReplayInput {
+  const base = resilienceFoundationInput();
+  const foundation = overrides.foundation ?? sealRecommendationResilienceFoundation(base);
+  const analysis = overrides.analysis ?? sealResilienceAnalysis(resilienceAnalysisInput({
+    foundation,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  const observability = overrides.observability ?? sealResilienceObservability(resilienceObservabilityInput({
+    foundation,
+    analysis,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  return Object.freeze({
+    request: buildResilienceReplayRequest({
+      tenantId: "tenant-alpha",
+      replayScope: "FULL",
+      replayVersion: "resilience-replay/v1",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies ResilienceReplayInput);
+}
+
+function resilienceCertificationInput(overrides: Partial<ResilienceCertificationInput> = {}): ResilienceCertificationInput {
+  const base = resilienceFoundationInput();
+  const foundation = overrides.foundation ?? sealRecommendationResilienceFoundation(base);
+  const analysis = overrides.analysis ?? sealResilienceAnalysis(resilienceAnalysisInput({
+    foundation,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  const observability = overrides.observability ?? sealResilienceObservability(resilienceObservabilityInput({
+    foundation,
+    analysis,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  const replay = overrides.replay ?? sealResilienceReplay(resilienceReplayInput({
+    foundation,
+    analysis,
+    observability,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+  }));
+  return Object.freeze({
+    request: buildResilienceCertificationRequest({
+      tenantId: "tenant-alpha",
+      certificationScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    replay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    impactCertification: cachedImpactCertification,
+    dependencyCertification: cachedDependencyCertification,
+    portfolioCertification: cachedPortfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    ...overrides,
+  } satisfies ResilienceCertificationInput);
+}
+
+function stableTrustFoundation(record: ReturnType<typeof sealRecommendationTrustFoundation>) {
+  return {
+    ...record,
+    result: { ...record.result, trustState: "TRUSTED" as const },
+    trusts: Object.freeze(record.trusts.map((trust) => ({ ...trust, trustState: "TRUSTED" as const }))),
+  };
+}
+
+function stableTrustReplay(record: ReturnType<typeof sealTrustReplay>) {
+  return {
+    ...record,
+    result: {
+      ...record.result,
+      replayState: "REPLAYABLE" as const,
+      propagationReconstructed: true,
+      governanceReconstructed: true,
+    },
+    validation: {
+      ...record.validation,
+      propagationReconstructed: true,
+      governanceReconstructed: true,
+    },
+  };
+}
+
+function stableTrustCertification(record: ReturnType<typeof sealTrustCertification>) {
+  return {
+    ...record,
+    result: {
+      ...record.result,
+      certificationState: "PASS" as const,
+      integrityCertified: true,
+      strengthCertified: true,
+      propagationCertified: true,
+      replayCertified: true,
+      governanceCertified: true,
+      observabilityCertified: true,
+    },
+  };
+}
+
+function lowRiskInput(overrides: Partial<DependencyRiskFoundationInput> = {}): DependencyRiskFoundationInput {
+  const dependencyFoundation = {
+    ...cachedDependencyInput.foundation,
+    result: { ...cachedDependencyInput.foundation.result, dependencyState: "ESTABLISHED" as const },
+  };
+  const dependencyReplay = {
+    ...cachedDependencyInput.replay,
+    result: {
+      ...cachedDependencyInput.replay.result,
+      replayState: "REPLAYABLE" as const,
+      graphReconstructed: true,
+      chainsReconstructed: true,
+      evidenceReconstructed: true,
+      governanceReconstructed: true,
+    },
+  };
+  const dependencyCertification = {
+    ...cachedDependencyCertification,
+    result: {
+      ...cachedDependencyCertification.result,
+      certificationState: "PASS" as const,
+      integrityCertified: true,
+      continuityCertified: true,
+      replayCertified: true,
+      governanceCertified: true,
+      observabilityCertified: true,
+    },
+  };
+  const rawDrift = buildDriftScenario({
+    foundation: {
+      ...sealRecommendationDriftFoundation(driftFoundationInput()),
+      result: { ...sealRecommendationDriftFoundation(driftFoundationInput()).result, driftState: "STABLE" as const },
+    },
+  });
+  const drift = {
+    ...rawDrift,
+    replay: {
+      ...rawDrift.replay,
+      result: {
+        ...rawDrift.replay.result,
+        replayState: "REPLAYABLE" as const,
+        severityReconstructed: true,
+        propagationReconstructed: true,
+        conflictsReconstructed: true,
+        governanceReconstructed: true,
+      },
+    },
+    certification: {
+      ...rawDrift.certification,
+      result: {
+        ...rawDrift.certification.result,
+        certificationState: "PASS" as const,
+        integrityCertified: true,
+        severityCertified: true,
+        propagationCertified: true,
+        replayCertified: true,
+        governanceCertified: true,
+        observabilityCertified: true,
+      },
+    },
+  };
+  const selectedRecommendations = Object.freeze(
+    drift.recommendations.filter(
+      (recommendation) => recommendation.ledger.entry.recommendationId === "recommendation-alpha",
+    ),
+  );
+  const trustFoundation = stableTrustFoundation(sealRecommendationTrustFoundation(trustInput({
+    driftFoundation: drift.foundation,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  })));
+  const trustAnalysis = sealTrustAnalysis(trustAnalysisInput({
+    foundation: trustFoundation,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const trustObservability = sealTrustObservability(trustObservabilityInput({
+    foundation: trustFoundation,
+    analysis: trustAnalysis,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const trustReplay = stableTrustReplay(sealTrustReplay(trustReplayInput({
+    foundation: trustFoundation,
+    analysis: trustAnalysis,
+    observability: trustObservability,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  })));
+  const trustCertification = stableTrustCertification(sealTrustCertification(trustCertificationInput({
+    foundation: trustFoundation,
+    analysis: trustAnalysis,
+    observability: trustObservability,
+    replay: trustReplay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  })));
+  const resilienceFoundation = sealRecommendationResilienceFoundation(resilienceFoundationInput({
+    trustFoundation,
+    trustReplay,
+    trustCertification,
+    driftFoundation: drift.foundation,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const stableResilienceFoundation = {
+    ...resilienceFoundation,
+    result: { ...resilienceFoundation.result, resilienceState: "RESILIENT" as const },
+    resiliences: Object.freeze(resilienceFoundation.resiliences.map((risk) => ({ ...risk, resilienceState: "RESILIENT" as const }))),
+  };
+  const resilienceAnalysis = sealResilienceAnalysis(resilienceAnalysisInput({
+    foundation: stableResilienceFoundation,
+    trustReplay,
+    trustCertification,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const stableResilienceAnalysis = {
+    ...resilienceAnalysis,
+    result: {
+      ...resilienceAnalysis.result,
+      analysisState: "ANALYZED" as const,
+      resilienceGapsDetected: 0,
+      resilienceFailuresDetected: 0,
+    },
+    evidencePath: {
+      ...resilienceAnalysis.evidencePath,
+      gapReferences: Object.freeze([]),
+      failureReferences: Object.freeze([]),
+    },
+  };
+  const resilienceObservability = sealResilienceObservability(resilienceObservabilityInput({
+    foundation: stableResilienceFoundation,
+    analysis: stableResilienceAnalysis,
+    trustReplay,
+    trustCertification,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const resilienceReplay = sealResilienceReplay(resilienceReplayInput({
+    foundation: stableResilienceFoundation,
+    analysis: stableResilienceAnalysis,
+    observability: resilienceObservability,
+    trustReplay,
+    trustCertification,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const stableResilienceReplay = {
+    ...resilienceReplay,
+    result: {
+      ...resilienceReplay.result,
+      replayState: "REPLAYABLE" as const,
+      resilienceReconstructed: true,
+      strengthReconstructed: true,
+      propagationReconstructed: true,
+      failuresReconstructed: true,
+      governanceReconstructed: true,
+    },
+  };
+  const resilienceCertification = sealResilienceCertification(resilienceCertificationInput({
+    foundation: stableResilienceFoundation,
+    analysis: stableResilienceAnalysis,
+    observability: resilienceObservability,
+    replay: stableResilienceReplay,
+    trustCertification,
+    driftCertification: drift.certification,
+    recommendations: drift.recommendations,
+  }));
+  const stableResilienceCertification = {
+    ...resilienceCertification,
+    result: {
+      ...resilienceCertification.result,
+      certificationState: "PASS" as const,
+      integrityCertified: true,
+      strengthCertified: true,
+      propagationCertified: true,
+      replayCertified: true,
+      governanceCertified: true,
+      observabilityCertified: true,
+      recoverabilityCertified: true,
+      disruptionToleranceCertified: true,
+    },
+  };
+
+  return Object.freeze({
+    request: {
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-alpha"],
+      riskScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    },
+    dependencyFoundation,
+    dependencyReplay,
+    dependencyCertification,
+    trustFoundation,
+    trustReplay,
+    trustCertification,
+    driftFoundation: drift.foundation,
+    driftReplay: drift.replay,
+    driftCertification: drift.certification,
+    resilienceFoundation: stableResilienceFoundation,
+    resilienceReplay: stableResilienceReplay,
+    resilienceCertification: stableResilienceCertification,
+    impactCertification: {
+      ...cachedImpactCertification,
+      result: {
+        ...cachedImpactCertification.result,
+        certificationState: "PASS" as const,
+        governanceCertified: true,
+        replayCertified: true,
+        propagationCertified: true,
+        integrityCertified: true,
+      },
+    },
+    portfolioCertification: {
+      ...cachedPortfolioCertification,
+      result: {
+        ...cachedPortfolioCertification.result,
+        certificationState: "PASS" as const,
+        governanceCertified: true,
+        replayCertified: true,
+        integrityCertified: true,
+      },
+    },
+    recommendations: selectedRecommendations,
+    ...overrides,
+  } satisfies DependencyRiskFoundationInput);
+}
+
+function dependencyRiskAnalysisInput(overrides: Partial<DependencyRiskAnalysisInput> = {}): DependencyRiskAnalysisInput {
+  const foundationInput = lowRiskInput();
+  const foundation = overrides.foundation ?? sealDependencyRiskFoundation(foundationInput);
+  const driftAnalysis = overrides.driftAnalysis ?? sealDriftAnalysis({
+    ...cachedDriftAnalysisInput,
+    foundation: overrides.driftFoundation ?? foundationInput.driftFoundation,
+    impactFoundation: cachedImpactFoundation,
+    impactAnalysis: cachedImpactAnalysis,
+    impactReplay: cachedImpactInput.replay,
+    impactCertification: foundationInput.impactCertification,
+    dependencyFoundation: foundationInput.dependencyFoundation,
+    dependencyAnalysis: cachedDependencyInput.analysis,
+    dependencyReplay: foundationInput.dependencyReplay,
+    dependencyCertification: foundationInput.dependencyCertification,
+    portfolio: cachedDriftAnalysisInput.portfolio,
+    relationshipAnalysis: cachedDriftAnalysisInput.relationshipAnalysis,
+    portfolioReplay: cachedDriftAnalysisInput.portfolioReplay,
+    portfolioCertification: foundationInput.portfolioCertification,
+    recommendations: foundationInput.recommendations,
+  } satisfies DriftAnalysisInput);
+  const trustAnalysis = overrides.trustAnalysis ?? sealTrustAnalysis(trustAnalysisInput({
+    foundation: overrides.trustFoundation ?? foundationInput.trustFoundation,
+    driftReplay: overrides.driftReplay ?? foundationInput.driftReplay,
+    driftCertification: overrides.driftCertification ?? foundationInput.driftCertification,
+    recommendations: overrides.recommendations ?? foundationInput.recommendations,
+  }));
+  const resilienceAnalysis = overrides.resilienceAnalysis ?? sealResilienceAnalysis(resilienceAnalysisInput({
+    foundation: overrides.resilienceFoundation ?? foundationInput.resilienceFoundation,
+    trustReplay: overrides.trustReplay ?? foundationInput.trustReplay,
+    trustCertification: overrides.trustCertification ?? foundationInput.trustCertification,
+    driftReplay: overrides.driftReplay ?? foundationInput.driftReplay,
+    driftCertification: overrides.driftCertification ?? foundationInput.driftCertification,
+    recommendations: overrides.recommendations ?? foundationInput.recommendations,
+  }));
+
+  return Object.freeze({
+    request: buildDependencyRiskAnalysisRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-alpha"],
+      analysisScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    dependencyFoundation: foundationInput.dependencyFoundation,
+    dependencyAnalysis: cachedDependencyInput.analysis,
+    dependencyReplay: foundationInput.dependencyReplay,
+    dependencyCertification: foundationInput.dependencyCertification,
+    trustFoundation: foundationInput.trustFoundation,
+    trustAnalysis,
+    trustReplay: foundationInput.trustReplay,
+    trustCertification: foundationInput.trustCertification,
+    driftFoundation: foundationInput.driftFoundation,
+    driftAnalysis,
+    driftReplay: foundationInput.driftReplay,
+    driftCertification: foundationInput.driftCertification,
+    resilienceFoundation: foundationInput.resilienceFoundation,
+    resilienceAnalysis,
+    resilienceReplay: foundationInput.resilienceReplay,
+    resilienceCertification: foundationInput.resilienceCertification,
+    impactFoundation: cachedImpactFoundation,
+    impactAnalysis: cachedImpactAnalysis,
+    impactReplay: cachedImpactInput.replay,
+    impactCertification: foundationInput.impactCertification,
+    portfolio: cachedDriftAnalysisInput.portfolio,
+    relationshipAnalysis: cachedDriftAnalysisInput.relationshipAnalysis,
+    portfolioReplay: cachedDriftAnalysisInput.portfolioReplay,
+    portfolioCertification: foundationInput.portfolioCertification,
+    recommendations: foundationInput.recommendations,
+    ...overrides,
+  } satisfies DependencyRiskAnalysisInput);
+}
+
+function dependencyRiskObservabilityInput(overrides: Partial<DependencyRiskObservabilityInput> = {}): DependencyRiskObservabilityInput {
+  const analysisInput = dependencyRiskAnalysisInput();
+  const foundation = overrides.foundation ?? analysisInput.foundation;
+  const analysis = overrides.analysis ?? sealDependencyRiskAnalysis(analysisInput);
+  return Object.freeze({
+    request: buildDependencyRiskObservabilityRequest({
+      tenantId: "tenant-alpha",
+      observabilityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    dependencyReplay: overrides.dependencyReplay ?? analysisInput.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? analysisInput.dependencyCertification,
+    trustReplay: overrides.trustReplay ?? analysisInput.trustReplay,
+    trustCertification: overrides.trustCertification ?? analysisInput.trustCertification,
+    driftReplay: overrides.driftReplay ?? analysisInput.driftReplay,
+    driftCertification: overrides.driftCertification ?? analysisInput.driftCertification,
+    resilienceReplay: overrides.resilienceReplay ?? analysisInput.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? analysisInput.resilienceCertification,
+    impactCertification: overrides.impactCertification ?? analysisInput.impactCertification,
+    portfolioCertification: overrides.portfolioCertification ?? analysisInput.portfolioCertification,
+    recommendations: overrides.recommendations ?? analysisInput.recommendations,
+    ...overrides,
+  } satisfies DependencyRiskObservabilityInput);
+}
+
+function dependencyRiskReplayInput(overrides: Partial<DependencyRiskReplayInput> = {}): DependencyRiskReplayInput {
+  const observabilityInput = dependencyRiskObservabilityInput();
+  const foundation = overrides.foundation ?? observabilityInput.foundation;
+  const analysis = overrides.analysis ?? observabilityInput.analysis;
+  const observability = overrides.observability ?? sealDependencyRiskObservability({
+    ...observabilityInput,
+    foundation,
+    analysis,
+    dependencyReplay: overrides.dependencyReplay ?? observabilityInput.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? observabilityInput.dependencyCertification,
+    trustReplay: overrides.trustReplay ?? observabilityInput.trustReplay,
+    trustCertification: overrides.trustCertification ?? observabilityInput.trustCertification,
+    driftReplay: overrides.driftReplay ?? observabilityInput.driftReplay,
+    driftCertification: overrides.driftCertification ?? observabilityInput.driftCertification,
+    resilienceReplay: overrides.resilienceReplay ?? observabilityInput.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? observabilityInput.resilienceCertification,
+    impactCertification: overrides.impactCertification ?? observabilityInput.impactCertification,
+    portfolioCertification: overrides.portfolioCertification ?? observabilityInput.portfolioCertification,
+    recommendations: overrides.recommendations ?? observabilityInput.recommendations,
+  });
+
+  return Object.freeze({
+    request: buildDependencyRiskReplayRequest({
+      tenantId: "tenant-alpha",
+      replayScope: "FULL",
+      replayVersion: "dependency-risk-replay/v1",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    dependencyReplay: overrides.dependencyReplay ?? observabilityInput.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? observabilityInput.dependencyCertification,
+    trustReplay: overrides.trustReplay ?? observabilityInput.trustReplay,
+    trustCertification: overrides.trustCertification ?? observabilityInput.trustCertification,
+    driftReplay: overrides.driftReplay ?? observabilityInput.driftReplay,
+    driftCertification: overrides.driftCertification ?? observabilityInput.driftCertification,
+    resilienceReplay: overrides.resilienceReplay ?? observabilityInput.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? observabilityInput.resilienceCertification,
+    impactCertification: overrides.impactCertification ?? observabilityInput.impactCertification,
+    portfolioCertification: overrides.portfolioCertification ?? observabilityInput.portfolioCertification,
+    recommendations: overrides.recommendations ?? observabilityInput.recommendations,
+    ...overrides,
+  } satisfies DependencyRiskReplayInput);
+}
+
+function dependencyRiskCertificationInput(overrides: Partial<DependencyRiskCertificationInput> = {}): DependencyRiskCertificationInput {
+  const replayInput = dependencyRiskReplayInput();
+  const foundation = overrides.foundation ?? replayInput.foundation;
+  const analysis = overrides.analysis ?? replayInput.analysis;
+  const observability = overrides.observability ?? replayInput.observability;
+  const replay = overrides.replay ?? sealDependencyRiskReplay({
+    ...replayInput,
+    foundation,
+    analysis,
+    observability,
+    dependencyReplay: replayInput.dependencyReplay,
+    dependencyCertification: replayInput.dependencyCertification,
+    trustReplay: replayInput.trustReplay,
+    trustCertification: replayInput.trustCertification,
+    driftReplay: replayInput.driftReplay,
+    driftCertification: replayInput.driftCertification,
+    resilienceReplay: replayInput.resilienceReplay,
+    resilienceCertification: replayInput.resilienceCertification,
+    impactCertification: replayInput.impactCertification,
+    portfolioCertification: replayInput.portfolioCertification,
+    recommendations: overrides.recommendations ?? replayInput.recommendations,
+  });
+
+  return Object.freeze({
+    request: buildDependencyRiskCertificationRequest({
+      tenantId: "tenant-alpha",
+      certificationScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    replay,
+    dependencyCertification: overrides.dependencyCertification ?? replayInput.dependencyCertification,
+    trustCertification: overrides.trustCertification ?? replayInput.trustCertification,
+    driftCertification: overrides.driftCertification ?? replayInput.driftCertification,
+    resilienceCertification: overrides.resilienceCertification ?? replayInput.resilienceCertification,
+    impactCertification: overrides.impactCertification ?? replayInput.impactCertification,
+    portfolioCertification: overrides.portfolioCertification ?? replayInput.portfolioCertification,
+    recommendations: overrides.recommendations ?? replayInput.recommendations,
+    ...overrides,
+  } satisfies DependencyRiskCertificationInput);
+}
+
+function recommendationOpportunityInput(
+  overrides: Partial<RecommendationOpportunityFoundationInput> = {},
+): RecommendationOpportunityFoundationInput {
+  const base = lowRiskInput();
+  const dependencyRiskFoundation = overrides.dependencyRiskFoundation ?? sealDependencyRiskFoundation(base);
+  const dependencyRiskReplay = overrides.dependencyRiskReplay ?? sealDependencyRiskReplay(dependencyRiskReplayInput({
+    foundation: dependencyRiskFoundation,
+  }));
+  const dependencyRiskCertification = overrides.dependencyRiskCertification ?? sealDependencyRiskCertification(dependencyRiskCertificationInput({
+    foundation: dependencyRiskFoundation,
+    replay: dependencyRiskReplay,
+  }));
+  const recommendations = overrides.recommendations ?? cachedStableRecommendations;
+  const recommendationIds = [...new Set(recommendations.map((bundle) => bundle.ledger.entry.recommendationId))];
+
+  return Object.freeze({
+    request: overrides.request ?? buildRecommendationOpportunityFoundationRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds,
+      opportunityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    dependencyRiskFoundation,
+    dependencyRiskReplay,
+    dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? base.dependencyFoundation,
+    dependencyReplay: overrides.dependencyReplay ?? base.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? base.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? cachedImpactInput.foundation,
+    impactReplay: overrides.impactReplay ?? cachedImpactInput.replay,
+    impactCertification: overrides.impactCertification ?? base.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? base.trustFoundation,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? base.driftFoundation,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? base.resilienceFoundation,
+    resilienceReplay: overrides.resilienceReplay ?? base.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? base.resilienceCertification,
+    portfolio: overrides.portfolio ?? cachedDriftAnalysisInput.portfolio,
+    relationshipAnalysis: overrides.relationshipAnalysis ?? cachedDriftAnalysisInput.relationshipAnalysis,
+    portfolioReplay: overrides.portfolioReplay ?? cachedDriftAnalysisInput.portfolioReplay,
+    portfolioCertification: overrides.portfolioCertification ?? base.portfolioCertification,
+    recommendations,
+    opportunityMutationAttempted: overrides.opportunityMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies RecommendationOpportunityFoundationInput);
+}
+
+function opportunityAnalysisInput(
+  overrides: Partial<OpportunityAnalysisInput> = {},
+): OpportunityAnalysisInput {
+  const base = recommendationOpportunityInput();
+  const foundation = overrides.foundation ?? sealRecommendationOpportunityFoundation(base);
+
+  return Object.freeze({
+    request: overrides.request ?? buildOpportunityAnalysisRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: [...base.request.recommendationIds],
+      analysisScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+      foundation,
+      dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? base.dependencyRiskFoundation,
+      dependencyRiskReplay: overrides.dependencyRiskReplay ?? base.dependencyRiskReplay,
+      dependencyRiskCertification: overrides.dependencyRiskCertification ?? base.dependencyRiskCertification,
+      dependencyFoundation: overrides.dependencyFoundation ?? base.dependencyFoundation,
+      dependencyReplay: overrides.dependencyReplay ?? base.dependencyReplay,
+      dependencyCertification: overrides.dependencyCertification ?? base.dependencyCertification,
+      impactFoundation: overrides.impactFoundation ?? base.impactFoundation,
+      impactReplay: overrides.impactReplay ?? base.impactReplay,
+      impactCertification: overrides.impactCertification ?? base.impactCertification,
+      trustFoundation: overrides.trustFoundation ?? base.trustFoundation,
+      trustReplay: overrides.trustReplay ?? base.trustReplay,
+      trustCertification: overrides.trustCertification ?? base.trustCertification,
+      driftFoundation: overrides.driftFoundation ?? base.driftFoundation,
+      driftReplay: overrides.driftReplay ?? base.driftReplay,
+      driftCertification: overrides.driftCertification ?? base.driftCertification,
+      resilienceFoundation: overrides.resilienceFoundation ?? base.resilienceFoundation,
+      resilienceReplay: overrides.resilienceReplay ?? base.resilienceReplay,
+      resilienceCertification: overrides.resilienceCertification ?? base.resilienceCertification,
+      portfolio: overrides.portfolio ?? base.portfolio,
+      relationshipAnalysis: overrides.relationshipAnalysis ?? base.relationshipAnalysis,
+      portfolioReplay: overrides.portfolioReplay ?? base.portfolioReplay,
+      portfolioCertification: overrides.portfolioCertification ?? base.portfolioCertification,
+      recommendations: overrides.recommendations ?? base.recommendations,
+      analysisMutationAttempted: overrides.analysisMutationAttempted,
+      executionRequested: overrides.executionRequested,
+      workflowRoutingRequested: overrides.workflowRoutingRequested,
+      prioritizationRequested: overrides.prioritizationRequested,
+      recommendationRankingRequested: overrides.recommendationRankingRequested,
+      approvalRequested: overrides.approvalRequested,
+      recommendationScoringRequested: overrides.recommendationScoringRequested,
+      resourceAllocationRequested: overrides.resourceAllocationRequested,
+      authorityExpansionDetected: overrides.authorityExpansionDetected,
+    } satisfies OpportunityAnalysisInput);
+}
+
+function opportunityObservabilityInput(
+  overrides: Partial<OpportunityObservabilityInput> = {},
+): OpportunityObservabilityInput {
+  const analysisBase = opportunityAnalysisInput();
+  const foundation = overrides.foundation ?? analysisBase.foundation;
+  const analysis = overrides.analysis ?? sealOpportunityAnalysis(analysisBase);
+
+  return Object.freeze({
+    request: overrides.request ?? buildOpportunityObservabilityRequest({
+      tenantId: "tenant-alpha",
+      observabilityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? analysisBase.dependencyRiskFoundation,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? analysisBase.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? analysisBase.dependencyFoundation,
+    dependencyCertification: overrides.dependencyCertification ?? analysisBase.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? analysisBase.impactFoundation,
+    impactCertification: overrides.impactCertification ?? analysisBase.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? analysisBase.trustFoundation,
+    trustCertification: overrides.trustCertification ?? analysisBase.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? analysisBase.driftFoundation,
+    driftCertification: overrides.driftCertification ?? analysisBase.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? analysisBase.resilienceFoundation,
+    resilienceCertification: overrides.resilienceCertification ?? analysisBase.resilienceCertification,
+    portfolio: overrides.portfolio ?? analysisBase.portfolio,
+    portfolioCertification: overrides.portfolioCertification ?? analysisBase.portfolioCertification,
+    recommendations: overrides.recommendations ?? analysisBase.recommendations,
+    observabilityMutationAttempted: overrides.observabilityMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies OpportunityObservabilityInput);
+}
+
+function opportunityReplayInput(
+  overrides: Partial<OpportunityReplayInput> = {},
+): OpportunityReplayInput {
+  const observabilityBase = opportunityObservabilityInput();
+  const foundation = overrides.foundation ?? observabilityBase.foundation;
+  const analysis = overrides.analysis ?? sealOpportunityAnalysis(opportunityAnalysisInput({
+    foundation,
+    recommendations: overrides.recommendations ?? observabilityBase.recommendations,
+  }));
+  const observability = overrides.observability ?? sealOpportunityObservability({
+    ...observabilityBase,
+    foundation,
+    analysis,
+    recommendations: overrides.recommendations ?? observabilityBase.recommendations,
+  });
+
+  return Object.freeze({
+    request: overrides.request ?? buildOpportunityReplayRequest({
+      tenantId: "tenant-alpha",
+      replayScope: "FULL",
+      replayVersion: "opportunity-replay/v1",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? observabilityBase.dependencyRiskFoundation,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? observabilityBase.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? observabilityBase.dependencyFoundation,
+    dependencyCertification: overrides.dependencyCertification ?? observabilityBase.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? observabilityBase.impactFoundation,
+    impactCertification: overrides.impactCertification ?? observabilityBase.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? observabilityBase.trustFoundation,
+    trustCertification: overrides.trustCertification ?? observabilityBase.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? observabilityBase.driftFoundation,
+    driftCertification: overrides.driftCertification ?? observabilityBase.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? observabilityBase.resilienceFoundation,
+    resilienceCertification: overrides.resilienceCertification ?? observabilityBase.resilienceCertification,
+    portfolio: overrides.portfolio ?? observabilityBase.portfolio,
+    portfolioCertification: overrides.portfolioCertification ?? observabilityBase.portfolioCertification,
+    recommendations: overrides.recommendations ?? observabilityBase.recommendations,
+    replayMutationAttempted: overrides.replayMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies OpportunityReplayInput);
+}
+
+function certifiableInput(
+  overrides: Partial<RecommendationConstraintFoundationInput> = {},
+): RecommendationConstraintFoundationInput {
+  const foundationBase = recommendationOpportunityInput();
+  const replayInput = opportunityReplayInput();
+  const opportunityReplay = overrides.opportunityReplay ?? sealOpportunityReplay(replayInput);
+  const opportunityCertification = overrides.opportunityCertification ?? sealOpportunityCertification({
+    request: buildOpportunityCertificationRequest({
+      tenantId: "tenant-alpha",
+      certificationScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation: replayInput.foundation,
+    analysis: replayInput.analysis,
+    observability: replayInput.observability,
+    replay: opportunityReplay,
+    dependencyRiskCertification: replayInput.dependencyRiskCertification,
+    dependencyCertification: replayInput.dependencyCertification,
+    impactCertification: replayInput.impactCertification,
+    trustCertification: replayInput.trustCertification,
+    driftCertification: replayInput.driftCertification,
+    resilienceCertification: replayInput.resilienceCertification,
+    portfolioCertification: replayInput.portfolioCertification,
+    recommendations: replayInput.recommendations,
+  } satisfies OpportunityCertificationInput);
+
+  return Object.freeze({
+    request: buildRecommendationConstraintFoundationRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: [...new Set(replayInput.recommendations.map((bundle) => bundle.ledger.entry.recommendationId))],
+      constraintScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    opportunityFoundation: overrides.opportunityFoundation ?? replayInput.foundation,
+    opportunityReplay,
+    opportunityCertification,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? replayInput.dependencyRiskFoundation,
+    dependencyRiskReplay: overrides.dependencyRiskReplay ?? foundationBase.dependencyRiskReplay,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? replayInput.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? replayInput.dependencyFoundation,
+    dependencyReplay: overrides.dependencyReplay ?? foundationBase.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? replayInput.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? replayInput.impactFoundation,
+    impactReplay: overrides.impactReplay ?? foundationBase.impactReplay,
+    impactCertification: overrides.impactCertification ?? replayInput.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? replayInput.trustFoundation,
+    trustReplay: overrides.trustReplay ?? foundationBase.trustReplay,
+    trustCertification: overrides.trustCertification ?? replayInput.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? replayInput.driftFoundation,
+    driftReplay: overrides.driftReplay ?? foundationBase.driftReplay,
+    driftCertification: overrides.driftCertification ?? replayInput.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? replayInput.resilienceFoundation,
+    resilienceReplay: overrides.resilienceReplay ?? foundationBase.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? replayInput.resilienceCertification,
+    portfolio: overrides.portfolio ?? replayInput.portfolio,
+    relationshipAnalysis: overrides.relationshipAnalysis ?? foundationBase.relationshipAnalysis,
+    portfolioReplay: overrides.portfolioReplay ?? foundationBase.portfolioReplay,
+    portfolioCertification: overrides.portfolioCertification ?? replayInput.portfolioCertification,
+    recommendations: overrides.recommendations ?? replayInput.recommendations,
+    ...overrides,
+  } satisfies RecommendationConstraintFoundationInput);
+}
+
+function constraintAnalysisInput(
+  overrides: Partial<ConstraintAnalysisInput> = {},
+): ConstraintAnalysisInput {
+  const base = certifiableInput();
+  const foundation = overrides.foundation ?? sealRecommendationConstraintFoundation(base);
+
+  return Object.freeze({
+    request: overrides.request ?? buildConstraintAnalysisRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-alpha", "recommendation-beta"],
+      analysisScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    opportunityFoundation: overrides.opportunityFoundation ?? base.opportunityFoundation,
+    opportunityReplay: overrides.opportunityReplay ?? base.opportunityReplay,
+    opportunityCertification: overrides.opportunityCertification ?? base.opportunityCertification,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? base.dependencyRiskFoundation,
+    dependencyRiskReplay: overrides.dependencyRiskReplay ?? base.dependencyRiskReplay,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? base.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? base.dependencyFoundation,
+    dependencyReplay: overrides.dependencyReplay ?? base.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? base.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? base.impactFoundation,
+    impactReplay: overrides.impactReplay ?? base.impactReplay,
+    impactCertification: overrides.impactCertification ?? base.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? base.trustFoundation,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? base.driftFoundation,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? base.resilienceFoundation,
+    resilienceReplay: overrides.resilienceReplay ?? base.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? base.resilienceCertification,
+    portfolio: overrides.portfolio ?? base.portfolio,
+    relationshipAnalysis: overrides.relationshipAnalysis ?? base.relationshipAnalysis,
+    portfolioReplay: overrides.portfolioReplay ?? base.portfolioReplay,
+    portfolioCertification: overrides.portfolioCertification ?? base.portfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    analysisMutationAttempted: overrides.analysisMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies ConstraintAnalysisInput);
+}
+
+function constraintObservabilityInput(
+  overrides: Partial<ConstraintObservabilityInput> = {},
+): ConstraintObservabilityInput {
+  const base = constraintAnalysisInput();
+  const analysis = overrides.analysis ?? sealConstraintAnalysis(base);
+
+  return Object.freeze({
+    request: overrides.request ?? buildConstraintObservabilityRequest({
+      tenantId: "tenant-alpha",
+      observabilityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation: overrides.foundation ?? base.foundation,
+    analysis,
+    opportunityFoundation: overrides.opportunityFoundation ?? base.opportunityFoundation,
+    opportunityCertification: overrides.opportunityCertification ?? base.opportunityCertification,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? base.dependencyRiskFoundation,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? base.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? base.dependencyFoundation,
+    dependencyCertification: overrides.dependencyCertification ?? base.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? base.impactFoundation,
+    impactCertification: overrides.impactCertification ?? base.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? base.trustFoundation,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? base.driftFoundation,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? base.resilienceFoundation,
+    resilienceCertification: overrides.resilienceCertification ?? base.resilienceCertification,
+    portfolio: overrides.portfolio ?? base.portfolio,
+    portfolioCertification: overrides.portfolioCertification ?? base.portfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    observabilityMutationAttempted: overrides.observabilityMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies ConstraintObservabilityInput);
+}
+
+function constraintReplayInput(
+  overrides: Partial<ConstraintReplayInput> = {},
+): ConstraintReplayInput {
+  const baseFoundation = certifiableInput();
+  const baseAnalysis = constraintAnalysisInput();
+  const observability = overrides.observability ?? sealConstraintObservability(constraintObservabilityInput());
+  return Object.freeze({
+    request: overrides.request ?? buildConstraintReplayRequest({
+      tenantId: "tenant-alpha",
+      replayScope: "FULL",
+      replayVersion: "constraint-replay/v1",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation: overrides.foundation ?? baseAnalysis.foundation,
+    analysis: overrides.analysis ?? sealConstraintAnalysis(baseAnalysis),
+    observability,
+    opportunityReplay: overrides.opportunityReplay ?? baseFoundation.opportunityReplay,
+    opportunityCertification: overrides.opportunityCertification ?? baseFoundation.opportunityCertification,
+    dependencyRiskReplay: overrides.dependencyRiskReplay ?? baseFoundation.dependencyRiskReplay,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? baseFoundation.dependencyRiskCertification,
+    dependencyReplay: overrides.dependencyReplay ?? baseFoundation.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? baseFoundation.dependencyCertification,
+    impactReplay: overrides.impactReplay ?? baseFoundation.impactReplay,
+    impactCertification: overrides.impactCertification ?? baseFoundation.impactCertification,
+    trustReplay: overrides.trustReplay ?? baseFoundation.trustReplay,
+    trustCertification: overrides.trustCertification ?? baseFoundation.trustCertification,
+    driftReplay: overrides.driftReplay ?? baseFoundation.driftReplay,
+    driftCertification: overrides.driftCertification ?? baseFoundation.driftCertification,
+    resilienceReplay: overrides.resilienceReplay ?? baseFoundation.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? baseFoundation.resilienceCertification,
+    portfolioReplay: overrides.portfolioReplay ?? baseFoundation.portfolioReplay,
+    portfolioCertification: overrides.portfolioCertification ?? baseFoundation.portfolioCertification,
+    recommendations: overrides.recommendations ?? baseAnalysis.recommendations,
+    replayMutationAttempted: overrides.replayMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies ConstraintReplayInput);
+}
+
+function constraintCertificationInput(
+  overrides: Partial<ConstraintCertificationInput> = {},
+): ConstraintCertificationInput {
+  const foundationBase = certifiableInput();
+  const analysisBase = constraintAnalysisInput();
+  const replayInput = constraintReplayInput();
+  const foundation = overrides.foundation ?? analysisBase.foundation;
+  const analysis = overrides.analysis ?? sealConstraintAnalysis(analysisBase);
+  const observability = overrides.observability ?? sealConstraintObservability(constraintObservabilityInput({
+    foundation,
+    analysis,
+    recommendations: overrides.recommendations ?? analysisBase.recommendations,
+  }));
+  const replay = overrides.replay ?? sealConstraintReplay({
+    ...replayInput,
+    foundation,
+    analysis,
+    observability,
+    recommendations: overrides.recommendations ?? replayInput.recommendations,
+  });
+
+  return Object.freeze({
+    request: overrides.request ?? buildConstraintCertificationRequest({
+      tenantId: "tenant-alpha",
+      certificationScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    observability,
+    replay,
+    opportunityCertification: overrides.opportunityCertification ?? foundationBase.opportunityCertification,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? foundationBase.dependencyRiskCertification,
+    dependencyCertification: overrides.dependencyCertification ?? foundationBase.dependencyCertification,
+    impactCertification: overrides.impactCertification ?? foundationBase.impactCertification,
+    trustCertification: overrides.trustCertification ?? foundationBase.trustCertification,
+    driftCertification: overrides.driftCertification ?? foundationBase.driftCertification,
+    resilienceCertification: overrides.resilienceCertification ?? foundationBase.resilienceCertification,
+    portfolioCertification: overrides.portfolioCertification ?? foundationBase.portfolioCertification,
+    readinessCertification: overrides.readinessCertification ?? foundationBase.recommendations[0].readinessCertification,
+    governanceCertification: overrides.governanceCertification ?? foundationBase.recommendations[0].governanceCertification,
+    recommendationCertification: overrides.recommendationCertification ?? foundationBase.recommendations[0].certification,
+    recommendationObservabilityCertification: overrides.recommendationObservabilityCertification ?? foundationBase.recommendations[0].observabilityCertification,
+    recommendations: overrides.recommendations ?? replayInput.recommendations,
+    certificationMutationAttempted: overrides.certificationMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies ConstraintCertificationInput);
+}
+
+function dependencyHealthFoundationInput(
+  overrides: Partial<RecommendationDependencyHealthFoundationInput> = {},
+): RecommendationDependencyHealthFoundationInput {
+  const constraintBase = constraintCertificationInput();
+  const foundationBase = certifiableInput();
+  const recommendationOverrides = overrides.recommendations ?? constraintBase.recommendations;
+  const constraintCertification = overrides.constraintCertification ?? sealConstraintCertification(constraintBase);
+
+  return Object.freeze({
+    request: overrides.request ?? buildRecommendationDependencyHealthFoundationRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-alpha", "recommendation-beta"],
+      healthScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    constraintFoundation: overrides.constraintFoundation ?? constraintBase.foundation,
+    constraintReplay: overrides.constraintReplay ?? constraintBase.replay,
+    constraintCertification,
+    opportunityFoundation: overrides.opportunityFoundation ?? foundationBase.opportunityFoundation,
+    opportunityReplay: overrides.opportunityReplay ?? foundationBase.opportunityReplay,
+    opportunityCertification: overrides.opportunityCertification ?? foundationBase.opportunityCertification,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? foundationBase.dependencyRiskFoundation,
+    dependencyRiskReplay: overrides.dependencyRiskReplay ?? foundationBase.dependencyRiskReplay,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? foundationBase.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? foundationBase.dependencyFoundation,
+    dependencyReplay: overrides.dependencyReplay ?? foundationBase.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? foundationBase.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? foundationBase.impactFoundation,
+    impactReplay: overrides.impactReplay ?? foundationBase.impactReplay,
+    impactCertification: overrides.impactCertification ?? foundationBase.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? foundationBase.trustFoundation,
+    trustReplay: overrides.trustReplay ?? foundationBase.trustReplay,
+    trustCertification: overrides.trustCertification ?? foundationBase.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? foundationBase.driftFoundation,
+    driftReplay: overrides.driftReplay ?? foundationBase.driftReplay,
+    driftCertification: overrides.driftCertification ?? foundationBase.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? foundationBase.resilienceFoundation,
+    resilienceReplay: overrides.resilienceReplay ?? foundationBase.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? foundationBase.resilienceCertification,
+    portfolio: overrides.portfolio ?? foundationBase.portfolio,
+    portfolioReplay: overrides.portfolioReplay ?? foundationBase.portfolioReplay,
+    portfolioCertification: overrides.portfolioCertification ?? foundationBase.portfolioCertification,
+    recommendations: recommendationOverrides,
+    healthMutationAttempted: overrides.healthMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies RecommendationDependencyHealthFoundationInput);
+}
+
+function dependencyHealthAnalysisInput(
+  overrides: Partial<DependencyHealthAnalysisInput> = {},
+): DependencyHealthAnalysisInput {
+  const base = dependencyHealthFoundationInput();
+  const foundation = overrides.foundation ?? sealRecommendationDependencyHealthFoundation(base);
+
+  return Object.freeze({
+    request: overrides.request ?? buildDependencyHealthAnalysisRequest({
+      tenantId: "tenant-alpha",
+      recommendationIds: ["recommendation-alpha", "recommendation-beta"],
+      analysisScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    constraintFoundation: overrides.constraintFoundation ?? base.constraintFoundation,
+    constraintReplay: overrides.constraintReplay ?? base.constraintReplay,
+    constraintCertification: overrides.constraintCertification ?? base.constraintCertification,
+    opportunityFoundation: overrides.opportunityFoundation ?? base.opportunityFoundation,
+    opportunityReplay: overrides.opportunityReplay ?? base.opportunityReplay,
+    opportunityCertification: overrides.opportunityCertification ?? base.opportunityCertification,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? base.dependencyRiskFoundation,
+    dependencyRiskReplay: overrides.dependencyRiskReplay ?? base.dependencyRiskReplay,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? base.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? base.dependencyFoundation,
+    dependencyReplay: overrides.dependencyReplay ?? base.dependencyReplay,
+    dependencyCertification: overrides.dependencyCertification ?? base.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? base.impactFoundation,
+    impactReplay: overrides.impactReplay ?? base.impactReplay,
+    impactCertification: overrides.impactCertification ?? base.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? base.trustFoundation,
+    trustReplay: overrides.trustReplay ?? base.trustReplay,
+    trustCertification: overrides.trustCertification ?? base.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? base.driftFoundation,
+    driftReplay: overrides.driftReplay ?? base.driftReplay,
+    driftCertification: overrides.driftCertification ?? base.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? base.resilienceFoundation,
+    resilienceReplay: overrides.resilienceReplay ?? base.resilienceReplay,
+    resilienceCertification: overrides.resilienceCertification ?? base.resilienceCertification,
+    portfolio: overrides.portfolio ?? base.portfolio,
+    portfolioReplay: overrides.portfolioReplay ?? base.portfolioReplay,
+    portfolioCertification: overrides.portfolioCertification ?? base.portfolioCertification,
+    recommendations: overrides.recommendations ?? base.recommendations,
+    analysisMutationAttempted: overrides.analysisMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies DependencyHealthAnalysisInput);
+}
+
+function dependencyHealthObservabilityInput(
+  overrides: Partial<DependencyHealthObservabilityInput> = {},
+): DependencyHealthObservabilityInput {
+  const foundationBase = dependencyHealthFoundationInput();
+  const foundation = overrides.foundation ?? sealRecommendationDependencyHealthFoundation(foundationBase);
+  const analysis = overrides.analysis ?? sealDependencyHealthAnalysis(dependencyHealthAnalysisInput({
+    foundation,
+    recommendations: overrides.recommendations ?? foundationBase.recommendations,
+  }));
+
+  return Object.freeze({
+    request: overrides.request ?? buildDependencyHealthObservabilityRequest({
+      tenantId: "tenant-alpha",
+      observabilityScope: "FULL",
+      graphVersion: "decision-graph/v1",
+    }),
+    foundation,
+    analysis,
+    constraintFoundation: overrides.constraintFoundation ?? foundationBase.constraintFoundation,
+    constraintCertification: overrides.constraintCertification ?? foundationBase.constraintCertification,
+    opportunityFoundation: overrides.opportunityFoundation ?? foundationBase.opportunityFoundation,
+    opportunityCertification: overrides.opportunityCertification ?? foundationBase.opportunityCertification,
+    dependencyRiskFoundation: overrides.dependencyRiskFoundation ?? foundationBase.dependencyRiskFoundation,
+    dependencyRiskCertification: overrides.dependencyRiskCertification ?? foundationBase.dependencyRiskCertification,
+    dependencyFoundation: overrides.dependencyFoundation ?? foundationBase.dependencyFoundation,
+    dependencyCertification: overrides.dependencyCertification ?? foundationBase.dependencyCertification,
+    impactFoundation: overrides.impactFoundation ?? foundationBase.impactFoundation,
+    impactCertification: overrides.impactCertification ?? foundationBase.impactCertification,
+    trustFoundation: overrides.trustFoundation ?? foundationBase.trustFoundation,
+    trustCertification: overrides.trustCertification ?? foundationBase.trustCertification,
+    driftFoundation: overrides.driftFoundation ?? foundationBase.driftFoundation,
+    driftCertification: overrides.driftCertification ?? foundationBase.driftCertification,
+    resilienceFoundation: overrides.resilienceFoundation ?? foundationBase.resilienceFoundation,
+    resilienceCertification: overrides.resilienceCertification ?? foundationBase.resilienceCertification,
+    portfolio: overrides.portfolio ?? foundationBase.portfolio,
+    portfolioCertification: overrides.portfolioCertification ?? foundationBase.portfolioCertification,
+    recommendations: overrides.recommendations ?? foundationBase.recommendations,
+    observabilityMutationAttempted: overrides.observabilityMutationAttempted,
+    executionRequested: overrides.executionRequested,
+    workflowRoutingRequested: overrides.workflowRoutingRequested,
+    prioritizationRequested: overrides.prioritizationRequested,
+    recommendationRankingRequested: overrides.recommendationRankingRequested,
+    approvalRequested: overrides.approvalRequested,
+    recommendationScoringRequested: overrides.recommendationScoringRequested,
+    resourceAllocationRequested: overrides.resourceAllocationRequested,
+    authorityExpansionDetected: overrides.authorityExpansionDetected,
+  } satisfies DependencyHealthObservabilityInput);
+}
+
+describe("dependencyHealthObservabilityLayer", () => {
+  it("is deterministic and produces a stable observability hash", () => {
+    const input = dependencyHealthObservabilityInput();
+    const first = sealDependencyHealthObservability(input);
+    const second = sealDependencyHealthObservability(input);
+
+    expect(first).toEqual(second);
+    expect(first.result.observabilityState).toBe("VISIBLE");
+    expect(first.result.observabilityHash).toHaveLength(64);
+  }, 90000);
+
+  it("keeps visibility ordering deterministic when recommendations are reversed", () => {
+    const base = dependencyHealthObservabilityInput();
+    const reordered = dependencyHealthObservabilityInput({
+      recommendations: Object.freeze([...base.recommendations].reverse()),
+    });
+    const sealed = sealDependencyHealthObservability(reordered);
+
+    expect(sealed).toEqual(sealDependencyHealthObservability(reordered));
+    expect(createDependencyHealthObservabilityEvidencePath(reordered)).toEqual(sealed.evidencePath);
+  }, 90000);
+
+  it("exposes health, stability, availability, continuity, recoverability, degradation, risk, coverage, lineage, governance, replay, and audit visibility", () => {
+    const sealed = sealDependencyHealthObservability(dependencyHealthObservabilityInput());
+
+    expect(sealed.result.healthGraphVisible).toBe(true);
+    expect(sealed.result.stabilityVisible).toBe(true);
+    expect(sealed.result.availabilityVisible).toBe(true);
+    expect(sealed.result.continuityVisible).toBe(true);
+    expect(sealed.result.recoverabilityVisible).toBe(true);
+    expect(sealed.result.degradationVisible).toBe(true);
+    expect(sealed.result.riskVisible).toBe(true);
+    expect(sealed.result.observabilityCoverageVisible).toBe(true);
+    expect(sealed.result.lineageVisible).toBe(true);
+    expect(sealed.result.governanceVisible).toBe(true);
+    expect(sealed.result.replayVisible).toBe(true);
+    expect(sealed.result.auditVisible).toBe(true);
+  }, 30000);
+
+  it("surfaces VISIBLE, LIMITED, OBSERVE, and INVALID states", () => {
+    const base = dependencyHealthObservabilityInput();
+    const visible = sealDependencyHealthObservability(base);
+    const limited = sealDependencyHealthObservability({
+      ...base,
+      foundation: {
+        ...base.foundation,
+        evidencePath: {
+          ...base.foundation.evidencePath,
+          replayReferences: [],
+        },
+      },
+    });
+    const observe = sealDependencyHealthObservability({
+      ...base,
+      analysis: {
+        ...base.analysis,
+        evidencePath: {
+          ...base.analysis.evidencePath,
+          observabilityReferences: [],
+        },
+      },
+    });
+    const invalid = sealDependencyHealthObservability({
+      ...base,
+      authorityExpansionDetected: true,
+    });
+
+    expect(visible.result.observabilityState).toBe("VISIBLE");
+    expect(limited.result.observabilityState).toBe("LIMITED");
+    expect(observe.result.observabilityState).toBe("OBSERVE");
+    expect(invalid.result.observabilityState).toBe("INVALID");
+  }, 60000);
+
+  it("blocks cross-tenant visibility, ownership mismatches, execution, mutation, routing, prioritization, ranking, approval, scoring, resource allocation, and authority expansion", () => {
+    const base = dependencyHealthObservabilityInput();
+    const crossTenant = sealDependencyHealthObservability({
+      ...base,
+      dependencyRiskFoundation: {
+        ...base.dependencyRiskFoundation,
+        result: {
+          ...base.dependencyRiskFoundation.result,
+          tenantIsolationVerified: false,
+        },
+      },
+    });
+    const ownershipMismatch = sealDependencyHealthObservability({
+      ...base,
+      recommendations: Object.freeze([
+        {
+          ...base.recommendations[0],
+          ownershipEvidence: {
+            ...base.recommendations[0].ownershipEvidence,
+            recommendationId: "recommendation-other",
+          },
+        },
+        ...base.recommendations.slice(1),
+      ]),
+    });
+
+    expect(crossTenant.result.observabilityState).toBe("INVALID");
+    expect(crossTenant.validation.reasonCodes).toContain("CROSS_TENANT_VISIBILITY_BLOCKED");
+    expect(ownershipMismatch.validation.reasonCodes).toContain("OWNERSHIP_MISMATCH");
+    expect(sealDependencyHealthObservability({ ...base, executionRequested: true }).validation.reasonCodes).toContain("EXECUTION_REQUEST_BLOCKED");
+    expect(sealDependencyHealthObservability({ ...base, observabilityMutationAttempted: true }).validation.reasonCodes).toContain("OBSERVABILITY_MUTATION_DETECTED");
+    expect(sealDependencyHealthObservability({ ...base, workflowRoutingRequested: true }).validation.reasonCodes).toContain("WORKFLOW_ROUTING_DETECTED");
+    expect(sealDependencyHealthObservability({ ...base, prioritizationRequested: true }).validation.reasonCodes).toContain("PRIORITIZATION_DETECTED");
+    expect(sealDependencyHealthObservability({ ...base, recommendationRankingRequested: true }).validation.reasonCodes).toContain("RANKING_DETECTED");
+    expect(sealDependencyHealthObservability({ ...base, approvalRequested: true }).validation.reasonCodes).toContain("APPROVAL_DETECTED");
+    expect(sealDependencyHealthObservability({ ...base, recommendationScoringRequested: true }).validation.reasonCodes).toContain("SCORING_DETECTED");
+    expect(sealDependencyHealthObservability({ ...base, resourceAllocationRequested: true }).validation.reasonCodes).toContain("RESOURCE_ALLOCATION_DETECTED");
+    expect(sealDependencyHealthObservability({ ...base, authorityExpansionDetected: true }).validation.reasonCodes).toContain("AUTHORITY_EXPANSION_DETECTED");
+  }, 90000);
+
+  it("bounds replay and audit visibility references at declared limits", () => {
+    const base = dependencyHealthObservabilityInput();
+    const replayOverflow = Object.freeze(Array.from(
+      { length: 10_001 },
+      (_, index) => `replay:overflow:${index.toString().padStart(5, "0")}`,
+    ));
+    const limited = sealDependencyHealthObservability({
+      ...base,
+      foundation: {
+        ...base.foundation,
+        evidencePath: {
+          ...base.foundation.evidencePath,
+          replayReferences: replayOverflow,
+        },
+      },
+    });
+
+    expect(limited.result.observabilityState).toBe("LIMITED");
+    expect(limited.validation.reasonCodes).toContain("VISIBLE_REPLAY_REFERENCE_LIMIT_EXCEEDED");
+  }, 90000);
+});

@@ -154,6 +154,41 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+## Phase 8M.21 Recommendation Generated Domain
+
+Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.
+
+Validation status:
+
+- Recommendation targeted Vitest: PASS by batched validation, including isolated serial validation for timeout-heavy suites.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+- Staged-diff guard: PASS.
+
+Generated entries remaining: 238 after the Recommendation generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 275.
+- Generated Phase Expansion: 238.
+- Source Changes: 24.
+- Phase 8M Stabilization: 3.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Certification remains blocked until all generated domains are reviewed, source changes are reconciled, documentation is reconciled, full unit suite passes, production build passes, and release validation succeeds.
+
 ## Phase 8M.20 Runtime Generated Domain
 
 Runtime committed: this commit is intended to integrate only the Runtime generated domain.
@@ -180,6 +215,32 @@ Repository status: generated-domain reconciliation in progress.
 Remaining generated domains:
 
 - Recommendation
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Certification remains blocked until all generated domains are reviewed, source changes are reconciled, documentation is reconciled, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.21 Recommendation Generated Domain
+
+Recommendation committed: this commit is intended to integrate only the Recommendation generated domain.
+
+Validation status:
+
+- Recommendation targeted Vitest: PASS by batched validation across all discovered Recommendation families.
+- Timeout-heavy Recommendation subset: PASS, 37 files and 273 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: expected to decrease from 326 after the Recommendation generated domain commit.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
 - Truth Ledger
 - Planning
 - Certification

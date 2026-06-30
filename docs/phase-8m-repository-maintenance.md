@@ -1,6 +1,6 @@
 # Phase 8M Repository Maintenance
 
-Status: post-Phase 8M.20 health inspection complete
+Status: Phase 8M.21 pre-commit health inspection complete
 
 Git previously reported many unreachable loose objects during auto-packing. This is repository housekeeping evidence, not a Phase 8M validation failure.
 
@@ -174,7 +174,38 @@ Comparison with Phase 8M.19:
 
 ## Maintenance Recommendation
 
-Routine maintenance remains appropriate but not urgent. Git reports many unreachable loose objects during auto-packing, while `git count-objects -vH` reports no garbage and no prune-packable objects after Phase 8M.20.
+## Phase 8M.21 Pre-Commit Inspection
+
+Command:
+
+```text
+git count-objects -vH
+```
+
+Result:
+
+```text
+count: 8233
+size: 30.23 MiB
+in-pack: 13854
+packs: 16
+size-pack: 8.01 MiB
+prune-packable: 0
+garbage: 0
+size-garbage: 0 bytes
+```
+
+Comparison with Phase 8M.20:
+
+- Loose objects increased by 12.
+- Loose size increased by about 0.04 MiB.
+- Pack count remained 16.
+- Garbage remains 0 bytes.
+- Prune-packable remains 0.
+
+## Maintenance Recommendation
+
+Routine maintenance remains appropriate but not urgent. Git reports many unreachable loose objects during auto-packing, while `git count-objects -vH` reports no garbage and no prune-packable objects during Phase 8M.21. Schedule routine `git gc` after the remaining generated domains are reconciled or when the user explicitly approves maintenance.
 
 Recommended next maintenance step, only with explicit approval:
 
@@ -183,3 +214,36 @@ git gc
 ```
 
 No garbage collection, pruning, or destructive cleanup should be performed without explicit approval.
+
+## Phase 8M.21 Post-Commit Inspection
+
+Command:
+
+```text
+git count-objects -vH
+```
+
+Result:
+
+```text
+count: 8265
+size: 30.35 MiB
+in-pack: 13875
+packs: 17
+size-pack: 8.08 MiB
+prune-packable: 0
+garbage: 0
+size-garbage: 0 bytes
+```
+
+Comparison with Phase 8M.21 pre-commit inspection:
+
+- Loose objects increased by 32.
+- Loose size increased by about 0.12 MiB.
+- Pack count increased from 16 to 17 after Git auto-packed the repository during commit.
+- Garbage remains 0 bytes.
+- Prune-packable remains 0.
+
+## Maintenance Recommendation
+
+Git reported many unreachable loose objects during auto-packing, while `git count-objects -vH` reports no garbage and no prune-packable objects after the Phase 8M.21 commit. Continue with inspect-only maintenance unless the user explicitly approves `git gc` or pruning.

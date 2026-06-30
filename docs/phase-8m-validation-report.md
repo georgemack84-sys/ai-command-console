@@ -130,6 +130,41 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.21 Recommendation Generated Domain
+
+Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.
+
+Validation summary:
+
+- Recommendation targeted Vitest: PASS by batched validation. Full 84-file discovery run covered all Recommendation suites; timeout-heavy families then passed isolated serial validation with 37 files and 273 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+- Staged-diff guard: PASS, 302 staged files with 0 unexpected paths and 0 blocked paths.
+
+Generated entries remaining: 238 after the Recommendation generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 275.
+- Generated Phase Expansion: 238.
+- Source Changes: 24.
+- Phase 8M Stabilization: 3.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Truth Ledger.
+
 ## Phase 8M.20 Runtime Generated Domain
 
 Runtime committed: this commit is intended to integrate Runtime as the seventh generated-domain baseline.
@@ -164,6 +199,32 @@ Remaining generated domains:
 Certification state: FAIL.
 
 Recommended next generated domain: Recommendation.
+
+## Phase 8M.21 Recommendation Generated Domain
+
+Recommendation committed: this commit is intended to integrate Recommendation as the eighth generated-domain baseline.
+
+Validation summary:
+
+- Recommendation targeted Vitest: PASS by batched validation across all discovered Recommendation families.
+- Timeout-heavy Recommendation subset: PASS, 37 files and 273 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Generated entries remaining: expected to decrease from 326 after the Recommendation generated domain commit.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Truth Ledger.
 
 ## Phase 8M.15 Autonomy Generated Domain
 

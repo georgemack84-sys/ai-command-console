@@ -216,6 +216,43 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.21 Recommendation Generated Domain
+
+Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.
+
+Validation status:
+
+- Recommendation targeted Vitest: PASS by batched validation, including isolated serial validation for timeout-heavy suites.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+- Staged-diff guard: PASS.
+
+Generated entries remaining: 238 after the Recommendation generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 275.
+- Generated Phase Expansion: 238.
+- Source Changes: 24.
+- Phase 8M Stabilization: 3.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining blockers:
+
+- Remaining generated domains require independent review.
+- 24 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 3 Phase 8M stabilization leftovers remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
+
+Recommended next generated domain: Truth Ledger.
+
 ## Phase 8M.20 Runtime Generated Domain
 
 Runtime committed: this commit is intended to establish the seventh generated-domain baseline commit.
@@ -251,6 +288,34 @@ Remaining blockers:
 Certification state: FAIL.
 
 Recommended next generated domain: Recommendation.
+
+## Phase 8M.21 Recommendation Generated Domain
+
+Recommendation committed: this commit is intended to establish the eighth generated-domain baseline commit.
+
+Validation status:
+
+- Recommendation targeted Vitest: PASS by batched validation across all discovered Recommendation families.
+- Timeout-heavy Recommendation subset: PASS, 37 files and 273 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: expected to decrease from 326 after the Recommendation generated domain commit.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining blockers:
+
+- Remaining generated domains require independent review.
+- 24 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 8 Phase 8M stabilization leftovers remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
+
+Recommended next generated domain: Truth Ledger.
 
 ## Phase 8M.15 Autonomy Generated Domain
 
