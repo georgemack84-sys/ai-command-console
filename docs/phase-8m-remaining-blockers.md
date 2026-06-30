@@ -472,6 +472,39 @@ Certification state: FAIL.
 
 Recommended next repair phase: source-change reclassification and remaining residual artifact disposition.
 
+## Phase 8M.37 Source Change Reclassification & Integration
+
+Status: Remaining source changes reclassified, validated, and ready for source-only integration.
+
+Source files reviewed: 91 across 5 source service roots.
+
+Source files committed:
+
+- `services/autonomous-execution-reconstruction/`
+- `services/decision-graph/`
+- `services/escalation-intelligence/`
+- `services/mission-control/`
+- `services/strategic-readiness/`
+
+Source files deferred: 0 source-change entries.
+
+Validation:
+
+- Targeted source suites: PASS, 87 files and 1,611 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: 7 by post-commit classifier.
+
+Source blockers remaining: 0 by post-commit classifier.
+
+Test repair status: `src/tests/**` remains deferred as README-only scaffold.
+
+Certification state: FAIL.
+
+Recommended next repair bundle: residual generated artifact disposition.
+
 ## Phase 8M.31 Runtime Simulation Completion Follow-Up
 
 Status: Runtime Simulation Completion follow-up validated for commit.
