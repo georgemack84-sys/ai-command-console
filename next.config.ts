@@ -45,6 +45,12 @@ const nextConfig: NextConfig = {
       },
     ];
 
+    if (!dev) {
+      // Disable webpack's persistent filesystem cache for deterministic production
+      // builds in restricted environments where dependency snapshotting is noisy.
+      config.cache = false;
+    }
+
     if (dev) {
       config.watchOptions = {
         ...(config.watchOptions ?? {}),

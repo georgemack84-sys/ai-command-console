@@ -4,6 +4,9 @@
 :root {
   --background: #09111d;
   --foreground: #ecf2f8;
+  /* Keep font variables deterministic and local-only for sandbox-safe builds. */
+  --font-sora: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-space-grotesk: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 html[data-theme="light"] {
