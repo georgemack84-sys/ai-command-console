@@ -229,6 +229,43 @@ Certification state: FAIL.
 
 Recommended next generated domain: Replay.
 
+## Phase 8M.18 Governance Generated Domain
+
+Governance committed: this commit is intended to integrate Governance as the fifth generated-domain baseline.
+
+Validation summary:
+
+- Governance targeted Vitest: PASS by batched validation, 48 files and 896 tests covered.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Generated entries remaining: 434 after the Governance generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 479.
+- Generated Phase Expansion: 434.
+- Source Changes: 25.
+- Phase 8M Stabilization: 10.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Replay.
+
 ## Phase 8M.14 Mission Control Generated Domain Commit
 
 Mission Control committed: this commit is intended to integrate the Mission Control generated domain as the first generated-domain baseline.

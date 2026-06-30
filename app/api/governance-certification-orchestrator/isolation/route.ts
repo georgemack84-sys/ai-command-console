@@ -1,0 +1,4 @@
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { reportForRequest, requireGovernanceCertificationOrchestratorUser } from "../core";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET(request: Request) { try { await requireGovernanceCertificationOrchestratorUser(); return apiSuccess(reportForRequest(request).isolation_context); } catch (error) { return apiError(error, "Unable to retrieve governance certification isolation context."); } }

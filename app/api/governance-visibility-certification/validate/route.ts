@@ -1,0 +1,4 @@
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { requireGovernanceVisibilityCertificationUser, reportForRequest } from "../core";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET(request: Request) { try { await requireGovernanceVisibilityCertificationUser(); const report = reportForRequest(request); return apiSuccess({ certification_id: report.certification_id, validation_state: report.certification_state === "FAIL" ? "INVALID" : "VALID", certified: report.certification_state === "PASS", mandatory_tests_passed: report.mandatory_tests_passed, report_hash: report.report_hash, findings: report.outstanding_findings }); } catch (error) { return apiError(error, "Unable to validate governance visibility certification."); } }

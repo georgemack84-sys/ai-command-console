@@ -283,6 +283,43 @@ Certification state: FAIL.
 
 Recommended next generated domain: Replay.
 
+## Phase 8M.18 Governance Generated Domain
+
+Governance committed: this commit is intended to integrate only the Governance generated domain.
+
+Validation status:
+
+- Governance targeted Vitest: PASS by batched validation, 48 files and 896 tests covered.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: 434 after the Governance generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 479.
+- Generated Phase Expansion: 434.
+- Source Changes: 25.
+- Phase 8M Stabilization: 10.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Certification remains blocked until all generated domains are reviewed, source changes are reconciled, documentation is reconciled, full unit suite passes, production build passes, and release validation succeeds.
+
 Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
 
 PASS remains blocked until Bundle B and Bundle C are reviewed, generated phase expansion is governed, production build passes, complete unit suite passes, and release validation succeeds.

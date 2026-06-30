@@ -1,0 +1,14 @@
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { requirePolicyIntelligenceCertificationUser, runPolicyIntelligenceCertificationRequest } from "../core";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(request: Request) {
+  try {
+    await requirePolicyIntelligenceCertificationUser();
+    return apiSuccess(await runPolicyIntelligenceCertificationRequest(request));
+  } catch (error) {
+    return apiError(error, "Unable to run Policy Intelligence certification.");
+  }
+}
