@@ -232,3 +232,34 @@ Remaining bundles:
 Certification state: FAIL.
 
 Next domain: Autonomy or Delegation.
+
+## Phase 8M.15 Autonomy Generated Domain
+
+Autonomy committed: this commit is intended to integrate Autonomy as the second generated-domain baseline.
+
+Validation summary:
+
+- Autonomy targeted Vitest: PASS, 15 files and 349 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: 751 after the Autonomy generated domain commit.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining domains:
+
+- Governance
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Recovery
+- Planning
+- Delegation
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Next recommended domain: Delegation.
