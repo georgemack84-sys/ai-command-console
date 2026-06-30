@@ -100,3 +100,32 @@ Source blockers remaining: 11.
 Certification state: FAIL.
 
 Next repair bundle: Phase 8M.33 Predictive Intelligence Historical Bundle.
+
+## Phase 8M.33 Predictive Intelligence Historical Bundle
+
+Status: Predictive Intelligence Historical bundle validated and ready for commit.
+
+Files committed:
+
+- `app/api/historical-intelligence-engine/`
+- `services/historical-intelligence-engine/`
+- `tests/unit/historical-intelligence-engine/`
+- `types/historical-intelligence-engine.ts`
+- `docs/phase-8alt-3-2-historical-intelligence-engine.md`
+- `docs/phase-8m-predictive-historical-bundle.md`
+
+Validation:
+
+- Stage guard: PASS.
+- Targeted historical intelligence Vitest: PASS, 1 file and 26 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL due unresolved dirty worktree blockers.
+
+Residual generated artifacts remaining: expected 29 after commit.
+
+Source blockers remaining: 11.
+
+Certification state: FAIL.
+
+Next repair bundle: Phase 8M.34 Predictive Intelligence Risk Forecasting Bundle.
