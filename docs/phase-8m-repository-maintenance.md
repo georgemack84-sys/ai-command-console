@@ -1,6 +1,6 @@
 # Phase 8M Repository Maintenance
 
-Status: post-Phase 8M.19 health inspection complete
+Status: post-Phase 8M.20 health inspection complete
 
 Git previously reported many unreachable loose objects during auto-packing. This is repository housekeeping evidence, not a Phase 8M validation failure.
 
@@ -143,7 +143,38 @@ Comparison with Phase 8M.18:
 
 ## Maintenance Recommendation
 
-Routine maintenance remains appropriate but not urgent. Git reports many unreachable loose objects during auto-packing, while `git count-objects -vH` reports no garbage and no prune-packable objects after Phase 8M.19.
+## Phase 8M.20 Inspection
+
+Command:
+
+```text
+git count-objects -vH
+```
+
+Result:
+
+```text
+count: 8210
+size: 30.15 MiB
+in-pack: 13846
+packs: 15
+size-pack: 8.00 MiB
+prune-packable: 0
+garbage: 0
+size-garbage: 0 bytes
+```
+
+Comparison with Phase 8M.19:
+
+- Loose objects increased by 45.
+- Loose size increased by about 0.16 MiB.
+- Pack count increased from 14 to 15.
+- Garbage remains 0 bytes.
+- Prune-packable remains 0.
+
+## Maintenance Recommendation
+
+Routine maintenance remains appropriate but not urgent. Git reports many unreachable loose objects during auto-packing, while `git count-objects -vH` reports no garbage and no prune-packable objects after Phase 8M.20.
 
 Recommended next maintenance step, only with explicit approval:
 

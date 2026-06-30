@@ -1,0 +1,23 @@
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { evaluateRequest, publishRequest, requireAssuranceStateUser } from "../core";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    await requireAssuranceStateUser();
+    return apiSuccess(await publishRequest());
+  } catch (error) {
+    return apiError(error, "Unable to publish assurance state.");
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    await requireAssuranceStateUser();
+    return apiSuccess(await evaluateRequest(request));
+  } catch (error) {
+    return apiError(error, "Unable to evaluate assurance state.");
+  }
+}

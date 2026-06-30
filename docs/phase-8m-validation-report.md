@@ -130,6 +130,41 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.20 Runtime Generated Domain
+
+Runtime committed: this commit is intended to integrate Runtime as the seventh generated-domain baseline.
+
+Validation summary:
+
+- Runtime targeted Vitest: PASS, 14 files and 338 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Generated entries remaining: 326 after the Runtime generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 368.
+- Generated Phase Expansion: 326.
+- Source Changes: 24.
+- Phase 8M Stabilization: 8.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Recommendation
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Recommendation.
+
 ## Phase 8M.15 Autonomy Generated Domain
 
 Autonomy committed: this commit is intended to integrate Autonomy as the second generated-domain baseline.

@@ -154,6 +154,41 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+## Phase 8M.20 Runtime Generated Domain
+
+Runtime committed: this commit is intended to integrate only the Runtime generated domain.
+
+Validation status:
+
+- Runtime targeted Vitest: PASS, 14 files and 338 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: 326 after the Runtime generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 368.
+- Generated Phase Expansion: 326.
+- Source Changes: 24.
+- Phase 8M Stabilization: 8.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Recommendation
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Certification remains blocked until all generated domains are reviewed, source changes are reconciled, documentation is reconciled, full unit suite passes, production build passes, and release validation succeeds.
+
 ## Phase 8M.14 Mission Control Generated Domain Commit
 
 Mission Control committed: this commit is intended to integrate only the Mission Control generated domain.
