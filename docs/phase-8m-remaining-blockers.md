@@ -315,6 +315,42 @@ Certification state: FAIL.
 
 Recommended next generated domain: Replay.
 
+## Phase 8M.19 Replay Generated Domain
+
+Replay committed: this commit is intended to establish the sixth generated-domain baseline commit.
+
+Validation status:
+
+- Replay targeted Vitest: PASS, 6 files and 143 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: 395 after the Replay generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 439.
+- Generated Phase Expansion: 395.
+- Source Changes: 25.
+- Phase 8M Stabilization: 9.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining blockers:
+
+- Remaining generated domains require independent review.
+- 25 tracked source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 9 Phase 8M stabilization leftovers remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
+
+Recommended next generated domain: Runtime.
+
 ## Phase 8M.18 Governance Generated Domain
 
 Governance committed: this commit is intended to establish the fifth generated-domain baseline commit.
