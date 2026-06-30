@@ -367,6 +367,33 @@ Certification state: FAIL.
 
 Next repair bundle: residual generated artifact disposition.
 
+## Phase 8M.38 Residual Artifact Resolution
+
+Residual artifacts resolved: 7 of 7 staged for commit.
+
+Deferred test repair disposition: `src/tests/**` committed as README-only test architecture scaffold; no executable tests invented.
+
+Validation summary:
+
+- Stage guard: PASS, 76 staged files and 0 unexpected paths.
+- Targeted residual generated suites: PASS, 39 files and 245 tests.
+- Test repair targeted validation: SKIPPED - README scaffold only.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Repository status: clean by post-commit classifier; dirty worktree total is 0.
+
+Remaining certification blockers:
+
+- Complete unit suite not yet executed successfully.
+- Production build still blocked by known `EMFILE` issue.
+- Release validation incomplete.
+
+Next phase: final repository validation and reliability certification.
+
+Certification note: Phase 8M content reconciliation reached classifier `CONDITIONAL_PASS`; final release certification remains not PASS until the remaining validation gates complete.
+
 ## Phase 8M.31 Runtime Simulation Completion Follow-Up
 
 Status: Runtime Simulation Completion follow-up validated for commit.
