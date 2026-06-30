@@ -1,0 +1,159 @@
+# Phase 8M Certification Assessment
+
+Certification state: FAIL
+
+Assessment date: Phase 8M.12A Bundle A worktree repair
+
+## Summary
+
+Bundle A is now a small, independently reviewable stabilization candidate. It contains only the Phase 8M gate/reporting work, validation script wiring, targeted resilience fixture repair, targeted lint cleanup, and Phase 8M repair documentation.
+
+Mission Control is not yet certifiable for release because the broader worktree remains unresolved and full release validation has not been proven.
+
+## Phase 8M.12A Bundle A Result
+
+Bundle Status: commit-ready candidate, not staged.
+
+Files Included:
+
+- `package.json`
+- `scripts/phase-8m-quality-gate.cjs`
+- `docs/phase-8m-*.md`
+- `tests/unit/recommendation-resilience/resilienceAnalysisEngine.test.ts`
+- `components/truth-ledger-completion/TruthLedgerCompletionGateShell.tsx`
+
+Files Excluded:
+
+- 850 generated phase expansion entries
+- 26 source changes
+- 9 non-Phase-8M documentation entries
+- experimental files
+- archive candidates
+
+Validation Results:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Targeted resilience/trust tests: PASS, 3 files and 23 tests.
+- Phase 8M classifier: PASS as script.
+
+Remaining Dirty Entries:
+
+- Total: 907
+- Modified: 8
+- Untracked: 899
+- Generated Phase Expansion: 850
+- Source Changes: 26
+- Phase 8M Stabilization: 21
+- Documentation: 9
+- Test Repairs: 1
+
+Certification State: FAIL.
+
+Recommended Next Bundle: Bundle B generated phase expansion, split by domain.
+
+## Evidence
+
+PASS:
+
+- TypeScript passes.
+- Lint passes with 22 warnings.
+- Recommendation resilience analysis and trust validation pass: 3 files, 23 tests.
+- Phase 8M quality gate runs.
+- Dirty worktree classifier runs and assigns categories.
+- Bundle A, exclusion, Bundle B planning, Bundle C planning, and documentation bundle plans exist.
+
+WARN:
+
+- Lint warnings remain.
+- Typecheck and lint are slower than ideal.
+- Generated/domain coverage needs owner review.
+
+UNKNOWN:
+
+- Full unit suite.
+- Integration suite.
+- E2E suite.
+- Production build.
+- Release pipeline.
+- CI reproducibility.
+- Deployment artifact reproducibility.
+
+FAIL:
+
+- Dirty worktree unresolved.
+- Generated phase expansion ungoverned.
+- Source changes unreviewed.
+- Repository organization incomplete.
+- Generated module ownership incomplete.
+
+## PASS Assessment
+
+PASS is not available because:
+
+- Bundle A has not been committed or otherwise isolated.
+- Repository is not clean.
+- Full unit suite is not proven.
+- Production build is not proven.
+- Generated modules are not governed.
+- Bundle B and Bundle C are not reviewed.
+- CI and release reproducibility are not proven.
+
+## CONDITIONAL_PASS Assessment
+
+CONDITIONAL_PASS is not available for the repository as a whole.
+
+Bundle A itself is eligible for review as a commit-ready candidate because required scoped validation passed and excluded work is documented. Repository-level CONDITIONAL_PASS can be reconsidered only after Bundle A is committed or isolated and the remaining dirty work is governed by successor bundles.
+
+Production deployment remains blocked until PASS.
+
+## FAIL Assessment
+
+Current state is FAIL because:
+
+- Dirty worktree remains unresolved.
+- Generated work remains ungoverned.
+- Source changes remain unreviewed.
+- Repository cannot yet be reviewed as a clean release candidate.
+- Full release validation is incomplete.
+
+## Path To PASS
+
+1. Commit or otherwise isolate Bundle A.
+2. Reconcile generated phase expansion by governed domain in Bundle B.
+3. Reconcile source changes in Bundle C.
+4. Complete generated-code policy and module ownership index.
+5. Run and fix full unit suite.
+6. Run and fix production build.
+7. Run release and full verification.
+8. Certify replay, governance, constitution, authority, operator visibility, tenant isolation, and advisory-only behavior.
+
+## Phase 8M.12B Baseline Commit
+
+Bundle A committed: this baseline commit is intended to isolate Phase 8M stabilization evidence from generated expansion and unrelated source work.
+
+Validation status:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Targeted resilience/trust tests: PASS, 3 files and 23 tests.
+- Phase 8M classifier: PASS as script.
+
+Remaining dirty worktree:
+
+- Generated phase expansion remains outside Bundle A.
+- Source changes remain outside Bundle A.
+- Non-Phase-8M documentation remains outside Bundle A.
+- Experimental files and archive candidates remain outside Bundle A.
+
+Bundles remaining:
+
+- Bundle B generated phase expansion reconciliation.
+- Bundle C source change reconciliation.
+- Documentation bundle review.
+
+Certification state: FAIL.
+
+Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
+
+PASS remains blocked until Bundle B and Bundle C are reviewed, generated phase expansion is governed, production build passes, complete unit suite passes, and release validation succeeds.
