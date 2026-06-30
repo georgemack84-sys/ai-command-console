@@ -188,3 +188,60 @@ Bundles remaining:
 Certification state: FAIL.
 
 Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
+
+## Phase 8M.13 Generated Expansion Reconciliation
+
+Generated entries reviewed: 25 Mission Control generated entries.
+
+Generated entries remaining: 825 generated entries remain after the first domain review.
+
+Domain selected first: Mission Control.
+
+Validation:
+
+- Mission Control targeted Vitest: PASS, 5 files and 104 tests.
+- `npm run typecheck`: PASS.
+- `node scripts/phase-8m-quality-gate.cjs --classify`: PASS as script.
+
+Commit readiness: review-ready, not staged.
+
+Remaining blockers:
+
+- 825 generated entries require domain review.
+- 26 source changes remain excluded for Bundle C.
+- 9 non-generated documentation entries remain excluded.
+- 1 test repair remains excluded.
+- 4 Phase 8M leftovers remain excluded.
+- Full unit suite and production build remain unknown.
+
+Next domain: Autonomy or Delegation.
+
+## Phase 8M.14 Mission Control Generated Domain Commit
+
+Mission Control committed: this commit is intended to establish the first generated-domain baseline commit.
+
+Validation:
+
+- Mission Control targeted Vitest: PASS, 64 files and 1413 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Remaining generated entries: expected to decrease from 850 to 825 after the Mission Control generated domain commit.
+
+Remaining bundles:
+
+- Governance
+- Autonomy
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Recovery
+- Planning
+- Delegation
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Next domain: Autonomy or Delegation.

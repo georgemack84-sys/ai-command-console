@@ -104,3 +104,58 @@ Bundles remaining:
 Certification state: FAIL.
 
 Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
+
+## Phase 8M.13 Generated Expansion Reconciliation
+
+Generated entries reviewed: 25 Mission Control generated entries.
+
+Generated entries remaining: 825 generated entries remain for later domain review.
+
+Domain selected first: Mission Control.
+
+Validation:
+
+- `npx vitest run --config vitest.config.mjs tests/unit/mission-control-graph-visualization-engine tests/unit/mission-control-operational-dashboard tests/unit/mission-control-replay-investigation-workspace tests/unit/mission-control-visibility-certification-gate tests/unit/mission-control-visibility-contract --reporter dot`: PASS, 5 files and 104 tests.
+- `npm run typecheck`: PASS.
+- `node scripts/phase-8m-quality-gate.cjs --classify`: PASS as script.
+
+Commit readiness: review-ready, not staged.
+
+Remaining blockers:
+
+- No generated domain has been committed after Bundle A.
+- Full unit suite remains unknown.
+- Production build remains unknown.
+- Certification remains FAIL.
+
+Next domain: Autonomy or Delegation.
+
+## Phase 8M.14 Mission Control Generated Domain Commit
+
+Mission Control committed: this commit is intended to integrate the Mission Control generated domain as the first generated-domain baseline.
+
+Validation:
+
+- Mission Control targeted Vitest: PASS, 64 files and 1413 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Remaining generated entries: expected to decrease from 850 to 825 after the Mission Control generated domain commit.
+
+Remaining bundles:
+
+- Governance
+- Autonomy
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Recovery
+- Planning
+- Delegation
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Next domain: Autonomy or Delegation.

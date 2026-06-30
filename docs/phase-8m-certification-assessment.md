@@ -154,6 +154,64 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+## Phase 8M.14 Mission Control Generated Domain Commit
+
+Mission Control committed: this commit is intended to integrate only the Mission Control generated domain.
+
+Validation:
+
+- Mission Control targeted Vitest: PASS, 64 files and 1413 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Remaining generated entries: expected to decrease from 850 to 825 after the Mission Control generated domain commit.
+
+Remaining bundles:
+
+- Governance
+- Autonomy
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Recovery
+- Planning
+- Delegation
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Next domain: Autonomy or Delegation.
+
 Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
 
 PASS remains blocked until Bundle B and Bundle C are reviewed, generated phase expansion is governed, production build passes, complete unit suite passes, and release validation succeeds.
+
+## Phase 8M.13 Generated Expansion Reconciliation
+
+Generated entries reviewed: 25 Mission Control generated entries.
+
+Generated entries remaining: 825 generated entries remain uncommitted and require domain review.
+
+Domain selected first: Mission Control.
+
+Validation:
+
+- Mission Control targeted Vitest: PASS, 5 files and 104 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Commit readiness: Mission Control is review-ready but not staged.
+
+Remaining blockers:
+
+- Generated phase expansion is not fully governed.
+- Approved generated domains have not yet been committed separately.
+- Rejected domains have not been archived or removed with evidence.
+- Source changes remain unreviewed.
+- Full unit suite, production build, and release validation are not proven.
+
+Next domain: Autonomy or Delegation.
+
+Certification state: FAIL.
