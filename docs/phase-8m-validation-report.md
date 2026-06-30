@@ -165,6 +165,56 @@ Certification state: FAIL.
 
 Recommended next generated domain: Truth Ledger.
 
+## Phase 8M.22 Truth Ledger Generated Domain
+
+Truth Ledger status: validated before staging.
+
+Validation summary:
+
+- Truth Ledger targeted Vitest: PASS, 13 files and 331 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+- Maintenance inspection: PASS inspect-only, no garbage and no prune-packable objects.
+
+Generated entries before commit: 238.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains after this phase should include:
+
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain after Truth Ledger: Planning or Certification.
+
+### Phase 8M.22 Post-Commit Result
+
+Truth Ledger committed: `Phase 8M.22: Commit Truth Ledger generated domain`.
+
+Post-commit classifier:
+
+- Total dirty entries: 190.
+- Generated Phase Expansion: 155.
+- Source Changes: 23.
+- Phase 8M Stabilization: 2.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Planning or Certification.
+
 ## Phase 8M.20 Runtime Generated Domain
 
 Runtime committed: this commit is intended to integrate Runtime as the seventh generated-domain baseline.

@@ -187,6 +187,32 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+### Phase 8M.22 Post-Commit Result
+
+Truth Ledger committed: `Phase 8M.22: Commit Truth Ledger generated domain`.
+
+Post-commit classifier:
+
+- Total dirty entries: 190.
+- Generated Phase Expansion: 155.
+- Source Changes: 23.
+- Phase 8M Stabilization: 2.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Remaining blockers:
+
+- Planning, Certification, and Shared Contracts generated domains require independent review.
+- 23 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 2 Phase 8M stabilization leftovers remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
+
+Recommended next generated domain: Planning or Certification.
+
 Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
 
 ## Phase 8M.13 Generated Expansion Reconciliation
@@ -252,6 +278,31 @@ Remaining blockers:
 Certification state: FAIL.
 
 Recommended next generated domain: Truth Ledger.
+
+## Phase 8M.22 Truth Ledger Generated Domain
+
+Truth Ledger status: validated before staging.
+
+Validation status:
+
+- Truth Ledger targeted Vitest: PASS, 13 files and 331 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+- Maintenance inspection: PASS inspect-only.
+
+Generated entries before commit: 238.
+
+Remaining blockers:
+
+- Truth Ledger staged-diff guard and commit are still pending.
+- Planning, Certification, and Shared Contracts generated domains require independent review.
+- 24 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 3 Phase 8M stabilization leftovers remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
 
 ## Phase 8M.20 Runtime Generated Domain
 

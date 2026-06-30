@@ -189,6 +189,40 @@ Certification state: FAIL.
 
 Certification remains blocked until all generated domains are reviewed, source changes are reconciled, documentation is reconciled, full unit suite passes, production build passes, and release validation succeeds.
 
+## Phase 8M.22 Truth Ledger Generated Domain
+
+Truth Ledger status: validated before staging.
+
+Validation status:
+
+- Truth Ledger targeted Vitest: PASS, 13 files and 331 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+- Maintenance inspection: PASS inspect-only.
+
+Generated entries before commit: 238.
+
+Certification state: FAIL.
+
+Certification remains blocked until all generated domains are reviewed, source changes are reconciled, unrelated documentation is reconciled, Phase 8M leftovers are resolved, the test repair is reviewed, full unit suite passes, production build passes, and release validation succeeds.
+
+### Phase 8M.22 Post-Commit Result
+
+Truth Ledger committed: `Phase 8M.22: Commit Truth Ledger generated domain`.
+
+Post-commit classifier:
+
+- Total dirty entries: 190.
+- Generated Phase Expansion: 155.
+- Source Changes: 23.
+- Phase 8M Stabilization: 2.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Certification state: FAIL.
+
+Certification remains blocked until Planning, Certification, and Shared Contracts are reviewed, source changes are reconciled, unrelated documentation is reconciled, Phase 8M leftovers are resolved, the test repair is reviewed, full unit suite passes, production build passes, and release validation succeeds.
+
 ## Phase 8M.20 Runtime Generated Domain
 
 Runtime committed: this commit is intended to integrate only the Runtime generated domain.
