@@ -223,6 +223,40 @@ Certification state: FAIL.
 
 Certification remains blocked until Planning, Certification, and Shared Contracts are reviewed, source changes are reconciled, unrelated documentation is reconciled, Phase 8M leftovers are resolved, the test repair is reviewed, full unit suite passes, production build passes, and release validation succeeds.
 
+## Phase 8M.23 Planning Generated Domain
+
+Planning status: validated before staging.
+
+Validation status:
+
+- Requested `tests/unit/planning-*` Vitest: SKIPPED, no matching dirty Planning suites discovered.
+- Discovered Planning/orchestration Vitest: PASS, 13 files and 312 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries before commit: 155.
+
+Certification state: FAIL.
+
+Certification remains blocked until Certification and Shared Contracts are reviewed, source changes are reconciled, unrelated documentation is reconciled, Phase 8M leftovers are resolved, the test repair is reviewed, full unit suite passes, production build passes, and release validation succeeds.
+
+### Phase 8M.23 Post-Commit Result
+
+Planning committed: `Phase 8M.23: Commit Planning generated domain`.
+
+Post-commit classifier:
+
+- Total dirty entries: 129.
+- Generated Phase Expansion: 101.
+- Source Changes: 16.
+- Phase 8M Stabilization: 2.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Certification state: FAIL.
+
+Certification remains blocked until Certification and Shared Contracts are reviewed, source changes are reconciled, unrelated documentation is reconciled, Phase 8M leftovers are resolved, the test repair is reviewed, full unit suite passes, production build passes, and release validation succeeds.
+
 ## Phase 8M.20 Runtime Generated Domain
 
 Runtime committed: this commit is intended to integrate only the Runtime generated domain.

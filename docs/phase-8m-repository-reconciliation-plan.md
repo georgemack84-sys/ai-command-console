@@ -417,6 +417,54 @@ Certification state: FAIL.
 
 Recommended next generated domain: Planning or Certification.
 
+## Phase 8M.23 Planning Generated Domain
+
+Planning status: validated before staging.
+
+Validation summary:
+
+- Requested `tests/unit/planning-*` Vitest: SKIPPED, no matching dirty Planning suites discovered.
+- Discovered Planning/orchestration Vitest: PASS, 13 files and 312 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries before commit: 155.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains after this phase should include:
+
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain after Planning: Certification.
+
+### Phase 8M.23 Post-Commit Result
+
+Planning committed: `Phase 8M.23: Commit Planning generated domain`.
+
+Post-commit classifier:
+
+- Total dirty entries: 129.
+- Generated Phase Expansion: 101.
+- Source Changes: 16.
+- Phase 8M Stabilization: 2.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Certification.
+
 ## Phase 8M.20 Runtime Generated Domain
 
 Runtime committed: this commit is intended to integrate Runtime as the seventh generated-domain baseline.

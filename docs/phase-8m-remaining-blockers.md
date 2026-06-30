@@ -187,6 +187,32 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+### Phase 8M.23 Post-Commit Result
+
+Planning committed: `Phase 8M.23: Commit Planning generated domain`.
+
+Post-commit classifier:
+
+- Total dirty entries: 129.
+- Generated Phase Expansion: 101.
+- Source Changes: 16.
+- Phase 8M Stabilization: 2.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Remaining blockers:
+
+- Certification and Shared Contracts generated domains require independent review.
+- 16 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 2 Phase 8M stabilization leftovers remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
+
+Recommended next generated domain: Certification.
+
 ### Phase 8M.22 Post-Commit Result
 
 Truth Ledger committed: `Phase 8M.22: Commit Truth Ledger generated domain`.
@@ -212,6 +238,31 @@ Remaining blockers:
 Certification state: FAIL.
 
 Recommended next generated domain: Planning or Certification.
+
+## Phase 8M.23 Planning Generated Domain
+
+Planning status: validated before staging.
+
+Validation status:
+
+- Requested `tests/unit/planning-*` Vitest: SKIPPED, no matching dirty Planning suites discovered.
+- Discovered Planning/orchestration Vitest: PASS, 13 files and 312 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries before commit: 155.
+
+Remaining blockers:
+
+- Planning staged-diff guard and commit are still pending.
+- Certification and Shared Contracts generated domains require independent review.
+- 23 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 2 Phase 8M stabilization leftovers remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
 
 Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
 
