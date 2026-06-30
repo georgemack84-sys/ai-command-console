@@ -245,6 +245,44 @@ Certification state: FAIL.
 
 Recommended next domain: Recovery.
 
+## Phase 8M.17 Recovery Generated Domain
+
+Recovery committed: this commit is intended to integrate only the Recovery generated domain.
+
+Validation summary:
+
+- Recovery targeted Vitest: PASS, 13 files and 286 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: 662 after the Recovery generated domain commit.
+
+Post-commit classifier:
+
+- Total dirty entries: 708.
+- Generated Phase Expansion: 662.
+- Source Changes: 25.
+- Phase 8M Stabilization: 11.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Governance
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Replay.
+
 Next repair phase: Phase 8M.13 Generated Phase Expansion Reconciliation.
 
 PASS remains blocked until Bundle B and Bundle C are reviewed, generated phase expansion is governed, production build passes, complete unit suite passes, and release validation succeeds.
