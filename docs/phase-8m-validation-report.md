@@ -330,6 +330,30 @@ Certification state: FAIL.
 
 Next repair bundle: Recommendation constraint export follow-up or the next smallest independently reviewable residual generated bundle.
 
+## Phase 8M.32 Recommendation Constraint Export Follow-Up
+
+Status: Recommendation Constraint export follow-up validated and ready for commit.
+
+Files committed:
+
+- `services/recommendation-constraint/index.ts`
+
+Validation:
+
+- Stage guard: PASS, staged implementation paths were limited to `services/recommendation-constraint/index.ts`.
+- Targeted recommendation-constraint Vitest: PASS by isolated dedicated-suite validation, 7 files and 53 tests; the directory-level run timed out after producing passing progress dots.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: expected 34 after commit.
+
+Source blockers remaining: 11.
+
+Certification state: FAIL.
+
+Next repair bundle: Phase 8M.33 Predictive Intelligence Historical Bundle.
+
 ## Phase 8M.26 Residual Generated Resolution
 
 Residual generated artifacts: 40.

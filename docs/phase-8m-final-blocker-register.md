@@ -58,3 +58,27 @@ Source blockers remaining: 11.
 Certification state: FAIL. Remaining certification blockers include residual generated artifacts, blocked source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
 
 Next repair bundle: Recommendation constraint export follow-up or the smallest independently owned residual generated bundle with targeted validation.
+
+## Phase 8M.32 Recommendation Constraint Export Follow-Up
+
+Status: Recommendation Constraint export follow-up validated and ready for commit.
+
+Files committed:
+
+- `services/recommendation-constraint/index.ts`
+
+Validation:
+
+- Stage guard: PASS, only the recommendation constraint barrel and required Phase 8M evidence reports were staged.
+- Targeted recommendation-constraint Vitest: PASS by isolated dedicated-suite validation, 7 files and 53 tests; the directory-level run timed out after producing passing progress dots.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: expected 34 after the Phase 8M.32 commit.
+
+Source blockers remaining: 11.
+
+Certification state: FAIL. Remaining certification blockers include residual generated artifacts, blocked source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
+
+Next repair bundle: Phase 8M.33 Predictive Intelligence Historical Bundle.
