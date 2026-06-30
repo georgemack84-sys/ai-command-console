@@ -140,3 +140,37 @@ Source blockers remaining: 11.
 Certification state: FAIL. Remaining certification blockers include residual generated artifacts, blocked source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
 
 Next repair bundle: Phase 8M.35 Governance Intelligence / Risk Bundle.
+
+## Phase 8M.35 Governance Intelligence / Risk Bundle
+
+Status: Governance Intelligence / Risk bundle validated and ready for commit.
+
+Files committed:
+
+- `app/api/decision-influence-analysis/`
+- `app/api/violation-patterns/`
+- `services/decision-influence-analysis/`
+- `services/violation-patterns/`
+- `tests/unit/decision-influence-analysis/`
+- `tests/unit/violation-patterns/`
+- `types/decision-influence-analysis.ts`
+- `types/violation-patterns.ts`
+- `docs/phase-7g-3-decision-influence-analysis.md`
+- `docs/phase-7c-2-violation-pattern-detection.md`
+- `docs/phase-8m-governance-intelligence-risk-bundle.md`
+
+Validation:
+
+- Stage guard: PASS, only governance intelligence/risk files and required Phase 8M evidence reports were staged.
+- Targeted governance intelligence/risk Vitest: PASS, 2 files and 25 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: expected 16 after the Phase 8M.35 commit.
+
+Source blockers remaining: expected 9 after the Phase 8M.35 commit.
+
+Certification state: FAIL. Remaining certification blockers include residual generated artifacts, source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
+
+Next repair bundle: Phase 8M.36 EdgeBook Foundation Bundle.

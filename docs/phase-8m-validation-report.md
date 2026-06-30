@@ -412,6 +412,40 @@ Certification state: FAIL.
 
 Next repair bundle: Phase 8M.35 Governance Intelligence / Risk Bundle.
 
+## Phase 8M.35 Governance Intelligence / Risk Bundle
+
+Status: Governance Intelligence / Risk bundle validated and ready for commit.
+
+Files committed:
+
+- `app/api/decision-influence-analysis/`
+- `app/api/violation-patterns/`
+- `services/decision-influence-analysis/`
+- `services/violation-patterns/`
+- `tests/unit/decision-influence-analysis/`
+- `tests/unit/violation-patterns/`
+- `types/decision-influence-analysis.ts`
+- `types/violation-patterns.ts`
+- `docs/phase-7g-3-decision-influence-analysis.md`
+- `docs/phase-7c-2-violation-pattern-detection.md`
+- `docs/phase-8m-governance-intelligence-risk-bundle.md`
+
+Validation:
+
+- Stage guard: PASS, staged implementation paths were limited to governance intelligence/risk files.
+- Targeted governance intelligence/risk Vitest: PASS, 2 files and 25 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: expected 16 after commit.
+
+Source blockers remaining: expected 9 after commit.
+
+Certification state: FAIL.
+
+Next repair bundle: Phase 8M.36 EdgeBook Foundation Bundle.
+
 ## Phase 8M.26 Residual Generated Resolution
 
 Residual generated artifacts: 40.
