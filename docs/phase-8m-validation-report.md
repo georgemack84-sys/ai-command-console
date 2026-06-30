@@ -130,6 +130,54 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.24 Certification Generated Domain
+
+Certification prepared: this commit is intended to integrate only the Certification generated domain while preserving Shared Contracts as a separate boundary.
+
+Validation summary:
+
+- Requested Certification wildcard Vitest: SKIPPED, no `tests/unit/certification-*` suites discovered.
+- Discovered Certification validation Vitest: PASS, 9 files and 152 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Generated entries before commit: 101 generated entries remain in the dirty worktree.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining generated domains:
+
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next generated domain: Shared Contracts.
+
+## Phase 8M.24 Post-Commit Validation
+
+Certification committed: `Phase 8M.24: Commit Certification generated domain`.
+
+Post-commit validation:
+
+- Staged diff: clean.
+- Phase 8M classifier: PASS as script.
+- Certification state: FAIL, blocked by unresolved dirty worktree.
+
+Post-commit classifier:
+
+- Total dirty entries: 80.
+- Generated Phase Expansion: 55.
+- Source Changes: 14.
+- Phase 8M Stabilization: 1.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Remaining generated domain:
+
+- Shared Contracts.
+
+Next phase: Phase 8M.25 Shared Contracts Generated Domain Integration.
+
 ## Phase 8M.21 Recommendation Generated Domain
 
 Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.

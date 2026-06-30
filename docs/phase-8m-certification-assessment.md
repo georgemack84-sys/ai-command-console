@@ -154,6 +154,44 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+## Phase 8M.24 Certification Generated Domain
+
+Certification prepared: this commit is intended to integrate only the Certification generated domain.
+
+Validation status:
+
+- Requested Certification wildcard Vitest: SKIPPED, no matching suites discovered.
+- Discovered Certification validation Vitest: PASS, 9 files and 152 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Shared Contracts status: held back as an independent generated-domain boundary.
+
+Certification state: FAIL.
+
+Certification remains blocked until Shared Contracts are reconciled, source changes are reviewed, documentation entries are reconciled, Phase 8M leftovers are resolved, the test repair is resolved, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.24 Post-Commit Certification Assessment
+
+Certification committed: `Phase 8M.24: Commit Certification generated domain`.
+
+Certification state: FAIL.
+
+Failure reason:
+
+- `DIRTY_WORKTREE_UNRESOLVED`.
+
+Post-commit classifier:
+
+- Total dirty entries: 80.
+- Generated Phase Expansion: 55.
+- Source Changes: 14.
+- Phase 8M Stabilization: 1.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Certification remains blocked until Shared Contracts generated domain is reconciled, remaining source changes are reviewed, documentation entries are reconciled, Phase 8M leftover is resolved, test repair is resolved, full unit suite passes, production build passes, and release validation succeeds.
+
 ## Phase 8M.21 Recommendation Generated Domain
 
 Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.
