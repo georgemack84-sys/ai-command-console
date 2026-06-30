@@ -308,6 +308,28 @@ Remaining blocked source changes: 11.
 
 Certification status: FAIL.
 
+## Phase 8M.30 Final Repository Validation
+
+Final repository state: not certified.
+
+Certification decision: FAIL.
+
+Next repair sequence:
+
+1. Resolve residual generated artifacts.
+2. Resolve blocked source changes.
+3. Resolve deferred test repair.
+4. Fix full unit suite failures/timeouts.
+5. Fix production build `EMFILE` failure.
+6. Re-run release validation.
+
+Final certification package:
+
+- `docs/phase-8m-final-validation-report.md`
+- `docs/phase-8m-final-certification-report.md`
+- `docs/phase-8m-release-readiness-report.md`
+- `docs/phase-8m-final-blocker-register.md`
+
 Next repair phase: residual generated artifact implementation or blocked source-change follow-up, beginning with the smallest independently validated bundle.
 
 ## Phase 8M.29 Documentation & Stabilization Post-Commit

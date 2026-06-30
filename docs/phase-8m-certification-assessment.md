@@ -342,6 +342,31 @@ Certification status: FAIL.
 
 Certification remains blocked by residual generated artifacts, blocked source changes, deferred test repair, full unit suite, production build, and release validation.
 
+## Phase 8M.30 Final Repository Validation
+
+Final certification decision: FAIL.
+
+Evidence:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script, certification FAIL.
+- Full unit suite: FAIL / TIMEOUT.
+- Production build: FAIL with `EMFILE`.
+- Release validation: FAIL / TIMEOUT.
+- Repository maintenance: PASS.
+
+Remaining blockers:
+
+- 39 residual generated artifacts.
+- 11 blocked source changes.
+- 1 deferred test repair.
+- Full unit suite failures/timeouts.
+- Production build failure.
+- Incomplete release validation.
+
+Certification remains FAIL by rule because production-affecting blockers remain unresolved.
+
 ## Phase 8M.28 Bundle C Stage 2
 
 Runtime/service changes prepared for commit:

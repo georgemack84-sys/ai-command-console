@@ -199,6 +199,29 @@ Remaining blocked source changes: 11.
 
 Certification status: FAIL.
 
+## Phase 8M.30 Final Repository Validation
+
+Final validation status: FAIL.
+
+Validation summary:
+
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS with 22 warnings.
+- `node scripts/phase-8m-quality-gate.cjs --classify`: PASS as script; certification FAIL.
+- `npm run test:unit`: FAIL / TIMEOUT after reporting many failing suites.
+- `npm run build`: FAIL with `EMFILE: too many open files, open '.next/export-detail.json'`.
+- `npm run test:release`: FAIL / TIMEOUT before release validation completed.
+- `git count-objects -vH`: PASS, `garbage: 0`, `prune-packable: 0`.
+
+Certification decision: FAIL.
+
+See:
+
+- `docs/phase-8m-final-validation-report.md`
+- `docs/phase-8m-final-certification-report.md`
+- `docs/phase-8m-release-readiness-report.md`
+- `docs/phase-8m-final-blocker-register.md`
+
 ## Phase 8M.29 Documentation & Stabilization Post-Commit
 
 Documentation committed: `fb1bcd8 Phase 8M.29: Consolidate Phase 8M documentation and stabilization evidence`.

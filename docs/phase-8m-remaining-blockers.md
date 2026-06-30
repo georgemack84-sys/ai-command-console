@@ -204,6 +204,21 @@ Remaining blockers:
 
 Certification status: FAIL.
 
+## Phase 8M.30 Final Repository Validation
+
+Certification decision: FAIL.
+
+Remaining blockers:
+
+- 39 residual generated artifacts.
+- 11 blocked source changes.
+- 1 deferred test repair.
+- Full unit suite failures/timeouts.
+- Production build failure with `EMFILE`.
+- Release validation timeout.
+
+Every blocker has an owner and remediation plan in `docs/phase-8m-final-blocker-register.md`.
+
 ## Phase 8M.29 Documentation & Stabilization Post-Commit
 
 Documentation committed: `fb1bcd8 Phase 8M.29: Consolidate Phase 8M documentation and stabilization evidence`.

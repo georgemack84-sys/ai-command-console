@@ -1,0 +1,32 @@
+# Phase 8M.30 Final Blocker Register
+
+Status: active blockers remain
+
+## Summary
+
+- Total dirty entries: 51.
+- Residual generated artifacts: 39.
+- Blocked source changes: 11.
+- Deferred test repair: 1.
+- Validation blockers: full unit suite, production build, release validation.
+
+## Blockers
+
+| Blocker | Owner | Severity | Dependency | Remediation | Effort | Blocking status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Recommendation constraint export follow-up: `services/recommendation-constraint/index.ts` | Recommendation owner | High | Previously committed recommendation generated modules | Commit narrow recommendation export follow-up with targeted tests. | Small | Blocking certification |
+| Runtime simulation completion follow-up: `services/simulation-engine/index.ts`, `services/simulation-engine/types.ts`, `services/simulation-engine/intentSimulationCompletionCertificationGate.ts`, `tests/unit/simulation-engine/intentSimulationCompletionCertificationGate.test.ts` | Runtime simulation owner | High | Simulation completion certification gate and test | Commit as one runtime simulation bundle with targeted Vitest. | Medium | Blocking certification |
+| Predictive intelligence bundle: historical intelligence and risk forecasting APIs/services/types/tests/docs | Predictive intelligence owner | High | Historical intelligence must precede risk forecasting | Integrate historical intelligence first, then risk forecasting, or commit as validated combined bundle. | Large | Blocking certification |
+| Governance intelligence/risk bundle: decision influence and violation patterns APIs/services/types/tests/docs | Governance intelligence/risk owner | High | Cross-domain governance types and service tests | Integrate as governed residual generated bundle with targeted tests. | Large | Blocking certification |
+| EdgeBook foundation bundle: `src/core`, `src/edgebook`, `src/index.ts`, `src/modules`, `tests/unit/edgebook`, phase-1 docs | EdgeBook owner | High | EdgeBook tests and docs depend on source tree | Commit or archive EdgeBook foundation as a coherent bundle. | Large | Blocking certification |
+| Manual review generated/services: `services/signal-engine`, `services/decision-graph`, `services/escalation-intelligence`, `services/strategic-readiness`, related tests | Domain service owners | High | Missing or deferred owner disposition | Decide commit/archive/delete/regenerate, then validate. | Medium | Blocking certification |
+| Documentation-only generated leftovers: `docs/phase-6i-2-hash-chain-engine.md`, `docs/phase-6j-2-search-engine.md` | Truth Ledger owner | Medium | May be superseded by committed Truth Ledger work | Confirm supersession, archive, or commit with evidence. | Small | Blocking certification |
+| Blocked source changes: 11 source entries listed in Bundle C inventory | Source/platform owners | High | Generated-like service and EdgeBook dependencies | Reconcile by owner after generated residual disposition. | Large | Blocking certification |
+| Deferred test repair: `src/tests/` | EdgeBook/test owner | Medium | Deferred EdgeBook foundation bundle | Move with EdgeBook bundle or remove with evidence. | Small | Blocking certification |
+| Full unit suite failures/timeouts | QA owner | High | Multiple failing/timeout-heavy suites | Fix failing tests, isolate timeout-heavy suites, re-run full unit validation. | Large | Blocking certification |
+| Production build failure: `EMFILE` opening `.next/export-detail.json` | Build/platform owner | High | File descriptor exhaustion during Next build export detail write | Tune build worker/file descriptor usage or build environment; re-run production build. | Medium | Blocking certification |
+| Release validation timeout | Release engineering owner | High | Full release pipeline did not complete | Fix unit/build blockers and re-run `npm run test:release` or `npm run verify:release`. | Large | Blocking certification |
+
+## Certification Impact
+
+All listed blockers are certification-blocking. Certification remains FAIL until each blocker is resolved with evidence.
