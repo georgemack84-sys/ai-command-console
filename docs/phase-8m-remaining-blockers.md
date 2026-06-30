@@ -247,6 +247,36 @@ Certification state: FAIL.
 
 Next recommended domain: Delegation.
 
+## Phase 8M.16 Delegation Generated Domain
+
+Delegation committed: this commit is intended to establish the third generated-domain baseline commit.
+
+Validation summary:
+
+- Delegation targeted Vitest: PASS, 6 files and 150 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Generated entries remaining: expected to decrease from 751 to 721 after the Delegation generated domain commit.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining domains:
+
+- Governance
+- Replay
+- Runtime
+- Recommendation
+- Truth Ledger
+- Recovery
+- Planning
+- Certification
+- Shared Contracts
+
+Certification state: FAIL.
+
+Recommended next domain: Recovery.
+
 ## Phase 8M.14 Mission Control Generated Domain Commit
 
 Mission Control committed: this commit is intended to establish the first generated-domain baseline commit.
