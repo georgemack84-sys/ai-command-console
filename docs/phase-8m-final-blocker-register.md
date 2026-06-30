@@ -111,3 +111,32 @@ Source blockers remaining: 11.
 Certification state: FAIL. Remaining certification blockers include residual generated artifacts, blocked source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
 
 Next repair bundle: Phase 8M.34 Predictive Intelligence Risk Forecasting Bundle.
+
+## Phase 8M.34 Predictive Intelligence Risk Forecasting Bundle
+
+Status: Predictive Intelligence Risk Forecasting bundle validated and ready for commit.
+
+Files committed:
+
+- `app/api/risk-forecasting-engine/`
+- `services/risk-forecasting-engine/`
+- `tests/unit/risk-forecasting-engine/`
+- `types/risk-forecasting-engine.ts`
+- `docs/phase-8alt-3-3-risk-forecasting-engine.md`
+- `docs/phase-8m-predictive-risk-forecasting-bundle.md`
+
+Validation:
+
+- Stage guard: PASS, only predictive risk forecasting files and required Phase 8M evidence reports were staged.
+- Targeted predictive risk forecasting Vitest: PASS, 1 file and 29 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: expected 24 after the Phase 8M.34 commit.
+
+Source blockers remaining: 11.
+
+Certification state: FAIL. Remaining certification blockers include residual generated artifacts, blocked source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
+
+Next repair bundle: Phase 8M.35 Governance Intelligence / Risk Bundle.
