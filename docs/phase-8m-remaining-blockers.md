@@ -449,6 +449,34 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.31 Runtime Simulation Completion Follow-Up
+
+Status: Runtime Simulation Completion follow-up validated for commit.
+
+Files committed:
+
+- `services/simulation-engine/index.ts`
+- `services/simulation-engine/types.ts`
+- `services/simulation-engine/intentSimulationCompletionCertificationGate.ts`
+- `tests/unit/simulation-engine/intentSimulationCompletionCertificationGate.test.ts`
+- `docs/phase-8m-runtime-simulation-completion-follow-up.md`
+
+Validation:
+
+- Stage guard: PASS.
+- Targeted simulation completion Vitest: PASS, 1 file and 9 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: expected 35 after commit.
+
+Source blockers remaining: 11.
+
+Certification state: FAIL.
+
+Next repair bundle: Recommendation constraint export follow-up or the next smallest independently reviewable residual generated bundle.
+
 ## Phase 8M.24 Certification Generated Domain
 
 Certification prepared: this commit is intended to establish the Certification generated-domain baseline commit.

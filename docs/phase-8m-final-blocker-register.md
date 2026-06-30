@@ -30,3 +30,31 @@ Status: active blockers remain
 ## Certification Impact
 
 All listed blockers are certification-blocking. Certification remains FAIL until each blocker is resolved with evidence.
+
+## Phase 8M.31 Runtime Simulation Completion Follow-Up
+
+Status: Runtime Simulation Completion bundle validated and ready for commit.
+
+Files committed:
+
+- `services/simulation-engine/index.ts`
+- `services/simulation-engine/types.ts`
+- `services/simulation-engine/intentSimulationCompletionCertificationGate.ts`
+- `tests/unit/simulation-engine/intentSimulationCompletionCertificationGate.test.ts`
+- `docs/phase-8m-runtime-simulation-completion-follow-up.md`
+
+Validation:
+
+- Stage guard: PASS, only Runtime Simulation Completion bundle files and required phase evidence were staged.
+- Targeted simulation completion Vitest: PASS, 1 file and 9 tests.
+- TypeScript: PASS.
+- Lint: PASS with 22 warnings.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Residual generated artifacts remaining: expected 35 after the Phase 8M.31 commit.
+
+Source blockers remaining: 11.
+
+Certification state: FAIL. Remaining certification blockers include residual generated artifacts, blocked source changes, the deferred test repair, full unit suite failures/timeouts, production build `EMFILE`, and incomplete release validation.
+
+Next repair bundle: Recommendation constraint export follow-up or the smallest independently owned residual generated bundle with targeted validation.

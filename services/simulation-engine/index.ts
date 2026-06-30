@@ -10,3 +10,4 @@ export * from "./intentSimulationCertificationGate";
 export * from "./simulationCertificationReplayFramework";
 export * from "./simulationObservabilityLayer";
 export * from "./simulationBoundaryVerificationHarness";
+export * from "./intentSimulationCompletionCertificationGate";

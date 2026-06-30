@@ -1224,3 +1224,125 @@ export type SealedSimulationBoundaryVerificationRecord = Readonly<{
   persistenceAllowed: false;
   schedulingAllowed: false;
 }>;
+
+export interface SimulationCompletionCertificationRequest {
+  certificationId: string;
+  simulationId: string;
+  tenantId: string;
+  contractHash: string;
+  replayHash: string;
+  sandboxHash: string;
+  forecastHash: string;
+  analysisHash: string;
+  reconstructionHash: string;
+  resultHash: string;
+  verificationHash: string;
+  lineageReferences: string[];
+  governanceVersion: string;
+}
+
+export interface SimulationCompletionCertificationResult {
+  completionId: string;
+  simulationId: string;
+  completionStatus:
+    | "PASS"
+    | "CONDITIONAL_PASS"
+    | "FAIL";
+  replayDeterministic: boolean;
+  containmentOperational: boolean;
+  governanceAuthoritative: boolean;
+  tenantIsolationVerified: boolean;
+  lineageIntegrity: boolean;
+  observabilityOperational: boolean;
+  verificationOperational: boolean;
+  authorityBounded: boolean;
+  completionHash: string;
+  escalationReason?: string;
+}
+
+export type SimulationCompletionCertificationReasonCode =
+  | "ARTIFACTS_SEALED"
+  | "ARTIFACT_UNSEALED"
+  | "ARTIFACT_HASHES_MATCH"
+  | "ARTIFACT_HASH_MISMATCH"
+  | "REPLAY_DETERMINISTIC_VERIFIED"
+  | "REPLAY_DETERMINISTIC_FAILED"
+  | "CONTAINMENT_OPERATIONAL"
+  | "CONTAINMENT_FAILED"
+  | "GOVERNANCE_AUTHORITATIVE"
+  | "GOVERNANCE_VERSION_MISSING"
+  | "GOVERNANCE_VIOLATION"
+  | "TENANT_ISOLATION_VERIFIED"
+  | "CROSS_TENANT_LEAKAGE"
+  | "LINEAGE_REFERENCES_PRESENT"
+  | "LINEAGE_REFERENCES_MISSING"
+  | "LINEAGE_INTEGRITY_VALID"
+  | "LINEAGE_INTEGRITY_FAILED"
+  | "OBSERVABILITY_OPERATIONAL"
+  | "OBSERVABILITY_DEGRADED"
+  | "OBSERVABILITY_FAILED"
+  | "VERIFICATION_OPERATIONAL"
+  | "VERIFICATION_FAILED"
+  | "AUTHORITY_BOUNDED"
+  | "AUTHORITY_EXPANSION_DETECTED"
+  | "COMPLETION_CERTIFICATION_IS_NOT_AUTHORITY"
+  | "NO_REMEDIATION_AUTHORITY";
+
+export type SimulationCompletionCertificationInput = Readonly<{
+  request: SimulationCompletionCertificationRequest;
+  sealedContract: SealedSimulationBoundaryRecord;
+  branchReplays: readonly SealedBranchReplayRecord[];
+  sandboxes: readonly SealedSimulationSandboxRecord[];
+  forecasts: readonly SealedGovernanceForecastRecord[];
+  analyses: readonly SealedAlternatePathAnalysisRecord[];
+  replayLedger: SealedSimulationReplayLedgerRecord;
+  resultModel: SealedSimulationResultModelRecord;
+  certification: SealedIntentSimulationCertificationRecord;
+  certificationReplay: SealedCertificationReplayRecord;
+  observability: SealedSimulationObservabilityRecord;
+  verification: SealedSimulationBoundaryVerificationRecord;
+}>;
+
+export type SimulationCompletionCertificationValidation = Readonly<{
+  completionStatus: SimulationCompletionCertificationResult["completionStatus"];
+  reasonCodes: readonly SimulationCompletionCertificationReasonCode[];
+  replayDeterministic: boolean;
+  containmentOperational: boolean;
+  governanceAuthoritative: boolean;
+  tenantIsolationVerified: boolean;
+  lineageIntegrity: boolean;
+  observabilityOperational: boolean;
+  verificationOperational: boolean;
+  authorityBounded: boolean;
+  deterministic: true;
+  readOnly: true;
+  certificationOnly: true;
+}>;
+
+export type SimulationCompletionCertificationObservability = Readonly<{
+  completionId: string;
+  completionStatus: SimulationCompletionCertificationResult["completionStatus"];
+  replayDeterministic: boolean;
+  containmentOperational: boolean;
+  governanceAuthoritative: boolean;
+  verificationOperational: boolean;
+  completionHash: string;
+}>;
+
+export type SealedSimulationCompletionCertificationRecord = Readonly<{
+  result: Readonly<SimulationCompletionCertificationResult>;
+  validation: SimulationCompletionCertificationValidation;
+  observability: SimulationCompletionCertificationObservability;
+  sealed: true;
+  readOnly: true;
+  certificationOnly: true;
+  executionAuthorized: false;
+  repairAuthorized: false;
+  approvalAuthorized: false;
+  remediationAllowed: false;
+  workflowMutationAllowed: false;
+  governanceMutationAllowed: false;
+  authorityMutationAllowed: false;
+  persistenceAllowed: false;
+  schedulingAllowed: false;
+}>;
