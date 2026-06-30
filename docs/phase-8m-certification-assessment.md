@@ -192,6 +192,40 @@ Post-commit classifier:
 
 Certification remains blocked until Shared Contracts generated domain is reconciled, remaining source changes are reviewed, documentation entries are reconciled, Phase 8M leftover is resolved, test repair is resolved, full unit suite passes, production build passes, and release validation succeeds.
 
+## Phase 8M.25 Shared Contracts Generated Domain
+
+Shared Contracts prepared: this commit is intended to integrate the final accepted generated contract boundary.
+
+Validation status:
+
+- Shared Contracts Vitest: PASS, 3 files and 54 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Certification state: FAIL.
+
+Certification remains blocked until remaining source changes are reviewed, documentation entries are reconciled, Phase 8M stabilization is resolved, test repair is resolved, full unit suite passes, production build passes, and release validation succeeds.
+
+## Phase 8M.25 Post-Commit Certification Assessment
+
+Shared Contracts committed: `Phase 8M.25: Commit Shared Contracts generated domain`.
+
+Certification state: FAIL.
+
+Failure reason:
+
+- `DIRTY_WORKTREE_UNRESOLVED`.
+
+Post-commit classifier:
+
+- Total dirty entries: 64.
+- Generated Phase Expansion: 40.
+- Source Changes: 14.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Certification remains blocked until residual generated artifacts are classified or removed, source changes are reviewed, documentation entries are reconciled, test repair is resolved, full unit suite passes, production build passes, and release validation succeeds.
+
 ## Phase 8M.21 Recommendation Generated Domain
 
 Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.

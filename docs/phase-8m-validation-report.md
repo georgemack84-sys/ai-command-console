@@ -130,6 +130,56 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.25 Shared Contracts Generated Domain
+
+Shared Contracts prepared: this commit is intended to integrate only the Shared Contracts generated domain.
+
+Validation summary:
+
+- Shared Contracts Vitest: PASS, 3 files and 54 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script; certification remains FAIL.
+
+Generated entries before commit: 55 generated entries remain in the dirty worktree.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining non-generated work:
+
+- 14 source changes.
+- 1 Phase 8M stabilization leftover.
+- 9 documentation entries.
+- 1 test repair.
+
+Certification state: FAIL.
+
+Next repair phase: Phase 8M.26 Bundle C Source Changes Reconciliation.
+
+## Phase 8M.25 Post-Commit Validation
+
+Shared Contracts committed: `Phase 8M.25: Commit Shared Contracts generated domain`.
+
+Post-commit validation:
+
+- Staged diff: clean.
+- Phase 8M classifier: PASS as script.
+- Certification state: FAIL, blocked by unresolved dirty worktree.
+
+Post-commit classifier:
+
+- Total dirty entries: 64.
+- Generated Phase Expansion: 40.
+- Source Changes: 14.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Generated-domain reconciliation state:
+
+- Accepted Shared Contracts generated domain is committed.
+- Remaining generated entries are not Shared Contracts and remain explicitly excluded for follow-up reconciliation.
+
+Next repair phase: Phase 8M.26 Bundle C Source Changes Reconciliation, with residual generated artifacts called out before source changes are committed.
+
 ## Phase 8M.24 Certification Generated Domain
 
 Certification prepared: this commit is intended to integrate only the Certification generated domain while preserving Shared Contracts as a separate boundary.

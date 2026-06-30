@@ -305,3 +305,61 @@ Comparison with Phase 8M.22 pre-commit inspection:
 ## Maintenance Recommendation
 
 Git continues to warn about unreachable loose objects during auto-packing, while inspect-only `git count-objects -vH` reports no garbage and no prune-packable objects. Continue inspect-only maintenance unless the user explicitly approves `git gc` or pruning.
+
+## Phase 8M.25 Pre-Commit Inspection
+
+Command:
+
+```text
+git count-objects -vH
+```
+
+Result:
+
+```text
+count: 8432
+size: 31.02 MiB
+in-pack: 13975
+packs: 26
+size-pack: 8.39 MiB
+prune-packable: 0
+garbage: 0
+size-garbage: 0 bytes
+```
+
+## Maintenance Recommendation
+
+Continue inspect-only maintenance. Git has warned about unreachable loose objects during auto-packing in prior generated-domain commits, but `garbage` and `prune-packable` remain 0. Do not run `git gc` or pruning without explicit approval.
+
+## Phase 8M.25 Post-Commit Inspection
+
+Command:
+
+```text
+git count-objects -vH
+```
+
+Result:
+
+```text
+count: 8476
+size: 31.20 MiB
+in-pack: 13995
+packs: 27
+size-pack: 8.47 MiB
+prune-packable: 0
+garbage: 0
+size-garbage: 0 bytes
+```
+
+Comparison with Phase 8M.25 pre-commit inspection:
+
+- Loose objects increased by 44.
+- Loose size increased by about 0.18 MiB.
+- Pack count increased from 26 to 27 after Git auto-packed during commit.
+- Garbage remains 0 bytes.
+- Prune-packable remains 0.
+
+## Maintenance Recommendation
+
+Git continues to warn about unreachable loose objects during auto-packing, while inspect-only `git count-objects -vH` reports no garbage and no prune-packable objects. Continue inspect-only maintenance unless the user explicitly approves `git gc` or pruning.

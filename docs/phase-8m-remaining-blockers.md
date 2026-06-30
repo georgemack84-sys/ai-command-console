@@ -345,6 +345,54 @@ Certification state: FAIL.
 
 Recommended next phase: Phase 8M.25 Shared Contracts Generated Domain Integration.
 
+## Phase 8M.25 Shared Contracts Generated Domain
+
+Shared Contracts prepared: this commit is intended to establish the Shared Contracts generated-domain baseline commit.
+
+Validation status:
+
+- Shared Contracts Vitest: PASS, 3 files and 54 tests.
+- TypeScript: PASS.
+- Phase 8M classifier: PASS as script.
+
+Repository status: generated-domain reconciliation in progress.
+
+Remaining blockers:
+
+- 14 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 1 Phase 8M stabilization leftover remains unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
+
+Recommended next phase: Phase 8M.26 Bundle C Source Changes Reconciliation.
+
+## Phase 8M.25 Post-Commit Remaining Blockers
+
+Shared Contracts committed: `Phase 8M.25: Commit Shared Contracts generated domain`.
+
+Post-commit classifier:
+
+- Total dirty entries: 64.
+- Generated Phase Expansion: 40.
+- Source Changes: 14.
+- Documentation: 9.
+- Test Repairs: 1.
+
+Remaining blockers:
+
+- 40 residual generated entries remain outside the Shared Contracts boundary.
+- 14 source changes remain unreconciled.
+- 9 unrelated documentation entries remain unreconciled.
+- 1 test repair remains unreconciled.
+- Full unit suite, production build, and release validation still required.
+
+Certification state: FAIL.
+
+Recommended next phase: Phase 8M.26 Bundle C Source Changes Reconciliation, preceded by explicit residual generated-artifact disposition.
+
 ## Phase 8M.21 Recommendation Generated Domain
 
 Recommendation committed: `Phase 8M.21: Commit Recommendation generated domain`.
