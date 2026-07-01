@@ -42,25 +42,25 @@ function removeDatabaseFiles() {
   const databasePath = getDatabasePath();
   for (const filePath of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
     try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      if (fs.existsSync(/* turbopackIgnore: true */ filePath)) {
+        fs.unlinkSync(/* turbopackIgnore: true */ filePath);
       }
     } catch {}
   }
 }
 
 function ensureDataDir() {
-  fs.mkdirSync(getDataDir(), { recursive: true });
+  fs.mkdirSync(/* turbopackIgnore: true */ getDataDir(), { recursive: true });
 }
 
 function extractLegacyDocuments() {
   const databasePath = getDatabasePath();
-  if (!fs.existsSync(databasePath)) {
+  if (!fs.existsSync(/* turbopackIgnore: true */ databasePath)) {
     return null;
   }
 
   try {
-    const raw = fs.readFileSync(databasePath, "utf8");
+    const raw = fs.readFileSync(/* turbopackIgnore: true */ databasePath, "utf8");
     const parsed = JSON.parse(raw);
     const documents = parsed && typeof parsed === "object" && parsed.documents && typeof parsed.documents === "object"
       ? parsed.documents
@@ -70,7 +70,7 @@ function extractLegacyDocuments() {
       return null;
     }
 
-    fs.unlinkSync(databasePath);
+    fs.unlinkSync(/* turbopackIgnore: true */ databasePath);
     return documents;
   } catch {
     return null;
@@ -924,16 +924,16 @@ function writeLegacyJson(filePath, value) {
     return;
   }
 
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
+  fs.mkdirSync(/* turbopackIgnore: true */ path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(/* turbopackIgnore: true */ filePath, JSON.stringify(value, null, 2), "utf8");
 }
 
 function readLegacyJson(filePath) {
-  if (!filePath || !fs.existsSync(filePath)) {
+  if (!filePath || !fs.existsSync(/* turbopackIgnore: true */ filePath)) {
     return null;
   }
 
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  return JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ filePath, "utf8"));
 }
 
 function loadDocument(key, createDefault, options = {}) {

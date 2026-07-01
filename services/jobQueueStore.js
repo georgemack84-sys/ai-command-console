@@ -40,8 +40,8 @@ function removeStoreFiles() {
   const databasePath = getDatabasePath();
   for (const filePath of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
     try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      if (fs.existsSync(/* turbopackIgnore: true */ filePath)) {
+        fs.unlinkSync(/* turbopackIgnore: true */ filePath);
       }
     } catch {}
   }
@@ -49,7 +49,7 @@ function removeStoreFiles() {
 
 function initializeJobStore() {
   const databasePath = getDatabasePath();
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+  fs.mkdirSync(/* turbopackIgnore: true */ path.dirname(databasePath), { recursive: true });
   database = new Database(databasePath);
   database.pragma("journal_mode = WAL");
   database.pragma("busy_timeout = 5000");
@@ -477,7 +477,7 @@ function clearJobs() {
   statements.deleteAllJobs.run();
   statements.deleteWorkerHeartbeats.run();
   try {
-    fs.rmSync(JOBS_PATH, { force: true });
+    fs.rmSync(/* turbopackIgnore: true */ JOBS_PATH, { force: true });
   } catch {}
 }
 

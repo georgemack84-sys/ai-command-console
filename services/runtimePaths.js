@@ -6,11 +6,11 @@ function readEnv(name) {
 }
 
 function getDataRoot() {
-  return readEnv("AI_COMMAND_CONSOLE_DATA_ROOT") || path.join(process.cwd(), "data");
+  return readEnv("AI_COMMAND_CONSOLE_DATA_ROOT") || path.join(/* turbopackIgnore: true */ process.cwd(), "data");
 }
 
 function getWorkspaceDataPath(...segments) {
-  return path.join(getDataRoot(), ...segments);
+  return path.join(/* turbopackIgnore: true */ getDataRoot(), ...segments);
 }
 
 function getAgentsDataPath(...segments) {

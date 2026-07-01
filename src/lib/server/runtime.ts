@@ -36,11 +36,11 @@ export function getStorageDriver(): StorageDriver {
 }
 
 export function getWorkspaceDataRoot() {
-  return readEnv("AI_COMMAND_CONSOLE_DATA_ROOT") || path.join(process.cwd(), "data");
+  return readEnv("AI_COMMAND_CONSOLE_DATA_ROOT") || path.join(/* turbopackIgnore: true */ process.cwd(), "data");
 }
 
 export function getWorkspaceDataPath(...segments: string[]) {
-  return path.join(getWorkspaceDataRoot(), ...segments);
+  return path.join(/* turbopackIgnore: true */ getWorkspaceDataRoot(), ...segments);
 }
 
 export function getAgentsDataPath(...segments: string[]) {

@@ -438,7 +438,7 @@ function loadControlPolicy() {
 }
 
 function fileExists(...segments) {
-  return fs.existsSync(path.join(__dirname, "..", ...segments));
+  return fs.existsSync(path.join(/* turbopackIgnore: true */ __dirname, "..", ...segments));
 }
 
 function normalizeDiscoveryResult(result) {
