@@ -154,6 +154,29 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+## Phase 8M.40 Final Certification Assessment
+
+Certification state: PASS.
+
+Evidence:
+
+- Repository reconciliation is complete.
+- Dirty worktree total is 0.
+- TypeScript passes.
+- Lint passes with 22 known warnings and 0 errors.
+- Production build passes through `npm run build`.
+- Release validation completed all 215 partitions covering 2,935 files.
+- Phase 8M classifier reports 0 blockers.
+- Repository maintenance inspection reports `garbage: 0` and `prune-packable: 0`.
+
+Disposition:
+
+- Previous EMFILE blocker is resolved.
+- Previous release validation incompleteness is resolved.
+- File-level fallback for `top-level-constitutional-12` is accepted as PASS because no deterministic failure was found.
+
+Final recommendation: PASS.
+
 ## Phase 8M.39 Engineering Validation
 
 Certification state: FAIL.

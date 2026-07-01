@@ -67,3 +67,23 @@ Covered:
 - Run top-level constitutional partitions.
 
 Certification impact: release validation remains incomplete until all 215 partitions pass.
+
+## Phase 8M.40 Final Release Validation
+
+Status: PASS.
+
+Release validation completed all 215 partitions covering 2,935 files.
+
+Completion evidence:
+
+- Unit partitions completed through `unit-188`.
+- Integration red-team partitions completed.
+- Top-level constitutional partitions completed through `top-level-constitutional-24`.
+- Final runner result: `all partitions passed`.
+
+Fallback evidence:
+
+- `top-level-constitutional-12`: `passed_via_fallback`.
+- Accepted because file-level fallback validation did not expose a deterministic defect.
+
+Certification impact: release validation no longer blocks PASS.

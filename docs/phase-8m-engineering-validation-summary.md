@@ -69,3 +69,27 @@ npm run test:release -- --resume-last --max-partitions=10 --partition-timeout-ms
 ```
 
 Use bounded batches until all 215 partitions pass.
+
+## Phase 8M.40 Engineering Validation Summary
+
+Status: COMPLETE.
+
+Final matrix:
+
+- TypeScript: PASS.
+- Lint: PASS with 22 known warnings and 0 errors.
+- Production build: PASS.
+- Release validation: PASS.
+- Classifier: CONDITIONAL_PASS with 0 blockers and dirty worktree total 0.
+- Worktree: clean.
+
+Release validation:
+
+- 215 of 215 partitions completed.
+- 2,935 files covered by release inventory.
+- Final partition: `top-level-constitutional-24`.
+- Final runner result: `all partitions passed`.
+
+Remaining failures: none.
+
+Certification recommendation: PASS.

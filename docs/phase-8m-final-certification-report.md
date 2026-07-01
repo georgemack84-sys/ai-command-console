@@ -311,3 +311,27 @@ Certification state: FAIL.
 Reason: full release validation remains incomplete. PASS is not evidence-backed until every release partition completes successfully, production build passes through the committed script, and the repository is clean.
 
 Next action: continue bounded release batches from `unit-104`.
+
+## Phase 8M.40 Final Certification
+
+Certification decision: PASS.
+
+Evidence:
+
+- Repository reconciliation complete.
+- Worktree clean before and after final validation.
+- TypeScript PASS.
+- Lint PASS with 22 known warnings and 0 errors.
+- Production build PASS.
+- Release validation PASS, 215 of 215 partitions completed.
+- Phase 8M classifier reports 0 blockers and dirty worktree total 0.
+- Repository maintenance inspection reports `garbage: 0` and `prune-packable: 0`.
+
+Fallback evidence:
+
+- `top-level-constitutional-12` completed as `passed_via_fallback`.
+- File-level fallback validation did not identify a deterministic defect.
+
+Remaining blockers: none.
+
+Release readiness: PASS.

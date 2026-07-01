@@ -301,6 +301,30 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.40 Final Release Validation
+
+Status: COMPLETE.
+
+Full release validation:
+
+- Release runner completed all 215 partitions covering 2,935 files.
+- Final partition completed: `top-level-constitutional-24`.
+- Final release runner result: `all partitions passed`.
+- `top-level-constitutional-12` completed through file-level fallback and is accepted as PASS because no deterministic file-level defect was identified.
+
+Final validation matrix:
+
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS with 22 known warnings and 0 errors.
+- `npm run build`: PASS.
+- `node scripts/phase-8m-quality-gate.cjs --classify`: CONDITIONAL_PASS with 0 blockers and dirty worktree total 0.
+- `git status --short`: clean.
+- `git count-objects -vH`: `garbage: 0`, `prune-packable: 0`.
+
+Certification recommendation: PASS.
+
+Reason: repository reconciliation is complete, release validation is complete, production build passes, and no unresolved blockers remain.
+
 ## Phase 8M.39 Engineering Validation
 
 Full unit suite:

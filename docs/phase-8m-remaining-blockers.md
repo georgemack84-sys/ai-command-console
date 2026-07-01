@@ -449,6 +449,25 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.40 Remaining Blockers
+
+Repository-content blockers: none.
+
+Engineering blockers: none.
+
+Validation blockers: none.
+
+Resolved in Phase 8M.40:
+
+- Release validation completed all 215 partitions.
+- Production build remained PASS.
+- TypeScript remained PASS.
+- Lint remained PASS with known warnings only.
+- Worktree remained clean.
+- Classifier reported 0 blockers.
+
+Certification state: PASS.
+
 ## Phase 8M.39 Engineering Validation
 
 Resolved blockers:
