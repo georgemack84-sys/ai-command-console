@@ -1,6 +1,6 @@
 import type { AutonomyAuthorityScope } from "@/types/autonomy-contract";
 import type { AutonomyIdentityRecord } from "@/types/autonomy-identity";
-import type { ConstitutionalDecisionRecord, ConstitutionalFailureReason } from "@/types/autonomy-constitutional-constraints";
+import type { ConstitutionalDecisionRecord } from "@/types/autonomy-constitutional-constraints";
 
 export type GovernanceInterfaceDirection = "RECEIVE" | "PUBLISH";
 export type GovernanceInterfaceSource =

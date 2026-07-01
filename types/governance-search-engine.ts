@@ -1,7 +1,6 @@
 import type {
   GovernanceQueryAuditRecord,
   GovernanceQueryContract,
-  GovernanceQueryErrorState,
   GovernanceQueryTargetObject,
   GovernanceQueryType,
   GovernanceQueryValidationIssue,

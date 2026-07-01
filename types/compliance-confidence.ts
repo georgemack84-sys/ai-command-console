@@ -1,6 +1,4 @@
 import type { ComplianceConfidenceLevel, ComplianceEvaluationScope, ComplianceReplayState, ComplianceType } from "./compliance-contract";
-import type { ComplianceEvaluationRecord, EvidenceValidationState } from "./compliance-evaluation";
-import type { ComplianceTrendRecord } from "./compliance-trend";
 
 export type ComplianceConfidenceType = "COMPLIANCE_CONFIDENCE" | "EVIDENCE_CONFIDENCE" | "RECOMMENDATION_CONFIDENCE";
 export type EvidenceConfidenceState = "COMPLETE_TRUSTED" | "COMPLETE_WITH_MINOR_GAPS" | "PARTIAL" | "CONFLICTING" | "MISSING" | "INVALID" | "TAMPERED" | "UNKNOWN";

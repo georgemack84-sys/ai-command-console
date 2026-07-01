@@ -1,4 +1,4 @@
-import type { AutonomousHashChainExecution, AutonomousHashChainFailureReason, AutonomousHashChainScenario } from "@/types/autonomous-hash-chain-engine";
+import type { AutonomousHashChainExecution, AutonomousHashChainScenario } from "@/types/autonomous-hash-chain-engine";
 import type { AutonomousHashChainArtifactType } from "@/types/autonomous-hash-chain-engine";
 import type { IntegrityState } from "@/types/integrity-contract";
 

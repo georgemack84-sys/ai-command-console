@@ -1,5 +1,4 @@
 import type { RecoveryPlanningPackage, RecoveryPlanningScenario } from "@/types/recovery-planning-engine";
-import type { RecoveryValidationStatus } from "@/types/recovery-contract";
 
 export type RecoveryValidationDecisionState = "INITIALIZING" | "VALIDATING" | "GOVERNANCE_REVIEW" | "PASSED" | "REJECTED" | "READY_FOR_RECOMMENDATION";
 export type RecoveryValidationResultLevel = "PASS" | "CONDITIONAL_PASS" | "REJECT";

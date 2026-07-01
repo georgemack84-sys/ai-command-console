@@ -1,4 +1,4 @@
-import type { AutonomyAuthorityDecision, AutonomyAuthorityFailureReason, AutonomyAuthorityRequest } from "@/types/autonomy-authority";
+import type { AutonomyAuthorityDecision, AutonomyAuthorityRequest } from "@/types/autonomy-authority";
 import type { AutonomyIdentityRecord } from "@/types/autonomy-identity";
 
 export type ConstitutionalDecisionState = "APPROVED" | "DENIED";

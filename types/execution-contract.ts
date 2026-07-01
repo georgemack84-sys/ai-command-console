@@ -1,5 +1,4 @@
 import type { AutonomyIdentityRecord } from "@/types/autonomy-identity";
-import type { DependencyGraphPackage } from "@/types/dependency-analysis";
 import type { PlanningConfidenceAssessment } from "@/types/planning-confidence";
 
 export type ExecutionCertificationState = "PASS" | "CONDITIONAL_PASS" | "FAIL";

@@ -6,7 +6,6 @@ import {
   buildPolicyCorrelationDoctrine,
   buildPolicyCorrelationObservabilitySurface,
   buildPolicyCorrelationSourceRegistry,
-  buildPolicyCorrelationRecord,
   computePolicyCorrelationHash,
   generatePolicyCorrelations,
   replayPolicyCorrelation,

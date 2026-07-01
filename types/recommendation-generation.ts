@@ -3,7 +3,6 @@ import type {
   RecommendationConfidenceBand,
   RecommendationContractRecord,
   RecommendationReplayState,
-  RecommendationRiskCategory,
   RecommendationSeverityLevel,
   RecommendationType,
   RecommendationValidationFailureReason,

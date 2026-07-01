@@ -28,7 +28,7 @@ function metric(label: string, value: string | number) {
 export function TruthLedgerCertificationSuiteShell({ view }: { view: TruthLedgerCertificationView }) {
   const [category, setCategory] = useState<TruthLedgerCertificationCategory | "ALL">("ALL");
   const [search, setSearch] = useState("");
-  const categories = [
+  const categories = useMemo(() => [
     view.result.persistence,
     view.result.evidence,
     view.result.lineage,
@@ -37,7 +37,7 @@ export function TruthLedgerCertificationSuiteShell({ view }: { view: TruthLedger
     view.result.visibility,
     view.result.isolation,
     view.result.fail_closed,
-  ];
+  ], [view.result.evidence, view.result.fail_closed, view.result.integrity, view.result.isolation, view.result.lineage, view.result.persistence, view.result.replay, view.result.visibility]);
   const filtered = useMemo(() => categories.filter((item) => {
     const haystack = `${item.category} ${item.state} ${item.tests.map((test) => test.name).join(" ")}`.toLowerCase();
     return (category === "ALL" || item.category === category) && (!search || haystack.includes(search.toLowerCase()));

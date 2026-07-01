@@ -1,5 +1,5 @@
 import type { FailureAnalysisObject, FailureAnalysisScenario } from "@/types/failure-analysis-engine";
-import type { RecoveryCategory, RecoveryRiskLevel, RecoveryValidationStatus } from "@/types/recovery-contract";
+import type { RecoveryValidationStatus } from "@/types/recovery-contract";
 
 export type RecoveryStrategyType =
   | "ROLLBACK"

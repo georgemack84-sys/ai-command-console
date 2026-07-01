@@ -3,10 +3,9 @@ import type {
   RecommendationCertificationState,
   RecommendationGovernanceConstraints,
   RecommendationReplayState,
-  RecommendationSeverityLevel,
   RecommendationValidationState,
 } from "./recommendation-contract";
-import type { GeneratedRecommendation, RecommendationGenerationFailureReason, RecommendationGenerationPriority, RecommendationGenerationResult, RecommendationGenerationScenario } from "./recommendation-generation";
+import type { RecommendationGenerationFailureReason, RecommendationGenerationPriority, RecommendationGenerationResult, RecommendationGenerationScenario } from "./recommendation-generation";
 
 export type AlternativePathType = RecommendationAlternativePathType;
 export type AlternativePathLifecycleState = "CREATED" | "EVIDENCE_BOUND" | "RISK_BOUND" | "CONFIDENCE_BOUND" | "GOVERNANCE_CONSTRAINED" | "COMPARISON_READY" | "VALIDATED" | "REJECTED" | "PRESENTED" | "SUPERSEDED" | "ARCHIVED";

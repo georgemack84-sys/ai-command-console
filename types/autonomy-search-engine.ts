@@ -1,7 +1,6 @@
 import type {
   AutonomyQueryAuditRecord,
   AutonomyQueryContract,
-  AutonomyQueryErrorState,
   AutonomyQueryType,
   AutonomyQueryValidationIssue,
   AutonomyQueryValidationResult,

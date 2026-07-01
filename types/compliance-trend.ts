@@ -1,5 +1,5 @@
-import type { ComplianceEvaluationScope, ComplianceEvaluationStatus, ComplianceReplayState, ComplianceType } from "./compliance-contract";
-import type { ComplianceEvaluationRecord, ViolationSeverity, ViolationType } from "./compliance-evaluation";
+import type { ComplianceEvaluationScope, ComplianceReplayState, ComplianceType } from "./compliance-contract";
+import type { ComplianceEvaluationRecord, ViolationSeverity } from "./compliance-evaluation";
 
 export type ComplianceTrendDirection = "IMPROVING" | "STABLE" | "DEGRADING" | "VOLATILE" | "RECURRING_FAILURE" | "INSUFFICIENT_HISTORY" | "UNKNOWN";
 export type ComplianceTrendRiskIndicator = "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "UNKNOWN";

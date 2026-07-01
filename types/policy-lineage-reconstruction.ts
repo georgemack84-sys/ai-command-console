@@ -1,5 +1,5 @@
 import type { PolicyAnalysisRecord } from "@/types/policy-analysis";
-import type { PolicyDependencyEdge, PolicyDependencyGraph } from "@/types/policy-dependency-graph";
+import type { PolicyDependencyGraph } from "@/types/policy-dependency-graph";
 
 export type PolicyLineageState = "DISCOVERED" | "RESOLVED" | "RECONSTRUCTED" | "VALIDATED" | "CERTIFIED" | "ARCHIVED";
 

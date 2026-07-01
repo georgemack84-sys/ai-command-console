@@ -1,6 +1,6 @@
 import type { GovernanceRiskCategory, GovernanceRiskSeverity, GovernanceRiskWindow, GovernanceRiskReplayStatus } from "./governance-risk";
-import type { GovernanceWeaknessRecord, GovernanceWeaknessReviewPriority, GovernanceWeaknessCategory } from "./governance-weakness";
-import type { ViolationPatternRecord, ViolationPatternStrength, ViolationTrendDirection } from "./violation-patterns";
+import type { GovernanceWeaknessReviewPriority, GovernanceWeaknessCategory } from "./governance-weakness";
+import type { ViolationPatternStrength, ViolationTrendDirection } from "./violation-patterns";
 
 export type GovernanceRiskScoreState = "SCORED" | "VALIDATED" | "UNDER_REVIEW" | "MITIGATED" | "SUPERSEDED" | "DISMISSED" | "ARCHIVED";
 export type GovernanceRiskScoringValidationState = "VALID" | "INVALID" | "TENANT_SCOPE_VIOLATION" | "LINEAGE_REFERENCE_MISSING" | "REPLAY_REFERENCE_MISSING" | "INVALID_STATE" | "REPLAY_MISMATCH";
