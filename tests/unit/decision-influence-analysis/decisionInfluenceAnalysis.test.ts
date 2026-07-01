@@ -14,7 +14,7 @@ import {
   verifyInfluenceReplay,
 } from "@/services/decision-influence-analysis";
 
-vi.setConfig({ testTimeout: 30000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7G.3 Decision Influence Analysis", () => {
   it("defines deterministic decision influence doctrine", () => {

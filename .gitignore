@@ -19,6 +19,7 @@ playwright-artifacts
 test-results
 playwright-report
 coverage
+artifacts
 .codex-temp-*.txt
 ai-command-console-report-*.txt
 project-files.txt

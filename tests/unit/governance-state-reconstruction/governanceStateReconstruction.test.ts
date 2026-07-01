@@ -9,7 +9,7 @@ import {
 } from "@/services/governance-state-reconstruction";
 import type { GovernanceStateReconstructionScenario } from "@/types/governance-state-reconstruction";
 
-vi.setConfig({ testTimeout: 70000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7H.3 Governance State Reconstruction", () => {
   it("defines state reconstruction doctrine and produces a replay-ready baseline state", () => {

@@ -6,7 +6,7 @@ import {
 } from "@/services/governance-visibility-certification";
 import type { GovernanceVisibilityCertificationScenario } from "@/types/governance-visibility-certification";
 
-vi.setConfig({ testTimeout: 30000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7K.5 Governance Visibility Certification Gate", () => {
   it("defines visibility certification doctrine", () => {

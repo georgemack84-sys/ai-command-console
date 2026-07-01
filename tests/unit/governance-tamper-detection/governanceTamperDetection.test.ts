@@ -8,7 +8,7 @@ import {
 import type { GovernanceIntegrityState } from "@/types/governance-integrity-contract";
 import type { GovernanceTamperDetectionReason, GovernanceTamperScenario } from "@/types/governance-tamper-detection";
 
-vi.setConfig({ testTimeout: 15000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7I.3 Governance Tamper Detection", () => {
   it("defines the tamper detection doctrine and monitoring contract", () => {

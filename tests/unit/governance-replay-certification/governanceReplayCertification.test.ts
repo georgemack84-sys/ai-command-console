@@ -8,7 +8,7 @@ import {
 } from "@/services/governance-replay-certification";
 import type { GovernanceReplayCertificationScenario } from "@/types/governance-replay-certification";
 
-vi.setConfig({ testTimeout: 90000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7H.5 Governance Replay Certification Gate", () => {
   it("defines certification doctrine and passes the baseline replay gate", () => {

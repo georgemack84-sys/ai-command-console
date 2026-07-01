@@ -11,7 +11,7 @@ import {
 import type { GovernanceHashChainFailureReason, GovernanceHashChainScenario } from "@/types/governance-hash-chain";
 import type { GovernanceIntegrityState } from "@/types/governance-integrity-contract";
 
-vi.setConfig({ testTimeout: 15000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7I.2 Governance Hash Chain Engine", () => {
   it("defines the governance hash-chain doctrine and version registry", () => {

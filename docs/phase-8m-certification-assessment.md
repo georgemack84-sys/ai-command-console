@@ -154,6 +154,26 @@ Bundles remaining:
 
 Certification state: FAIL.
 
+## Phase 8M.39 Engineering Validation
+
+Certification state: FAIL.
+
+Assessment:
+
+- Repository content reconciliation remains complete.
+- Production build memory blocker and EMFILE follow-up are repaired through the default Next build path.
+- Full release validation is underway but incomplete.
+- The all-at-once coverage unit command timed out under repository scale; partitioned release validation is the active evidence path.
+
+Current evidence:
+
+- Build: PASS.
+- Release dry run and file accounting: PASS.
+- Release partitions through `unit-103`: PASS by partition or fallback evidence.
+- Remaining release partitions: `unit-104` onward.
+
+Certification cannot transition to PASS until the remaining release partitions, final classifier, and clean worktree checks pass.
+
 ## Phase 8M.24 Certification Generated Domain
 
 Certification prepared: this commit is intended to integrate only the Certification generated domain.

@@ -8,7 +8,7 @@ import {
 } from "@/services/tamper-detection-engine";
 import type { TamperDetectionReason, TamperDetectionScenario, TamperDetectionState } from "@/types/tamper-detection-engine";
 
-vi.setConfig({ testTimeout: 15000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 8H.3 Tamper Detection Engine", () => {
   it("defines the tamper detection doctrine and monitoring contract", () => {

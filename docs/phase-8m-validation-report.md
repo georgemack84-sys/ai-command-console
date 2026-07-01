@@ -301,6 +301,37 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.39 Engineering Validation
+
+Full unit suite:
+
+- `npm run test:unit`: TIMEOUT under all-at-once coverage execution.
+- Partitioned release validation progressed through `unit-103`.
+- Current release inventory: 2,935 files across 215 partitions.
+
+Production build:
+
+- Initial `npm run build`: FAIL during Next build trace collection with JavaScript heap out of memory.
+- Repaired initial memory failure by removing broad Next trace include and applying a production build heap guard.
+- Follow-up `npm run build`: FAIL with `EMFILE` on `.next/export-detail.json`.
+- Follow-up repair removed forced `--webpack`; default Next build path PASS.
+
+Release validation:
+
+- `npm run test:release -- --dry-run`: PASS.
+- `unit-1` through `unit-103`: PASS by partition or single-file fallback evidence.
+- Latest bounded batch `unit-99` through `unit-103`: PASS.
+- Remaining validation begins at `unit-104`.
+
+Remaining blockers:
+
+- Complete release partitions `unit-104` onward.
+- Complete integration/red-team partitions.
+- Complete top-level constitutional partitions.
+- Re-run final classifier on clean committed state.
+
+Certification recommendation: FAIL until complete release validation passes.
+
 ## Phase 8M.36 EdgeBook Foundation Bundle
 
 Status: EdgeBook foundation bundle validated and ready for isolated commit.

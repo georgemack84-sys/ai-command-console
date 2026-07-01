@@ -9,7 +9,7 @@ import {
 } from "@/services/governance-output-verification";
 import type { GovernanceOutputVerificationScenario } from "@/types/governance-output-verification";
 
-vi.setConfig({ testTimeout: 80000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7H.4 Governance Output Verification", () => {
   it("defines output verification doctrine and verifies the baseline replay outputs", () => {

@@ -15,9 +15,6 @@ const DEV_WATCH_IGNORE_PATTERNS = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  outputFileTracingIncludes: {
-    "*": ["node_modules/next/dist/**/*"],
-  },
   outputFileTracingExcludes: {
     "*": [
       "data/**",
@@ -30,6 +27,13 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    cpus: 1,
+    workerThreads: false,
+    staticGenerationMaxConcurrency: 1,
+    staticGenerationMinPagesPerWorker: 50,
+    parallelServerCompiles: false,
+    parallelServerBuildTraces: false,
+    webpackMemoryOptimizations: true,
     prerenderEarlyExit: false,
     serverMinification: false,
   },

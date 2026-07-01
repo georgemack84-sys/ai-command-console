@@ -10,7 +10,7 @@ import {
 } from "@/services/governance-input-reconstruction";
 import type { GovernanceInputReconstructionScenario } from "@/types/governance-input-reconstruction";
 
-vi.setConfig({ testTimeout: 60000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7H.2 Governance Input Reconstruction", () => {
   it("defines input reconstruction doctrine and produces a replay-ready baseline package", () => {

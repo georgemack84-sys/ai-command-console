@@ -51,6 +51,26 @@ function pruneDevRuntimeArtifacts() {
   return removed;
 }
 
+function pruneProductionBuildArtifacts() {
+  const removed = [];
+  const candidates = [
+    path.join(root, ".next", "dev"),
+    path.join(root, ".next", "diagnostics"),
+    path.join(root, ".next", "export"),
+    path.join(root, ".next", "export-detail.json"),
+    path.join(root, ".next", "trace"),
+    path.join(root, ".next", "trace-build"),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && removePath(candidate)) {
+      removed.push(path.relative(root, candidate));
+    }
+  }
+
+  return removed;
+}
+
 function readJsonFile(targetPath) {
   try {
     return JSON.parse(fs.readFileSync(targetPath, "utf8"));
@@ -203,6 +223,14 @@ function normalizeStandaloneRuntimePaths() {
   normalizeStandaloneRuntimePath("AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH");
 }
 
+function appendNodeOption(option) {
+  const current = process.env.NODE_OPTIONS || "";
+  if (current.includes(option)) {
+    return;
+  }
+  process.env.NODE_OPTIONS = [current, option].filter(Boolean).join(" ");
+}
+
 if (command === "dev") {
   process.env.NODE_ENV = "development";
   process.env.AI_COMMAND_CONSOLE_DEV = "1";
@@ -210,6 +238,14 @@ if (command === "dev") {
   process.env.AI_COMMAND_CONSOLE_DEV_PORT = String(parseDevPort(args));
 } else {
   process.env.NODE_ENV = "production";
+}
+
+if (command === "build") {
+  const removed = pruneProductionBuildArtifacts();
+  if (removed.length) {
+    console.log(`Build cleanup: pruned stale build artifacts (${removed.join(", ")}).`);
+  }
+  appendNodeOption("--max-old-space-size=8192");
 }
 
 if (command === "standalone") {

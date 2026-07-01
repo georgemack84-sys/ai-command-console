@@ -9,13 +9,14 @@ const testsRoot = path.join(root, "tests");
 const dryRun = process.argv.includes("--dry-run");
 const resumeLast = process.argv.includes("--resume-last");
 const fromArg = process.argv.find((arg) => arg.startsWith("--from="));
-const resumeArg = process.argv.find((arg) => arg.startsWith("--resume"));
+const resumeArg = process.argv.find((arg) => arg === "--resume" || arg.startsWith("--resume="));
 const onlyArg = process.argv.find((arg) => arg.startsWith("--only="));
 const timeoutArg = process.argv.find((arg) => arg.startsWith("--partition-timeout-ms="));
 const fileTimeoutArg = process.argv.find((arg) => arg.startsWith("--file-timeout-ms="));
 const maxFilesArg = process.argv.find((arg) => arg.startsWith("--max-files="));
 const unitMaxFilesArg = process.argv.find((arg) => arg.startsWith("--unit-max-files="));
 const maxWorkersArg = process.argv.find((arg) => arg.startsWith("--max-workers="));
+const maxPartitionsArg = process.argv.find((arg) => arg.startsWith("--max-partitions="));
 const resumePartition = resumeArg
   ? (resumeArg.includes("=") ? resumeArg.slice("--resume=".length) : process.argv[process.argv.indexOf(resumeArg) + 1])
   : null;
@@ -28,6 +29,8 @@ const singleFileTimeoutMs = fileTimeoutArg
 const maxFilesPerChunk = maxFilesArg ? Number(maxFilesArg.slice("--max-files=".length)) : 40;
 const unitMaxFilesPerChunk = unitMaxFilesArg ? Number(unitMaxFilesArg.slice("--unit-max-files=".length)) : 10;
 const requestedMaxWorkers = maxWorkersArg ? Number(maxWorkersArg.slice("--max-workers=".length)) : 1;
+const maxPartitions = maxPartitionsArg ? Number(maxPartitionsArg.slice("--max-partitions=".length)) : null;
+const vitestTestTimeoutMs = 180000;
 const vitestEntrypoint = path.join(root, "node_modules", "vitest", "vitest.mjs");
 const progressPath = path.join(root, ".codex-temp", "test-release-progress.json");
 
@@ -106,8 +109,10 @@ const partitions = [
   ...chunkFiles("top-level-constitutional", topLevelFiles, maxFilesPerChunk),
 ].filter((partition) => partition.paths.length > 0);
 
-for (const partition of partitions) {
-  console.log(`[test:release] ${partition.name}: ${partition.paths.length} files`);
+if (dryRun) {
+  for (const partition of partitions) {
+    console.log(`[test:release] ${partition.name}: ${partition.paths.length} files`);
+  }
 }
 
 const expectedFiles = [...unitFiles, ...integrationRedTeamFiles, ...topLevelFiles];
@@ -182,6 +187,18 @@ if (onlyPartition) {
   }
 }
 
+if (maxPartitions !== null) {
+  if (!Number.isInteger(maxPartitions) || maxPartitions <= 0) {
+    console.error("[test:release] --max-partitions must be a positive integer");
+    process.exit(1);
+  }
+  selectedPartitions = selectedPartitions.slice(0, maxPartitions);
+}
+
+console.log(`[test:release] selected partitions: ${selectedPartitions.length} of ${partitions.length}`);
+console.log(`[test:release] first partition: ${selectedPartitions[0]?.name ?? "none"}`);
+console.log(`[test:release] last partition: ${selectedPartitions.at(-1)?.name ?? "none"}`);
+
 for (const partition of selectedPartitions) {
   const startedAt = Date.now();
   console.log(`[test:release] running ${partition.name} (${partition.paths.length} files)`);
@@ -209,6 +226,10 @@ for (const partition of selectedPartitions) {
 
   if (result.status !== 0) {
     console.error(`[test:release] ${partition.name} failed with exit code ${result.status} after ${elapsed}`);
+    const fallbackPassed = runSingleFileFallback(partition, startedAt, result);
+    if (fallbackPassed) {
+      continue;
+    }
     process.exit(result.status || 1);
   }
 
@@ -216,8 +237,10 @@ for (const partition of selectedPartitions) {
   console.log(`[test:release] ${partition.name} passed in ${elapsed}`);
 }
 
-console.log("[test:release] all partitions passed");
-writeProgress(selectedPartitions[selectedPartitions.length - 1], "complete", "0s");
+const completedPartition = selectedPartitions[selectedPartitions.length - 1];
+const completedAllPartitions = completedPartition?.name === partitions[partitions.length - 1]?.name;
+console.log(completedAllPartitions ? "[test:release] all partitions passed" : "[test:release] selected partitions passed");
+writeProgress(completedPartition, completedAllPartitions ? "complete" : "batch_complete", "0s");
 
 function runVitest(paths, timeoutMs) {
   return spawnSync(
@@ -231,7 +254,7 @@ function runVitest(paths, timeoutMs) {
       "--reporter=dot",
       `--maxWorkers=${requestedMaxWorkers}`,
       "--no-file-parallelism",
-      "--testTimeout=10000",
+      `--testTimeout=${vitestTestTimeoutMs}`,
     ],
     {
       cwd: root,

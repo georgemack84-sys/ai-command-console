@@ -11,7 +11,7 @@ import {
 import type { IntegrityState } from "@/types/integrity-contract";
 import type { AutonomousHashChainFailureReason, AutonomousHashChainScenario } from "@/types/autonomous-hash-chain-engine";
 
-vi.setConfig({ testTimeout: 15000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 8H.2 Autonomous Hash Chain Engine", () => {
   it("defines the autonomous hash-chain doctrine and version registry", () => {

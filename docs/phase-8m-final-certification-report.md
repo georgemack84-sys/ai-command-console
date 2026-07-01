@@ -285,3 +285,29 @@ Remaining certification blockers:
 Next phase: final repository validation and reliability certification.
 
 Certification note: Phase 8M content reconciliation reached classifier `CONDITIONAL_PASS`; final release certification remains not PASS until the remaining validation gates complete.
+
+## Phase 8M.39 Engineering Validation
+
+Status: IN_PROGRESS.
+
+Files and behavior repaired:
+
+- Production build tracing memory pressure.
+- Release validation harness batching and fallback behavior.
+- Stale local Vitest timeout caps in long-running governance suites.
+- Duplicate governance tamper-detection hash-chain validation.
+- Generated deployment telemetry dirty-state handling.
+
+Validation:
+
+- TypeScript: PASS after repair.
+- Lint: PASS with 22 warnings before latest documentation updates; rerun required before commit.
+- Production build: PASS after removing forced `--webpack`; forced Webpack path reproduced `EMFILE`.
+- Release dry run: PASS, 2,935 files and 215 partitions.
+- Release partitions completed: `unit-1` through `unit-103`.
+
+Certification state: FAIL.
+
+Reason: full release validation remains incomplete. PASS is not evidence-backed until every release partition completes successfully, production build passes through the committed script, and the repository is clean.
+
+Next action: continue bounded release batches from `unit-104`.

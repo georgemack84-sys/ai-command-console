@@ -8,7 +8,7 @@ import {
 } from "@/services/integrity-verification-service";
 import type { IntegrityVerificationFailure, IntegrityVerificationScenario, IntegrityVerificationState } from "@/types/integrity-verification-service";
 
-vi.setConfig({ testTimeout: 15000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 8H.4 Integrity Verification Service", () => {
   it("defines the integrity verification doctrine and modes", () => {

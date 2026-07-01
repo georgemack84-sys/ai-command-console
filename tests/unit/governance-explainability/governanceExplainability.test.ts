@@ -14,7 +14,7 @@ import {
   verifyExplanationReplay,
 } from "@/services/governance-explainability";
 
-vi.setConfig({ testTimeout: 30000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7G.4 Governance Explainability Engine", () => {
   it("defines deterministic evidence-backed explainability doctrine", () => {

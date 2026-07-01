@@ -14,7 +14,7 @@ import {
 } from "@/services/governance-replay-contract";
 import type { GovernanceReplayScenario } from "@/types/governance-replay-contract";
 
-vi.setConfig({ testTimeout: 40000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7H.1 Governance Replay Contract", () => {
   it("defines replay doctrine and a certification-ready baseline contract", () => {

@@ -111,7 +111,7 @@ function scenarioReason(scenario: GovernanceTamperScenario): GovernanceTamperDet
   return map[scenario] ?? null;
 }
 
-function buildObservation(input: GovernanceTamperDetectionInput): GovernanceIntegrityObservation {
+function buildObservation(input: GovernanceTamperDetectionInput, validationState?: GovernanceIntegrityState): GovernanceIntegrityObservation {
   const chain = input.chain ?? buildGovernanceHashChain({
     scenario: input.hash_chain_scenario ?? SCENARIO_CHAIN[input.scenario ?? "BASELINE"],
     tenant_id: input.tenant_id,
@@ -133,7 +133,7 @@ function buildObservation(input: GovernanceTamperDetectionInput): GovernanceInte
     observed_latest_hash: latest?.current_hash ?? "",
     replay_chain_hash: chain.replay_chain.replay_chain_hash,
     lineage_hash: chain.lineage_graph.lineage_hash,
-    validation_state: validateGovernanceHashChain(chain).validation_state,
+    validation_state: validationState ?? validateGovernanceHashChain(chain).validation_state,
   };
   return Object.freeze({ ...source, observation_hash: hashValue("governance-tamper-observation", source) });
 }
@@ -153,29 +153,6 @@ function buildViolation(reason: GovernanceTamperDetectionReason, path: string, m
     violation_id: `GTDV-7I3-${hashValue("governance-tamper-violation-id", source).slice(0, 10).toUpperCase()}`,
     ...source,
   });
-}
-
-function violationsFor(input: GovernanceTamperDetectionInput, observation: GovernanceIntegrityObservation): readonly GovernanceTamperViolation[] {
-  const chain = input.chain ?? buildGovernanceHashChain({
-    scenario: input.hash_chain_scenario ?? SCENARIO_CHAIN[input.scenario ?? "BASELINE"],
-    tenant_id: input.tenant_id,
-    mission_id: input.mission_id,
-    created_by: input.created_by,
-  });
-  const validation = validateGovernanceHashChain(chain);
-  const fromChain = validation.failures.map((failure) => {
-    const reason = CHAIN_REASON_MAP[failure.reason];
-    return buildViolation(reason, failure.path, failure.message, [validation.validation_hash, observation.observation_hash]);
-  });
-  const direct = scenarioReason(input.scenario ?? "BASELINE");
-  const directViolations = direct
-    ? [buildViolation(direct, "governance_identity", `${direct} detected by immutable governance tamper monitor.`, [observation.observation_hash])]
-    : [];
-  const restored = fromChain.length === 0 && directViolations.length === 0
-    ? [buildViolation("MISSING_OPTIONAL_METADATA", "monitoring.restored", "Integrity restored event recorded with no active tamper.", [observation.observation_hash])]
-        .filter(() => false)
-    : [];
-  return freezeArray([...fromChain, ...directViolations, ...restored]);
 }
 
 function ledgerEvents(reportBase: { chain_id: string; tenant_id: string; mission_id: string }, violations: readonly GovernanceTamperViolation[]): readonly GovernanceTamperTruthLedgerEvent[] {
@@ -223,8 +200,17 @@ export function runGovernanceTamperDetection(input: GovernanceTamperDetectionInp
     mission_id: input.mission_id,
     created_by: input.created_by,
   });
-  const observation = buildObservation({ ...input, chain: source_chain });
-  const violations = violationsFor({ ...input, chain: source_chain }, observation);
+  const chainValidation = validateGovernanceHashChain(source_chain);
+  const observation = buildObservation({ ...input, chain: source_chain }, chainValidation.validation_state);
+  const fromChain = chainValidation.failures.map((failure) => {
+    const reason = CHAIN_REASON_MAP[failure.reason];
+    return buildViolation(reason, failure.path, failure.message, [chainValidation.validation_hash, observation.observation_hash]);
+  });
+  const direct = scenarioReason(input.scenario ?? "BASELINE");
+  const directViolations = direct
+    ? [buildViolation(direct, "governance_identity", `${direct} detected by immutable governance tamper monitor.`, [observation.observation_hash])]
+    : [];
+  const violations = freezeArray([...fromChain, ...directViolations]);
   const integrity_state = deriveState(violations);
   const detection_id = `GTD-7I3-${hashValue("governance-tamper-detection-id", { chain: source_chain.chain_id, observation: observation.observation_hash, scenario: input.scenario ?? "BASELINE" }).slice(0, 10).toUpperCase()}`;
   const truth_ledger_events = ledgerEvents(source_chain, violations);

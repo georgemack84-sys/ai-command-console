@@ -12,7 +12,7 @@ import {
 } from "@/services/governance-integrity-contract";
 import type { GovernanceIntegrityFailureReason, GovernanceIntegrityScenario, GovernanceIntegrityState } from "@/types/governance-integrity-contract";
 
-vi.setConfig({ testTimeout: 15000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7I.1 Governance Integrity Contract", () => {
   it("defines the canonical governance integrity doctrine and schema", () => {

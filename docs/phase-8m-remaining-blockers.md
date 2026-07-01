@@ -449,6 +449,25 @@ Remaining blockers:
 
 Next domain: Autonomy or Delegation.
 
+## Phase 8M.39 Engineering Validation
+
+Resolved blockers:
+
+- Production build trace-memory failure.
+- Production build EMFILE failure on forced Webpack path.
+- Release harness lacked bounded batch execution.
+- Release harness did not fall back after non-zero partition exits.
+- Several long-running governance suites had stale local timeout caps.
+- Governance tamper detection duplicated hash-chain validation per report.
+
+Remaining blockers:
+
+- Complete release validation from `unit-104` through the remaining partitions.
+- Confirm final classifier after validation repairs are committed.
+- Confirm clean worktree after generated telemetry is ignored.
+
+Certification state: FAIL until full release validation completes.
+
 ## Phase 8M.36 EdgeBook Foundation Bundle
 
 EdgeBook foundation committed: Phase 8M.36 isolated EdgeBook foundation commit completed.

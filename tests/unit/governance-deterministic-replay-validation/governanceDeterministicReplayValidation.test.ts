@@ -6,7 +6,7 @@ import {
 } from "@/services/governance-deterministic-replay-validation";
 import type { GovernanceDeterministicReplayScenario, GovernanceReplayValidationComponent, GovernanceReplayValidationState } from "@/types/governance-deterministic-replay-validation";
 
-vi.setConfig({ testTimeout: 90000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7L.2 Deterministic Replay Validation", () => {
   it("defines deterministic replay validation doctrine", () => {

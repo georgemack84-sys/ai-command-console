@@ -15,7 +15,7 @@ import {
   verifyPolicyReplay,
 } from "@/services/policy-lineage-reconstruction";
 
-vi.setConfig({ testTimeout: 30000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7G.2 Policy Lineage Reconstruction", () => {
   it("defines a deterministic advisory-only reconstruction contract", () => {

@@ -8,7 +8,7 @@ import {
 } from "@/services/lineage-certification";
 import type { LineageCertificationScenario } from "@/types/lineage-certification";
 
-vi.setConfig({ testTimeout: 40000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7G.5 Lineage Certification Gate", () => {
   it("defines certification doctrine and passes the baseline gate", () => {

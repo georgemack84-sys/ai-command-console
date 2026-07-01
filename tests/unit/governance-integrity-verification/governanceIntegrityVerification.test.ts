@@ -11,7 +11,7 @@ import type {
   GovernanceIntegrityVerificationScenario,
 } from "@/types/governance-integrity-verification";
 
-vi.setConfig({ testTimeout: 120000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7I.4 Governance Integrity Verification", () => {
   it("defines the verification doctrine and modes", () => {

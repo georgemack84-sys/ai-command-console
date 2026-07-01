@@ -18,7 +18,7 @@
     "worker:jobs": "tsx scripts/job-worker.ts",
     "startup:check": "tsx scripts/startup-governor.ts",
     "check:no-google-font-fetch": "node -e \"const fs=require('fs');const path=require('path');const roots=['app','src'].filter((dir)=>fs.existsSync(dir));const bad=[];const walk=(dir)=>{for(const entry of fs.readdirSync(dir,{withFileTypes:true})){if(entry.name==='node_modules'||entry.name==='.next') continue;const full=path.join(dir,entry.name);if(entry.isDirectory()) walk(full); else if(/\\.(t|j)sx?$/.test(entry.name)&&fs.readFileSync(full,'utf8').includes('next/font/google')) bad.push(full);}};roots.forEach(walk);if(bad.length){console.error('next/font/google imports found:\\n'+bad.join('\\n'));process.exit(1);}\"",
-    "build": "node scripts/run-next.cjs build --webpack",
+    "build": "node scripts/run-next.cjs build",
     "build:debug-prerender": "node node_modules/next/dist/bin/next build --webpack --debug-prerender",
     "start": "node scripts/run-next.cjs start",
     "start:standalone": "node scripts/run-next.cjs standalone",

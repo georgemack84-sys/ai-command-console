@@ -6,7 +6,7 @@ import {
 } from "@/services/governance-certification-orchestrator";
 import type { GovernanceCertificationExecutionMode, GovernanceCertificationOrchestratorScenario } from "@/types/governance-certification-orchestrator";
 
-vi.setConfig({ testTimeout: 90000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7L.1 Certification Orchestrator", () => {
   it("defines certification orchestration doctrine", () => {

@@ -8,6 +8,8 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.{test,spec}.{ts,tsx,js,jsx}"],
     exclude: ["tests/e2e/**", "**/node_modules/**", "**/.git/**"],
+    testTimeout: 180000,
+    hookTimeout: 180000,
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

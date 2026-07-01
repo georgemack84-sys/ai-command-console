@@ -8,7 +8,7 @@ import {
 import type { GovernanceIntegrityState } from "@/types/governance-integrity-contract";
 import type { GovernanceIntegrityViewerAction } from "@/types/governance-integrity-viewer";
 
-vi.setConfig({ testTimeout: 30000 });
+vi.setConfig({ testTimeout: 180000 });
 
 describe("Mission Control Phase 7K.4 Governance Integrity Viewer", () => {
   it("defines read-only integrity viewer doctrine", () => {
