@@ -25,3 +25,19 @@ ai-command-console-report-*.txt
 project-files.txt
 project-report.txt
 .next-dev*.log
+
+# Local secrets and generated operating-system files
+.env
+.env.local
+.env.production
+.env.development
+apps/web/.env.local
+services/platform-api/.env
+services/api/.env
+.env.*
+!.env.example
+!.env.*.example
+!apps/web/.env.docker
+!apps/web/.env.test
+.DS_Store
+Thumbs.db

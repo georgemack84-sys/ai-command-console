@@ -1,0 +1,39 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{cs,csx}]
+indent_size = 4
+dotnet_style_namespace_match_folder = true
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+csharp_style_namespace_declarations = file_scoped:error
+
+[*.{ts,tsx,js,jsx,mjs,cjs}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{xml,csproj,props,targets}]
+indent_size = 2
+
+[Dockerfile]
+indent_size = 2
+
+[*.{sh,ps1}]
+indent_size = 2
+
+[*.ps1]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab

@@ -1,52 +1,110 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - "codex/**"
   pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  verify:
+  repository-validation:
+    name: repository-validation
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      AI_COMMAND_CONSOLE_AUTH_SECRET: ci-placeholder-secret
-      AI_COMMAND_CONSOLE_STORAGE_DRIVER: sqlite
-      AI_COMMAND_CONSOLE_DATA_ROOT: ./.codex-temp/runtime-data
-      AI_COMMAND_CONSOLE_DATABASE_PATH: ./.codex-temp/runtime-data/workspace.sqlite
-      AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH: ./.codex-temp/runtime-data/agents/console.sqlite
-      AI_COMMAND_CONSOLE_WRITE_LEGACY_JSON_MIRRORS: false
-      AI_COMMAND_CONSOLE_SECURE_COOKIES: true
-      AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS: 1209600
-
+    timeout-minutes: 15
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
+      - run: npm ci
+      - run: npm run validate:repository
 
-      - name: Install dependencies
-        run: npm ci
+  frontend-validation:
+    name: frontend-validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      NEXT_PUBLIC_APP_NAME: Proprium
+      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_API_BASE_URL: https://api.ci.example
+      NEXT_PUBLIC_ENVIRONMENT: test
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run validate
+      - run: npm run test:config-build-failure
+      - run: npm run build
 
-      - name: Run preflight
-        run: npm run preflight
+  backend-validation:
+    name: backend-validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet restore services/api/Proprium.sln
+      - run: dotnet build services/api/Proprium.sln --configuration Release --no-restore
+      - run: dotnet format services/api/Proprium.sln --verify-no-changes --no-restore
+      - run: dotnet test services/api/Proprium.sln --configuration Release --no-build --filter "Category!=Integration"
+      - run: dotnet run --project services/api/Proprium.Api --configuration Release --no-build -- --write-openapi "$RUNNER_TEMP/proprium-openapi.json"
+      - run: node scripts/validate-openapi.cjs "$RUNNER_TEMP/proprium-openapi.json"
 
-      - name: Lint
-        run: npm run lint
+  integration-validation:
+    name: integration-validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APP_NAME: Proprium
+      APP_ENVIRONMENT: Test
+      APP_VERSION: ci
+      ASPNETCORE_ENVIRONMENT: Test
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: proprium
+      POSTGRES_USER: proprium
+      POSTGRES_PASSWORD: change-me
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet restore services/api/Proprium.IntegrationTests/Proprium.IntegrationTests.csproj
+      - run: docker compose -f docker-compose.proprium.yml up --detach --wait postgres redis
+      - run: docker compose -f docker-compose.proprium.yml up --build --exit-code-from database-migrations database-migrations
+      - run: dotnet test services/api/Proprium.IntegrationTests/Proprium.IntegrationTests.csproj --configuration Release --filter "Category=Integration"
+      - if: failure()
+        run: docker compose -f docker-compose.proprium.yml logs --no-color
+      - if: always()
+        run: docker compose -f docker-compose.proprium.yml down --volumes --remove-orphans
 
-      - name: Test
-        run: npm run test:release
-
-      - name: Build
-        env:
-          NODE_ENV: production
-        run: npm run build
-
-      - name: Guard Legacy Runtime Residue
-        run: npm run check:legacy-state -- --strict
+  docker-validation:
+    name: docker-validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker compose -f docker-compose.proprium.yml up --build --detach --wait
+      - run: curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/live
+      - run: curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/ready
+      - run: curl --fail --retry 5 --retry-connrefused http://localhost:3000/health
+      - if: failure()
+        run: docker compose -f docker-compose.proprium.yml logs --no-color
+      - if: always()
+        run: docker compose -f docker-compose.proprium.yml down --volumes --remove-orphans
