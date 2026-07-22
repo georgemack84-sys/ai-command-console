@@ -1,0 +1,8 @@
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { registerArtifactRequest, requireCoordinationIntegrityUser } from "../core";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export async function POST(request: Request) {
+  try { await requireCoordinationIntegrityUser(); return apiSuccess(await registerArtifactRequest(request)); }
+  catch (error) { return apiError(error, "Unable to register coordination integrity artifact."); }
+}

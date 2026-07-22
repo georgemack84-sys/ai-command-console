@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decision.orchestration.record.schema.json",
+  "title": "Mission Control Decision Orchestration Record Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["record_id", "contract_version", "schema_version", "input", "metadata", "references", "integrity_hash"],
+  "properties": {
+    "record_id": { "type": "string", "minLength": 1 },
+    "contract_version": { "const": "1.0.0" },
+    "schema_version": { "const": "1.0.0" },
+    "input": { "$ref": "decision.input.schema.json" },
+    "output": { "$ref": "decision.output.schema.json" },
+    "metadata": { "$ref": "decision.metadata.schema.json" },
+    "references": { "type": "array", "minItems": 1, "items": { "$ref": "decision.reference.schema.json" } },
+    "integrity_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "$comment": "Record validation fails closed when input, output, metadata, references, deterministic ordering, or integrity hash cannot be verified."
+}

@@ -1,0 +1,6 @@
+{
+  "name": "@d2d/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canonical Day-to-Day Assistant design tokens for web, native, Figma, and Storybook handoff."
+}

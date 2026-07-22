@@ -28,6 +28,18 @@ const EDGE_TYPES = new Set<DecisionGraphEdge["relationshipType"]>([
   "INFLUENCED_BY",
   "ESCALATES_TO",
   "OBSERVED_BY",
+  "depends_on",
+  "blocks",
+  "conflicts_with",
+  "supersedes",
+  "supports",
+  "weakens",
+  "escalates_to",
+  "requires_operator_approval",
+  "requires_governance_review",
+  "requires_simulation",
+  "requires_recovery_plan",
+  "requires_certification",
 ]);
 
 function normalizeStrings(values: readonly string[]): string[] {
@@ -49,6 +61,26 @@ function normalizeNodeInput(node: DecisionGraphNodeInput): DecisionGraphNodeInpu
     nodeType: node.nodeType,
     tenantId: node.tenantId,
     lineageReference: node.lineageReference,
+    decisionCandidateId: node.decisionCandidateId,
+    missionId: node.missionId,
+    priority: node.priority,
+    state: node.state,
+    dependencyRefs: node.dependencyRefs,
+    conflictRefs: node.conflictRefs,
+    blockerRefs: node.blockerRefs,
+    supportingRefs: node.supportingRefs,
+    weakeningRefs: node.weakeningRefs,
+    supersessionRefs: node.supersessionRefs,
+    escalationRefs: node.escalationRefs,
+    governanceRefs: node.governanceRefs,
+    authorityRefs: node.authorityRefs,
+    simulationRefs: node.simulationRefs,
+    recoveryRefs: node.recoveryRefs,
+    certificationRefs: node.certificationRefs,
+    replayRefs: node.replayRefs,
+    sourceCandidateHash: node.sourceCandidateHash,
+    createdAt: node.createdAt,
+    updatedAt: node.updatedAt,
   });
 }
 
@@ -73,9 +105,57 @@ function sortEdges(edges: readonly DecisionGraphEdgeInput[]): DecisionGraphEdgeI
 
 function buildNode(node: DecisionGraphNodeInput): DecisionGraphNode {
   const normalized = normalizeNodeInput(node);
+  const candidateId = normalized.decisionCandidateId ?? normalized.nodeId;
+  const missionId = normalized.missionId ?? "";
+  const createdAt = normalized.createdAt ?? "";
+  const updatedAt = normalized.updatedAt ?? createdAt;
+  const sourceCandidateHash = normalized.sourceCandidateHash
+    ?? hashGraphValue("decision-graph-source-candidate", candidateId);
+  const nodeHashPayload = {
+    node_id: normalized.nodeId,
+    decision_candidate_id: candidateId,
+    tenant_id: normalized.tenantId,
+    mission_id: missionId,
+    decision_type: normalized.nodeType,
+    priority: normalized.priority ?? 0,
+    state: normalized.state ?? "CREATED",
+    dependency_refs: normalizeStrings([...(normalized.dependencyRefs ?? [])]),
+    conflict_refs: normalizeStrings([...(normalized.conflictRefs ?? [])]),
+    blocker_refs: normalizeStrings([...(normalized.blockerRefs ?? [])]),
+    supporting_refs: normalizeStrings([...(normalized.supportingRefs ?? [])]),
+    governance_refs: normalizeStrings([...(normalized.governanceRefs ?? [])]),
+    replay_refs: normalizeStrings([...(normalized.replayRefs ?? [])]),
+    source_candidate_hash: sourceCandidateHash,
+    contract_version: "decision-graph/v1",
+  };
   const immutableHash = hashGraphValue("decision-graph-node", normalized);
+  const integrityHash = hashGraphValue("decision-graph-node-integrity", nodeHashPayload);
   return Object.freeze({
     ...normalized,
+    node_id: normalized.nodeId,
+    decision_candidate_id: candidateId,
+    tenant_id: normalized.tenantId,
+    mission_id: missionId,
+    decision_type: normalized.nodeType,
+    priority: normalized.priority ?? 0,
+    state: normalized.state ?? "CREATED",
+    dependency_refs: nodeHashPayload.dependency_refs,
+    conflict_refs: nodeHashPayload.conflict_refs,
+    blocker_refs: nodeHashPayload.blocker_refs,
+    supporting_refs: nodeHashPayload.supporting_refs,
+    weakening_refs: normalizeStrings([...(normalized.weakeningRefs ?? [])]),
+    supersession_refs: normalizeStrings([...(normalized.supersessionRefs ?? [])]),
+    escalation_refs: normalizeStrings([...(normalized.escalationRefs ?? [])]),
+    governance_refs: nodeHashPayload.governance_refs,
+    authority_refs: normalizeStrings([...(normalized.authorityRefs ?? [])]),
+    simulation_refs: normalizeStrings([...(normalized.simulationRefs ?? [])]),
+    recovery_refs: normalizeStrings([...(normalized.recoveryRefs ?? [])]),
+    certification_refs: normalizeStrings([...(normalized.certificationRefs ?? [])]),
+    replay_refs: nodeHashPayload.replay_refs,
+    source_candidate_hash: sourceCandidateHash,
+    created_at: createdAt,
+    updated_at: updatedAt,
+    integrity_hash: integrityHash,
     immutableHash,
   });
 }

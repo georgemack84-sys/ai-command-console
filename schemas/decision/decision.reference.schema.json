@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decision.reference.schema.json",
+  "title": "Mission Control Decision Reference Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ref_id", "ref_type", "ref_source", "tenant_id", "mission_id", "created_at"],
+  "properties": {
+    "ref_id": { "type": "string", "minLength": 1 },
+    "ref_type": { "enum": ["INPUT", "EVIDENCE", "RISK", "CONFIDENCE", "GOVERNANCE", "CONSTITUTIONAL", "REPLAY", "LINEAGE", "RECOMMENDATION", "PLAN", "RECOVERY", "FORECAST", "MISSION_HEALTH", "CERTIFICATION", "OPERATOR_ACTION"] },
+    "ref_source": { "type": "string", "minLength": 1 },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "mission_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" },
+    "integrity_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "$comment": "References are fail-closed, tenant-scoped, mission-scoped, and sorted deterministically by ref_type then ref_id."
+}

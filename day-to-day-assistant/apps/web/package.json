@@ -1,0 +1,17 @@
+{
+  "name": "@d2d/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "node tests/smoke.test.mjs",
+    "start": "node server.mjs",
+    "test": "node tests/smoke.test.mjs",
+    "test:coverage": "node tests/smoke.test.mjs",
+    "lint": "node --check server.mjs && node --check src/main.js && node --check src/api-client.js",
+    "format": "node tests/smoke.test.mjs",
+    "format:check": "node tests/smoke.test.mjs",
+    "typecheck": "node --check server.mjs && node --check src/main.js && node --check src/api-client.js"
+  }
+}

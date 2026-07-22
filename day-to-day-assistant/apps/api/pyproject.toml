@@ -1,0 +1,12 @@
+[project]
+name = "day-to-day-assistant-api"
+version = "0.0.0"
+description = "API skeleton for Day-to-Day Assistant."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"

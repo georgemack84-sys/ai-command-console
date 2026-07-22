@@ -1,7 +1,7 @@
-import { ControlCenterHome } from "@/src/components/home/control-center-home";
+import { HeadlineApp } from "@/components/headline-flow/HeadlineApp";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  return <ControlCenterHome />;
+  return <HeadlineApp />;
 }

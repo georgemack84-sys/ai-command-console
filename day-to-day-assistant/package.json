@@ -1,0 +1,25 @@
+{
+  "name": "day-to-day-assistant",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Standalone personal assistant application foundation.",
+  "workspaces": [
+    "apps/web",
+    "packages/contracts",
+    "packages/design-tokens",
+    "packages/shared-types"
+  ],
+  "scripts": {
+    "bootstrap": "pwsh ./scripts/bootstrap/bootstrap.ps1",
+    "dev": "pwsh ./scripts/development/dev.ps1",
+    "test": "pwsh ./scripts/test/test.ps1",
+    "lint": "pwsh ./scripts/test/lint.ps1",
+    "format": "pwsh ./scripts/test/format.ps1",
+    "typecheck": "pwsh ./scripts/test/typecheck.ps1",
+    "health": "pwsh ./scripts/development/health.ps1"
+  },
+  "engines": {
+    "node": ">=20",
+    "python": ">=3.11"
+  }
+}

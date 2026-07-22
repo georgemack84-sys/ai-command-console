@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * 1"
+
+jobs:
+  repository-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: test -f README.md
+      - run: test -f CONTRIBUTING.md
+      - run: test -f SECURITY.md
+      - run: test -f CODEOWNERS
+      - run: test -f .pre-commit-config.yaml
+
+  quality-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: cp .env.example .env
+      - run: pwsh ./scripts/bootstrap/bootstrap.ps1
+      - run: pwsh ./scripts/test/format-check.ps1
+      - run: pwsh ./scripts/test/lint.ps1
+      - run: pwsh ./scripts/test/typecheck.ps1
+      - run: pwsh ./scripts/test/test.ps1
+
+  database-and-containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose config
+      - run: docker compose build api web
+      - run: docker compose up -d postgres
+      - run: docker compose ps
+
+  security-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git grep -n "BEGIN .*PRIVATE KEY" -- . ':!.git' && exit 1 || exit 0
+      - run: test ! -f .env

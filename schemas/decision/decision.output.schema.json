@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decision.output.schema.json",
+  "title": "Mission Control Decision Output Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["orchestration_id", "tenant_id", "mission_id", "decision_state", "rejected_option_refs", "deferred_option_refs", "decision_rationale_ref", "explanation_ref", "governance_result_ref", "constitutional_result_ref", "operator_action_required", "operator_approval_required", "advisory_only", "replay_refs", "lineage_refs", "integrity_hash"],
+  "properties": {
+    "orchestration_id": { "type": "string", "minLength": 1 },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "mission_id": { "type": "string", "minLength": 1 },
+    "decision_state": { "enum": ["CREATED", "VALIDATING", "EVIDENCE_READY", "GOVERNANCE_REVIEW", "CONSTITUTION_REVIEW", "AUTHORITY_VALIDATION", "READY_FOR_ORCHESTRATION", "ORCHESTRATED", "OPERATOR_VISIBLE", "APPROVED", "REJECTED", "DEFERRED", "ARCHIVED", "FAILED"] },
+    "selected_option_ref": { "$ref": "decision.reference.schema.json" },
+    "rejected_option_refs": { "type": "array", "items": { "$ref": "decision.reference.schema.json" } },
+    "deferred_option_refs": { "type": "array", "items": { "$ref": "decision.reference.schema.json" } },
+    "decision_rationale_ref": { "$ref": "decision.reference.schema.json" },
+    "explanation_ref": { "$ref": "decision.reference.schema.json" },
+    "governance_result_ref": { "$ref": "decision.reference.schema.json" },
+    "constitutional_result_ref": { "$ref": "decision.reference.schema.json" },
+    "risk_result_ref": { "$ref": "decision.reference.schema.json" },
+    "confidence_result_ref": { "$ref": "decision.reference.schema.json" },
+    "operator_action_required": { "type": "boolean" },
+    "operator_approval_required": { "type": "boolean" },
+    "advisory_only": { "const": true },
+    "replay_refs": { "type": "array", "minItems": 1, "items": { "$ref": "decision.reference.schema.json" } },
+    "lineage_refs": { "type": "array", "minItems": 1, "items": { "$ref": "decision.reference.schema.json" } },
+    "integrity_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "completed_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" }
+  },
+  "$comment": "Output must be advisory-only and reference selected, rejected, or deferred options plus governance, constitutional, replay, and lineage records."
+}

@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { requirePortfolioManagementUser, resourcesRequest } from "../core";
+
+export async function GET() { await requirePortfolioManagementUser(); return NextResponse.json(await resourcesRequest()); }
+export async function POST(request: Request) { await requirePortfolioManagementUser(); return NextResponse.json(await resourcesRequest(request)); }

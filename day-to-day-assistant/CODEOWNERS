@@ -1,0 +1,14 @@
+# Solo operating mode. Replace with team handles when real teams exist.
+* @georgemack84-sys
+
+/apps/api/ @georgemack84-sys
+/apps/web/ @georgemack84-sys
+/apps/api/migrations/ @georgemack84-sys
+/packages/contracts/ @georgemack84-sys
+/infrastructure/ @georgemack84-sys
+/.github/workflows/ @georgemack84-sys
+/docker-compose.yml @georgemack84-sys
+/.env.example @georgemack84-sys
+/docs/security/ @georgemack84-sys
+/scripts/backup/ @georgemack84-sys
+/scripts/restore/ @georgemack84-sys

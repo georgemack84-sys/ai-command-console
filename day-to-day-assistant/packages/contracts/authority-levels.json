@@ -1,0 +1,10 @@
+{
+  "levels": [
+    { "id": "A0", "name": "READ", "requiresConfirmation": false },
+    { "id": "A1", "name": "ADVISE", "requiresConfirmation": false },
+    { "id": "A2", "name": "PREPARE", "requiresConfirmation": false },
+    { "id": "A3", "name": "CONFIRMED_ACTION", "requiresConfirmation": true },
+    { "id": "A4", "name": "DELEGATED_ROUTINE", "requiresConfirmation": "predelegated" },
+    { "id": "A5", "name": "PROHIBITED", "requiresConfirmation": false }
+  ]
+}

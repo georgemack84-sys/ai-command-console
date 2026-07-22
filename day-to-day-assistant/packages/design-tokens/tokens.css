@@ -1,0 +1,34 @@
+:root {
+  --d2d-color-background-app: #020807;
+  --d2d-color-background-subtle: rgb(0 255 136 / 8%);
+  --d2d-color-surface-panel: rgb(4 17 15 / 78%);
+  --d2d-color-surface-raised: rgb(7 26 23 / 82%);
+  --d2d-color-surface-selected: rgb(0 255 136 / 16%);
+  --d2d-color-text-primary: #f4fff9;
+  --d2d-color-text-secondary: #a8b8b7;
+  --d2d-color-text-inverse: #00130d;
+  --d2d-color-border: rgb(148 255 207 / 14%);
+  --d2d-color-border-strong: rgb(148 255 207 / 28%);
+  --d2d-color-accent: #20f779;
+  --d2d-color-accent-strong: #0ecb62;
+  --d2d-color-focus: #50ffac;
+  --d2d-color-danger: #ff5f86;
+  --d2d-color-danger-surface: rgb(255 95 134 / 12%);
+  --d2d-space-1: 4px;
+  --d2d-space-2: 8px;
+  --d2d-space-3: 12px;
+  --d2d-space-4: 16px;
+  --d2d-space-5: 20px;
+  --d2d-space-6: 24px;
+  --d2d-space-8: 32px;
+  --d2d-space-10: 40px;
+  --d2d-radius-sm: 4px;
+  --d2d-radius-md: 8px;
+  --d2d-font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --d2d-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --d2d-shadow-sm: 0 12px 40px rgb(0 0 0 / 22%);
+  --d2d-shadow-md: 0 24px 80px rgb(0 0 0 / 42%);
+  --d2d-motion-fast: 120ms;
+  --d2d-motion-base: 180ms;
+  --d2d-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}

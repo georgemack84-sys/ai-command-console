@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { evidenceRequest, requireOperatorDashboardUser } from "../core";
+
+export async function GET() { await requireOperatorDashboardUser(); return NextResponse.json(await evidenceRequest()); }
+export async function POST(request: Request) { await requireOperatorDashboardUser(); return NextResponse.json(await evidenceRequest(request)); }

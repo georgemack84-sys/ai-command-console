@@ -1,0 +1,35 @@
+export type ContinuousOperationsFoundationOutcome = "PASS" | "CONDITIONAL_PASS" | "FAIL";
+export type OperationsLifecycleState = "REGISTERED" | "INITIALIZING" | "QUALIFIED" | "ACTIVE" | "DEGRADED" | "SUSPENDED" | "RECOVERING" | "REQUALIFYING" | "RETIRED";
+export type StandingServiceCategory = "GOVERNANCE" | "CERTIFICATION" | "OBSERVABILITY" | "AUDIT" | "REPLAY" | "INTEGRITY" | "SECURITY" | "OPERATIONAL_HEALTH";
+export type ContinuousOperationsFoundationFailure =
+  | "LIFECYCLE_NOT_DETERMINISTIC"
+  | "GOVERNANCE_NOT_ENFORCED"
+  | "STANDING_SERVICES_NOT_DEFINED"
+  | "CERTIFICATION_INHERITANCE_NOT_VALIDATED"
+  | "OPERATIONAL_IDENTITY_MUTABLE"
+  | "REPLAY_REQUIREMENTS_INCOMPLETE"
+  | "OPERATIONAL_AUDIT_INCOMPLETE"
+  | "CONSTITUTIONAL_AUTHORITY_NOT_PRESERVED"
+  | "CONTINUOUS_OPERATIONS_FOUNDATION_NOT_CERTIFIED"
+  | "GOVERNANCE_PAUSES_DURING_RECOVERY"
+  | "IMPLICIT_AUTHORITY_PRESENT"
+  | "CERTIFICATION_INHERITANCE_EXPANDS_AUTHORITY"
+  | "PHASE_17_GATE_NOT_VALID"
+  | "NON_CONSTITUTIONAL_OPERATIONS_WARNING";
+export type ContinuousOperationsFoundationScenario = "BASELINE" | ContinuousOperationsFoundationFailure;
+export type ContinuousOperationsFoundationInput = Readonly<{ scenario?: ContinuousOperationsFoundationScenario; tenant_id?: string; operator_id?: string; mission_id?: string; service_id?: string; platform_instance?: string }>;
+
+export type OperationalIdentity = Readonly<{ operation_id: string; service_id: string; service_type: StandingServiceCategory; platform_instance: string; tenant_scope: string; operational_version: string; certification_reference: string; governance_reference: string; replay_reference: string; immutable: boolean; integrity_hash: string }>;
+export type OperationalStateRegistry = Readonly<{ registry_id: string; lifecycle_state: OperationsLifecycleState; operational_status: string; qualification_status: string; certification_status: string; health_summary: string; dependency_status: string; governance_status: string; replay_status: string; deterministic_transitions: boolean; integrity_hash: string }>;
+export type OperationalAuthorityRegistry = Readonly<{ registry_id: string; governance_authority: string; operator_authority: string; certification_authority: string; operational_ownership: string; escalation_authority: string; recovery_authority: string; explicit_authority: boolean; inferred_authority: boolean; integrity_hash: string }>;
+export type StandingConstitutionalServiceRegistry = Readonly<{ registry_id: string; categories: readonly StandingServiceCategory[]; service_refs: readonly string[]; ownership_defined: boolean; performs_execution: boolean; fail_closed: boolean; integrity_hash: string }>;
+export type CertificationInheritanceContract = Readonly<{ contract_id: string; certification_lineage_preserved: boolean; certification_scope_preserved: boolean; certification_validity_preserved: boolean; dependency_certification_preserved: boolean; operational_qualification_preserved: boolean; expands_constitutional_authority: boolean; validates_without_replacing_decisions: boolean; integrity_hash: string }>;
+export type OperationalReplayContract = Readonly<{ replay_id: string; lifecycle_transitions_replayable: boolean; governance_decisions_replayable: boolean; operational_events_replayable: boolean; certification_events_replayable: boolean; recovery_events_replayable: boolean; requalification_events_replayable: boolean; state_mutations_replayable: boolean; dependency_changes_replayable: boolean; identical_operational_outcomes: boolean; replay_refs: readonly string[]; integrity_hash: string }>;
+export type OperationalAuditContract = Readonly<{ audit_id: string; operational_identity_recorded: boolean; lifecycle_transition_recorded: boolean; governance_decision_recorded: boolean; operator_action_recorded: boolean; certification_event_recorded: boolean; recovery_activity_recorded: boolean; replay_reference_recorded: boolean; integrity_verification_recorded: boolean; append_only: boolean; immutable: boolean; integrity_hash: string }>;
+export type ContinuousGovernanceRules = Readonly<{ rules_id: string; governance_continuously_active: boolean; active_during_degraded_operation: boolean; active_during_recovery: boolean; active_during_requalification: boolean; active_during_suspension: boolean; no_lifecycle_state_bypasses_governance: boolean; constitutional_authority_preserved: boolean; integrity_hash: string }>;
+export type ContinuousOperationsCertificationPackage = Readonly<{ package_id: string; lifecycle_deterministic: boolean; governance_enforced: boolean; standing_services_defined: boolean; certification_inheritance_validated: boolean; operational_identity_immutable: boolean; replay_requirements_complete: boolean; operational_audit_complete: boolean; constitutional_authority_preserved: boolean; continuous_operations_foundation_certified: boolean; evidence_refs: readonly string[]; integrity_hash: string }>;
+export type ContinuousOperationsFoundationTest = Readonly<{ test_id: string; name: string; expected: "PASS"; actual: ContinuousOperationsFoundationOutcome; passed: boolean; failure_reason: ContinuousOperationsFoundationFailure | null; evidence_refs: readonly string[]; integrity_hash: string }>;
+
+export type ContinuousOperationsFoundationResult = Readonly<{ phase_version: "continuous-operations-foundation/v18.1"; phase_identifier: "ContinuousOperationsFoundation"; phase_17_certification_gate_ref: string; operational_identity: OperationalIdentity; state_registry: OperationalStateRegistry; authority_registry: OperationalAuthorityRegistry; standing_service_registry: StandingConstitutionalServiceRegistry; certification_inheritance: CertificationInheritanceContract; replay_contract: OperationalReplayContract; audit_contract: OperationalAuditContract; governance_rules: ContinuousGovernanceRules; certification_package: ContinuousOperationsCertificationPackage; certification_tests: readonly ContinuousOperationsFoundationTest[]; failures: readonly ContinuousOperationsFoundationFailure[]; outcome: ContinuousOperationsFoundationOutcome; replay_hash: string; integrity_hash: string }>;
+export type ContinuousOperationsFoundationValidation = Readonly<{ valid: boolean; outcome: ContinuousOperationsFoundationOutcome; identity_valid: boolean; state_valid: boolean; authority_valid: boolean; services_valid: boolean; inheritance_valid: boolean; replay_valid: boolean; audit_valid: boolean; governance_valid: boolean; certification_package_valid: boolean; certification_valid: boolean; result_replay_valid: boolean; failures: readonly ContinuousOperationsFoundationFailure[]; integrity_hash: string }>;
+export type ContinuousOperationsFoundationBundle = Readonly<{ doctrine: Readonly<{ version: "continuous-operations-foundation/v18.1"; upstream_phase: "phase-17-certification-gate/v17.12"; lifecycle_states: readonly OperationsLifecycleState[]; standing_service_categories: readonly StandingServiceCategory[]; certification_outcomes: readonly ContinuousOperationsFoundationOutcome[] }>; result: ContinuousOperationsFoundationResult; validation: ContinuousOperationsFoundationValidation }>;

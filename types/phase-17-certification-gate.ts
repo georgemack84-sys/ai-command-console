@@ -1,0 +1,41 @@
+export type Phase17CertificationGateOutcome = "PASS" | "CONDITIONAL_PASS" | "FAIL";
+export type Phase17CertificationDomain = "MULTI_TENANT_PRODUCTION" | "TENANT_LIFECYCLE" | "REGIONAL_GOVERNANCE" | "RESOURCE_GOVERNANCE" | "GLOBAL_DISTRIBUTION" | "REPLICATION" | "SCALABILITY" | "OBSERVABILITY" | "CONTINUOUS_CERTIFICATION" | "OPERATIONAL_RESILIENCE";
+export type Phase17DecisionPipelineStage = "EVIDENCE_COLLECTION" | "EVIDENCE_INTEGRITY_VALIDATION" | "REPLAY_VALIDATION" | "GOVERNANCE_VALIDATION" | "TENANT_ISOLATION_VALIDATION" | "REGIONAL_CONSISTENCY_VALIDATION" | "RESILIENCE_VALIDATION" | "RECOVERY_VALIDATION" | "POST_RECOVERY_REQUALIFICATION_VALIDATION" | "CERTIFICATION_DECISION";
+export type Phase17CertificationArtifact = "CERTIFICATION_REPORT" | "CERTIFICATION_DECISION" | "EVIDENCE_MANIFEST" | "REPLAY_VALIDATION_REPORT" | "REGIONAL_CONSISTENCY_REPORT" | "TENANT_ISOLATION_REPORT" | "RECOVERY_VALIDATION_REPORT" | "REQUALIFICATION_REPORT" | "CERTIFICATION_LINEAGE_MANIFEST" | "IMMUTABLE_AUDIT_PACKAGE";
+export type Phase17CertificationGateFailure =
+  | "MULTI_TENANT_PRODUCTION_ARCHITECTURE_NOT_VALIDATED"
+  | "TENANT_LIFECYCLE_GOVERNANCE_NOT_VALIDATED"
+  | "REGIONAL_ASSIGNMENT_CONFLICT_RESOLUTION_NOT_DETERMINISTIC"
+  | "RESOURCE_SCHEDULING_TENANT_ISOLATION_NOT_PRESERVED"
+  | "GLOBAL_WORKLOAD_DISTRIBUTION_NOT_REPLAYABLE"
+  | "CONTINUOUS_CERTIFICATION_NOT_OPERATIONAL"
+  | "FAILURE_CONTAINMENT_RECOVERY_REQUALIFICATION_NOT_VALIDATED"
+  | "PRODUCTION_SCALE_NOT_CERTIFIED"
+  | "TENANT_ISOLATION_NOT_VERIFIED_AT_SCALE"
+  | "GLOBAL_REPLAY_NOT_DETERMINISTIC"
+  | "GOVERNANCE_NOT_PRESERVED"
+  | "FAILURE_CONTAINMENT_NOT_VALIDATED"
+  | "DETERMINISTIC_RECOVERY_NOT_VERIFIED"
+  | "POST_RECOVERY_REQUALIFICATION_INCOMPLETE"
+  | "PLATFORM_NOT_APPROVED_FOR_ECOSYSTEM_PRODUCTION"
+  | "UNRESOLVED_DIVERGENCE_PRESENT"
+  | "CERTIFICATION_LINEAGE_CORRUPTED"
+  | "PHASE_17_11_RESILIENCE_NOT_VALID"
+  | "NON_CONSTITUTIONAL_PHASE_17_WARNING";
+export type Phase17CertificationGateScenario = "BASELINE" | Phase17CertificationGateFailure;
+export type Phase17CertificationGateInput = Readonly<{ scenario?: Phase17CertificationGateScenario; tenant_id?: string; operator_id?: string; mission_id?: string; approval_scope?: string }>;
+
+export type Phase17CertificationEngine = Readonly<{ engine_id: string; domains: readonly Phase17CertificationDomain[]; deterministic_rule_evaluation: boolean; complete_certification_required: boolean; unresolved_divergence_blocks: boolean; production_approval_authority: boolean; integrity_hash: string }>;
+export type ProductionScaleCertificationFramework = Readonly<{ framework_id: string; production_scale_certified: boolean; tenant_isolation_at_scale: boolean; global_replay_deterministic: boolean; governance_preserved: boolean; workload_distribution_certified: boolean; resource_governance_certified: boolean; regional_consistency_certified: boolean; scalability_certified: boolean; observability_certified: boolean; integrity_hash: string }>;
+export type CertificationEvidenceAggregator = Readonly<{ aggregator_id: string; required_evidence: readonly string[]; evidence_manifest: readonly string[]; evidence_integrity_validated: boolean; immutable_audit_verified: boolean; lineage_validated: boolean; unresolved_evidence: readonly string[]; integrity_hash: string }>;
+export type CertificationDecisionService = Readonly<{ service_id: string; pipeline: readonly Phase17DecisionPipelineStage[]; replay_validated: boolean; governance_validated: boolean; tenant_isolation_validated: boolean; regional_consistency_validated: boolean; resilience_validated: boolean; recovery_validated: boolean; requalification_validated: boolean; deterministic_decision: boolean; decision: Phase17CertificationGateOutcome; integrity_hash: string }>;
+export type CertificationLineageRegistry = Readonly<{ registry_id: string; artifacts: readonly Phase17CertificationArtifact[]; lineage_refs: readonly string[]; additive_only: boolean; immutable: boolean; no_corruption_detected: boolean; integrity_hash: string }>;
+export type Phase17CertificationLedgerEntry = Readonly<{ ledger_entry_id: string; sequence: number; stage: Phase17DecisionPipelineStage; evidence_ref: string; decision_ref: string; lineage_ref: string; replay_ref: string; governance_ref: string; append_only: boolean; immutable: boolean; integrity_hash: string }>;
+export type FinalProductionApprovalReport = Readonly<{ report_id: string; approval_scope: string; outcome: Phase17CertificationGateOutcome; production_deployment_authorized: boolean; restrictions: readonly string[]; certification_artifacts: readonly Phase17CertificationArtifact[]; approval_evidence_refs: readonly string[]; integrity_hash: string }>;
+export type Phase17CertificationDashboard = Readonly<{ dashboard_id: string; production_scale_visible: boolean; tenant_isolation_visible: boolean; replay_status_visible: boolean; governance_status_visible: boolean; regional_consistency_visible: boolean; resilience_status_visible: boolean; recovery_status_visible: boolean; requalification_status_visible: boolean; approval_status_visible: boolean; integrity_hash: string }>;
+export type Phase17CertificationPackage = Readonly<{ package_id: string; multi_tenant_production_architecture_validated: boolean; tenant_lifecycle_governance_validated: boolean; regional_assignment_conflict_resolution_deterministic: boolean; resource_scheduling_tenant_isolation_preserved: boolean; global_workload_distribution_replayable: boolean; continuous_certification_operational: boolean; failure_containment_recovery_requalification_validated: boolean; production_scale_certified: boolean; tenant_isolation_verified_at_scale: boolean; replay_deterministic_globally: boolean; governance_preserved: boolean; failure_containment_validated: boolean; deterministic_recovery_verified: boolean; post_recovery_requalification_complete: boolean; platform_approved_for_ecosystem_scale_multi_tenant_production_deployment: boolean; certification_lineage_immutable: boolean; evidence_refs: readonly string[]; integrity_hash: string }>;
+export type Phase17CertificationGateTest = Readonly<{ test_id: string; name: string; expected: "PASS"; actual: Phase17CertificationGateOutcome; passed: boolean; failure_reason: Phase17CertificationGateFailure | null; evidence_refs: readonly string[]; integrity_hash: string }>;
+
+export type Phase17CertificationGateResult = Readonly<{ phase_version: "phase-17-certification-gate/v17.12"; phase_identifier: "Phase17CertificationGate"; operational_resilience_recovery_governance_ref: string; certification_engine: Phase17CertificationEngine; production_scale_framework: ProductionScaleCertificationFramework; evidence_aggregator: CertificationEvidenceAggregator; decision_service: CertificationDecisionService; dashboard: Phase17CertificationDashboard; certification_ledger: readonly Phase17CertificationLedgerEntry[]; lineage_registry: CertificationLineageRegistry; approval_report: FinalProductionApprovalReport; certification_package: Phase17CertificationPackage; certification_tests: readonly Phase17CertificationGateTest[]; failures: readonly Phase17CertificationGateFailure[]; outcome: Phase17CertificationGateOutcome; replay_hash: string; integrity_hash: string }>;
+export type Phase17CertificationGateValidation = Readonly<{ valid: boolean; outcome: Phase17CertificationGateOutcome; engine_valid: boolean; framework_valid: boolean; evidence_valid: boolean; decision_valid: boolean; dashboard_valid: boolean; ledger_valid: boolean; lineage_valid: boolean; approval_valid: boolean; certification_package_valid: boolean; certification_valid: boolean; result_replay_valid: boolean; failures: readonly Phase17CertificationGateFailure[]; integrity_hash: string }>;
+export type Phase17CertificationGateBundle = Readonly<{ doctrine: Readonly<{ version: "phase-17-certification-gate/v17.12"; upstream_phase: "operational-resilience-recovery-governance/v17.11"; domains: readonly Phase17CertificationDomain[]; pipeline_stages: readonly Phase17DecisionPipelineStage[]; artifacts: readonly Phase17CertificationArtifact[]; certification_outcomes: readonly Phase17CertificationGateOutcome[] }>; result: Phase17CertificationGateResult; validation: Phase17CertificationGateValidation }>;

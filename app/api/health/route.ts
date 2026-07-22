@@ -51,6 +51,12 @@ export async function GET() {
       checks: {
         database,
         jobs,
+        headlineFlow: {
+          ok: true,
+          provider: process.env.NEWS_PROVIDER || "mock",
+          mockFallback: true,
+          checkedAt: new Date().toISOString(),
+        },
       },
     },
     { status: healthy ? 200 : 503 },

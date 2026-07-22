@@ -1,0 +1,6 @@
+{
+  "name": "@d2d/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module"
+}

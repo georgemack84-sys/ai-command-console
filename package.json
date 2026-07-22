@@ -42,6 +42,7 @@
     "validate:repository": "node scripts/validate-repository.cjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "typecheck:headline-flow": "tsc --noEmit --project tsconfig.headline-flow.json",
     "test:unit": "vitest run --config vitest.config.mjs --coverage",
     "test:release": "node scripts/test-release.cjs",
     "test:legacy": "npm run test:legacy:console",

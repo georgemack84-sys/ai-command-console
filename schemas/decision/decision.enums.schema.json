@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decision.enums.schema.json",
+  "title": "Mission Control Decision Enum Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "decision_type": { "enum": ["PLAN_SELECTION", "RECOMMENDATION_SELECTION", "RISK_RESPONSE", "RECOVERY_OPTION", "GOVERNANCE_ESCALATION", "POLICY_CONFLICT", "MISSION_HEALTH_ACTION", "FORECAST_RESPONSE", "OPERATOR_INTERVENTION", "CERTIFICATION_DECISION", "CONTINUATION_DECISION", "DEFERRAL_DECISION"] },
+    "decision_priority": { "enum": ["LOW", "NORMAL", "HIGH", "CRITICAL", "BLOCKING"] },
+    "decision_state": { "enum": ["CREATED", "VALIDATING", "EVIDENCE_READY", "GOVERNANCE_REVIEW", "CONSTITUTION_REVIEW", "AUTHORITY_VALIDATION", "READY_FOR_ORCHESTRATION", "ORCHESTRATED", "OPERATOR_VISIBLE", "APPROVED", "REJECTED", "DEFERRED", "ARCHIVED", "FAILED"] },
+    "validation_status": { "enum": ["UNVALIDATED", "VALID", "INVALID", "CONDITIONAL_VALID", "FAILED_CLOSED"] },
+    "ref_type": { "enum": ["INPUT", "EVIDENCE", "RISK", "CONFIDENCE", "GOVERNANCE", "CONSTITUTIONAL", "REPLAY", "LINEAGE", "RECOMMENDATION", "PLAN", "RECOVERY", "FORECAST", "MISSION_HEALTH", "CERTIFICATION", "OPERATOR_ACTION"] }
+  }
+}

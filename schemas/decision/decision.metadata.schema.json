@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decision.metadata.schema.json",
+  "title": "Mission Control Decision Metadata Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "schema_version", "schema_name", "tenant_scope", "mission_scope", "source_component", "source_phase", "lifecycle_state", "validation_status", "created_by", "created_at", "deterministic_serialization_version", "integrity_algorithm"],
+  "properties": {
+    "contract_version": { "const": "1.0.0" },
+    "schema_version": { "const": "1.0.0" },
+    "schema_name": { "enum": ["decision.input", "decision.output", "decision.metadata", "decision.reference", "decision.orchestration.record"] },
+    "tenant_scope": { "type": "string", "minLength": 1 },
+    "mission_scope": { "type": "string", "minLength": 1 },
+    "source_component": { "type": "string", "minLength": 1 },
+    "source_phase": { "const": "9.1.2" },
+    "lifecycle_state": { "enum": ["CREATED", "VALIDATING", "EVIDENCE_READY", "GOVERNANCE_REVIEW", "CONSTITUTION_REVIEW", "AUTHORITY_VALIDATION", "READY_FOR_ORCHESTRATION", "ORCHESTRATED", "OPERATOR_VISIBLE", "APPROVED", "REJECTED", "DEFERRED", "ARCHIVED", "FAILED"] },
+    "validation_status": { "enum": ["UNVALIDATED", "VALID", "INVALID", "CONDITIONAL_VALID", "FAILED_CLOSED"] },
+    "created_by": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" },
+    "updated_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" },
+    "deterministic_serialization_version": { "const": "decision-schema-canonical-json/v1" },
+    "integrity_algorithm": { "const": "SHA-256" },
+    "extension_namespace": { "type": "string", "minLength": 1 }
+  }
+}

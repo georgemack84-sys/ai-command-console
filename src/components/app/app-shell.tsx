@@ -93,6 +93,11 @@ const pageMeta: Array<{
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
   const { user, logout, authLoading } = useAppSession();
+  const isHeadlineFlowRoute = pathname === "/" || pathname === "/settings" || pathname === "/saved";
+
+  if (isHeadlineFlowRoute) {
+    return <>{children}</>;
+  }
 
   const meta = pageMeta.find((item) => item.match(pathname)) ?? pageMeta[0];
   const visiblePrimaryNavItems = primaryNavItems.filter((item) => !item.protected || user);

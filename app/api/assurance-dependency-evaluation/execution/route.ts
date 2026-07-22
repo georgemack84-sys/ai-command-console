@@ -1,0 +1,5 @@
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { executionRequest, requireAssuranceDependencyUser } from "../core";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET() { try { await requireAssuranceDependencyUser(); return apiSuccess(await executionRequest()); } catch (error) { return apiError(error, "Unable to inspect assurance execution records."); } }
+export async function POST(request: Request) { try { await requireAssuranceDependencyUser(); return apiSuccess(await executionRequest(request)); } catch (error) { return apiError(error, "Unable to inspect assurance execution records."); } }

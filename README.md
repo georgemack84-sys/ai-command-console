@@ -442,3 +442,98 @@ If browser tests fail on signup, health, or readiness, run `npm run dev:doctor` 
 - expand workspace sharing and multi-workspace membership controls
 - add request tracing and external log/metrics sinks
 - broaden Playwright coverage for authenticated desktop and mobile flows
+# Headline Flow
+
+Headline Flow is a responsive visual news slideshow: **watch the news, one story at a time.** It presents a single normalized headline in a split-screen card with a large visual, source metadata, category controls, playback controls, keyboard shortcuts, saved stories, hidden stories, and a display mode for televisions or Raspberry Pi kiosks.
+
+## Features
+
+- Next.js App Router, TypeScript, React, Tailwind CSS, Zod validation, server API routes, local storage preferences, Vitest unit/integration tests, and Playwright browser tests.
+- `/` renders the primary slideshow, `/settings` manages local display/content preferences, `/saved` shows locally saved stories, `/api/headlines` returns normalized headline records, and `/api/health` includes Headline Flow health metadata.
+- The default provider is `mock`, so the app starts without credentials. `NEWS_PROVIDER=web-search` enables public web-news search; `NEWS_PROVIDER=rss` enables the RSS adapter; `NEWS_PROVIDERS=web-search,rss,newsapi,gnews,guardian` enables multi-provider aggregation with configured providers.
+- Images render in the visual panel when available. Missing or broken images immediately fall back to a professional category visual using text labels, geometric structure, and category-specific symbols.
+- Keyboard shortcuts: Left/Right for previous/next, Space for play/pause, `F` for display mode, Escape to leave display mode, `S` to save, and `H` to hide.
+
+## Local Setup
+
+1. Install dependencies with `npm install`.
+2. Copy `.env.example` to `.env` and keep `NEWS_PROVIDER=mock` for credential-free local use.
+3. Run `npm run dev`.
+4. Open `http://localhost:3000/?category=top` or `http://localhost:3000/?mode=display&category=top&autoplay=true`.
+
+## Environment Variables
+
+- `NEWS_PROVIDER`: `mock` by default, or `web-search`, `rss`, `newsapi`, `gnews`, `guardian`.
+- `NEWS_PROVIDERS`: comma-separated aggregation list such as `web-search,rss,newsapi,gnews,guardian`. Use `web-search` alone for an article-first slideshow.
+- `WEB_NEWS_SEARCH_BASE_URL`: public web-news search endpoint, defaulting to Bing News RSS search so result links usually target publisher articles.
+- `WEB_NEWS_SEARCH_TIMEOUT_MS`: timeout for the public web-news search provider.
+- `WEB_NEWS_MAX_AGE_HOURS`: freshness window for current-event article search, defaulting to 48 hours.
+- `NEWS_RSS_FEEDS`: comma-separated RSS feed URLs for the RSS adapter.
+- `NEWS_API_KEY` and `NEWS_API_BASE_URL`: reserved for future provider adapters; secrets stay server-side.
+- `GNEWS_API_KEY` and `GNEWS_API_BASE_URL`: optional GNews provider credentials.
+- `GUARDIAN_API_KEY` and `GUARDIAN_API_BASE_URL`: optional Guardian provider credentials.
+- `NEWS_PROVIDER_TIMEOUT_MS`: timeout for external provider requests.
+- `NEWS_CACHE_TTL_MS`: short-lived provider aggregation cache duration.
+- `HEADLINE_FLOW_CIVITAS_ENABLED`: enables Civitas mode metadata.
+- `HEADLINE_FLOW_CAF_ENABLED`: enables CAF flags while using local agents until external CAF is injected.
+- `HEADLINE_FLOW_TRUST_ENABLED`: enables local story trust evaluation and UI trust badges.
+- `HEADLINE_FLOW_PROVING_ENABLED`: controls proving evidence and replay metadata.
+- `HEADLINE_FLOW_DISPLAY_PROFILE`: `desktop`, `tablet`, `phone`, `tv`, `kiosk`, `raspberry-pi`, `command-center`, or `mission-control`.
+
+## Architecture
+
+The request flow is: provider registry -> configured provider aggregation -> server-side adapters -> normalization -> Zod validation -> duplicate detection -> deterministic ranking -> `/api/headlines` -> Headline slideshow UI. The browser never receives private provider credentials. Shared headline types live in `types/headline.ts`; news services live under `lib/news`; local persistence helpers live under `lib/storage`; reusable UI lives under `components/headline-flow`; slideshow state lives in `hooks/useHeadlineSlideshow.ts`.
+
+To add another provider, implement the `NewsProvider` interface in `lib/news/providers`, map its raw records into `RawNewsStory`, and register it in `createNewsProvider`. Keep credentials in environment variables and let normalization reject unsafe URLs or malformed stories.
+
+Provider health is available at `/api/news/providers`. It reports mock, web search, RSS, NewsAPI, GNews, Guardian, and cache status.
+
+The News Discovery Agent prompt and local provider-backed implementation live under `lib/news/discovery`. `/api/news/discovery` returns normalized discovery results with source attribution, image/fallback mode, tags, scores, and a reason-selected explanation. In `web-search` mode it performs query-driven public web-news discovery through the configured search provider, then validates and normalizes results before they reach the slideshow.
+
+The Visual Synchronization Agent lives under `lib/news/visual`. It validates publisher-provided images, rejects unreachable or misleading visuals, assigns `ARTICLE_IMAGE` or `CATEGORY_FALLBACK`, records a visual quality score, and explains why a visual was selected. `/api/news/visual-sync` exposes the reusable prompt/agent metadata.
+
+- `VISUAL_SYNC_TIMEOUT_MS`: timeout for publisher article metadata/image discovery, defaulting to 5000ms.
+
+## Civitas Integration Layer
+
+Headline Flow includes a Civitas Integration Layer under `lib/civitas`. It is a local, dependency-injected abstraction for Programs 1-6 and runs in standalone mock mode when Civitas services are unavailable.
+
+- Program 1: capability registry for ingestion, normalization, duplicate detection, ranking, image resolution, visual rendering, presentation, saved stories, category channels, source reputation, trust, recommendations, briefing, breaking news, and alerts.
+- Program 2: configuration and feature-flag surfaces for identity, configuration, messaging, registry, storage, logging, metrics, observability, health, audit, secrets, scheduler, and notifications.
+- Program 3: CAF agent interfaces with local agents for collection, RSS, breaking news, classification, dedupe, image selection, ranking, summaries, recommendations, briefings, trends, personalization, and alerts.
+- Program 4: application metadata service with identity, manifest, registry entry, version status, evidence, certification, deployment lineage, health, operations, and runtime metadata.
+- Program 5: optional trust evaluation. Enable it with `HEADLINE_FLOW_TRUST_ENABLED=true`; the UI displays trust standing, confidence, explanation, and history.
+- Program 6: proving evidence, replay identifiers, immutable internal events, and telemetry for major workflows.
+
+The internal operations dashboard is available at `/civitas`, and machine-readable status is available at `/api/civitas/status`.
+
+## Testing And Production
+
+- Unit/integration tests: `npm run test:unit`
+- Browser tests: `npm run test:e2e -- playwright/headline-flow.spec.ts`
+- Production build: `npm run build`
+- Start production server: `npm run start`
+
+## Deployment
+
+Deploy like a standard Next.js application. Configure server-side environment variables in the hosting provider, leave `NEWS_PROVIDER=mock` for demos, or set `NEWS_PROVIDER=rss` plus `NEWS_RSS_FEEDS` for live RSS feeds. Do not expose API keys in `NEXT_PUBLIC_*` variables.
+
+## Raspberry Pi Kiosk Mode
+
+Install Node.js LTS on the Pi, install dependencies, run `npm run build`, then start the app with `npm run start`. Open Chromium with a display URL such as:
+
+```text
+http://localhost:3000/?mode=display&category=top&autoplay=true
+```
+
+A typical kiosk launch command is:
+
+```bash
+chromium-browser --kiosk --noerrdialogs --disable-infobars http://localhost:3000/?mode=display&category=top&autoplay=true
+```
+
+For boot launch, create a user-level systemd service or desktop autostart entry that starts the production server, then launches Chromium after the server is reachable. Keep the device on a private network; this MVP does not require public internet exposure except for external feeds and remote images. If the app restarts, reload the same display-mode URL.
+
+## MVP Limitations
+
+Saved and hidden stories are local to one browser. The mock provider uses clearly labeled sample stories that are not current factual reporting. RSS image extraction is conservative. Database storage, authentication, AI summaries, remote device control, and richer provider adapters are intentionally left as clean next steps.
