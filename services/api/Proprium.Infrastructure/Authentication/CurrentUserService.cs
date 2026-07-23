@@ -15,6 +15,6 @@ public sealed class CurrentUserService(ISessionService sessions, PropriumDbConte
             .Select(assignment => assignment.Role.Name).Distinct().OrderBy(name => name).ToArrayAsync(cancellationToken);
         var permissions = await database.UserRoles.AsNoTracking().Where(assignment => assignment.UserId == userId)
             .SelectMany(assignment => assignment.Role.Permissions.Select(mapping => mapping.Permission.Key)).Distinct().OrderBy(key => key).ToArrayAsync(cancellationToken);
-        return new CurrentUser(userId, result.User.Username, result.User.Username, roles, permissions);
+        return new CurrentUser(userId, result.User.Username, result.User.DisplayName, roles, permissions);
     }
 }

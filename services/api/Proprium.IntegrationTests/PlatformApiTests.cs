@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Proprium.Contracts.V1;
 using Xunit;
@@ -44,5 +45,21 @@ public sealed class PlatformApiTests(WebApplicationFactory<Program> factory) : I
         var response = await factory.CreateClient().GetAsync("/openapi/v1.json");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("/api/v1/health/live", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Authentication_openapi_contract_has_no_success_body_for_login_or_logout()
+    {
+        var response = await factory.CreateClient().GetAsync("/openapi/v1.json");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var paths = document.RootElement.GetProperty("paths");
+        foreach (var route in new[] { "/api/v1/auth/login", "/api/v1/auth/logout" })
+        {
+            var success = paths.GetProperty(route).GetProperty("post").GetProperty("responses").GetProperty("204");
+            Assert.False(success.TryGetProperty("content", out _));
+        }
+
+        var currentUser = paths.GetProperty("/api/v1/auth/me").GetProperty("get").GetProperty("responses").GetProperty("200");
+        Assert.True(currentUser.TryGetProperty("content", out _));
     }
 }

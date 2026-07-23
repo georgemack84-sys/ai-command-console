@@ -33,6 +33,7 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
             entity.HasKey(user => user.Id);
             entity.Property(user => user.Username).HasMaxLength(256).IsRequired();
             entity.Property(user => user.NormalizedUsername).HasMaxLength(256).IsRequired();
+            entity.Property(user => user.DisplayName).HasMaxLength(256).IsRequired();
             entity.Property(user => user.PasswordHash).HasMaxLength(1024).IsRequired();
             entity.Property(user => user.SecurityVersion).HasDefaultValue(1L).IsConcurrencyToken();
             entity.HasIndex(user => user.NormalizedUsername).IsUnique();
