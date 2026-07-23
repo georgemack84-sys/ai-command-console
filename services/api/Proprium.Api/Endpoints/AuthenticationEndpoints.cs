@@ -3,6 +3,7 @@ using Proprium.Api.Middleware;
 using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
+using Proprium.Domain.Identity;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -44,7 +45,7 @@ public static class AuthenticationEndpoints
         }).WithName("GetCurrentUser").WithSummary("Return the authenticated current user.")
             .WithDescription("The session cookie is the authentication mechanism. The response contains only the approved identity, role, and permission fields.")
             .Produces<CurrentUserResponse>().Produces(StatusCodes.Status401Unauthorized)
-            .RequirePermission("identity.profile.read-self");
+            .RequirePermission(PermissionCatalog.Identity.ProfileReadSelf);
 
         auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
