@@ -55,18 +55,18 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
             var role = new Role { Name = $"Zeta-{Guid.NewGuid():N}", NormalizedName = $"ZETA-{Guid.NewGuid():N}" };
             var secondRole = new Role { Name = $"alpha-{Guid.NewGuid():N}", NormalizedName = $"ALPHA-{Guid.NewGuid():N}" };
-            var permission = new Permission { Key = $"z.permission.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
-            var secondPermission = new Permission { Key = $"a.permission.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
+            var profilePermission = await database.Permissions.SingleAsync(item => item.Key == "identity.profile.read-self");
+            var userReadPermission = await database.Permissions.SingleAsync(item => item.Key == "identity.user.read");
+            var roleReadPermission = await database.Permissions.SingleAsync(item => item.Key == "identity.role.read");
             database.AddRange(
                 user,
                 role,
                 secondRole,
-                permission,
-                secondPermission,
                 new UserRole { User = user, Role = role },
                 new UserRole { User = user, Role = secondRole },
-                new RolePermission { Role = role, Permission = permission },
-                new RolePermission { Role = secondRole, Permission = secondPermission });
+                new RolePermission { Role = role, Permission = userReadPermission },
+                new RolePermission { Role = role, Permission = profilePermission },
+                new RolePermission { Role = secondRole, Permission = roleReadPermission });
             await database.SaveChangesAsync();
         }
 
@@ -85,7 +85,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         Assert.Equal(username, payload?.Username);
         Assert.Equal("Integration Test User", payload?.DisplayName);
         Assert.Equal(new[] { "Zeta", "alph" }, (payload?.Roles ?? []).Select(value => value[..4]).ToArray());
-        Assert.Equal(new[] { "a.permission", "z.permission" }, (payload?.Permissions ?? []).Select(value => value[..12]).ToArray());
+        Assert.Equal(new[] { "identity.profile.read-self", "identity.role.read", "identity.user.read" }, payload?.Permissions);
 
         var logout = await client.PostAsync("/api/v1/auth/logout", null);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);

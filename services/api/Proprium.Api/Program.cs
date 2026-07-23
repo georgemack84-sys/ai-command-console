@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Writers;
 using System.Text.Json;
@@ -8,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Proprium.Api.Configuration;
 using Proprium.Api.Endpoints;
 using Proprium.Api.Middleware;
+using Proprium.Api.Security;
 using Proprium.Infrastructure;
 using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
@@ -97,10 +100,14 @@ builder.Services.AddOptions<PropriumSessionOptions>().Configure(options =>
 }, "SESSION_TOKEN_DIGEST_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
 builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddPropriumInfrastructure();
-builder.Services.AddSingleton<ISystemClock, SystemClock>();
+builder.Services.AddSingleton<Proprium.Infrastructure.ISystemClock, Proprium.Infrastructure.SystemClock>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AuthenticationCookiePolicy>();
 builder.Services.AddSingleton<AuthenticationRequestPolicy>();
+builder.Services.AddAuthentication(PropriumSessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, PropriumSessionAuthenticationHandler>(PropriumSessionAuthenticationHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddOptions<PlatformOptions>().Bind(builder.Configuration.GetSection(PlatformOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" }));
@@ -161,6 +168,8 @@ app.Use(async (context, next) =>
 });
 if (app.Environment.IsDevelopment()) app.UseSwaggerUI();
 app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapPlatformEndpoints();
 app.Run();
 
