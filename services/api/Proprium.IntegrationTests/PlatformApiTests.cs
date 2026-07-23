@@ -61,5 +61,8 @@ public sealed class PlatformApiTests(WebApplicationFactory<Program> factory) : I
 
         var currentUser = paths.GetProperty("/api/v1/auth/me").GetProperty("get").GetProperty("responses").GetProperty("200");
         Assert.True(currentUser.TryGetProperty("content", out _));
+
+        var loginResponses = paths.GetProperty("/api/v1/auth/login").GetProperty("post").GetProperty("responses");
+        Assert.True(loginResponses.TryGetProperty("429", out _));
     }
 }

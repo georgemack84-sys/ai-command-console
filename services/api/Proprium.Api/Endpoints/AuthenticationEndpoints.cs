@@ -35,7 +35,7 @@ public static class AuthenticationEndpoints
             return Results.NoContent();
         }).WithName("Login").WithSummary("Create an authenticated server-side session.")
             .WithDescription("Accepts credentials and returns 204 with the opaque session only in the HttpOnly cookie. Credential rejection is always 401.")
-            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status429TooManyRequests).Produces(StatusCodes.Status400BadRequest);
 
         auth.MapGet("/me", (HttpContext context) =>
         {
