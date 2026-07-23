@@ -27,6 +27,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISecurityVersionInvalidator, SecurityVersionInvalidator>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IUserPasswordHasher, UserPasswordHasher>();
+        services.AddSingleton<ISessionTokenGenerator>(provider => new SessionTokenGenerator(provider.GetRequiredService<IOptions<SessionOptions>>().Value.GetTokenDigestKey()));
+        services.AddScoped<ISessionRepository, PostgresSessionRepository>();
+        services.AddScoped<ISessionService, PostgresSessionService>();
+        services.AddScoped<IAuthenticationService, PostgresAuthenticationService>();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<LocalAdministratorInitializer>();
         return services;
     }

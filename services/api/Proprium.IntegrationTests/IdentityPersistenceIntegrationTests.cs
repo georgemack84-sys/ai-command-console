@@ -99,7 +99,7 @@ public sealed class IdentityPersistenceIntegrationTests
             setup.AuthenticationEvents.Add(new AuthenticationEvent
             {
                 Id = eventId,
-                EventType = AuthenticationEventType.SignInFailed,
+                EventType = AuthenticationEventType.LoginFailed,
                 Outcome = AuthenticationEventOutcome.Failure,
                 CorrelationId = "correlation-original",
                 ReasonCode = "invalid-credentials"
