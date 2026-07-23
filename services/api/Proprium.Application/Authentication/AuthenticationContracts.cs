@@ -65,5 +65,5 @@ public sealed record CurrentUser(Guid UserId, string Username, string DisplayNam
 
 public interface ICurrentUserService
 {
-    Task<CurrentUser?> ResolveAsync(RawSessionToken rawToken, CancellationToken cancellationToken = default);
+    Task<CurrentUser?> ResolveAsync(RawSessionToken rawToken, string correlationId, CancellationToken cancellationToken = default);
 }

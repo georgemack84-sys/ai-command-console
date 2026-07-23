@@ -24,10 +24,10 @@ public sealed class PostgresSessionService(ISessionRepository repository, ISessi
         {
             var session = await repository.FindByTokenHashAsync(tokenGenerator.Hash(rawToken), cancellationToken);
             if (session is null) return new SessionValidationResult(SessionValidationOutcome.Missing);
-            if (session.ExpiresAtUtc <= timeProvider.GetUtcNow()) return new SessionValidationResult(SessionValidationOutcome.Expired);
-            if (session.RevokedAtUtc is not null) return new SessionValidationResult(SessionValidationOutcome.Revoked);
-            if (!session.User.IsActive) return new SessionValidationResult(SessionValidationOutcome.DisabledUser);
-            if (session.SecurityVersionSnapshot != session.User.SecurityVersion) return new SessionValidationResult(SessionValidationOutcome.SecurityVersionMismatch);
+            if (session.ExpiresAtUtc <= timeProvider.GetUtcNow()) return Rejected(SessionValidationOutcome.Expired, session);
+            if (session.RevokedAtUtc is not null) return Rejected(SessionValidationOutcome.Revoked, session);
+            if (!session.User.IsActive) return Rejected(SessionValidationOutcome.DisabledUser, session);
+            if (session.SecurityVersionSnapshot != session.User.SecurityVersion) return Rejected(SessionValidationOutcome.SecurityVersionMismatch, session);
             return new SessionValidationResult(SessionValidationOutcome.Valid, session.User, session);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
@@ -55,4 +55,6 @@ public sealed class PostgresSessionService(ISessionRepository repository, ISessi
         if (string.IsNullOrWhiteSpace(reasonCode)) throw new ArgumentException("A revocation reason is required.", nameof(reasonCode));
         return reasonCode.Trim().ToLowerInvariant();
     }
+
+    private static SessionValidationResult Rejected(SessionValidationOutcome outcome, Session session) => new(outcome, session.User, session);
 }

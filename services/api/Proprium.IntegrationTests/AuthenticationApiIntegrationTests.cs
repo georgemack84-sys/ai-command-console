@@ -8,7 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Proprium.Contracts.V1;
+using Proprium.Application.Authentication;
 using Proprium.Domain.Identity;
+using Proprium.Infrastructure.Authentication;
 using Proprium.Infrastructure.Persistence;
 using Xunit;
 
@@ -17,6 +19,17 @@ namespace Proprium.IntegrationTests;
 [Trait("Category", "Integration")]
 public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
+    private sealed class RehashConflictPasswordHasher(Action onRehash) : IUserPasswordHasher
+    {
+        public string Hash(User user, string password)
+        {
+            onRehash();
+            return "replacement-hash";
+        }
+
+        public PasswordVerificationOutcome Verify(User user, string storedHash, string password) => PasswordVerificationOutcome.SuccessRehashNeeded;
+    }
+
     private HttpClient CreateAuthenticationClient(bool handleCookies = false)
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
@@ -40,9 +53,20 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         {
             var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant(), DisplayName = "Integration Test User" };
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
-            var role = new Role { Name = $"role-{Guid.NewGuid():N}", NormalizedName = $"ROLE-{Guid.NewGuid():N}" };
-            var permission = new Permission { Key = $"test.auth.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
-            database.AddRange(user, role, permission, new UserRole { User = user, Role = role }, new RolePermission { Role = role, Permission = permission });
+            var role = new Role { Name = $"Zeta-{Guid.NewGuid():N}", NormalizedName = $"ZETA-{Guid.NewGuid():N}" };
+            var secondRole = new Role { Name = $"alpha-{Guid.NewGuid():N}", NormalizedName = $"ALPHA-{Guid.NewGuid():N}" };
+            var permission = new Permission { Key = $"z.permission.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
+            var secondPermission = new Permission { Key = $"a.permission.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
+            database.AddRange(
+                user,
+                role,
+                secondRole,
+                permission,
+                secondPermission,
+                new UserRole { User = user, Role = role },
+                new UserRole { User = user, Role = secondRole },
+                new RolePermission { Role = role, Permission = permission },
+                new RolePermission { Role = secondRole, Permission = secondPermission });
             await database.SaveChangesAsync();
         }
 
@@ -52,6 +76,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         Assert.Equal(0, login.Content.Headers.ContentLength ?? 0);
         Assert.Equal("no-store", login.Headers.CacheControl?.ToString());
         Assert.Contains(login.Headers.GetValues("Set-Cookie"), value => value.StartsWith("proprium_session=", StringComparison.Ordinal) && value.Contains("httponly", StringComparison.OrdinalIgnoreCase) && value.Contains("samesite=lax", StringComparison.OrdinalIgnoreCase));
+        var issuedCookie = login.Headers.GetValues("Set-Cookie").Single(value => value.StartsWith("proprium_session=", StringComparison.Ordinal)).Split(';')[0];
 
         var current = await client.GetAsync("/api/v1/auth/me");
         Assert.Equal(HttpStatusCode.OK, current.StatusCode);
@@ -59,14 +84,17 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var payload = await current.Content.ReadFromJsonAsync<CurrentUserResponse>();
         Assert.Equal(username, payload?.Username);
         Assert.Equal("Integration Test User", payload?.DisplayName);
-        Assert.Single(payload?.Roles ?? []);
-        Assert.Single(payload?.Permissions ?? []);
+        Assert.Equal(new[] { "Zeta", "alph" }, (payload?.Roles ?? []).Select(value => value[..4]).ToArray());
+        Assert.Equal(new[] { "a.permission", "z.permission" }, (payload?.Permissions ?? []).Select(value => value[..12]).ToArray());
 
         var logout = await client.PostAsync("/api/v1/auth/logout", null);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
         Assert.Equal("no-store", logout.Headers.CacheControl?.ToString());
         Assert.Contains(logout.Headers.GetValues("Set-Cookie"), value => value.StartsWith("proprium_session=", StringComparison.Ordinal));
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+        var replay = factory.CreateClient();
+        replay.DefaultRequestHeaders.Add("Cookie", issuedCookie);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await replay.GetAsync("/api/v1/auth/me")).StatusCode);
 
         await using var evidence = CreateContext();
         var eventTypes = await evidence.AuthenticationEvents.Where(item => item.NormalizedUsername == username.ToUpperInvariant() || item.User!.NormalizedUsername == username.ToUpperInvariant()).Select(item => item.EventType).ToArrayAsync();
@@ -74,6 +102,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         Assert.Contains(AuthenticationEventType.SessionCreated, eventTypes);
         Assert.Contains(AuthenticationEventType.Logout, eventTypes);
         Assert.Contains(AuthenticationEventType.SessionRevoked, eventTypes);
+        Assert.Contains(AuthenticationEventType.SessionRejected, eventTypes);
     }
 
     [Fact]
@@ -118,6 +147,34 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var userAfterLogin = await verification.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
         Assert.Equal(PasswordVerificationResult.Success, new PasswordHasher<User>().VerifyHashedPassword(userAfterLogin, userAfterLogin.PasswordHash, password));
         Assert.True(await verification.Sessions.AnyAsync(session => session.UserId == userAfterLogin.Id));
+    }
+
+    [Fact]
+    public async Task Rehash_concurrency_failure_rolls_back_session_and_authentication_events()
+    {
+        var username = $"rehash-conflict-{Guid.NewGuid():N}";
+        await using var database = CreateContext();
+        var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant(), DisplayName = "Rehash Conflict", PasswordHash = "outdated-hash" };
+        database.Users.Add(user);
+        await database.SaveChangesAsync();
+
+        var service = new PostgresAuthenticationService(
+            database,
+            new RehashConflictPasswordHasher(() =>
+            {
+                using var concurrent = CreateContext();
+                concurrent.Users.Where(item => item.Id == user.Id).ExecuteUpdate(setters => setters.SetProperty(item => item.SecurityVersion, item => item.SecurityVersion + 1));
+            }),
+            new SessionTokenGenerator(Enumerable.Range(0, 32).Select(item => (byte)item).ToArray()),
+            Options.Create(new Proprium.Infrastructure.Configuration.SessionOptions { TokenDigestKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", LifetimeMinutes = 480 }),
+            TimeProvider.System);
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => service.LoginAsync(new LoginAttempt(username, "correct-password", Guid.NewGuid().ToString("N"))));
+
+        await using var verification = CreateContext();
+        Assert.False(await verification.Sessions.AnyAsync(session => session.UserId == user.Id));
+        Assert.False(await verification.AuthenticationEvents.AnyAsync(item => item.UserId == user.Id));
+        Assert.Equal("outdated-hash", await verification.Users.Where(item => item.Id == user.Id).Select(item => item.PasswordHash).SingleAsync());
     }
 
     [Fact]

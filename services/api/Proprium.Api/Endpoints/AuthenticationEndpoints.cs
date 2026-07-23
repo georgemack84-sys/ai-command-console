@@ -28,7 +28,7 @@ public static class AuthenticationEndpoints
         {
             SetNoStore(context);
             if (!context.Request.Cookies.TryGetValue(cookies.Name, out var token) || string.IsNullOrWhiteSpace(token)) return Results.Unauthorized();
-            var user = await currentUser.ResolveAsync(new RawSessionToken(token), cancellationToken);
+            var user = await currentUser.ResolveAsync(new RawSessionToken(token), context.TraceIdentifier, cancellationToken);
             return user is null ? Results.Unauthorized() : Results.Ok(new CurrentUserResponse(user.UserId, user.Username, user.DisplayName, user.Roles, user.Permissions));
         }).WithName("GetCurrentUser").WithSummary("Return the authenticated current user.")
             .WithDescription("The session cookie is the authentication mechanism. The response contains only the approved identity, role, and permission fields.")
