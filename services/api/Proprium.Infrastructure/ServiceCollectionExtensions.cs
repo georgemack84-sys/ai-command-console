@@ -10,6 +10,8 @@ using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
 using Proprium.Infrastructure.Retry;
 using Proprium.Application.Identity;
+using Proprium.Application.Authentication;
+using Proprium.Infrastructure.Authentication;
 using StackExchange.Redis;
 
 namespace Proprium.Infrastructure;
@@ -24,6 +26,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRetryExecutor, RetryExecutor>();
         services.AddScoped<ISecurityVersionInvalidator, SecurityVersionInvalidator>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddScoped<IUserPasswordHasher, UserPasswordHasher>();
         services.AddScoped<LocalAdministratorInitializer>();
         return services;
     }
