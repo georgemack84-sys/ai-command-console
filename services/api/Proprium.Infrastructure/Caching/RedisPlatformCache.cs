@@ -13,7 +13,11 @@ public sealed class RedisPlatformCache(IConnectionMultiplexer connection) : IPla
         {
             var value = await _database.StringGetAsync(key).WaitAsync(cancellationToken);
             if (!value.HasValue) return CacheReadResult<T>.Failure(CacheOperationStatus.Miss);
-            try { return CacheReadResult<T>.Success(JsonSerializer.Deserialize<T>(value!)!); }
+            try
+            {
+                var deserialized = JsonSerializer.Deserialize<T>(value!);
+                return deserialized is null ? CacheReadResult<T>.Failure(CacheOperationStatus.SerializationFailure) : CacheReadResult<T>.Success(deserialized);
+            }
             catch (JsonException) { return CacheReadResult<T>.Failure(CacheOperationStatus.SerializationFailure); }
         }
         catch (OperationCanceledException) { return CacheReadResult<T>.Failure(CacheOperationStatus.Cancelled); }
