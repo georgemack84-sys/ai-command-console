@@ -1,9 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Persistence;
@@ -35,7 +38,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var password = "correct-password";
         await using (var database = CreateContext())
         {
-            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant(), DisplayName = "Integration Test User" };
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
             var role = new Role { Name = $"role-{Guid.NewGuid():N}", NormalizedName = $"ROLE-{Guid.NewGuid():N}" };
             var permission = new Permission { Key = $"test.auth.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
@@ -47,17 +50,21 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var login = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password));
         Assert.Equal(HttpStatusCode.NoContent, login.StatusCode);
         Assert.Equal(0, login.Content.Headers.ContentLength ?? 0);
+        Assert.Equal("no-store", login.Headers.CacheControl?.ToString());
         Assert.Contains(login.Headers.GetValues("Set-Cookie"), value => value.StartsWith("proprium_session=", StringComparison.Ordinal) && value.Contains("httponly", StringComparison.OrdinalIgnoreCase) && value.Contains("samesite=lax", StringComparison.OrdinalIgnoreCase));
 
         var current = await client.GetAsync("/api/v1/auth/me");
         Assert.Equal(HttpStatusCode.OK, current.StatusCode);
+        Assert.Equal("no-store", current.Headers.CacheControl?.ToString());
         var payload = await current.Content.ReadFromJsonAsync<CurrentUserResponse>();
         Assert.Equal(username, payload?.Username);
+        Assert.Equal("Integration Test User", payload?.DisplayName);
         Assert.Single(payload?.Roles ?? []);
         Assert.Single(payload?.Permissions ?? []);
 
         var logout = await client.PostAsync("/api/v1/auth/logout", null);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+        Assert.Equal("no-store", logout.Headers.CacheControl?.ToString());
         Assert.Contains(logout.Headers.GetValues("Set-Cookie"), value => value.StartsWith("proprium_session=", StringComparison.Ordinal));
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
 
@@ -123,5 +130,39 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         wrongOrigin.DefaultRequestHeaders.Add("Origin", "https://untrusted.example");
         wrongOrigin.DefaultRequestHeaders.Add("X-Proprium-CSRF", "test");
         Assert.Equal(HttpStatusCode.BadRequest, (await wrongOrigin.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_rejects_unknown_json_members()
+    {
+        var client = CreateAuthenticationClient();
+        using var content = new StringContent("{\"username\":\"any-user\",\"password\":\"any-password\",\"unexpected\":true}", Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/api/v1/auth/login", content);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+    }
+
+    [Fact]
+    public async Task Login_correctness_does_not_depend_on_redis()
+    {
+        var username = $"redis-independent-{Guid.NewGuid():N}";
+        const string password = "correct-password";
+        await using (var database = CreateContext())
+        {
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
+            database.Users.Add(user);
+            await database.SaveChangesAsync();
+        }
+
+        await using var unavailableRedisFactory = factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["REDIS_HOST"] = "redis-unavailable.invalid",
+            ["REDIS_PORT"] = "6379"
+        })));
+        var client = unavailableRedisFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "integration-test-csrf");
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
     }
 }

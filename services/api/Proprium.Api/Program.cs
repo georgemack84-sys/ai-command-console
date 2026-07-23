@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Writers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Proprium.Api.Configuration;
@@ -65,6 +66,8 @@ if (openApiOutput is not null)
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
 builder.Services.AddProblemDetails();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+    options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddHealthChecks()
     .AddCheck<PostgresReadinessHealthCheck>("postgres", tags: ["ready"])
@@ -151,6 +154,11 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/v1/auth")) context.Response.Headers.CacheControl = "no-store";
+    await next();
+});
 if (app.Environment.IsDevelopment()) app.UseSwaggerUI();
 app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
 app.MapPlatformEndpoints();

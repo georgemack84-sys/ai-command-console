@@ -14,7 +14,7 @@ public sealed class LocalAdministratorInitializer(PropriumDbContext database, IP
         var user = await database.Users.SingleOrDefaultAsync(item => item.NormalizedUsername == normalized, cancellationToken);
         if (user is null)
         {
-            user = new User { Username = username.Trim(), NormalizedUsername = normalized };
+            user = new User { Username = username.Trim(), NormalizedUsername = normalized, DisplayName = username.Trim() };
             user.PasswordHash = passwordHasher.HashPassword(user, password);
             database.Users.Add(user);
         }
