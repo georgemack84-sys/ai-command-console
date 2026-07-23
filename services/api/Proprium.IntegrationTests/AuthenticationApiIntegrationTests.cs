@@ -14,6 +14,14 @@ namespace Proprium.IntegrationTests;
 [Trait("Category", "Integration")]
 public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
+    private HttpClient CreateAuthenticationClient(bool handleCookies = false)
+    {
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "integration-test-csrf");
+        return client;
+    }
+
     private static PropriumDbContext CreateContext()
     {
         var connection = $"Host={Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost"};Port={Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "55432"};Database={Environment.GetEnvironmentVariable("POSTGRES_DATABASE") ?? "proprium"};Username={Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "proprium"};Password={Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "change-me"}";
@@ -35,7 +43,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             await database.SaveChangesAsync();
         }
 
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        var client = CreateAuthenticationClient(handleCookies: true);
         var login = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password));
         Assert.Equal(HttpStatusCode.NoContent, login.StatusCode);
         Assert.Equal(0, login.Content.Headers.ContentLength ?? 0);
@@ -52,6 +60,13 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
         Assert.Contains(logout.Headers.GetValues("Set-Cookie"), value => value.StartsWith("proprium_session=", StringComparison.Ordinal));
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+
+        await using var evidence = CreateContext();
+        var eventTypes = await evidence.AuthenticationEvents.Where(item => item.NormalizedUsername == username.ToUpperInvariant() || item.User!.NormalizedUsername == username.ToUpperInvariant()).Select(item => item.EventType).ToArrayAsync();
+        Assert.Contains(AuthenticationEventType.LoginSucceeded, eventTypes);
+        Assert.Contains(AuthenticationEventType.SessionCreated, eventTypes);
+        Assert.Contains(AuthenticationEventType.Logout, eventTypes);
+        Assert.Contains(AuthenticationEventType.SessionRevoked, eventTypes);
     }
 
     [Fact]
@@ -67,7 +82,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             await database.SaveChangesAsync();
         }
 
-        var client = factory.CreateClient();
+        var client = CreateAuthenticationClient();
         var unknown = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest($"unknown-{Guid.NewGuid():N}", password));
         var disabled = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(disabledUsername, password));
         Assert.Equal(HttpStatusCode.Unauthorized, unknown.StatusCode);
@@ -89,12 +104,24 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             await database.SaveChangesAsync();
         }
 
-        var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password));
+        var response = await CreateAuthenticationClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password));
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         await using var verification = CreateContext();
         var userAfterLogin = await verification.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
         Assert.Equal(PasswordVerificationResult.Success, new PasswordHasher<User>().VerifyHashedPassword(userAfterLogin, userAfterLogin.PasswordHash, password));
         Assert.True(await verification.Sessions.AnyAsync(session => session.UserId == userAfterLogin.Id));
+    }
+
+    [Fact]
+    public async Task Login_rejects_missing_or_invalid_origin_and_csrf_headers()
+    {
+        var request = new LoginRequest("any-user", "any-password");
+        Assert.Equal(HttpStatusCode.BadRequest, (await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+
+        var wrongOrigin = factory.CreateClient();
+        wrongOrigin.DefaultRequestHeaders.Add("Origin", "https://untrusted.example");
+        wrongOrigin.DefaultRequestHeaders.Add("X-Proprium-CSRF", "test");
+        Assert.Equal(HttpStatusCode.BadRequest, (await wrongOrigin.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
     }
 }
