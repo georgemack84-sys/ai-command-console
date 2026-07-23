@@ -41,3 +41,5 @@ services/api/.env
 !apps/web/.env.test
 .DS_Store
 Thumbs.db
+**/bin/
+**/obj/

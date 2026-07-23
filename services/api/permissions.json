@@ -1,0 +1,52 @@
+[
+  {
+    "key": "application.authenticated.access",
+    "description": "Access authenticated application functionality.",
+    "capabilityGroup": "application"
+  },
+  {
+    "key": "identity.authentication-event.read",
+    "description": "Read authentication events administratively.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.permission.read",
+    "description": "Read permissions administratively.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.profile.read-self",
+    "description": "Read the current user\u0027s profile.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.role-assignment.manage",
+    "description": "Manage user role assignments.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.role-permission.manage",
+    "description": "Manage role permission assignments.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.role.read",
+    "description": "Read roles administratively.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.session.manage-self",
+    "description": "Manage the current user\u0027s sessions.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.user.manage",
+    "description": "Manage users administratively.",
+    "capabilityGroup": "identity"
+  },
+  {
+    "key": "identity.user.read",
+    "description": "Read users administratively.",
+    "capabilityGroup": "identity"
+  }
+]

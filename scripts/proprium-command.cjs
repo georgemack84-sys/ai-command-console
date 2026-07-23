@@ -70,8 +70,11 @@ async function main() {
     case 'health':
       await checkHealth();
       return;
+    case 'export-permissions':
+      run('dotnet', ['run', '--project', 'services/api/Proprium.Api', '--', '--export-permissions', '../permissions.json']);
+      return;
     case 'help':
-      console.log('Commands: bootstrap, dev, stop, build, test, lint, format, migrate, reset-db, health');
+      console.log('Commands: bootstrap, dev, stop, build, test, lint, format, migrate, reset-db, health, export-permissions');
       console.log('Use make <command> or .\\scripts\\proprium.ps1 <command>. reset-db requires --force outside Make.');
       return;
     default:

@@ -1,12 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Identity;
+using Proprium.Domain.Identity;
 using Proprium.Application.Caching;
 using Proprium.Application.Retry;
 using Proprium.Infrastructure.Caching;
 using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
 using Proprium.Infrastructure.Retry;
+using Proprium.Application.Identity;
 using StackExchange.Redis;
 
 namespace Proprium.Infrastructure;
@@ -19,6 +22,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IConnectionMultiplexer>(provider => ConnectionMultiplexer.Connect(provider.GetRequiredService<IOptions<RedisOptions>>().Value.ConnectionString));
         services.AddSingleton<IPlatformCache, RedisPlatformCache>();
         services.AddScoped<IRetryExecutor, RetryExecutor>();
+        services.AddScoped<ISecurityVersionInvalidator, SecurityVersionInvalidator>();
+        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddScoped<LocalAdministratorInitializer>();
         return services;
     }
 }
