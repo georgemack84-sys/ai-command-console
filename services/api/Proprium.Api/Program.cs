@@ -120,6 +120,7 @@ builder.Services.AddSingleton<AuthenticationCookiePolicy>();
 builder.Services.AddSingleton<OriginValidator>();
 builder.Services.AddSingleton<CsrfHeaderValidator>();
 builder.Services.AddSingleton<AuthenticationRequestPolicy>();
+builder.Services.AddSingleton<ILoginSourceResolver, DirectLoginSourceResolver>();
 builder.Services.AddCors(options => options.AddPolicy("PropriumOrigins", policy => policy
     .WithOrigins(OriginValidator.Normalize(builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty))
     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")

@@ -11,10 +11,10 @@ public static class AuthenticationEndpoints
     public static RouteGroupBuilder MapAuthenticationEndpoints(this RouteGroupBuilder v1)
     {
         var auth = v1.MapGroup("/auth").WithTags("Authentication");
-        auth.MapPost("/login", async (LoginRequest request, HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, CancellationToken cancellationToken) =>
+        auth.MapPost("/login", async (LoginRequest request, HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", request.Username), cancellationToken);
+            var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(sources.Resolve(context.Connection.RemoteIpAddress), request.Username), cancellationToken);
             if (rateLimit.IsExceeded) { context.Response.Headers.RetryAfter = rateLimit.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return Results.StatusCode(StatusCodes.Status429TooManyRequests); }
             if (!requestPolicy.IsAllowed(context.Request)) return Results.StatusCode(StatusCodes.Status403Forbidden);
             if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 256 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
