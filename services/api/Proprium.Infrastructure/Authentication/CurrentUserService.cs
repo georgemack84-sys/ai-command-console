@@ -19,7 +19,7 @@ public sealed class CurrentUserService(ISessionService sessions, PropriumDbConte
                 result.User?.Id,
                 result.Session?.Id,
                 result.User?.NormalizedUsername,
-                ReasonCode(result.Outcome)));
+                SessionRejectionReason.From(result.Outcome)));
             await database.SaveChangesAsync(cancellationToken);
             return null;
         }
@@ -35,16 +35,4 @@ public sealed class CurrentUserService(ISessionService sessions, PropriumDbConte
             roles.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
             permissions.OrderBy(key => key, StringComparer.Ordinal).ToArray());
     }
-
-    private static string ReasonCode(SessionValidationOutcome outcome) => outcome switch
-    {
-        SessionValidationOutcome.Malformed => "malformed-token",
-        SessionValidationOutcome.Missing => "missing-session",
-        SessionValidationOutcome.Expired => "expired-session",
-        SessionValidationOutcome.Revoked => "revoked-session",
-        SessionValidationOutcome.DisabledUser => "disabled-user",
-        SessionValidationOutcome.SecurityVersionMismatch => "security-version-mismatch",
-        SessionValidationOutcome.Unavailable => "authoritative-storage-unavailable",
-        _ => "unknown-rejection"
-    };
 }
