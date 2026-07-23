@@ -154,6 +154,20 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Duplicate_session_cookie_is_rejected_and_records_safe_evidence()
+    {
+        await using var before = CreateContext();
+        var countBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.SessionRejected && item.ReasonCode == "malformed-token" && item.UserId == null && item.SessionId == null);
+
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("Cookie", "proprium_session=first; proprium_session=second");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+
+        await using var after = CreateContext();
+        Assert.Equal(countBefore + 1, await after.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.SessionRejected && item.ReasonCode == "malformed-token" && item.UserId == null && item.SessionId == null));
+    }
+
+    [Fact]
     public async Task Login_upgrades_an_outdated_password_hash_before_issuing_a_session()
     {
         var username = $"rehash-{Guid.NewGuid():N}";
