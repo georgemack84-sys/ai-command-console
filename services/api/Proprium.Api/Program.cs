@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Writers;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Proprium.Api.Configuration;
@@ -10,6 +11,7 @@ using Proprium.Infrastructure;
 using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
 using Proprium.Infrastructure.Health;
+using Proprium.Domain.Identity;
 using Swashbuckle.AspNetCore.Swagger;
 
 if (args.Contains("--health-probe", StringComparer.Ordinal))
@@ -26,6 +28,16 @@ if (args.Contains("--health-probe", StringComparer.Ordinal))
         Environment.ExitCode = 1;
     }
 
+    return;
+}
+
+var permissionExport = args.SkipWhile(argument => argument != "--export-permissions").Skip(1).FirstOrDefault();
+if (permissionExport is not null)
+{
+    var directory = Path.GetDirectoryName(Path.GetFullPath(permissionExport));
+    if (directory is not null) Directory.CreateDirectory(directory);
+    var options = new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    await File.WriteAllTextAsync(permissionExport, JsonSerializer.Serialize(PermissionCatalog.All, options) + "\n");
     return;
 }
 
@@ -106,6 +118,15 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
     {
         database.PlatformMetadata.Add(new() { Key = "platform", Value = "Proprium" });
         await database.SaveChangesAsync();
+    }
+    await AuthorizationSeeder.SeedAsync(database);
+    var localAdminEnabled = bool.TryParse(builder.Configuration["LOCAL_ADMIN_ENABLED"], out var enabled) && enabled;
+    LocalAdministratorPolicy.EnsurePermitted(localAdminEnabled, app.Environment.IsDevelopment());
+    if (localAdminEnabled)
+    {
+        var username = builder.Configuration["LOCAL_ADMIN_USERNAME"];
+        var password = builder.Configuration["LOCAL_ADMIN_PASSWORD"];
+        await scope.ServiceProvider.GetRequiredService<LocalAdministratorInitializer>().InitializeAsync(username ?? string.Empty, password ?? string.Empty);
     }
     return;
 }

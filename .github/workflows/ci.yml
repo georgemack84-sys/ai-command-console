@@ -64,6 +64,8 @@ jobs:
       - run: dotnet build services/api/Proprium.sln --configuration Release --no-restore
       - run: dotnet format services/api/Proprium.sln --verify-no-changes --no-restore
       - run: dotnet test services/api/Proprium.sln --configuration Release --no-build --filter "Category!=Integration"
+      - run: dotnet run --project services/api/Proprium.Api --configuration Release --no-build -- --export-permissions ../permissions.json
+      - run: git diff --exit-code -- services/api/permissions.json
       - run: dotnet run --project services/api/Proprium.Api --configuration Release --no-build -- --write-openapi "$RUNNER_TEMP/proprium-openapi.json"
       - run: node scripts/validate-openapi.cjs "$RUNNER_TEMP/proprium-openapi.json"
 
@@ -77,7 +79,7 @@ jobs:
       APP_VERSION: ci
       ASPNETCORE_ENVIRONMENT: Test
       POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5432
+      POSTGRES_PORT: 55432
       POSTGRES_DATABASE: proprium
       POSTGRES_USER: proprium
       POSTGRES_PASSWORD: change-me

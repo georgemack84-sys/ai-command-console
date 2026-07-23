@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Proprium.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Proprium.Infrastructure.Persistence;
 namespace Proprium.Infrastructure.Persistence
 {
     [DbContext(typeof(PropriumDbContext))]
-    partial class PropriumDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723035303_Week3IdentityFoundation")]
+    partial class Week3IdentityFoundation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -210,10 +213,7 @@ namespace Proprium.Infrastructure.Persistence
 
                     b.HasIndex("UserId", "RevokedAtUtc", "ExpiresAtUtc");
 
-                    b.ToTable("sessions", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_sessions_security_version_snapshot", "\"SecurityVersionSnapshot\" > 0");
-                        });
+                    b.ToTable("sessions", (string)null);
                 });
 
             modelBuilder.Entity("Proprium.Domain.Identity.User", b =>
