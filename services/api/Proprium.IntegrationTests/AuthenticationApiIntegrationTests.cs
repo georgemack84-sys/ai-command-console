@@ -277,6 +277,54 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Login_credential_rejection_precedes_success()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = precedenceFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest($"unknown-{Guid.NewGuid():N}", "bad-password"))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Role_permission_change_rejects_an_existing_session()
+    {
+        var username = $"permission-change-{Guid.NewGuid():N}";
+        const string password = "correct-password";
+        Guid roleId;
+        await using (var database = CreateContext())
+        {
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
+            var role = new Role { Name = $"role-{Guid.NewGuid():N}", NormalizedName = $"ROLE-{Guid.NewGuid():N}" };
+            var profilePermission = await database.Permissions.SingleAsync(item => item.Key == "identity.profile.read-self");
+            database.AddRange(user, role, new UserRole { User = user, Role = role }, new RolePermission { Role = role, Permission = profilePermission });
+            await database.SaveChangesAsync();
+            roleId = role.Id;
+        }
+
+        await using var permissiveFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = permissiveFactory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+        await using (var mutation = CreateContext())
+        {
+            await new SecurityVersionInvalidator(mutation).ReplaceRolePermissionsAsync(roleId, []);
+        }
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+    }
+
+    [Fact]
     public async Task Login_correctness_does_not_depend_on_redis()
     {
         var username = $"redis-independent-{Guid.NewGuid():N}";
