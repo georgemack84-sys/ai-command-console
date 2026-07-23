@@ -262,6 +262,21 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Login_schema_rejection_precedes_credential_rejection()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = precedenceFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        using var content = new StringContent("{\"username\":\"any-user\",\"password\":\"bad-password\",\"unexpected\":true}", Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/v1/auth/login", content)).StatusCode);
+    }
+
+    [Fact]
     public async Task Login_correctness_does_not_depend_on_redis()
     {
         var username = $"redis-independent-{Guid.NewGuid():N}";
