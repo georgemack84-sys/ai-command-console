@@ -17,7 +17,7 @@ PostgreSQL is the sole authority for users, roles, permissions, sessions, securi
 
 Usernames and role names are normalized with trimmed invariant uppercase through `IdentityNormalization`; callers must persist both the display/login value and the normalized value. Permission keys are lowercase, dot-separated canonical identifiers of the form `capability.resource.action` and are immutable compatibility-sensitive authorization identifiers.
 
-Session records contain only a bounded token lookup digest—never a raw token—and a security-version snapshot. Session issuance and validation are implemented in later Week 3 work; their contract is that the lookup digest must use a dedicated token-digest strategy rather than password hashing, and that a session is invalid whenever its immutable snapshot differs from the current user security version.
+Session records contain only a bounded token lookup digest—never a raw token—and a security-version snapshot. `SessionFactory` is the canonical Day 1 creation path: it captures the current user version and accepts only UTC creation/expiry timestamps and a non-plaintext token digest. `SessionTokenDigest` uses keyed HMAC-SHA-256 with a cryptographically random key of at least 32 bytes; the key must be supplied from the approved secret provider when session issuance is introduced. Password hashing is never used for token lookup. A session is invalid whenever its immutable snapshot differs from the current user security version.
 
 ### Permissions and seeds
 
