@@ -51,8 +51,9 @@ public sealed class PropriumSessionAuthenticationHandler(
 
     private static async Task<IReadOnlyList<string>> ResolveRolesAsync(PropriumDbContext database, Guid userId, CancellationToken cancellationToken)
     {
-        return await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToArrayAsync(
+        var roles = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToArrayAsync(
             database.UserRoles.Where(assignment => assignment.UserId == userId).Select(assignment => assignment.Role.Name).Distinct(), cancellationToken);
+        return roles.OrderBy(role => role, StringComparer.Ordinal).ToArray();
     }
 
     private async Task RecordRejectionAsync(PropriumDbContext database, SessionValidationResult result)
