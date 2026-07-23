@@ -38,8 +38,15 @@ public sealed class SecurityVersionInvalidator(PropriumDbContext database) : ISe
         var userIds = await database.UserRoles.Where(item => item.RoleId == roleId).Select(item => item.UserId).ToArrayAsync(cancellationToken);
         var current = await database.RolePermissions.Where(item => item.RoleId == roleId).ToListAsync(cancellationToken);
         var requested = permissionIds.Distinct().ToHashSet();
+        var currentIds = current.Select(item => item.PermissionId).ToHashSet();
+        if (currentIds.SetEquals(requested))
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return;
+        }
+
         database.RolePermissions.RemoveRange(current.Where(item => !requested.Contains(item.PermissionId)));
-        database.RolePermissions.AddRange(requested.Except(current.Select(item => item.PermissionId)).Select(permissionId => new RolePermission { RoleId = roleId, PermissionId = permissionId }));
+        database.RolePermissions.AddRange(requested.Except(currentIds).Select(permissionId => new RolePermission { RoleId = roleId, PermissionId = permissionId }));
         await database.SaveChangesAsync(cancellationToken);
         if (userIds.Length > 0)
         {

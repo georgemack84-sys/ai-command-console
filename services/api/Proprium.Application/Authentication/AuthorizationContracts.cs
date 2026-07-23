@@ -11,3 +11,5 @@ public interface IPermissionResolver
 {
     Task<PermissionContext> ResolveAsync(Guid userId, long securityVersion, CancellationToken cancellationToken = default);
 }
+
+public sealed record PermissionCacheEntry(IReadOnlyList<string> Permissions);
