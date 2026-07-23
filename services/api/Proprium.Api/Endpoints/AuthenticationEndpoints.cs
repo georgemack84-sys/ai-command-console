@@ -1,5 +1,6 @@
 using Proprium.Api.Configuration;
 using Proprium.Api.Middleware;
+using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
 
@@ -24,15 +25,15 @@ public static class AuthenticationEndpoints
             .WithDescription("Accepts credentials and returns 204 with the opaque session only in the HttpOnly cookie. Credential rejection is always 401.")
             .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status400BadRequest);
 
-        auth.MapGet("/me", async (HttpContext context, ICurrentUserService currentUser, AuthenticationCookiePolicy cookies, CancellationToken cancellationToken) =>
+        auth.MapGet("/me", (HttpContext context) =>
         {
             SetNoStore(context);
-            if (!context.Request.Cookies.TryGetValue(cookies.Name, out var token) || string.IsNullOrWhiteSpace(token)) return Results.Unauthorized();
-            var user = await currentUser.ResolveAsync(new RawSessionToken(token), context.TraceIdentifier, cancellationToken);
-            return user is null ? Results.Unauthorized() : Results.Ok(new CurrentUserResponse(user.UserId, user.Username, user.DisplayName, user.Roles, user.Permissions));
+            var user = context.Features.Get<AuthenticatedRequest>();
+            return user is null ? Results.Unauthorized() : Results.Ok(new CurrentUserResponse(user.UserId, user.Username, user.DisplayName, user.Roles, user.Permissions.Permissions));
         }).WithName("GetCurrentUser").WithSummary("Return the authenticated current user.")
             .WithDescription("The session cookie is the authentication mechanism. The response contains only the approved identity, role, and permission fields.")
-            .Produces<CurrentUserResponse>().Produces(StatusCodes.Status401Unauthorized);
+            .Produces<CurrentUserResponse>().Produces(StatusCodes.Status401Unauthorized)
+            .RequirePermission("identity.profile.read-self");
 
         auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
