@@ -25,6 +25,11 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     {
         public Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new LoginRateLimitResult(true, 300));
     }
+
+    private sealed class PermissiveLoginRateLimiter : ILoginRateLimiter
+    {
+        public Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new LoginRateLimitResult(false, 0));
+    }
     private sealed class RehashConflictPasswordHasher(Action onRehash) : IUserPasswordHasher
     {
         public string Hash(User user, string password)
@@ -241,6 +246,19 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var response = await client.PostAsync("/api/v1/auth/login", content);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+    }
+
+    [Fact]
+    public async Task Login_origin_rejection_precedes_json_schema_rejection()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        using var content = new StringContent("{\"username\":\"any-user\",\"password\":\"any-password\",\"unexpected\":true}", Encoding.UTF8, "application/json");
+        var response = await precedenceFactory.CreateClient().PostAsync("/api/v1/auth/login", content);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
