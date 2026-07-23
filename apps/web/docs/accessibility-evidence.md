@@ -13,6 +13,8 @@ Use this checklist during a manual browser and assistive-technology review. Reco
 
 This automated evidence does not substitute for manual zoom, screen-reader, and visual contrast review. Those items remain un-attested until a named reviewer records the browser, assistive technology, and outcome.
 
+The Week 2 exit gate accepts this remaining manual review temporarily under exception `W2-A11Y-002`. The exception has a named owner, mitigation, and expiry date; it does not remove the requirement for a human review.
+
 ## Keyboard and focus
 
 - The skip link is the first focusable item and moves focus to `#main-workspace`.
