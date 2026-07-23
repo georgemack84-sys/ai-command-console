@@ -34,7 +34,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
-        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "integration-test-csrf");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
         return client;
     }
 
@@ -196,12 +196,22 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     public async Task Login_rejects_missing_or_invalid_origin_and_csrf_headers()
     {
         var request = new LoginRequest("any-user", "any-password");
-        Assert.Equal(HttpStatusCode.BadRequest, (await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
 
         var wrongOrigin = factory.CreateClient();
         wrongOrigin.DefaultRequestHeaders.Add("Origin", "https://untrusted.example");
-        wrongOrigin.DefaultRequestHeaders.Add("X-Proprium-CSRF", "test");
-        Assert.Equal(HttpStatusCode.BadRequest, (await wrongOrigin.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+        wrongOrigin.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await wrongOrigin.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+
+        var invalidCsrf = factory.CreateClient();
+        invalidCsrf.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        invalidCsrf.DefaultRequestHeaders.Add("X-Proprium-CSRF", "unexpected");
+        Assert.Equal(HttpStatusCode.Forbidden, (await invalidCsrf.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+
+        var duplicateCsrf = factory.CreateClient();
+        duplicateCsrf.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        duplicateCsrf.DefaultRequestHeaders.Add("X-Proprium-CSRF", new[] { "1", "1" });
+        Assert.Equal(HttpStatusCode.Forbidden, (await duplicateCsrf.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
     }
 
     [Fact]
@@ -234,7 +244,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         })));
         var client = unavailableRedisFactory.CreateClient();
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
-        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "integration-test-csrf");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
     }
 }

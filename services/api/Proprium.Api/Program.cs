@@ -98,12 +98,24 @@ builder.Services.AddOptions<PropriumSessionOptions>().Configure(options =>
     try { options.GetTokenDigestKey(); return true; }
     catch { return false; }
 }, "SESSION_TOKEN_DIGEST_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
-builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty).ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty)
+    .ValidateDataAnnotations().Validate(options =>
+    {
+        try { OriginValidator.Normalize(options.AllowedOrigin); return true; }
+        catch { return false; }
+    }, "AUTH_ALLOWED_ORIGIN must be an absolute HTTP(S) origin without a path, query, fragment, user information, or wildcard.").ValidateOnStart();
 builder.Services.AddPropriumInfrastructure();
 builder.Services.AddSingleton<Proprium.Infrastructure.ISystemClock, Proprium.Infrastructure.SystemClock>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AuthenticationCookiePolicy>();
+builder.Services.AddSingleton<OriginValidator>();
+builder.Services.AddSingleton<CsrfHeaderValidator>();
 builder.Services.AddSingleton<AuthenticationRequestPolicy>();
+builder.Services.AddCors(options => options.AddPolicy("PropriumOrigins", policy => policy
+    .WithOrigins(OriginValidator.Normalize(builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty))
+    .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+    .WithHeaders("Content-Type", CsrfHeaderValidator.HeaderName)
+    .AllowCredentials()));
 builder.Services.AddAuthentication(PropriumSessionAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, PropriumSessionAuthenticationHandler>(PropriumSessionAuthenticationHandler.SchemeName, _ => { });
 builder.Services.AddAuthorization();
@@ -168,6 +180,7 @@ app.Use(async (context, next) =>
 });
 if (app.Environment.IsDevelopment()) app.UseSwaggerUI();
 app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
+app.UseCors("PropriumOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapPlatformEndpoints();
