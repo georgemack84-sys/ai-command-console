@@ -262,6 +262,19 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Login_origin_rejection_precedes_oversized_body_rejection()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var oversizedJson = "{\"username\":\"any-user\",\"password\":\"" + new string('x', 4_097) + "\"}";
+        using var content = new StringContent(oversizedJson, Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.Forbidden, (await precedenceFactory.CreateClient().PostAsync("/api/v1/auth/login", content)).StatusCode);
+    }
+
+    [Fact]
     public async Task Login_schema_rejection_precedes_credential_rejection()
     {
         await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
