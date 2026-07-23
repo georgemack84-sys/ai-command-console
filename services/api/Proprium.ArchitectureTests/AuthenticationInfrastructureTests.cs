@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Proprium.Application.Authentication;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Authentication;
+using Proprium.Infrastructure.Configuration;
 using Xunit;
 
 namespace Proprium.ArchitectureTests;
@@ -36,5 +37,18 @@ public sealed class AuthenticationInfrastructureTests
         Assert.NotEqual(first.RawToken.Value, first.Hash.Value);
         Assert.NotEqual(first.RawToken, second.RawToken);
         Assert.NotEqual(first.Hash, second.Hash);
+    }
+
+    [Fact]
+    public async Task Fallback_login_limiter_enforces_locked_source_and_pair_thresholds()
+    {
+        var limiter = new InMemoryLoginRateLimiter(Options.Create(new LoginRateLimitOptions { PrivacyKeyMaterial = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=" }), TimeProvider.System);
+        for (var attempt = 0; attempt < 5; attempt++) Assert.False((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.1", "operator"))).IsExceeded);
+        Assert.True((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.1", "operator"))).IsExceeded);
+
+        for (var attempt = 0; attempt < 4; attempt++) Assert.False((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.2", null))).IsExceeded);
+        Assert.False((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.2", null))).IsExceeded);
+        for (var attempt = 0; attempt < 5; attempt++) Assert.False((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.2", $"user-{attempt}"))).IsExceeded);
+        Assert.True((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.2", "another-user"))).IsExceeded);
     }
 }
