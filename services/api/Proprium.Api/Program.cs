@@ -11,6 +11,7 @@ using Proprium.Api.Configuration;
 using Proprium.Api.Endpoints;
 using Proprium.Api.Middleware;
 using Proprium.Api.Security;
+using Proprium.Application.Authentication;
 using Proprium.Infrastructure;
 using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;

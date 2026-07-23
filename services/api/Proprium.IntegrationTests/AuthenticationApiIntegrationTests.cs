@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
-using Proprium.Contracts.V1;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Proprium.Application.Authentication;
+using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Authentication;
 using Proprium.Infrastructure.Persistence;
@@ -19,6 +21,10 @@ namespace Proprium.IntegrationTests;
 [Trait("Category", "Integration")]
 public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
+    private sealed class ExceededLoginRateLimiter : ILoginRateLimiter
+    {
+        public Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new LoginRateLimitResult(true, 300));
+    }
     private sealed class RehashConflictPasswordHasher(Action onRehash) : IUserPasswordHasher
     {
         public string Hash(User user, string password)
@@ -212,6 +218,19 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         duplicateCsrf.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
         duplicateCsrf.DefaultRequestHeaders.Add("X-Proprium-CSRF", new[] { "1", "1" });
         Assert.Equal(HttpStatusCode.Forbidden, (await duplicateCsrf.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_rate_limit_precedes_origin_and_csrf_rejection()
+    {
+        await using var limitedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, ExceededLoginRateLimiter>();
+        }));
+        var response = await limitedFactory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"));
+        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
+        Assert.Equal("300", response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
