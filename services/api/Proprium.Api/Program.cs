@@ -62,7 +62,8 @@ if (openApiOutput is not null)
         ["REDIS_PORT"] = "6379",
         ["SESSION_TOKEN_DIGEST_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         ["SESSION_LIFETIME_MINUTES"] = "480",
-        ["AUTH_ALLOWED_ORIGIN"] = "http://localhost"
+        ["AUTH_ALLOWED_ORIGIN"] = "http://localhost",
+        ["LOGIN_RATE_LIMIT_PRIVACY_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     });
 }
 
@@ -98,6 +99,14 @@ builder.Services.AddOptions<PropriumSessionOptions>().Configure(options =>
     try { options.GetTokenDigestKey(); return true; }
     catch { return false; }
 }, "SESSION_TOKEN_DIGEST_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
+builder.Services.AddOptions<LoginRateLimitOptions>().Configure(options =>
+{
+    options.SourceLimit = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_SOURCE"], out var source) ? source : LoginRateLimitOptions.LockedSourceLimit;
+    options.IdentifierSourceLimit = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE"], out var pair) ? pair : LoginRateLimitOptions.LockedPairLimit;
+    options.WindowMinutes = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_WINDOW_MINUTES"], out var window) ? window : LoginRateLimitOptions.LockedWindowMinutes;
+    options.FallbackCapacity = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_FALLBACK_CAPACITY"], out var capacity) ? capacity : 10_000;
+    options.PrivacyKeyMaterial = builder.Configuration["LOGIN_RATE_LIMIT_PRIVACY_KEY"] ?? string.Empty;
+}).ValidateDataAnnotations().Validate(options => options.SourceLimit == LoginRateLimitOptions.LockedSourceLimit && options.IdentifierSourceLimit == LoginRateLimitOptions.LockedPairLimit && options.WindowMinutes == LoginRateLimitOptions.LockedWindowMinutes, "Login rate-limit thresholds are locked.").ValidateOnStart();
 builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty)
     .ValidateDataAnnotations().Validate(options =>
     {

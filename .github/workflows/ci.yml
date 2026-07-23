@@ -89,6 +89,7 @@ jobs:
       SESSION_TOKEN_DIGEST_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       SESSION_LIFETIME_MINUTES: 480
       AUTH_ALLOWED_ORIGIN: http://localhost
+      LOGIN_RATE_LIMIT_PRIVACY_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v5

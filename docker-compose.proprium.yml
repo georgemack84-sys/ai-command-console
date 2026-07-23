@@ -47,6 +47,7 @@ services:
       SESSION_TOKEN_DIGEST_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       SESSION_LIFETIME_MINUTES: 480
       AUTH_ALLOWED_ORIGIN: http://localhost:3000
+      LOGIN_RATE_LIMIT_PRIVACY_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
