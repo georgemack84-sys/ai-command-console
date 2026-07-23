@@ -3,6 +3,8 @@ using Proprium.Api.Middleware;
 using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Proprium.Api.Endpoints;
 
@@ -11,13 +13,20 @@ public static class AuthenticationEndpoints
     public static RouteGroupBuilder MapAuthenticationEndpoints(this RouteGroupBuilder v1)
     {
         var auth = v1.MapGroup("/auth").WithTags("Authentication");
-        auth.MapPost("/login", async (LoginRequest request, HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, CancellationToken cancellationToken) =>
+        auth.MapPost("/login", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(sources.Resolve(context.Connection.RemoteIpAddress), request.Username), cancellationToken);
+            if (context.Request.ContentLength is > 4_096) return Results.BadRequest();
+            using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
+            var body = await reader.ReadToEndAsync(cancellationToken);
+            var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(sources.Resolve(context.Connection.RemoteIpAddress), ExtractUsername(body)), cancellationToken);
             if (rateLimit.IsExceeded) { context.Response.Headers.RetryAfter = rateLimit.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return Results.StatusCode(StatusCodes.Status429TooManyRequests); }
             if (!requestPolicy.IsAllowed(context.Request)) return Results.StatusCode(StatusCodes.Status403Forbidden);
-            if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 256 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
+            if (!string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
+            LoginRequest? request;
+            try { request = JsonSerializer.Deserialize<LoginRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            if (request is null || string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 256 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
                 return Results.BadRequest();
             var result = await authentication.LoginAsync(new LoginAttempt(request.Username, request.Password, context.TraceIdentifier), cancellationToken);
             if (!result.Succeeded || result.SessionToken is null) return Results.Unauthorized();
@@ -52,4 +61,15 @@ public static class AuthenticationEndpoints
     }
 
     private static void SetNoStore(HttpContext context) => context.Response.Headers.CacheControl = "no-store";
+
+    private static string? ExtractUsername(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            return document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("username", out var username) && username.ValueKind == JsonValueKind.String
+                ? username.GetString() : null;
+        }
+        catch (JsonException) { return null; }
+    }
 }
