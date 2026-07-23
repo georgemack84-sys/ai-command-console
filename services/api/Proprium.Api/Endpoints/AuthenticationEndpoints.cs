@@ -10,8 +10,9 @@ public static class AuthenticationEndpoints
     public static RouteGroupBuilder MapAuthenticationEndpoints(this RouteGroupBuilder v1)
     {
         var auth = v1.MapGroup("/auth").WithTags("Authentication");
-        auth.MapPost("/login", async (LoginRequest request, HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, CancellationToken cancellationToken) =>
+        auth.MapPost("/login", async (LoginRequest request, HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
+            if (!requestPolicy.IsAllowed(context.Request)) return Results.BadRequest();
             if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 256 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
                 return Results.BadRequest();
             var result = await authentication.LoginAsync(new LoginAttempt(request.Username, request.Password, context.TraceIdentifier), cancellationToken);
@@ -27,8 +28,9 @@ public static class AuthenticationEndpoints
             return user is null ? Results.Unauthorized() : Results.Ok(new CurrentUserResponse(user.UserId, user.Username, user.DisplayName, user.Roles, user.Permissions));
         }).WithName("GetCurrentUser").Produces<CurrentUserResponse>().Produces(StatusCodes.Status401Unauthorized);
 
-        auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, CancellationToken cancellationToken) =>
+        auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
+            if (!requestPolicy.IsAllowed(context.Request)) return Results.BadRequest();
             context.Request.Cookies.TryGetValue(cookies.Name, out var token);
             await authentication.LogoutAsync(string.IsNullOrWhiteSpace(token) ? null : new RawSessionToken(token), context.TraceIdentifier, cancellationToken);
             cookies.Clear(context.Response);

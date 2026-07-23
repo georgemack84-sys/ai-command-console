@@ -57,7 +57,8 @@ if (openApiOutput is not null)
         ["REDIS_HOST"] = "openapi",
         ["REDIS_PORT"] = "6379",
         ["SESSION_TOKEN_DIGEST_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
-        ["SESSION_LIFETIME_MINUTES"] = "480"
+        ["SESSION_LIFETIME_MINUTES"] = "480",
+        ["AUTH_ALLOWED_ORIGIN"] = "http://localhost"
     });
 }
 
@@ -91,10 +92,12 @@ builder.Services.AddOptions<PropriumSessionOptions>().Configure(options =>
     try { options.GetTokenDigestKey(); return true; }
     catch { return false; }
 }, "SESSION_TOKEN_DIGEST_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
+builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddPropriumInfrastructure();
 builder.Services.AddSingleton<ISystemClock, SystemClock>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AuthenticationCookiePolicy>();
+builder.Services.AddSingleton<AuthenticationRequestPolicy>();
 builder.Services.AddOptions<PlatformOptions>().Bind(builder.Configuration.GetSection(PlatformOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" }));
