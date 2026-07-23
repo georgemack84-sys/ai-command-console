@@ -32,5 +32,5 @@ public sealed class PostgresSessionRepository(PropriumDbContext database) : ISes
     }
 
     public Task<int> CountExpiredAsync(DateTimeOffset nowUtc, CancellationToken cancellationToken = default) =>
-        database.Sessions.CountAsync(session => session.ExpiresAtUtc <= nowUtc, cancellationToken);
+        database.Sessions.CountAsync(session => session.ExpiresAtUtc <= nowUtc && session.RevokedAtUtc == null, cancellationToken);
 }

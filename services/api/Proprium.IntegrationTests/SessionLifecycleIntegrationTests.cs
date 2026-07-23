@@ -65,4 +65,26 @@ public sealed class SessionLifecycleIntegrationTests
         await database.SaveChangesAsync();
         Assert.Equal(SessionValidationOutcome.Expired, (await service.ValidateAsync(expiredToken.RawToken)).Outcome);
     }
+
+    [Fact]
+    public async Task Revoke_all_and_stale_session_count_preserve_authoritative_records()
+    {
+        await using var database = CreateContext();
+        var user = new User { Username = $"user-{Guid.NewGuid():N}", NormalizedUsername = $"USER-{Guid.NewGuid():N}", PasswordHash = "test" };
+        database.Users.Add(user);
+        await database.SaveChangesAsync();
+        var generator = new SessionTokenGenerator(Enumerable.Range(0, 32).Select(item => (byte)item).ToArray());
+        var service = new PostgresSessionService(new PostgresSessionRepository(database), generator, Options.Create(new SessionOptions { TokenDigestKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", LifetimeMinutes = 480 }), TimeProvider.System);
+        var first = await service.CreateAsync(user);
+        var second = await service.CreateAsync(user);
+        var expired = generator.Generate();
+        database.Sessions.Add(SessionFactory.Create(user, expired.Hash.Value, DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddHours(-1)));
+        await database.SaveChangesAsync();
+
+        Assert.True(await service.ExpireStaleSessionsAsync() >= 1);
+        await service.RevokeAllForUserAsync(user.Id, "security-maintenance");
+        Assert.Equal(SessionValidationOutcome.Revoked, (await service.ValidateAsync(first.RawToken)).Outcome);
+        Assert.Equal(SessionValidationOutcome.Revoked, (await service.ValidateAsync(second.RawToken)).Outcome);
+        Assert.Equal(3, await database.Sessions.CountAsync(session => session.UserId == user.Id));
+    }
 }
