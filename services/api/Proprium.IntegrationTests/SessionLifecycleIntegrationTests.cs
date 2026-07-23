@@ -42,4 +42,27 @@ public sealed class SessionLifecycleIntegrationTests
         await service.RevokeCurrentAsync(created.RawToken);
         Assert.Equal(SessionValidationOutcome.Revoked, (await service.ValidateAsync(created.RawToken)).Outcome);
     }
+
+    [Fact]
+    public async Task PostgreSQL_session_validation_rejects_expired_disabled_and_security_version_mismatch_state()
+    {
+        await using var database = CreateContext();
+        var user = new User { Username = $"user-{Guid.NewGuid():N}", NormalizedUsername = $"USER-{Guid.NewGuid():N}", PasswordHash = "test" };
+        database.Users.Add(user);
+        await database.SaveChangesAsync();
+        var generator = new SessionTokenGenerator(Enumerable.Range(0, 32).Select(item => (byte)item).ToArray());
+        var service = new PostgresSessionService(new PostgresSessionRepository(database), generator, Options.Create(new SessionOptions { TokenDigestKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", LifetimeMinutes = 480 }), TimeProvider.System);
+
+        var active = await service.CreateAsync(user);
+        await database.Users.Where(item => item.Id == user.Id).ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, false));
+        Assert.Equal(SessionValidationOutcome.DisabledUser, (await service.ValidateAsync(active.RawToken)).Outcome);
+
+        await database.Users.Where(item => item.Id == user.Id).ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, true).SetProperty(item => item.SecurityVersion, item => item.SecurityVersion + 1));
+        Assert.Equal(SessionValidationOutcome.SecurityVersionMismatch, (await service.ValidateAsync(active.RawToken)).Outcome);
+
+        var expiredToken = generator.Generate();
+        database.Sessions.Add(SessionFactory.Create(user, expiredToken.Hash.Value, DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddHours(-1)));
+        await database.SaveChangesAsync();
+        Assert.Equal(SessionValidationOutcome.Expired, (await service.ValidateAsync(expiredToken.RawToken)).Outcome);
+    }
 }

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Persistence;
@@ -73,5 +74,27 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         Assert.Equal(HttpStatusCode.Unauthorized, disabled.StatusCode);
         Assert.False(unknown.Headers.Contains("Set-Cookie"));
         Assert.False(disabled.Headers.Contains("Set-Cookie"));
+    }
+
+    [Fact]
+    public async Task Login_upgrades_an_outdated_password_hash_before_issuing_a_session()
+    {
+        var username = $"rehash-{Guid.NewGuid():N}";
+        var password = "correct-password";
+        await using (var database = CreateContext())
+        {
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            user.PasswordHash = new PasswordHasher<User>(Options.Create(new PasswordHasherOptions { IterationCount = 1_000 })).HashPassword(user, password);
+            database.Users.Add(user);
+            await database.SaveChangesAsync();
+        }
+
+        var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password));
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        await using var verification = CreateContext();
+        var userAfterLogin = await verification.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
+        Assert.Equal(PasswordVerificationResult.Success, new PasswordHasher<User>().VerifyHashedPassword(userAfterLogin, userAfterLogin.PasswordHash, password));
+        Assert.True(await verification.Sessions.AnyAsync(session => session.UserId == userAfterLogin.Id));
     }
 }
