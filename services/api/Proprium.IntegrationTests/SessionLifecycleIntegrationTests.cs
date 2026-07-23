@@ -87,4 +87,28 @@ public sealed class SessionLifecycleIntegrationTests
         Assert.Equal(SessionValidationOutcome.Revoked, (await service.ValidateAsync(second.RawToken)).Outcome);
         Assert.Equal(3, await database.Sessions.CountAsync(session => session.UserId == user.Id));
     }
+
+    [Fact]
+    public async Task Concurrent_session_revocation_is_idempotent()
+    {
+        await using var setup = CreateContext();
+        var user = new User { Username = $"user-{Guid.NewGuid():N}", NormalizedUsername = $"USER-{Guid.NewGuid():N}", PasswordHash = "test" };
+        setup.Users.Add(user);
+        await setup.SaveChangesAsync();
+        var generator = new SessionTokenGenerator(Enumerable.Range(0, 32).Select(item => (byte)item).ToArray());
+        var creator = new PostgresSessionService(new PostgresSessionRepository(setup), generator, Options.Create(new SessionOptions { TokenDigestKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", LifetimeMinutes = 480 }), TimeProvider.System);
+        var created = await creator.CreateAsync(user);
+
+        await Task.WhenAll(Enumerable.Range(0, 4).Select(async _ =>
+        {
+            await using var concurrent = CreateContext();
+            var service = new PostgresSessionService(new PostgresSessionRepository(concurrent), generator, Options.Create(new SessionOptions { TokenDigestKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", LifetimeMinutes = 480 }), TimeProvider.System);
+            await service.RevokeCurrentAsync(created.RawToken);
+        }));
+
+        await using var verification = CreateContext();
+        var revoked = await verification.Sessions.SingleAsync(session => session.Id == created.SessionId);
+        Assert.NotNull(revoked.RevokedAtUtc);
+        Assert.Equal("logout", revoked.RevocationReason);
+    }
 }

@@ -119,12 +119,27 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         }
 
         var client = CreateAuthenticationClient();
-        var unknown = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest($"unknown-{Guid.NewGuid():N}", password));
+        var unknownUsername = $"unknown-{Guid.NewGuid():N}";
+        var unknown = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(unknownUsername, password));
         var disabled = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(disabledUsername, password));
         Assert.Equal(HttpStatusCode.Unauthorized, unknown.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, disabled.StatusCode);
         Assert.False(unknown.Headers.Contains("Set-Cookie"));
         Assert.False(disabled.Headers.Contains("Set-Cookie"));
+
+        await using var evidence = CreateContext();
+        Assert.Equal(2, await evidence.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.LoginFailed && (item.NormalizedUsername == disabledUsername.ToUpperInvariant() || item.NormalizedUsername == unknownUsername.ToUpperInvariant())));
+    }
+
+    [Fact]
+    public async Task Malformed_session_cookie_is_rejected_and_records_safe_evidence()
+    {
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("Cookie", "proprium_session=not-a-valid-session-token");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+
+        await using var evidence = CreateContext();
+        Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.SessionRejected && item.ReasonCode == "malformed-token" && item.UserId == null && item.SessionId == null));
     }
 
     [Fact]
