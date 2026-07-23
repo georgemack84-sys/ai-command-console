@@ -30,6 +30,15 @@ public sealed record SessionValidationResult(SessionValidationOutcome Outcome, U
 
 public sealed record CreatedSession(RawSessionToken RawToken, Guid SessionId, DateTimeOffset ExpiresAtUtc);
 
+public interface ISessionRepository
+{
+    Task AddAsync(Session session, CancellationToken cancellationToken = default);
+    Task<Session?> FindByTokenHashAsync(SessionTokenHash tokenHash, CancellationToken cancellationToken = default);
+    Task RevokeAsync(Guid sessionId, DateTimeOffset revokedAtUtc, string reasonCode, CancellationToken cancellationToken = default);
+    Task RevokeAllForUserAsync(Guid userId, DateTimeOffset revokedAtUtc, string reasonCode, CancellationToken cancellationToken = default);
+    Task<int> CountExpiredAsync(DateTimeOffset nowUtc, CancellationToken cancellationToken = default);
+}
+
 public interface ISessionService
 {
     Task<CreatedSession> CreateAsync(User user, CancellationToken cancellationToken = default);
@@ -38,4 +47,23 @@ public interface ISessionService
     Task RevokeCurrentAsync(RawSessionToken rawToken, CancellationToken cancellationToken = default);
     Task RevokeAllForUserAsync(Guid userId, string reasonCode, CancellationToken cancellationToken = default);
     Task<int> ExpireStaleSessionsAsync(CancellationToken cancellationToken = default);
+}
+
+public sealed record LoginAttempt(string Username, string Password, string CorrelationId);
+public sealed record LoginResult(bool Succeeded, RawSessionToken? SessionToken = null)
+{
+    public static LoginResult Rejected() => new(false);
+}
+
+public interface IAuthenticationService
+{
+    Task<LoginResult> LoginAsync(LoginAttempt attempt, CancellationToken cancellationToken = default);
+    Task LogoutAsync(RawSessionToken? sessionToken, string correlationId, CancellationToken cancellationToken = default);
+}
+
+public sealed record CurrentUser(Guid UserId, string Username, string DisplayName, IReadOnlyList<string> Roles, IReadOnlyList<string> Permissions);
+
+public interface ICurrentUserService
+{
+    Task<CurrentUser?> ResolveAsync(RawSessionToken rawToken, CancellationToken cancellationToken = default);
 }

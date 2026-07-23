@@ -13,6 +13,7 @@ using Proprium.Infrastructure.Persistence;
 using Proprium.Infrastructure.Health;
 using Proprium.Domain.Identity;
 using Swashbuckle.AspNetCore.Swagger;
+using PropriumSessionOptions = Proprium.Infrastructure.Configuration.SessionOptions;
 
 if (args.Contains("--health-probe", StringComparer.Ordinal))
 {
@@ -54,7 +55,9 @@ if (openApiOutput is not null)
         ["POSTGRES_USER"] = "openapi",
         ["POSTGRES_PASSWORD"] = "change-me",
         ["REDIS_HOST"] = "openapi",
-        ["REDIS_PORT"] = "6379"
+        ["REDIS_PORT"] = "6379",
+        ["SESSION_TOKEN_DIGEST_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+        ["SESSION_LIFETIME_MINUTES"] = "480"
     });
 }
 
@@ -79,8 +82,19 @@ builder.Services.AddOptions<RedisOptions>().Configure(options =>
     options.Port = int.TryParse(builder.Configuration["REDIS_PORT"], out var port) ? port : 0;
     options.Password = builder.Configuration["REDIS_PASSWORD"];
 }).ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddOptions<PropriumSessionOptions>().Configure(options =>
+{
+    options.TokenDigestKey = builder.Configuration["SESSION_TOKEN_DIGEST_KEY"] ?? string.Empty;
+    options.LifetimeMinutes = int.TryParse(builder.Configuration["SESSION_LIFETIME_MINUTES"], out var lifetime) ? lifetime : 0;
+}).ValidateDataAnnotations().Validate(options =>
+{
+    try { options.GetTokenDigestKey(); return true; }
+    catch { return false; }
+}, "SESSION_TOKEN_DIGEST_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
 builder.Services.AddPropriumInfrastructure();
 builder.Services.AddSingleton<ISystemClock, SystemClock>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<AuthenticationCookiePolicy>();
 builder.Services.AddOptions<PlatformOptions>().Bind(builder.Configuration.GetSection(PlatformOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" }));

@@ -24,6 +24,7 @@ public static class PlatformEndpoints
                 : Results.Json(new HealthResponse("unhealthy", context.TraceIdentifier), statusCode: StatusCodes.Status503ServiceUnavailable);
         })
             .WithName("GetReadiness").Produces<HealthResponse>();
+        v1.MapAuthenticationEndpoints();
         return app;
     }
 }

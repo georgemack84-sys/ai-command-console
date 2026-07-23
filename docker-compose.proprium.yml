@@ -44,6 +44,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
+      SESSION_TOKEN_DIGEST_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      SESSION_LIFETIME_MINUTES: 480
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
