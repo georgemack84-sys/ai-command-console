@@ -32,7 +32,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISessionService, PostgresSessionService>();
         services.AddScoped<IAuthenticationService, PostgresAuthenticationService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
-        services.AddSingleton<ILoginRateLimiter, InMemoryLoginRateLimiter>();
+        services.AddSingleton<InMemoryLoginRateLimiter>();
+        services.AddSingleton<ILoginRateLimiter, RedisLoginRateLimiter>();
         services.AddScoped<IPermissionResolver, PostgresPermissionResolver>();
         services.AddScoped<LocalAdministratorInitializer>();
         return services;
