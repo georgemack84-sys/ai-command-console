@@ -17,6 +17,8 @@ dotnet run --project services/api/Proprium.Api -- --write-openapi artifacts/open
 
 The integration suite proves a successful `204` login, zero response body, persisted token hash, authoritative current-user resolution, logout revocation, generic unknown/disabled failures, rehash ordering, origin/CSRF rejection, strict JSON handling, response cache controls, and login success with Redis unavailable. It also verifies that the current-user response is allow-listed and includes the persisted display name.
 
+The failure-path evidence proves that a concurrent password-rehash update prevents both session and success-event persistence, a replayed revoked cookie produces a `SessionRejected` audit event, malformed cookie input produces only safe rejection metadata, and concurrent revocation remains idempotent.
+
 The OpenAPI integration test verifies that login and logout `204` responses have no response-body schema. The architecture suite covers typed password outcomes, token generation and hashing, cookie policy, session factory behavior, and repository boundaries.
 
 ## Retention decision
