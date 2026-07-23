@@ -6,11 +6,12 @@ namespace Proprium.Api.Security;
 
 public sealed class PermissionRequirement : IAuthorizationRequirement
 {
-    public PermissionRequirement(string permission)
+    public PermissionRequirement(PermissionDefinition permission)
     {
-        if (!PermissionCatalog.All.Any(item => string.Equals(item.Key, permission, StringComparison.Ordinal)))
+        ArgumentNullException.ThrowIfNull(permission);
+        if (!PermissionCatalog.All.Any(item => string.Equals(item.Key, permission.Key, StringComparison.Ordinal)))
             throw new ArgumentException("The permission is not defined by the canonical catalog.", nameof(permission));
-        Permission = permission;
+        Permission = permission.Key;
     }
 
     public string Permission { get; }
@@ -28,6 +29,6 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
 
 public static class PermissionEndpointExtensions
 {
-    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, string permission) where TBuilder : IEndpointConventionBuilder =>
+    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, PermissionDefinition permission) where TBuilder : IEndpointConventionBuilder =>
         builder.RequireAuthorization(policy => policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(permission)));
 }
