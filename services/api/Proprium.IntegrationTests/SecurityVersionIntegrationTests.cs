@@ -137,6 +137,7 @@ public sealed class SecurityVersionIntegrationTests
         await new SecurityVersionInvalidator(database).ReplaceRolePermissionsAsync(role.Id, [permission.Id]);
         await database.Entry(first).ReloadAsync(); await database.Entry(second).ReloadAsync();
         Assert.Equal(2, first.SecurityVersion); Assert.Equal(2, second.SecurityVersion);
+        Assert.Equal(2, await database.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.SecurityVersionInvalidated && (item.UserId == first.Id || item.UserId == second.Id)));
     }
 
     [Fact]
