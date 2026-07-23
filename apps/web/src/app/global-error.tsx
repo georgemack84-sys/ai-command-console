@@ -11,7 +11,7 @@ export default function GlobalError({
       <body>
         <main>
           <h1>Application unavailable</h1>
-          <p>Please try again.</p>
+          <p>Please try again. No internal error details are shown.</p>
           <button onClick={reset}>Try again</button>
         </main>
       </body>

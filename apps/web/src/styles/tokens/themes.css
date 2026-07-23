@@ -1,0 +1,27 @@
+html[data-theme='dark'] {
+  --surface-app: var(--color-neutral-950);
+  --surface-primary: var(--color-neutral-900);
+  --surface-secondary: var(--color-neutral-800);
+  --surface-raised: var(--color-neutral-800);
+  --surface-overlay: var(--color-neutral-800);
+  --surface-interactive: var(--color-neutral-700);
+  --surface-disabled: var(--color-neutral-800);
+  --text-primary: var(--color-neutral-50);
+  --text-secondary: var(--color-neutral-300);
+  --text-muted: var(--color-neutral-400);
+  --text-disabled: var(--color-neutral-500);
+  --text-link: #93c5fd;
+  --text-link-hover: #bfdbfe;
+  --border-default: var(--color-neutral-700);
+  --border-subtle: var(--color-neutral-800);
+  --border-strong: var(--color-neutral-500);
+  --focus-ring-offset: var(--color-neutral-950);
+  --feedback-success-background: #14532d;
+  --feedback-success-foreground: #bbf7d0;
+  --feedback-warning-background: #78350f;
+  --feedback-warning-foreground: #fde68a;
+  --feedback-danger-background: #7f1d1d;
+  --feedback-danger-foreground: #fecaca;
+  --feedback-info-background: #0c4a6e;
+  --feedback-info-foreground: #bae6fd;
+}

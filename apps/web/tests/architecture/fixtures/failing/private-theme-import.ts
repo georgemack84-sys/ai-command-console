@@ -1,0 +1,1 @@
+import '@/theme/resolve-theme';
