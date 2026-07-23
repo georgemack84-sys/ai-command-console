@@ -11,6 +11,8 @@ public sealed class SecurityVersionInvalidator(PropriumDbContext database) : ISe
         var affected = await database.Users.Where(user => user.Id == userId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(user => user.SecurityVersion, user => user.SecurityVersion + 1), cancellationToken);
         if (affected != 1) throw new InvalidOperationException("The user to invalidate does not exist.");
+        RecordInvalidationEvents([userId]);
+        await database.SaveChangesAsync(cancellationToken);
     }
 
     public async Task AssignRoleAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default)
@@ -52,7 +54,12 @@ public sealed class SecurityVersionInvalidator(PropriumDbContext database) : ISe
         {
             var updated = await database.Users.Where(user => userIds.Contains(user.Id)).ExecuteUpdateAsync(setters => setters.SetProperty(user => user.SecurityVersion, user => user.SecurityVersion + 1), cancellationToken);
             if (updated != userIds.Length) throw new InvalidOperationException("Not every affected user was invalidated.");
+            RecordInvalidationEvents(userIds);
+            await database.SaveChangesAsync(cancellationToken);
         }
         await transaction.CommitAsync(cancellationToken);
     }
+
+    private void RecordInvalidationEvents(IEnumerable<Guid> userIds) => database.AuthenticationEvents.AddRange(userIds.Select(userId =>
+        AuthenticationEventFactory.Create(AuthenticationEventType.SecurityVersionInvalidated, AuthenticationEventOutcome.Success, "security-version-invalidation", userId, reasonCode: "authorization-change")));
 }
