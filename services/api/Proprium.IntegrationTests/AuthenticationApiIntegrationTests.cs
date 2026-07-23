@@ -344,6 +344,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
         await using (var mutation = CreateContext())
         {
             await new SecurityVersionInvalidator(mutation).ReplaceRolePermissionsAsync(roleId, []);
