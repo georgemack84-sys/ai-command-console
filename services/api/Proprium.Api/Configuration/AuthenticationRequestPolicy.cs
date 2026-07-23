@@ -1,11 +1,34 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Options;
 
 namespace Proprium.Api.Configuration;
 
-public sealed class AuthenticationRequestOptions { [Required, Url] public string AllowedOrigin { get; set; } = string.Empty; }
-public sealed class AuthenticationRequestPolicy(IOptions<AuthenticationRequestOptions> options)
+public sealed class AuthenticationRequestOptions { [Required] public string AllowedOrigin { get; set; } = string.Empty; }
+
+public sealed class OriginValidator(IOptions<AuthenticationRequestOptions> options)
 {
-    public const string CsrfHeaderName = "X-Proprium-CSRF";
-    public bool IsAllowed(HttpRequest request) => string.Equals(request.Headers.Origin, options.Value.AllowedOrigin, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(request.Headers[CsrfHeaderName].FirstOrDefault());
+    private readonly string allowedOrigin = Normalize(options.Value.AllowedOrigin);
+
+    public bool IsAllowed(StringValues origins) => origins.Count == 1 && string.Equals(origins[0], allowedOrigin, StringComparison.Ordinal);
+
+    public static string Normalize(string origin)
+    {
+        if (string.IsNullOrWhiteSpace(origin) || origin.Contains('*', StringComparison.Ordinal) || !Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) || !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment) || uri.AbsolutePath != "/")
+            throw new ArgumentException("AUTH_ALLOWED_ORIGIN must be one absolute HTTP(S) origin without a path, query, fragment, user information, or wildcard.", nameof(origin));
+        return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+    }
+}
+
+public sealed class CsrfHeaderValidator
+{
+    public const string HeaderName = "X-Proprium-CSRF";
+    public const string RequiredValue = "1";
+    public bool IsValid(StringValues values) => values.Count == 1 && string.Equals(values[0], RequiredValue, StringComparison.Ordinal);
+}
+
+public sealed class AuthenticationRequestPolicy(OriginValidator origins, CsrfHeaderValidator csrf)
+{
+    public bool IsAllowed(HttpRequest request) => origins.IsAllowed(request.Headers.Origin) && csrf.IsValid(request.Headers[CsrfHeaderValidator.HeaderName]);
 }

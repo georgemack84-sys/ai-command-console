@@ -14,7 +14,7 @@ public static class AuthenticationEndpoints
         auth.MapPost("/login", async (LoginRequest request, HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            if (!requestPolicy.IsAllowed(context.Request)) return Results.BadRequest();
+            if (!requestPolicy.IsAllowed(context.Request)) return Results.StatusCode(StatusCodes.Status403Forbidden);
             if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 256 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
                 return Results.BadRequest();
             var result = await authentication.LoginAsync(new LoginAttempt(request.Username, request.Password, context.TraceIdentifier), cancellationToken);
@@ -23,7 +23,7 @@ public static class AuthenticationEndpoints
             return Results.NoContent();
         }).WithName("Login").WithSummary("Create an authenticated server-side session.")
             .WithDescription("Accepts credentials and returns 204 with the opaque session only in the HttpOnly cookie. Credential rejection is always 401.")
-            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status400BadRequest);
 
         auth.MapGet("/me", (HttpContext context) =>
         {
@@ -38,14 +38,14 @@ public static class AuthenticationEndpoints
         auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            if (!requestPolicy.IsAllowed(context.Request)) return Results.BadRequest();
+            if (!requestPolicy.IsAllowed(context.Request)) return Results.StatusCode(StatusCodes.Status403Forbidden);
             context.Request.Cookies.TryGetValue(cookies.Name, out var token);
             await authentication.LogoutAsync(string.IsNullOrWhiteSpace(token) ? null : new RawSessionToken(token), context.TraceIdentifier, cancellationToken);
             cookies.Clear(context.Response);
             return Results.NoContent();
         }).WithName("Logout").WithSummary("Revoke the current server-side session.")
             .WithDescription("Revokes the authoritative PostgreSQL session, clears the cookie, and returns 204 with no response body.")
-            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status403Forbidden);
         return v1;
     }
 
