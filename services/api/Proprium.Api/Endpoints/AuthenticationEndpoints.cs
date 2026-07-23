@@ -4,6 +4,7 @@ using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -17,12 +18,11 @@ public static class AuthenticationEndpoints
         auth.MapPost("/login", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            if (context.Request.ContentLength is > 4_096) return Results.BadRequest();
-            using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
-            var body = await reader.ReadToEndAsync(cancellationToken);
+            var (body, isTooLarge) = await ReadLoginBodyAsync(context.Request.Body, cancellationToken);
             var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(sources.Resolve(context.Connection.RemoteIpAddress), ExtractUsername(body)), cancellationToken);
             if (rateLimit.IsExceeded) { context.Response.Headers.RetryAfter = rateLimit.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return Results.StatusCode(StatusCodes.Status429TooManyRequests); }
             if (!requestPolicy.IsAllowed(context.Request)) return Results.StatusCode(StatusCodes.Status403Forbidden);
+            if (isTooLarge) return Results.BadRequest();
             if (!string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
             LoginRequest? request;
             try { request = JsonSerializer.Deserialize<LoginRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
@@ -62,6 +62,19 @@ public static class AuthenticationEndpoints
     }
 
     private static void SetNoStore(HttpContext context) => context.Response.Headers.CacheControl = "no-store";
+
+    private static async Task<(string Body, bool IsTooLarge)> ReadLoginBodyAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        var bytes = new byte[4_097];
+        var read = 0;
+        while (read < bytes.Length)
+        {
+            var count = await stream.ReadAsync(bytes.AsMemory(read, bytes.Length - read), cancellationToken);
+            if (count == 0) break;
+            read += count;
+        }
+        return (Encoding.UTF8.GetString(bytes, 0, Math.Min(read, 4_096)), read > 4_096);
+    }
 
     private static string? ExtractUsername(string body)
     {
