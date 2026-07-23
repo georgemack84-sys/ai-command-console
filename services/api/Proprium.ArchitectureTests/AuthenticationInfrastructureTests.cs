@@ -4,6 +4,7 @@ using Proprium.Application.Authentication;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Authentication;
 using Proprium.Infrastructure.Configuration;
+using Proprium.Api.Security;
 using Xunit;
 
 namespace Proprium.ArchitectureTests;
@@ -50,5 +51,11 @@ public sealed class AuthenticationInfrastructureTests
         Assert.False((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.2", null))).IsExceeded);
         for (var attempt = 0; attempt < 5; attempt++) Assert.False((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.2", $"user-{attempt}"))).IsExceeded);
         Assert.True((await limiter.IncrementAsync(new LoginRateLimitRequest("127.0.0.2", "another-user"))).IsExceeded);
+    }
+
+    [Fact]
+    public void Login_source_uses_normalized_direct_remote_address_not_forwarded_headers()
+    {
+        Assert.Equal("192.0.2.4", new DirectLoginSourceResolver().Resolve(System.Net.IPAddress.Parse("::ffff:192.0.2.4")));
     }
 }
