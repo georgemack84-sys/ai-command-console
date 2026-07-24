@@ -24,6 +24,7 @@ public static class AuthenticationEndpoints
             if (!requestPolicy.IsAllowed(context.Request)) return Results.StatusCode(StatusCodes.Status403Forbidden);
             if (isTooLarge) return Results.BadRequest();
             if (!string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
+            if (HasDuplicateProperties(body)) return Results.BadRequest();
             LoginRequest? request;
             try { request = JsonSerializer.Deserialize<LoginRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
             catch (JsonException) { return Results.BadRequest(); }
@@ -89,5 +90,18 @@ public static class AuthenticationEndpoints
             return usernames.Length == 1 ? usernames[0] : null;
         }
         catch (JsonException) { return null; }
+    }
+
+    private static bool HasDuplicateProperties(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return false;
+            return document.RootElement.EnumerateObject()
+                .GroupBy(property => property.Name, StringComparer.OrdinalIgnoreCase)
+                .Any(group => group.Skip(1).Any());
+        }
+        catch (JsonException) { return false; }
     }
 }
