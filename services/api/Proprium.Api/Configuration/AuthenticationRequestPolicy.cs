@@ -30,5 +30,7 @@ public sealed class CsrfHeaderValidator
 
 public sealed class AuthenticationRequestPolicy(OriginValidator origins, CsrfHeaderValidator csrf)
 {
-    public bool IsAllowed(HttpRequest request) => origins.IsAllowed(request.Headers.Origin) && csrf.IsValid(request.Headers[CsrfHeaderValidator.HeaderName]);
+    public bool IsOriginAllowed(HttpRequest request) => origins.IsAllowed(request.Headers.Origin);
+    public bool IsCsrfAllowed(HttpRequest request) => csrf.IsValid(request.Headers[CsrfHeaderValidator.HeaderName]);
+    public bool IsAllowed(HttpRequest request) => IsOriginAllowed(request) && IsCsrfAllowed(request);
 }
