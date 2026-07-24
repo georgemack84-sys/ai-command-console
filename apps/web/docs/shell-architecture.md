@@ -1,0 +1,3 @@
+# Day 2 shell architecture
+
+`ApplicationShell` is a client interaction boundary nested within the server root layout; its children remain server-composed route content. It owns only responsive navigation state. The temporary three-item navigation fixture is replaceable by the Week 4 registry. Desktop sidebar state persists under `proprium.shell.desktop-sidebar.v1`; the mobile drawer never persists. At the canonical `large` breakpoint, the drawer is cleaned up and desktop preference is restored. The single `proprium-overlay-root` remains layout-owned. The first focusable shell element is the skip link, which targets `#main-workspace`.

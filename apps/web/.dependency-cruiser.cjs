@@ -1,6 +1,51 @@
 module.exports = {
   forbidden: [
     {
+      name: 'ui-cannot-depend-on-shell',
+      severity: 'error',
+      from: {
+        path: '^(src/ui|tests/architecture/fixtures/failing/ui-to-shell\\.ts)',
+      },
+      to: { path: '^src/shell' },
+    },
+    {
+      name: 'ui-cannot-depend-on-app',
+      severity: 'error',
+      from: { path: '^src/ui' },
+      to: { path: '^src/app' },
+    },
+    {
+      name: 'theme-cannot-depend-on-ui-or-shell',
+      severity: 'error',
+      from: {
+        path: '^(src/theme|tests/architecture/fixtures/failing/theme-to-ui\\.ts)',
+      },
+      to: { path: '^src/(ui|shell)' },
+    },
+    {
+      name: 'state-cannot-depend-on-shell-components',
+      severity: 'error',
+      from: { path: '^src/state' },
+      to: { path: '^src/shell/components' },
+    },
+    {
+      name: 'production-cannot-depend-on-testing',
+      severity: 'error',
+      from: {
+        path: '^(src/(app|ui|shell|theme|providers|state|config)|tests/architecture/fixtures/failing/production-to-testing\\.ts)',
+        pathNot: '\\.(test|spec)\\.[tj]sx?$',
+      },
+      to: { path: '^(src/testing|tests)' },
+    },
+    {
+      name: 'no-private-theme-deep-imports',
+      severity: 'error',
+      from: {
+        path: '^(src/(?!theme/)|tests/architecture/fixtures/failing/private-theme-import\\.ts)',
+      },
+      to: { path: '^src/theme/(?!index)' },
+    },
+    {
       name: 'no-circular',
       severity: 'error',
       from: {},

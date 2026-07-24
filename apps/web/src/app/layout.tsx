@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { application } from '@/config/application';
-import './globals.css';
+import '@/styles/index.css';
+import { AppProviders } from '@/providers/app-providers';
+import { ApplicationShell } from '@/shell/components/application-shell';
 
 export const metadata: Metadata = {
   title: application.name,
@@ -11,8 +14,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <body>
+        <Script src="/theme-bootstrap.js" strategy="beforeInteractive" />
+        <AppProviders>
+          <ApplicationShell>{children}</ApplicationShell>
+        </AppProviders>
+        <div id="proprium-overlay-root" />
+      </body>
     </html>
   );
 }

@@ -9,6 +9,7 @@ export default defineConfig([
     '.next/**',
     'node_modules/**',
     'coverage/**',
+    'storybook-static/**',
     'dist/**',
     'out/**',
   ]),

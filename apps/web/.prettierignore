@@ -1,5 +1,8 @@
 node_modules
 .next
+storybook-static
+next-env.d.ts
+.next
 coverage
 dist
 out

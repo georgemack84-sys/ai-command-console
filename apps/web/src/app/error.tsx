@@ -9,7 +9,7 @@ export default function ErrorPage({
   return (
     <main>
       <h1>Something went wrong</h1>
-      <p>Please try again. Telemetry integration will be added here.</p>
+      <p>Please try again. No internal error details are shown.</p>
       <button onClick={reset}>Try again</button>
     </main>
   );
