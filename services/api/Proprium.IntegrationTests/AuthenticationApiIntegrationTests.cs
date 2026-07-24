@@ -386,6 +386,36 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Successful_login_does_not_reset_identifier_source_capacity()
+    {
+        var username = $"counter-{Guid.NewGuid():N}";
+        const string password = "correct-password";
+        await using (var database = CreateContext())
+        {
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
+            database.Users.Add(user);
+            await database.SaveChangesAsync();
+        }
+
+        var source = $"198.51.100.{Random.Shared.Next(1, 255)}";
+        await using var rateLimitFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginSourceResolver>();
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver(source));
+        }));
+        var client = rateLimitFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+
+        for (var attempt = 0; attempt < 4; attempt++)
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, "bad-password"))).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, "bad-password"))).StatusCode);
+    }
+
+    [Fact]
     public async Task Role_permission_change_rejects_an_existing_session()
     {
         var username = $"permission-change-{Guid.NewGuid():N}";
