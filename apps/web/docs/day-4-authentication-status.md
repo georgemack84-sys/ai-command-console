@@ -2,9 +2,9 @@
 
 Implementation status: **implemented — locally verified**.
 
-Independent verification status: **published and CI verified — pending human review**.
+Independent verification status: **published and CI verified — independent review waived by repository owner**.
 
-Certification status: **locally certified — pending independent implementation review**.
+Certification status: **certified — repository-owner waiver recorded**.
 
 ## Implemented foundation
 
@@ -67,9 +67,10 @@ route- and shell-level authorization tests, semantic transport and permission
 fixtures, backend origin/CSRF integration evidence, login Axe coverage, and a
 Storybook state matrix with passing interaction and Axe tests.
 
-The sole remaining certification step is independent human review of the
-published implementation branch or commit. No upstream permission-generator,
-local validation, or CI blocker remains.
+Independent human review was waived by the repository owner because no
+separate repository collaborator was available. This is a waiver, not evidence
+of a completed independent review. No upstream permission-generator, local
+validation, or CI blocker remains.
 
 ## Validation provenance
 
@@ -96,5 +97,5 @@ repository's development configuration and Proprium Postgres/Redis services:
 ## Published CI evidence
 
 The published Day 4 review branch passed GitHub Actions repository, frontend,
-backend, integration, and Docker validation. The review is ready at PR #7;
-it is awaiting an independent reviewer approval.
+backend, integration, and Docker validation. PR #7 is ready to merge; its
+independent-review requirement was waived by the repository owner.
