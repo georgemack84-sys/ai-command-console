@@ -34,6 +34,26 @@ public sealed class RedisLoginRateLimiterIntegrationTests
         Assert.InRange(remaining!.Value, TimeSpan.Zero, options.Value.Window);
     }
 
+    [Fact]
+    public async Task Restored_redis_uses_distributed_limiting_after_a_fallback_attempt()
+    {
+        const string privacyKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
+        var options = Options.Create(new LoginRateLimitOptions { PrivacyKeyMaterial = privacyKey });
+        var request = new LoginRateLimitRequest($"198.51.100.{Random.Shared.Next(1, 255)}", $"user-{Guid.NewGuid():N}");
+        var unavailableOptions = new ConfigurationOptions { AbortOnConnectFail = false, ConnectTimeout = 50, SyncTimeout = 50 };
+        unavailableOptions.EndPoints.Add("redis-unavailable.invalid", 6379);
+        await using (var unavailable = await ConnectionMultiplexer.ConnectAsync(unavailableOptions))
+        {
+            var fallback = new InMemoryLoginRateLimiter(options, TimeProvider.System);
+            Assert.True((await new RedisLoginRateLimiter(unavailable, fallback, options).IncrementAsync(request)).UsedFallback);
+        }
+
+        var endpoint = $"{Environment.GetEnvironmentVariable("REDIS_HOST") ?? "127.0.0.1"}:{Environment.GetEnvironmentVariable("REDIS_PORT") ?? "6379"}";
+        await using var restored = await ConnectionMultiplexer.ConnectAsync(endpoint);
+        var restoredFallback = new InMemoryLoginRateLimiter(options, TimeProvider.System);
+        Assert.False((await new RedisLoginRateLimiter(restored, restoredFallback, options).IncrementAsync(request)).UsedFallback);
+    }
+
     private static string Hash(string key, string value) =>
         Convert.ToHexString(HMACSHA256.HashData(Convert.FromBase64String(key), Encoding.UTF8.GetBytes(value)));
 }
