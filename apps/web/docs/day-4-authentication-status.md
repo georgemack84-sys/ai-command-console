@@ -2,7 +2,7 @@
 
 Implementation status: **implemented — locally verified**.
 
-Independent verification status: **pending an accessible implementation branch or push**.
+Independent verification status: **published and CI verified — pending human review**.
 
 Certification status: **locally certified — pending independent implementation review**.
 
@@ -67,9 +67,9 @@ route- and shell-level authorization tests, semantic transport and permission
 fixtures, backend origin/CSRF integration evidence, login Axe coverage, and a
 Storybook state matrix with passing interaction and Axe tests.
 
-The sole remaining certification step is independent review of the published
-implementation branch or commit. No upstream permission-generator or local
-validation blocker remains.
+The sole remaining certification step is independent human review of the
+published implementation branch or commit. No upstream permission-generator,
+local validation, or CI blocker remains.
 
 ## Validation provenance
 
@@ -92,3 +92,9 @@ restore the protected route through browser history. The focused backend
 authentication integration suite was independently executed locally with the
 repository's development configuration and Proprium Postgres/Redis services:
 21 passed, 0 failed. The required .NET 8.0.400 SDK is installed.
+
+## Published CI evidence
+
+The published Day 4 review branch passed GitHub Actions repository, frontend,
+backend, integration, and Docker validation. The review is ready at PR #7;
+it is awaiting an independent reviewer approval.
