@@ -54,6 +54,14 @@ public sealed class AuthenticationInfrastructureTests
     }
 
     [Fact]
+    public void Login_rate_limit_privacy_key_requires_base64_encoded_32_byte_material()
+    {
+        Assert.Throws<InvalidOperationException>(() => new LoginRateLimitOptions { PrivacyKeyMaterial = "not-base64" }.GetPrivacyKey());
+        Assert.Throws<InvalidOperationException>(() => new LoginRateLimitOptions { PrivacyKeyMaterial = Convert.ToBase64String(new byte[31]) }.GetPrivacyKey());
+        Assert.Equal(32, new LoginRateLimitOptions { PrivacyKeyMaterial = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=" }.GetPrivacyKey().Length);
+    }
+
+    [Fact]
     public void Login_source_uses_normalized_direct_remote_address_not_forwarded_headers()
     {
         Assert.Equal("192.0.2.4", new DirectLoginSourceResolver().Resolve(System.Net.IPAddress.Parse("::ffff:192.0.2.4")));

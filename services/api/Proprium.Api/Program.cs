@@ -107,7 +107,11 @@ builder.Services.AddOptions<LoginRateLimitOptions>().Configure(options =>
     options.WindowMinutes = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_WINDOW_MINUTES"], out var window) ? window : LoginRateLimitOptions.LockedWindowMinutes;
     options.FallbackCapacity = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_FALLBACK_CAPACITY"], out var capacity) ? capacity : 10_000;
     options.PrivacyKeyMaterial = builder.Configuration["LOGIN_RATE_LIMIT_PRIVACY_KEY"] ?? string.Empty;
-}).ValidateDataAnnotations().Validate(options => options.SourceLimit == LoginRateLimitOptions.LockedSourceLimit && options.IdentifierSourceLimit == LoginRateLimitOptions.LockedPairLimit && options.WindowMinutes == LoginRateLimitOptions.LockedWindowMinutes, "Login rate-limit thresholds are locked.").ValidateOnStart();
+}).ValidateDataAnnotations().Validate(options => options.SourceLimit == LoginRateLimitOptions.LockedSourceLimit && options.IdentifierSourceLimit == LoginRateLimitOptions.LockedPairLimit && options.WindowMinutes == LoginRateLimitOptions.LockedWindowMinutes, "Login rate-limit thresholds are locked.").Validate(options =>
+{
+    try { options.GetPrivacyKey(); return true; }
+    catch { return false; }
+}, "LOGIN_RATE_LIMIT_PRIVACY_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
 builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty)
     .ValidateDataAnnotations().Validate(options =>
     {
