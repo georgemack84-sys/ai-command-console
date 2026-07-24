@@ -13,6 +13,7 @@ import {
   type DesktopSidebarState,
   type MobileDrawerState,
 } from '../state/contracts';
+import { UserMenu } from '@/components/auth/user-menu';
 
 function readDesktopState(): DesktopSidebarState {
   try {
@@ -113,6 +114,7 @@ export function ApplicationShell({ children }: React.PropsWithChildren) {
           Menu
         </button>
         <strong>Proprium</strong>
+        <UserMenu />
       </header>
       {isDesktop ? (
         <aside className="desktop-sidebar">
