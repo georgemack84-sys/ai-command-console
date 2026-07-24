@@ -34,7 +34,12 @@ public sealed class PostgresAuthenticationService(PropriumDbContext database, IU
         }
 
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        if (verification == PasswordVerificationOutcome.SuccessRehashNeeded) user.PasswordHash = passwordHasher.Hash(user, attempt.Password);
+        if (verification == PasswordVerificationOutcome.SuccessRehashNeeded)
+        {
+            user.PasswordHash = passwordHasher.Hash(user, attempt.Password);
+            user.SecurityVersion++;
+            database.AuthenticationEvents.Add(AuthenticationEventFactory.Create(AuthenticationEventType.SecurityVersionInvalidated, AuthenticationEventOutcome.Success, attempt.CorrelationId, user.Id, normalizedUsername: normalized, reasonCode: "password-rehash"));
+        }
         var nowUtc = timeProvider.GetUtcNow();
         var generated = tokenGenerator.Generate();
         var session = SessionFactory.Create(user, generated.Hash.Value, nowUtc.Add(sessions.Value.Lifetime), nowUtc);
