@@ -153,6 +153,22 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Authentication_evidence_never_persists_raw_credentials_or_session_tokens()
+    {
+        var username = $"evidence-{Guid.NewGuid():N}";
+        const string password = "credential-must-not-persist";
+        var client = CreateAuthenticationClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+
+        await using var database = CreateContext();
+        var evidence = await database.AuthenticationEvents.SingleAsync(item => item.EventType == AuthenticationEventType.LoginFailed && item.NormalizedUsername == username.ToUpperInvariant());
+        Assert.Null(evidence.RequestMetadata);
+        Assert.DoesNotContain(password, evidence.NormalizedUsername ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(password, evidence.ReasonCode ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(password, evidence.CorrelationId, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Malformed_session_cookie_is_rejected_and_records_safe_evidence()
     {
         var client = factory.CreateClient();
