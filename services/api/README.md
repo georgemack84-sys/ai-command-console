@@ -36,3 +36,11 @@ make export-permissions
 `SecurityVersion` starts at `1`. Role assignment and removal increment the affected user atomically; a role-permission change increments each assigned user exactly once in the same transaction. If every affected user cannot be updated, the authorization change rolls back. Old session snapshots are never changed to restore validity.
 
 Set `LOCAL_ADMIN_ENABLED=true`, `LOCAL_ADMIN_USERNAME`, and the secret-bearing `LOCAL_ADMIN_PASSWORD` only in Development before running `make migrate` to create a local administrator. The password is hashed through ASP.NET Core Identity before persistence. Repeating initialization retains the existing account and Administrator assignment; it does not rotate the password. Missing credentials fail without creating a user. Any enabled local-administrator configuration outside Development is rejected before initialization.
+
+### Day 3 request security
+
+Protected requests validate the opaque session against PostgreSQL on every request, then resolve canonical effective permissions. Redis is advisory only: it can cache a derived permission set for up to 60 seconds at `authz:permissions:{userId}:{securityVersion}`, but it cannot authenticate a session or grant access by itself. Cache misses, corruption, and Redis outages fall back to PostgreSQL; a security-version mismatch fails before permission-cache use.
+
+Authentication mutations require the exact `AUTH_ALLOWED_ORIGIN` and exactly one `X-Proprium-CSRF: 1` header. Login rate limiting is locked to 10 direct-source attempts and 5 normalized identifier/source attempts per five-minute window. Redis performs counter increment plus expiry atomically; the bounded in-process fallback remains active if Redis is unavailable. The login response order is `429`, `403`, `400`, `401`, then `204`.
+
+Use canonical `PermissionCatalog` definitions with `RequirePermission(...)`; do not use role-name checks or ad hoc permission strings. Role and permission changes increment affected security versions transactionally, record invalidation evidence, and invalidate old session snapshots immediately.
