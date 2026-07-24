@@ -245,6 +245,26 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Origin_and_csrf_rejections_record_safe_evidence()
+    {
+        await using (var before = CreateContext())
+        {
+            var originBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.OriginRejected);
+            var csrfBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.CsrfRejected);
+
+            Assert.Equal(HttpStatusCode.Forbidden, (await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"))).StatusCode);
+            var csrfClient = factory.CreateClient();
+            csrfClient.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+            csrfClient.DefaultRequestHeaders.Add("X-Proprium-CSRF", "invalid");
+            Assert.Equal(HttpStatusCode.Forbidden, (await csrfClient.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"))).StatusCode);
+
+            await using var after = CreateContext();
+            Assert.Equal(originBefore + 1, await after.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.OriginRejected));
+            Assert.Equal(csrfBefore + 1, await after.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.CsrfRejected));
+        }
+    }
+
+    [Fact]
     public async Task Login_rate_limit_precedes_origin_and_csrf_rejection()
     {
         await using var limitedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
@@ -255,6 +275,8 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var response = await limitedFactory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"));
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.Equal("300", response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        await using var evidence = CreateContext();
+        Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.LoginRateLimited && item.Outcome == AuthenticationEventOutcome.Denied));
     }
 
     [Fact]
