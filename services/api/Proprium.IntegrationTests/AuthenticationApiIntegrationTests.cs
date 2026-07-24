@@ -249,13 +249,18 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     [Fact]
     public async Task Origin_and_csrf_rejections_record_safe_evidence()
     {
+        await using var evidenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
         await using (var before = CreateContext())
         {
             var originBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.OriginRejected);
             var csrfBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.CsrfRejected);
 
-            Assert.Equal(HttpStatusCode.Forbidden, (await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"))).StatusCode);
-            var csrfClient = factory.CreateClient();
+            Assert.Equal(HttpStatusCode.Forbidden, (await evidenceFactory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"))).StatusCode);
+            var csrfClient = evidenceFactory.CreateClient();
             csrfClient.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
             csrfClient.DefaultRequestHeaders.Add("X-Proprium-CSRF", "invalid");
             Assert.Equal(HttpStatusCode.Forbidden, (await csrfClient.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"))).StatusCode);
