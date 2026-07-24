@@ -1,0 +1,12 @@
+.git
+.next
+node_modules
+**/node_modules
+**/bin
+**/obj
+coverage
+artifacts
+logs
+test-results
+playwright-report
+.codex-temp

@@ -1,0 +1,44 @@
+{
+  "name": "@proprium/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "prebuild": "node --import tsx scripts/validate-environment.mjs",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "architecture:check": "depcruise --config .dependency-cruiser.cjs --output-type err src/app src/components src/config src/lib src/types",
+    "architecture:verify-failure": "node scripts/verify-architecture-failure.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
+    "validate": "npm run format:check && npm run typecheck && npm run lint && npm run architecture:check && npm run architecture:verify-failure && npm test"
+  },
+  "dependencies": {
+    "next": "16.2.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@types/node": "20.19.37",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.1.2",
+    "dependency-cruiser": "16.10.4",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.0",
+    "jsdom": "29.0.1",
+    "prettier": "3.8.2",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.2"
+  }
+}

@@ -1,0 +1,31 @@
+# Repository Quality Standards
+
+## Canonical owners
+
+| Gate | Canonical owner |
+| --- | --- |
+| Frontend formatting | Prettier in `apps/web` |
+| Frontend linting and import/dependency rules | ESLint and dependency-cruiser in `apps/web` |
+| Type safety | Strict TypeScript compiler settings |
+| Backend formatting and analysis | `dotnet format` and centralized .NET analyzers |
+| Backend architecture | Architecture test project |
+| Repository consistency | `npm run validate:repository` |
+| CI orchestration | GitHub Actions |
+
+## File rules
+
+Text is UTF-8 without BOM, uses LF, ends with one newline, and has no trailing whitespace unless Markdown rendering requires it. `.gitattributes` owns normalization and defines the documented PowerShell CRLF exception. `.editorconfig` owns indentation and language-specific editor behavior.
+
+## Commands
+
+Run `npm run validate:repository` for required files, templates, local-configuration exclusions, Markdown fences/headings/links, YAML indentation, JSON syntax, UTF-8 BOM detection, final-newline checks, and configuration validation. The command does not require infrastructure.
+
+Run `npm run validate` from `apps/web` for Prettier, strict TypeScript, ESLint, dependency-cruiser, architecture-fixture rejection, and unit tests. Run `dotnet format services/api/Proprium.sln --verify-no-changes --no-restore` and `dotnet test services/api/Proprium.sln` for the backend; Docker supplies the SDK qualification path when a local SDK is unavailable.
+
+## Enforcement policy
+
+Required checks fail closed. Suppressions must be localized and justified with a removal condition. Mechanical enforcement precedes review: compiler, analyzer, architecture test, repository validator, then code review.
+
+## Transitional scope
+
+The repository validator governs repository configuration, `.github`, `docs`, `apps/web`, `services/api`, and `services/platform-api`. Older application surfaces are brought under the same validator as they are migrated; they are not silently rewritten by this Day 5 increment.

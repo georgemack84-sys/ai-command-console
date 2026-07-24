@@ -1,0 +1,13 @@
+name: Documentation improvement
+description: Report or propose a documentation change.
+title: "docs: "
+labels: [documentation]
+body:
+  - type: textarea
+    attributes:
+      label: What needs to change?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Suggested content or location
