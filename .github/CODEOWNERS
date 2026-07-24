@@ -1,0 +1,8 @@
+# Solo operating model: ownership is documented with the configured maintainer.
+# CODEOWNERS_STATUS: ENFORCED_WHEN_GITHUB_CODE_OWNER_REVIEW_IS_ENABLED
+* @georgemack84-sys
+
+/app/ @georgemack84-sys
+/services/ @georgemack84-sys
+/packages/ @georgemack84-sys
+/infrastructure/ @georgemack84-sys
