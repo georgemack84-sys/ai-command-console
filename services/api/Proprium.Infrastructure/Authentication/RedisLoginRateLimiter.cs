@@ -27,7 +27,7 @@ public sealed class RedisLoginRateLimiter(IConnectionMultiplexer redis, InMemory
             if (source.IsExceeded || string.IsNullOrWhiteSpace(request.Identifier)) return source;
             return await IncrementAsync($"authz:login:pair:{Hash($"{request.Source}:{request.Identifier.Trim().ToUpperInvariant()}")}", LoginRateLimitOptions.LockedPairLimit);
         }
-        catch (RedisException) { return await fallback.IncrementAsync(request, cancellationToken); }
+        catch (RedisException) { return (await fallback.IncrementAsync(request, cancellationToken)) with { UsedFallback = true }; }
     }
 
     private async Task<LoginRateLimitResult> IncrementAsync(string keyName, int limit)
