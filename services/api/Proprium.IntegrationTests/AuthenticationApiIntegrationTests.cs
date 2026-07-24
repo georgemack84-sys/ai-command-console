@@ -191,7 +191,9 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         await using var verification = CreateContext();
         var userAfterLogin = await verification.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
         Assert.Equal(PasswordVerificationResult.Success, new PasswordHasher<User>().VerifyHashedPassword(userAfterLogin, userAfterLogin.PasswordHash, password));
+        Assert.Equal(2, userAfterLogin.SecurityVersion);
         Assert.True(await verification.Sessions.AnyAsync(session => session.UserId == userAfterLogin.Id));
+        Assert.True(await verification.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.SecurityVersionInvalidated && item.UserId == userAfterLogin.Id && item.ReasonCode == "password-rehash"));
     }
 
     [Fact]
