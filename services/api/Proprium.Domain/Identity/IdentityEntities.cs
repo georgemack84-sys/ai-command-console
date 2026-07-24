@@ -56,7 +56,7 @@ public sealed class Session
     public User User { get; init; } = null!;
 }
 
-public enum AuthenticationEventType { LoginSucceeded, LoginFailed, SessionCreated, Logout, SessionRevoked, SessionRejected, SecurityVersionInvalidated }
+public enum AuthenticationEventType { LoginSucceeded, LoginFailed, SessionCreated, Logout, SessionRevoked, SessionRejected, SecurityVersionInvalidated, AuthorizationDenied, OriginRejected, CsrfRejected, LoginRateLimited, LoginRateLimitFallbackActivated }
 public enum AuthenticationEventOutcome { Success, Failure, Denied }
 
 public sealed class AuthenticationEvent

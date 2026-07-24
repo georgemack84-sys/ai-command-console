@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Writers;
 using System.Text.Json;
@@ -8,6 +10,8 @@ using Microsoft.Extensions.Options;
 using Proprium.Api.Configuration;
 using Proprium.Api.Endpoints;
 using Proprium.Api.Middleware;
+using Proprium.Api.Security;
+using Proprium.Application.Authentication;
 using Proprium.Infrastructure;
 using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
@@ -59,7 +63,8 @@ if (openApiOutput is not null)
         ["REDIS_PORT"] = "6379",
         ["SESSION_TOKEN_DIGEST_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         ["SESSION_LIFETIME_MINUTES"] = "480",
-        ["AUTH_ALLOWED_ORIGIN"] = "http://localhost"
+        ["AUTH_ALLOWED_ORIGIN"] = "http://localhost",
+        ["LOGIN_RATE_LIMIT_PRIVACY_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     });
 }
 
@@ -95,12 +100,41 @@ builder.Services.AddOptions<PropriumSessionOptions>().Configure(options =>
     try { options.GetTokenDigestKey(); return true; }
     catch { return false; }
 }, "SESSION_TOKEN_DIGEST_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
-builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty).ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddOptions<LoginRateLimitOptions>().Configure(options =>
+{
+    options.SourceLimit = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_SOURCE"], out var source) ? source : LoginRateLimitOptions.LockedSourceLimit;
+    options.IdentifierSourceLimit = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE"], out var pair) ? pair : LoginRateLimitOptions.LockedPairLimit;
+    options.WindowMinutes = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_WINDOW_MINUTES"], out var window) ? window : LoginRateLimitOptions.LockedWindowMinutes;
+    options.FallbackCapacity = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_FALLBACK_CAPACITY"], out var capacity) ? capacity : 10_000;
+    options.PrivacyKeyMaterial = builder.Configuration["LOGIN_RATE_LIMIT_PRIVACY_KEY"] ?? string.Empty;
+}).ValidateDataAnnotations().Validate(options => options.SourceLimit == LoginRateLimitOptions.LockedSourceLimit && options.IdentifierSourceLimit == LoginRateLimitOptions.LockedPairLimit && options.WindowMinutes == LoginRateLimitOptions.LockedWindowMinutes, "Login rate-limit thresholds are locked.").Validate(options =>
+{
+    try { options.GetPrivacyKey(); return true; }
+    catch { return false; }
+}, "LOGIN_RATE_LIMIT_PRIVACY_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
+builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty)
+    .ValidateDataAnnotations().Validate(options =>
+    {
+        try { OriginValidator.Normalize(options.AllowedOrigin); return true; }
+        catch { return false; }
+    }, "AUTH_ALLOWED_ORIGIN must be an absolute HTTP(S) origin without a path, query, fragment, user information, or wildcard.").ValidateOnStart();
 builder.Services.AddPropriumInfrastructure();
-builder.Services.AddSingleton<ISystemClock, SystemClock>();
+builder.Services.AddSingleton<Proprium.Infrastructure.ISystemClock, Proprium.Infrastructure.SystemClock>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AuthenticationCookiePolicy>();
+builder.Services.AddSingleton<OriginValidator>();
+builder.Services.AddSingleton<CsrfHeaderValidator>();
 builder.Services.AddSingleton<AuthenticationRequestPolicy>();
+builder.Services.AddSingleton<ILoginSourceResolver, DirectLoginSourceResolver>();
+builder.Services.AddCors(options => options.AddPolicy("PropriumOrigins", policy => policy
+    .WithOrigins(OriginValidator.Normalize(builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty))
+    .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+    .WithHeaders("Content-Type", CsrfHeaderValidator.HeaderName)
+    .AllowCredentials()));
+builder.Services.AddAuthentication(PropriumSessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, PropriumSessionAuthenticationHandler>(PropriumSessionAuthenticationHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddOptions<PlatformOptions>().Bind(builder.Configuration.GetSection(PlatformOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" }));
@@ -161,6 +195,9 @@ app.Use(async (context, next) =>
 });
 if (app.Environment.IsDevelopment()) app.UseSwaggerUI();
 app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
+app.UseCors("PropriumOrigins");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapPlatformEndpoints();
 app.Run();
 

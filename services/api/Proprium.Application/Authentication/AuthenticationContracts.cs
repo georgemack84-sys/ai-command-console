@@ -23,6 +23,21 @@ public interface ISessionTokenGenerator
 
 public enum SessionValidationOutcome { Valid, Missing, Malformed, Expired, Revoked, DisabledUser, SecurityVersionMismatch, Unavailable }
 
+public static class SessionRejectionReason
+{
+    public static string From(SessionValidationOutcome outcome) => outcome switch
+    {
+        SessionValidationOutcome.Malformed => "malformed-token",
+        SessionValidationOutcome.Missing => "missing-session",
+        SessionValidationOutcome.Expired => "expired-session",
+        SessionValidationOutcome.Revoked => "revoked-session",
+        SessionValidationOutcome.DisabledUser => "disabled-user",
+        SessionValidationOutcome.SecurityVersionMismatch => "security-version-mismatch",
+        SessionValidationOutcome.Unavailable => "authoritative-storage-unavailable",
+        _ => "unknown-rejection"
+    };
+}
+
 public sealed record SessionValidationResult(SessionValidationOutcome Outcome, User? User = null, Session? Session = null)
 {
     public bool IsValid => Outcome == SessionValidationOutcome.Valid;
@@ -59,6 +74,11 @@ public interface IAuthenticationService
 {
     Task<LoginResult> LoginAsync(LoginAttempt attempt, CancellationToken cancellationToken = default);
     Task LogoutAsync(RawSessionToken? sessionToken, string correlationId, CancellationToken cancellationToken = default);
+}
+
+public interface IPasswordChangeService
+{
+    Task ChangeAsync(Guid userId, string newPassword, string correlationId, CancellationToken cancellationToken = default);
 }
 
 public sealed record CurrentUser(Guid UserId, string Username, string DisplayName, IReadOnlyList<string> Roles, IReadOnlyList<string> Permissions);

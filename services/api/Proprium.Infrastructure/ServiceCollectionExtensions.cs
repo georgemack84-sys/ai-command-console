@@ -21,7 +21,12 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddPropriumInfrastructure(this IServiceCollection services)
     {
         services.AddDbContext<PropriumDbContext>((provider, options) => options.UseNpgsql(provider.GetRequiredService<IOptions<PostgresOptions>>().Value.ConnectionString));
-        services.AddSingleton<IConnectionMultiplexer>(provider => ConnectionMultiplexer.Connect(provider.GetRequiredService<IOptions<RedisOptions>>().Value.ConnectionString));
+        services.AddSingleton<IConnectionMultiplexer>(provider =>
+        {
+            var configuration = ConfigurationOptions.Parse(provider.GetRequiredService<IOptions<RedisOptions>>().Value.ConnectionString);
+            configuration.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(configuration);
+        });
         services.AddSingleton<IPlatformCache, RedisPlatformCache>();
         services.AddScoped<IRetryExecutor, RetryExecutor>();
         services.AddScoped<ISecurityVersionInvalidator, SecurityVersionInvalidator>();
@@ -31,7 +36,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISessionRepository, PostgresSessionRepository>();
         services.AddScoped<ISessionService, PostgresSessionService>();
         services.AddScoped<IAuthenticationService, PostgresAuthenticationService>();
+        services.AddScoped<IPasswordChangeService, PostgresPasswordChangeService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddSingleton<InMemoryLoginRateLimiter>();
+        services.AddSingleton<ILoginRateLimiter, RedisLoginRateLimiter>();
+        services.AddScoped<IPermissionResolver, PostgresPermissionResolver>();
         services.AddScoped<LocalAdministratorInitializer>();
         return services;
     }

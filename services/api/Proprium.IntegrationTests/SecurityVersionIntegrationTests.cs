@@ -137,6 +137,23 @@ public sealed class SecurityVersionIntegrationTests
         await new SecurityVersionInvalidator(database).ReplaceRolePermissionsAsync(role.Id, [permission.Id]);
         await database.Entry(first).ReloadAsync(); await database.Entry(second).ReloadAsync();
         Assert.Equal(2, first.SecurityVersion); Assert.Equal(2, second.SecurityVersion);
+        Assert.Equal(2, await database.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.SecurityVersionInvalidated && (item.UserId == first.Id || item.UserId == second.Id)));
+    }
+
+    [Fact]
+    public async Task Unchanged_role_permissions_do_not_invalidate_assigned_users()
+    {
+        await using var database = CreateContext();
+        var role = new Role { Name = $"role-{Guid.NewGuid():N}", NormalizedName = $"ROLE-{Guid.NewGuid():N}" };
+        var user = new User { Username = $"user-{Guid.NewGuid():N}", NormalizedUsername = $"USER-{Guid.NewGuid():N}", PasswordHash = "test" };
+        var permission = new Permission { Key = $"test.security.{Guid.NewGuid():N}", Description = "Test permission.", CapabilityGroup = "test" };
+        database.AddRange(role, user, permission, new UserRole { User = user, Role = role }, new RolePermission { Role = role, Permission = permission });
+        await database.SaveChangesAsync();
+
+        await new SecurityVersionInvalidator(database).ReplaceRolePermissionsAsync(role.Id, [permission.Id]);
+
+        await database.Entry(user).ReloadAsync();
+        Assert.Equal(1, user.SecurityVersion);
     }
 
     [Fact]

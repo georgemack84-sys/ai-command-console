@@ -1,3 +1,4 @@
+using Proprium.Api.Security;
 using Proprium.Domain.Identity;
 using Xunit;
 
@@ -18,5 +19,20 @@ public sealed class PermissionCatalogTests
             Assert.False(string.IsNullOrWhiteSpace(item.CapabilityGroup));
         });
         Assert.Equal(catalog.Select(item => item.Key).OrderBy(key => key, StringComparer.Ordinal), catalog.Select(item => item.Key));
+    }
+
+    [Fact]
+    public void Canonical_endpoint_references_are_catalog_members()
+    {
+        var reference = PermissionCatalog.Identity.ProfileReadSelf;
+        Assert.Contains(PermissionCatalog.All, item => item.Key == reference.Key);
+        Assert.Equal("identity.profile.read-self", reference.Key);
+    }
+
+    [Fact]
+    public void Unknown_permission_reference_is_rejected()
+    {
+        var unknown = new PermissionDefinition("identity.unknown.read", "Unknown permission.", "identity");
+        Assert.Throws<ArgumentException>(() => new PermissionRequirement(unknown));
     }
 }

@@ -13,23 +13,27 @@ public sealed class RedisPlatformCache(IConnectionMultiplexer connection) : IPla
         {
             var value = await _database.StringGetAsync(key).WaitAsync(cancellationToken);
             if (!value.HasValue) return CacheReadResult<T>.Failure(CacheOperationStatus.Miss);
-            try { return CacheReadResult<T>.Success(JsonSerializer.Deserialize<T>(value!)!); }
+            try
+            {
+                var deserialized = JsonSerializer.Deserialize<T>(value!);
+                return deserialized is null ? CacheReadResult<T>.Failure(CacheOperationStatus.SerializationFailure) : CacheReadResult<T>.Success(deserialized);
+            }
             catch (JsonException) { return CacheReadResult<T>.Failure(CacheOperationStatus.SerializationFailure); }
         }
         catch (OperationCanceledException) { return CacheReadResult<T>.Failure(CacheOperationStatus.Cancelled); }
-        catch (RedisConnectionException) { return CacheReadResult<T>.Failure(CacheOperationStatus.Unavailable); }
+        catch (RedisException) { return CacheReadResult<T>.Failure(CacheOperationStatus.Unavailable); }
     }
     public async Task<CacheWriteResult> SetAsync<T>(string key, T value, TimeSpan expiry, CancellationToken cancellationToken = default)
     {
         try { await _database.StringSetAsync(key, JsonSerializer.Serialize(value), expiry).WaitAsync(cancellationToken); return new(CacheOperationStatus.Success); }
         catch (JsonException) { return new(CacheOperationStatus.SerializationFailure); }
         catch (OperationCanceledException) { return new(CacheOperationStatus.Cancelled); }
-        catch (RedisConnectionException) { return new(CacheOperationStatus.Unavailable); }
+        catch (RedisException) { return new(CacheOperationStatus.Unavailable); }
     }
     public async Task<CacheRemoveResult> RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
         try { await _database.KeyDeleteAsync(key).WaitAsync(cancellationToken); return new(CacheOperationStatus.Success); }
         catch (OperationCanceledException) { return new(CacheOperationStatus.Cancelled); }
-        catch (RedisConnectionException) { return new(CacheOperationStatus.Unavailable); }
+        catch (RedisException) { return new(CacheOperationStatus.Unavailable); }
     }
 }

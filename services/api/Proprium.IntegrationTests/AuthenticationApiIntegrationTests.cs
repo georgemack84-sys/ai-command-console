@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
-using Proprium.Contracts.V1;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Proprium.Application.Authentication;
+using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Authentication;
 using Proprium.Infrastructure.Persistence;
@@ -19,6 +21,20 @@ namespace Proprium.IntegrationTests;
 [Trait("Category", "Integration")]
 public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
+    private sealed class ExceededLoginRateLimiter : ILoginRateLimiter
+    {
+        public Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new LoginRateLimitResult(true, 300));
+    }
+
+    private sealed class PermissiveLoginRateLimiter : ILoginRateLimiter
+    {
+        public Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new LoginRateLimitResult(false, 0));
+    }
+
+    private sealed class StaticLoginSourceResolver(string source) : ILoginSourceResolver
+    {
+        public string Resolve(System.Net.IPAddress? address) => source;
+    }
     private sealed class RehashConflictPasswordHasher(Action onRehash) : IUserPasswordHasher
     {
         public string Hash(User user, string password)
@@ -32,9 +48,14 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
 
     private HttpClient CreateAuthenticationClient(bool handleCookies = false)
     {
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
+        var isolatedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginSourceResolver>();
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"198.51.100.{Random.Shared.Next(1, 255)}"));
+        }));
+        var client = isolatedFactory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
-        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "integration-test-csrf");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
         return client;
     }
 
@@ -55,18 +76,18 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
             var role = new Role { Name = $"Zeta-{Guid.NewGuid():N}", NormalizedName = $"ZETA-{Guid.NewGuid():N}" };
             var secondRole = new Role { Name = $"alpha-{Guid.NewGuid():N}", NormalizedName = $"ALPHA-{Guid.NewGuid():N}" };
-            var permission = new Permission { Key = $"z.permission.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
-            var secondPermission = new Permission { Key = $"a.permission.{Guid.NewGuid():N}", Description = "Authentication integration permission.", CapabilityGroup = "test" };
+            var profilePermission = await database.Permissions.SingleAsync(item => item.Key == "identity.profile.read-self");
+            var userReadPermission = await database.Permissions.SingleAsync(item => item.Key == "identity.user.read");
+            var roleReadPermission = await database.Permissions.SingleAsync(item => item.Key == "identity.role.read");
             database.AddRange(
                 user,
                 role,
                 secondRole,
-                permission,
-                secondPermission,
                 new UserRole { User = user, Role = role },
                 new UserRole { User = user, Role = secondRole },
-                new RolePermission { Role = role, Permission = permission },
-                new RolePermission { Role = secondRole, Permission = secondPermission });
+                new RolePermission { Role = role, Permission = userReadPermission },
+                new RolePermission { Role = role, Permission = profilePermission },
+                new RolePermission { Role = secondRole, Permission = roleReadPermission });
             await database.SaveChangesAsync();
         }
 
@@ -85,7 +106,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         Assert.Equal(username, payload?.Username);
         Assert.Equal("Integration Test User", payload?.DisplayName);
         Assert.Equal(new[] { "Zeta", "alph" }, (payload?.Roles ?? []).Select(value => value[..4]).ToArray());
-        Assert.Equal(new[] { "a.permission", "z.permission" }, (payload?.Permissions ?? []).Select(value => value[..12]).ToArray());
+        Assert.Equal(new[] { "identity.profile.read-self", "identity.role.read", "identity.user.read" }, payload?.Permissions);
 
         var logout = await client.PostAsync("/api/v1/auth/logout", null);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
@@ -132,6 +153,22 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Authentication_evidence_never_persists_raw_credentials_or_session_tokens()
+    {
+        var username = $"evidence-{Guid.NewGuid():N}";
+        const string password = "credential-must-not-persist";
+        var client = CreateAuthenticationClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+
+        await using var database = CreateContext();
+        var evidence = await database.AuthenticationEvents.SingleAsync(item => item.EventType == AuthenticationEventType.LoginFailed && item.NormalizedUsername == username.ToUpperInvariant());
+        Assert.Null(evidence.RequestMetadata);
+        Assert.DoesNotContain(password, evidence.NormalizedUsername ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(password, evidence.ReasonCode ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(password, evidence.CorrelationId, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Malformed_session_cookie_is_rejected_and_records_safe_evidence()
     {
         var client = factory.CreateClient();
@@ -140,6 +177,20 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
 
         await using var evidence = CreateContext();
         Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.SessionRejected && item.ReasonCode == "malformed-token" && item.UserId == null && item.SessionId == null));
+    }
+
+    [Fact]
+    public async Task Duplicate_session_cookie_is_rejected_and_records_safe_evidence()
+    {
+        await using var before = CreateContext();
+        var countBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.SessionRejected && item.ReasonCode == "malformed-token" && item.UserId == null && item.SessionId == null);
+
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("Cookie", "proprium_session=first; proprium_session=second");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+
+        await using var after = CreateContext();
+        Assert.Equal(countBefore + 1, await after.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.SessionRejected && item.ReasonCode == "malformed-token" && item.UserId == null && item.SessionId == null));
     }
 
     [Fact]
@@ -161,7 +212,9 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         await using var verification = CreateContext();
         var userAfterLogin = await verification.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
         Assert.Equal(PasswordVerificationResult.Success, new PasswordHasher<User>().VerifyHashedPassword(userAfterLogin, userAfterLogin.PasswordHash, password));
+        Assert.Equal(2, userAfterLogin.SecurityVersion);
         Assert.True(await verification.Sessions.AnyAsync(session => session.UserId == userAfterLogin.Id));
+        Assert.True(await verification.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.SecurityVersionInvalidated && item.UserId == userAfterLogin.Id && item.ReasonCode == "password-rehash"));
     }
 
     [Fact]
@@ -196,12 +249,67 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     public async Task Login_rejects_missing_or_invalid_origin_and_csrf_headers()
     {
         var request = new LoginRequest("any-user", "any-password");
-        Assert.Equal(HttpStatusCode.BadRequest, (await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+        await using var isolatedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginSourceResolver>();
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"198.51.100.{Random.Shared.Next(1, 255)}"));
+        }));
+        Assert.Equal(HttpStatusCode.Forbidden, (await isolatedFactory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
 
-        var wrongOrigin = factory.CreateClient();
+        var wrongOrigin = isolatedFactory.CreateClient();
         wrongOrigin.DefaultRequestHeaders.Add("Origin", "https://untrusted.example");
-        wrongOrigin.DefaultRequestHeaders.Add("X-Proprium-CSRF", "test");
-        Assert.Equal(HttpStatusCode.BadRequest, (await wrongOrigin.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+        wrongOrigin.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await wrongOrigin.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+
+        var invalidCsrf = isolatedFactory.CreateClient();
+        invalidCsrf.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        invalidCsrf.DefaultRequestHeaders.Add("X-Proprium-CSRF", "unexpected");
+        Assert.Equal(HttpStatusCode.Forbidden, (await invalidCsrf.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+
+        var duplicateCsrf = isolatedFactory.CreateClient();
+        duplicateCsrf.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        duplicateCsrf.DefaultRequestHeaders.Add("X-Proprium-CSRF", new[] { "1", "1" });
+        Assert.Equal(HttpStatusCode.Forbidden, (await duplicateCsrf.PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Origin_and_csrf_rejections_record_safe_evidence()
+    {
+        await using var evidenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        await using (var before = CreateContext())
+        {
+            var originBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.OriginRejected);
+            var csrfBefore = await before.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.CsrfRejected);
+
+            Assert.Equal(HttpStatusCode.Forbidden, (await evidenceFactory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"))).StatusCode);
+            var csrfClient = evidenceFactory.CreateClient();
+            csrfClient.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+            csrfClient.DefaultRequestHeaders.Add("X-Proprium-CSRF", "invalid");
+            Assert.Equal(HttpStatusCode.Forbidden, (await csrfClient.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"))).StatusCode);
+
+            await using var after = CreateContext();
+            Assert.Equal(originBefore + 1, await after.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.OriginRejected));
+            Assert.Equal(csrfBefore + 1, await after.AuthenticationEvents.CountAsync(item => item.EventType == AuthenticationEventType.CsrfRejected));
+        }
+    }
+
+    [Fact]
+    public async Task Login_rate_limit_precedes_origin_and_csrf_rejection()
+    {
+        await using var limitedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, ExceededLoginRateLimiter>();
+        }));
+        var response = await limitedFactory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("any-user", "any-password"));
+        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
+        Assert.Equal("300", response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        await using var evidence = CreateContext();
+        Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.LoginRateLimited && item.Outcome == AuthenticationEventOutcome.Denied));
     }
 
     [Fact]
@@ -212,6 +320,194 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var response = await client.PostAsync("/api/v1/auth/login", content);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+    }
+
+    [Fact]
+    public async Task Login_origin_rejection_precedes_json_schema_rejection()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        using var content = new StringContent("{\"username\":\"any-user\",\"password\":\"any-password\",\"unexpected\":true}", Encoding.UTF8, "application/json");
+        var response = await precedenceFactory.CreateClient().PostAsync("/api/v1/auth/login", content);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_origin_rejection_precedes_oversized_body_rejection()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var oversizedJson = "{\"username\":\"any-user\",\"password\":\"" + new string('x', 4_097) + "\"}";
+        using var content = new StringContent(oversizedJson, Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.Forbidden, (await precedenceFactory.CreateClient().PostAsync("/api/v1/auth/login", content)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_schema_rejection_precedes_credential_rejection()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = precedenceFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        using var content = new StringContent("{\"username\":\"any-user\",\"password\":\"bad-password\",\"unexpected\":true}", Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/v1/auth/login", content)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_rejects_duplicate_json_properties()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = precedenceFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        using var content = new StringContent("{\"username\":\"first-user\",\"Username\":\"second-user\",\"password\":\"bad-password\"}", Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/v1/auth/login", content)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_credential_rejection_precedes_success()
+    {
+        await using var precedenceFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = precedenceFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest($"unknown-{Guid.NewGuid():N}", "bad-password"))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_rate_limit_normalizes_json_property_casing()
+    {
+        var source = $"198.51.100.{Random.Shared.Next(1, 255)}";
+        var username = $"unknown-{Guid.NewGuid():N}";
+        await using var rateLimitFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginSourceResolver>();
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver(source));
+        }));
+        var client = rateLimitFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            using var content = new StringContent($"{{\"Username\":\"{username}\",\"Password\":\"bad-password\"}}", Encoding.UTF8, "application/json");
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/api/v1/auth/login", content)).StatusCode);
+        }
+
+        using var limitedContent = new StringContent($"{{\"Username\":\"{username}\",\"Password\":\"bad-password\"}}", Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsync("/api/v1/auth/login", limitedContent)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Successful_login_does_not_reset_identifier_source_capacity()
+    {
+        var username = $"counter-{Guid.NewGuid():N}";
+        const string password = "correct-password";
+        await using (var database = CreateContext())
+        {
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
+            database.Users.Add(user);
+            await database.SaveChangesAsync();
+        }
+
+        var source = $"198.51.100.{Random.Shared.Next(1, 255)}";
+        await using var rateLimitFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginSourceResolver>();
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver(source));
+        }));
+        var client = rateLimitFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+
+        for (var attempt = 0; attempt < 4; attempt++)
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, "bad-password"))).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, "bad-password"))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Role_permission_change_rejects_an_existing_session()
+    {
+        var username = $"permission-change-{Guid.NewGuid():N}";
+        const string password = "correct-password";
+        Guid roleId;
+        await using (var database = CreateContext())
+        {
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
+            var role = new Role { Name = $"role-{Guid.NewGuid():N}", NormalizedName = $"ROLE-{Guid.NewGuid():N}" };
+            var profilePermission = await database.Permissions.SingleAsync(item => item.Key == "identity.profile.read-self");
+            database.AddRange(user, role, new UserRole { User = user, Role = role }, new RolePermission { Role = role, Permission = profilePermission });
+            await database.SaveChangesAsync();
+            roleId = role.Id;
+        }
+
+        await using var permissiveFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = permissiveFactory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+        await using (var mutation = CreateContext())
+        {
+            await new SecurityVersionInvalidator(mutation).ReplaceRolePermissionsAsync(roleId, []);
+        }
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_session_without_required_permission_is_forbidden()
+    {
+        var username = $"unprivileged-{Guid.NewGuid():N}";
+        const string password = "correct-password";
+        Guid userId;
+        await using (var database = CreateContext())
+        {
+            var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
+            database.Users.Add(user);
+            await database.SaveChangesAsync();
+            userId = user.Id;
+        }
+
+        await using var permissiveFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginRateLimiter>();
+            services.AddSingleton<ILoginRateLimiter, PermissiveLoginRateLimiter>();
+        }));
+        var client = permissiveFactory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+        await using var evidence = CreateContext();
+        Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.AuthorizationDenied && item.UserId == userId && item.ReasonCode == "identity.profile.read-self"));
     }
 
     [Fact]
@@ -234,7 +530,10 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         })));
         var client = unavailableRedisFactory.CreateClient();
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
-        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "integration-test-csrf");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+
+        await using var evidence = CreateContext();
+        Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.LoginRateLimitFallbackActivated && item.Outcome == AuthenticationEventOutcome.Success && item.ReasonCode == "redis-unavailable"));
     }
 }

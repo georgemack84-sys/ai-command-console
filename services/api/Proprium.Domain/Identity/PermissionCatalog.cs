@@ -6,18 +6,36 @@ public sealed record PermissionDefinition(string Key, string Description, string
 
 public static partial class PermissionCatalog
 {
+    public static class Identity
+    {
+        public static PermissionDefinition ProfileReadSelf { get; } = new("identity.profile.read-self", "Read the current user's profile.", "identity");
+        public static PermissionDefinition SessionManageSelf { get; } = new("identity.session.manage-self", "Manage the current user's sessions.", "identity");
+        public static PermissionDefinition UserRead { get; } = new("identity.user.read", "Read users administratively.", "identity");
+        public static PermissionDefinition UserManage { get; } = new("identity.user.manage", "Manage users administratively.", "identity");
+        public static PermissionDefinition RoleRead { get; } = new("identity.role.read", "Read roles administratively.", "identity");
+        public static PermissionDefinition RoleAssignmentManage { get; } = new("identity.role-assignment.manage", "Manage user role assignments.", "identity");
+        public static PermissionDefinition PermissionRead { get; } = new("identity.permission.read", "Read permissions administratively.", "identity");
+        public static PermissionDefinition RolePermissionManage { get; } = new("identity.role-permission.manage", "Manage role permission assignments.", "identity");
+        public static PermissionDefinition AuthenticationEventRead { get; } = new("identity.authentication-event.read", "Read authentication events administratively.", "identity");
+    }
+
+    public static class Application
+    {
+        public static PermissionDefinition AuthenticatedAccess { get; } = new("application.authenticated.access", "Access authenticated application functionality.", "application");
+    }
+
     private static readonly IReadOnlyList<PermissionDefinition> Definitions =
     [
-        new("identity.profile.read-self", "Read the current user's profile.", "identity"),
-        new("identity.session.manage-self", "Manage the current user's sessions.", "identity"),
-        new("application.authenticated.access", "Access authenticated application functionality.", "application"),
-        new("identity.user.read", "Read users administratively.", "identity"),
-        new("identity.user.manage", "Manage users administratively.", "identity"),
-        new("identity.role.read", "Read roles administratively.", "identity"),
-        new("identity.role-assignment.manage", "Manage user role assignments.", "identity"),
-        new("identity.permission.read", "Read permissions administratively.", "identity"),
-        new("identity.role-permission.manage", "Manage role permission assignments.", "identity"),
-        new("identity.authentication-event.read", "Read authentication events administratively.", "identity")
+        Identity.ProfileReadSelf,
+        Identity.SessionManageSelf,
+        Application.AuthenticatedAccess,
+        Identity.UserRead,
+        Identity.UserManage,
+        Identity.RoleRead,
+        Identity.RoleAssignmentManage,
+        Identity.PermissionRead,
+        Identity.RolePermissionManage,
+        Identity.AuthenticationEventRead
     ];
 
     public static IReadOnlyList<PermissionDefinition> All { get; } = Validate(Definitions);

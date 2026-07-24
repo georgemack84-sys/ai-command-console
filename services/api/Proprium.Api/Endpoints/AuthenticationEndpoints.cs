@@ -1,7 +1,13 @@
 using Proprium.Api.Configuration;
 using Proprium.Api.Middleware;
+using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
+using Proprium.Domain.Identity;
+using Proprium.Infrastructure.Persistence;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Proprium.Api.Endpoints;
 
@@ -10,11 +16,22 @@ public static class AuthenticationEndpoints
     public static RouteGroupBuilder MapAuthenticationEndpoints(this RouteGroupBuilder v1)
     {
         var auth = v1.MapGroup("/auth").WithTags("Authentication");
-        auth.MapPost("/login", async (LoginRequest request, HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
+        auth.MapPost("/login", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, PropriumDbContext database, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            if (!requestPolicy.IsAllowed(context.Request)) return Results.BadRequest();
-            if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 256 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
+            var (body, isTooLarge) = await ReadLoginBodyAsync(context.Request.Body, cancellationToken);
+            var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(sources.Resolve(context.Connection.RemoteIpAddress), ExtractUsername(body)), cancellationToken);
+            if (rateLimit.UsedFallback) await RecordEventAsync(database, AuthenticationEventType.LoginRateLimitFallbackActivated, AuthenticationEventOutcome.Success, context.TraceIdentifier, "redis-unavailable", cancellationToken);
+            if (rateLimit.IsExceeded) { await RecordEventAsync(database, AuthenticationEventType.LoginRateLimited, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "attempt-limit", cancellationToken); context.Response.Headers.RetryAfter = rateLimit.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return Results.StatusCode(StatusCodes.Status429TooManyRequests); }
+            if (!requestPolicy.IsOriginAllowed(context.Request)) { await RecordEventAsync(database, AuthenticationEventType.OriginRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "origin", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (!requestPolicy.IsCsrfAllowed(context.Request)) { await RecordEventAsync(database, AuthenticationEventType.CsrfRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "csrf", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (isTooLarge) return Results.BadRequest();
+            if (!string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
+            if (HasDuplicateProperties(body)) return Results.BadRequest();
+            LoginRequest? request;
+            try { request = JsonSerializer.Deserialize<LoginRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            if (request is null || string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 256 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
                 return Results.BadRequest();
             var result = await authentication.LoginAsync(new LoginAttempt(request.Username, request.Password, context.TraceIdentifier), cancellationToken);
             if (!result.Succeeded || result.SessionToken is null) return Results.Unauthorized();
@@ -22,31 +39,84 @@ public static class AuthenticationEndpoints
             return Results.NoContent();
         }).WithName("Login").WithSummary("Create an authenticated server-side session.")
             .WithDescription("Accepts credentials and returns 204 with the opaque session only in the HttpOnly cookie. Credential rejection is always 401.")
-            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status429TooManyRequests).Produces(StatusCodes.Status400BadRequest);
 
-        auth.MapGet("/me", async (HttpContext context, ICurrentUserService currentUser, AuthenticationCookiePolicy cookies, CancellationToken cancellationToken) =>
+        auth.MapGet("/me", (HttpContext context) =>
         {
             SetNoStore(context);
-            if (!context.Request.Cookies.TryGetValue(cookies.Name, out var token) || string.IsNullOrWhiteSpace(token)) return Results.Unauthorized();
-            var user = await currentUser.ResolveAsync(new RawSessionToken(token), context.TraceIdentifier, cancellationToken);
-            return user is null ? Results.Unauthorized() : Results.Ok(new CurrentUserResponse(user.UserId, user.Username, user.DisplayName, user.Roles, user.Permissions));
+            var user = context.Features.Get<AuthenticatedRequest>();
+            return user is null ? Results.Unauthorized() : Results.Ok(new CurrentUserResponse(user.UserId, user.Username, user.DisplayName, user.Roles, user.Permissions.Permissions));
         }).WithName("GetCurrentUser").WithSummary("Return the authenticated current user.")
             .WithDescription("The session cookie is the authentication mechanism. The response contains only the approved identity, role, and permission fields.")
-            .Produces<CurrentUserResponse>().Produces(StatusCodes.Status401Unauthorized);
+            .Produces<CurrentUserResponse>().Produces(StatusCodes.Status401Unauthorized)
+            .RequirePermission(PermissionCatalog.Identity.ProfileReadSelf);
 
-        auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
+        auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, PropriumDbContext database, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            if (!requestPolicy.IsAllowed(context.Request)) return Results.BadRequest();
+            if (!requestPolicy.IsOriginAllowed(context.Request)) { await RecordEventAsync(database, AuthenticationEventType.OriginRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "origin", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (!requestPolicy.IsCsrfAllowed(context.Request)) { await RecordEventAsync(database, AuthenticationEventType.CsrfRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "csrf", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
             context.Request.Cookies.TryGetValue(cookies.Name, out var token);
             await authentication.LogoutAsync(string.IsNullOrWhiteSpace(token) ? null : new RawSessionToken(token), context.TraceIdentifier, cancellationToken);
             cookies.Clear(context.Response);
             return Results.NoContent();
         }).WithName("Logout").WithSummary("Revoke the current server-side session.")
             .WithDescription("Revokes the authoritative PostgreSQL session, clears the cookie, and returns 204 with no response body.")
-            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status403Forbidden);
         return v1;
     }
 
     private static void SetNoStore(HttpContext context) => context.Response.Headers.CacheControl = "no-store";
+
+    private static async Task RecordEventAsync(PropriumDbContext database, AuthenticationEventType eventType, AuthenticationEventOutcome outcome, string correlationId, string reasonCode, CancellationToken cancellationToken)
+    {
+        try
+        {
+            database.AuthenticationEvents.Add(AuthenticationEventFactory.Create(eventType, outcome, correlationId, reasonCode: reasonCode));
+            await database.SaveChangesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch { }
+    }
+
+    private static async Task<(string Body, bool IsTooLarge)> ReadLoginBodyAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        var bytes = new byte[4_097];
+        var read = 0;
+        while (read < bytes.Length)
+        {
+            var count = await stream.ReadAsync(bytes.AsMemory(read, bytes.Length - read), cancellationToken);
+            if (count == 0) break;
+            read += count;
+        }
+        return (Encoding.UTF8.GetString(bytes, 0, Math.Min(read, 4_096)), read > 4_096);
+    }
+
+    private static string? ExtractUsername(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return null;
+            var usernames = document.RootElement.EnumerateObject()
+                .Where(property => string.Equals(property.Name, "username", StringComparison.OrdinalIgnoreCase) && property.Value.ValueKind == JsonValueKind.String)
+                .Select(property => property.Value.GetString())
+                .ToArray();
+            return usernames.Length == 1 ? usernames[0] : null;
+        }
+        catch (JsonException) { return null; }
+    }
+
+    private static bool HasDuplicateProperties(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return false;
+            return document.RootElement.EnumerateObject()
+                .GroupBy(property => property.Name, StringComparer.OrdinalIgnoreCase)
+                .Any(group => group.Skip(1).Any());
+        }
+        catch (JsonException) { return false; }
+    }
 }
