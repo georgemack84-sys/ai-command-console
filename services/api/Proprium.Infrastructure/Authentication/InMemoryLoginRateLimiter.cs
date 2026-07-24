@@ -11,7 +11,7 @@ public sealed class InMemoryLoginRateLimiter(IOptions<LoginRateLimitOptions> opt
 {
     private sealed class Counter { public object Gate { get; } = new(); public int Count; public DateTimeOffset ExpiresAtUtc; }
     private readonly ConcurrentDictionary<string, Counter> counters = new(StringComparer.Ordinal);
-    private readonly byte[] key = Convert.FromBase64String(options.Value.PrivacyKeyMaterial);
+    private readonly byte[] key = options.Value.GetPrivacyKey();
 
     public Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default)
     {

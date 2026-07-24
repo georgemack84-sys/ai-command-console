@@ -14,4 +14,18 @@ public sealed class LoginRateLimitOptions
     [Range(100, 100_000)] public int FallbackCapacity { get; set; } = 10_000;
     [Required] public string PrivacyKeyMaterial { get; set; } = string.Empty;
     public TimeSpan Window => TimeSpan.FromMinutes(WindowMinutes);
+
+    public byte[] GetPrivacyKey()
+    {
+        try
+        {
+            var key = Convert.FromBase64String(PrivacyKeyMaterial);
+            if (key.Length < 32) throw new InvalidOperationException("LOGIN_RATE_LIMIT_PRIVACY_KEY must decode to at least 32 bytes.");
+            return key;
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidOperationException("LOGIN_RATE_LIMIT_PRIVACY_KEY must be a base64-encoded key.", exception);
+        }
+    }
 }

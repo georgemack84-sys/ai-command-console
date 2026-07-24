@@ -17,7 +17,7 @@ public sealed class RedisLoginRateLimiter(IConnectionMultiplexer redis, InMemory
         return { count, redis.call('PTTL', KEYS[1]) }
         """;
 
-    private readonly byte[] key = Convert.FromBase64String(options.Value.PrivacyKeyMaterial);
+    private readonly byte[] key = options.Value.GetPrivacyKey();
 
     public async Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default)
     {
