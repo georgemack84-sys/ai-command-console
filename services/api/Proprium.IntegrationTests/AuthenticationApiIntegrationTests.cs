@@ -469,5 +469,8 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
         client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
+
+        await using var evidence = CreateContext();
+        Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.LoginRateLimitFallbackActivated && item.Outcome == AuthenticationEventOutcome.Success && item.ReasonCode == "redis-unavailable"));
     }
 }
