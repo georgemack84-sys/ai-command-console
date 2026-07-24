@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Proprium.Application.Authentication;
 using Proprium.Domain.Identity;
@@ -64,6 +65,25 @@ public sealed class SessionLifecycleIntegrationTests
         database.Sessions.Add(SessionFactory.Create(user, expiredToken.Hash.Value, DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddHours(-1)));
         await database.SaveChangesAsync();
         Assert.Equal(SessionValidationOutcome.Expired, (await service.ValidateAsync(expiredToken.RawToken)).Outcome);
+    }
+
+    [Fact]
+    public async Task Password_change_invalidates_existing_sessions_and_records_evidence()
+    {
+        await using var database = CreateContext();
+        var user = new User { Username = $"user-{Guid.NewGuid():N}", NormalizedUsername = $"USER-{Guid.NewGuid():N}", PasswordHash = "old-hash" };
+        database.Users.Add(user);
+        await database.SaveChangesAsync();
+        var generator = new SessionTokenGenerator(Enumerable.Range(0, 32).Select(item => (byte)item).ToArray());
+        var sessions = new PostgresSessionService(new PostgresSessionRepository(database), generator, Options.Create(new SessionOptions { TokenDigestKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", LifetimeMinutes = 480 }), TimeProvider.System);
+        var existing = await sessions.CreateAsync(user);
+        var passwords = new UserPasswordHasher(new PasswordHasher<User>());
+
+        await new PostgresPasswordChangeService(database, passwords).ChangeAsync(user.Id, "new-password", "password-change-test");
+
+        Assert.Equal(SessionValidationOutcome.SecurityVersionMismatch, (await sessions.ValidateAsync(existing.RawToken)).Outcome);
+        Assert.Equal(PasswordVerificationOutcome.Success, passwords.Verify(user, user.PasswordHash, "new-password"));
+        Assert.True(await database.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.SecurityVersionInvalidated && item.UserId == user.Id && item.ReasonCode == "password-change"));
     }
 
     [Fact]

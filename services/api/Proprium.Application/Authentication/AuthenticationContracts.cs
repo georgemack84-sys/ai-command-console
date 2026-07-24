@@ -76,6 +76,11 @@ public interface IAuthenticationService
     Task LogoutAsync(RawSessionToken? sessionToken, string correlationId, CancellationToken cancellationToken = default);
 }
 
+public interface IPasswordChangeService
+{
+    Task ChangeAsync(Guid userId, string newPassword, string correlationId, CancellationToken cancellationToken = default);
+}
+
 public sealed record CurrentUser(Guid UserId, string Username, string DisplayName, IReadOnlyList<string> Roles, IReadOnlyList<string> Permissions);
 
 public interface ICurrentUserService
