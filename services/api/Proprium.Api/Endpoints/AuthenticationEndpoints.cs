@@ -81,8 +81,12 @@ public static class AuthenticationEndpoints
         try
         {
             using var document = JsonDocument.Parse(body);
-            return document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("username", out var username) && username.ValueKind == JsonValueKind.String
-                ? username.GetString() : null;
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return null;
+            var usernames = document.RootElement.EnumerateObject()
+                .Where(property => string.Equals(property.Name, "username", StringComparison.OrdinalIgnoreCase) && property.Value.ValueKind == JsonValueKind.String)
+                .Select(property => property.Value.GetString())
+                .ToArray();
+            return usernames.Length == 1 ? usernames[0] : null;
         }
         catch (JsonException) { return null; }
     }

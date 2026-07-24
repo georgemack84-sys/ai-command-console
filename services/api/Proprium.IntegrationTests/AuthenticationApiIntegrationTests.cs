@@ -30,6 +30,11 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     {
         public Task<LoginRateLimitResult> IncrementAsync(LoginRateLimitRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new LoginRateLimitResult(false, 0));
     }
+
+    private sealed class StaticLoginSourceResolver(string source) : ILoginSourceResolver
+    {
+        public string Resolve(System.Net.IPAddress? address) => source;
+    }
     private sealed class RehashConflictPasswordHasher(Action onRehash) : IUserPasswordHasher
     {
         public string Hash(User user, string password)
@@ -315,6 +320,30 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
         client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest($"unknown-{Guid.NewGuid():N}", "bad-password"))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_rate_limit_normalizes_json_property_casing()
+    {
+        var source = $"198.51.100.{Random.Shared.Next(1, 255)}";
+        var username = $"unknown-{Guid.NewGuid():N}";
+        await using var rateLimitFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginSourceResolver>();
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver(source));
+        }));
+        var client = rateLimitFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            using var content = new StringContent($"{{\"Username\":\"{username}\",\"Password\":\"bad-password\"}}", Encoding.UTF8, "application/json");
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/api/v1/auth/login", content)).StatusCode);
+        }
+
+        using var limitedContent = new StringContent($"{{\"Username\":\"{username}\",\"Password\":\"bad-password\"}}", Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsync("/api/v1/auth/login", limitedContent)).StatusCode);
     }
 
     [Fact]
