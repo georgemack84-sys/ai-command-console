@@ -401,12 +401,14 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     {
         var username = $"unprivileged-{Guid.NewGuid():N}";
         const string password = "correct-password";
+        Guid userId;
         await using (var database = CreateContext())
         {
             var user = new User { Username = username, NormalizedUsername = username.ToUpperInvariant() };
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
             database.Users.Add(user);
             await database.SaveChangesAsync();
+            userId = user.Id;
         }
 
         await using var permissiveFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
@@ -419,6 +421,8 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(username, password))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+        await using var evidence = CreateContext();
+        Assert.True(await evidence.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.AuthorizationDenied && item.UserId == userId && item.ReasonCode == "identity.profile.read-self"));
     }
 
     [Fact]
