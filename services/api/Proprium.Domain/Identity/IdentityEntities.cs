@@ -5,6 +5,7 @@ public sealed class User
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Username { get; set; } = string.Empty;
     public string NormalizedUsername { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public long SecurityVersion { get; set; } = 1;
@@ -55,7 +56,7 @@ public sealed class Session
     public User User { get; init; } = null!;
 }
 
-public enum AuthenticationEventType { SignInAttempt, SignInSucceeded, SignInFailed, SessionRevoked, SecurityVersionInvalidated }
+public enum AuthenticationEventType { LoginSucceeded, LoginFailed, SessionCreated, Logout, SessionRevoked, SessionRejected, SecurityVersionInvalidated }
 public enum AuthenticationEventOutcome { Success, Failure, Denied }
 
 public sealed class AuthenticationEvent
@@ -72,4 +73,18 @@ public sealed class AuthenticationEvent
     public string? RequestMetadata { get; init; }
     public User? User { get; init; }
     public Session? Session { get; init; }
+}
+
+public static class AuthenticationEventFactory
+{
+    public static AuthenticationEvent Create(AuthenticationEventType eventType, AuthenticationEventOutcome outcome, string correlationId, Guid? userId = null, Guid? sessionId = null, string? normalizedUsername = null, string? reasonCode = null) => new()
+    {
+        EventType = eventType,
+        Outcome = outcome,
+        CorrelationId = string.IsNullOrWhiteSpace(correlationId) ? throw new ArgumentException("A correlation identifier is required.", nameof(correlationId)) : correlationId,
+        UserId = userId,
+        SessionId = sessionId,
+        NormalizedUsername = normalizedUsername,
+        ReasonCode = reasonCode
+    };
 }
