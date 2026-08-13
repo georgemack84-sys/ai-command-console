@@ -25,6 +25,7 @@
     "architecture:verify-failure": "npm run architecture:fixtures:failing",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "format:verify": "node scripts/verify-formatting.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -32,7 +33,7 @@
     "test:browser": "node scripts/test-browser.mjs",
     "test:theme": "vitest run src/theme tests/unit/theme-provider.test.tsx",
     "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
-    "validate:frontend": "npm run format:check && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run typecheck && npm run lint && npm run architecture:check && npm run architecture:fixtures:passing && npm run architecture:fixtures:failing && npm run test:theme && npm run test:coverage",
+    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run typecheck && npm run lint && npm run architecture:check && npm run architecture:fixtures:passing && npm run architecture:fixtures:failing && npm run test:theme && npm run test:coverage",
     "validate": "npm run validate:frontend"
   },
   "dependencies": {

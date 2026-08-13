@@ -23,7 +23,7 @@ Run `npm run validate:repository` for required files, resolved Git attributes, r
 
 Run `npm run validate:secrets` for focused tracked-file, private-key, provider-token, public-configuration, placeholder, configuration-dump, and API exception-logging checks. Candidate values are never printed. The repository validator invokes this command automatically.
 
-Run `npm run validate` from `apps/web` for Prettier, strict TypeScript, ESLint, dependency-cruiser, architecture-fixture rejection, and unit tests. Run `dotnet format services/api/Proprium.sln --verify-no-changes --no-restore` and `dotnet test services/api/Proprium.sln` for the backend; Docker supplies the SDK qualification path when a local SDK is unavailable.
+Run `npm run format`, `npm run format:check`, and `npm run format:verify` from `apps/web` to apply, check, and exercise the canonical frontend formatting contract. The [GP-05 frontend-formatting specification](gp-05-frontend-formatting.md) defines its file ownership and generated-output exclusions. `npm run validate` includes those checks with strict TypeScript, ESLint, dependency-cruiser, architecture-fixture rejection, and unit tests. Run `dotnet format services/api/Proprium.sln --verify-no-changes --no-restore` and `dotnet test services/api/Proprium.sln` for the backend; Docker supplies the SDK qualification path when a local SDK is unavailable.
 
 ## Enforcement policy
 

@@ -1,9 +1,18 @@
-node_modules
-.next
-storybook-static
+# Dependencies and generated build/test output.
+node_modules/
+.next/
+coverage/
+dist/
+out/
+storybook-static/
+playwright-report/
+test-results/
+
+# Tool- and generator-owned tracked files.
 next-env.d.ts
-.next
-coverage
-dist
-out
 package-lock.json
+public/theme-bootstrap.js
+src/generated/
+
+# GP-02/GP-04 own environment-template syntax and secret boundaries.
+.env*
