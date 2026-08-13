@@ -3,7 +3,7 @@ using Proprium.Application.Retry;
 
 namespace Proprium.Infrastructure.Retry;
 
-public static class PostgresRetryClassifier
+public sealed class PostgresRetryClassifier : IRetryFailureClassifier
 {
     public static RetryFailureClassification ClassifySqlState(string? sqlState) => sqlState switch
     {
@@ -11,11 +11,25 @@ public static class PostgresRetryClassifier
         "53300" or "53400" => RetryFailureClassification.Capacity,
         _ => RetryFailureClassification.Fatal
     };
-    public static RetryFailureClassification Classify(Exception exception) => exception switch
+
+    public RetryFailureClassification Classify(Exception exception)
     {
-        PostgresException postgres => ClassifySqlState(postgres.SqlState),
-        NpgsqlException { IsTransient: true } => RetryFailureClassification.ConnectionTransient,
-        NpgsqlException => RetryFailureClassification.Fatal,
-        _ => RetryFailureClassification.Fatal
-    };
+        ArgumentNullException.ThrowIfNull(exception);
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            switch (current)
+            {
+                case IndeterminateCommitException:
+                    return RetryFailureClassification.Indeterminate;
+                case PostgresException postgres:
+                    return ClassifySqlState(postgres.SqlState);
+                case NpgsqlException { IsTransient: true }:
+                    return RetryFailureClassification.ConnectionTransient;
+                case NpgsqlException:
+                    return RetryFailureClassification.Fatal;
+            }
+        }
+
+        return RetryFailureClassification.Fatal;
+    }
 }

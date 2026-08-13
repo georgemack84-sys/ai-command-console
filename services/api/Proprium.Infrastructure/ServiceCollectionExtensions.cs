@@ -28,7 +28,9 @@ public static class ServiceCollectionExtensions
             return ConnectionMultiplexer.Connect(configuration);
         });
         services.AddSingleton<IPlatformCache, RedisPlatformCache>();
-        services.AddScoped<IRetryExecutor, RetryExecutor>();
+        services.AddSingleton<IRetryFailureClassifier, PostgresRetryClassifier>();
+        services.AddSingleton<IRetryExecutor, RetryExecutor>();
+        services.AddScoped<IRetryAttemptFactory<ISessionPersistenceAttempt>, SessionPersistenceAttemptFactory>();
         services.AddScoped<ISecurityVersionInvalidator, SecurityVersionInvalidator>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IUserPasswordHasher, UserPasswordHasher>();

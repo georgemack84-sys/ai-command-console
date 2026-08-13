@@ -16,6 +16,8 @@ docker compose -f docker-compose.proprium.yml down
 
 PostgreSQL and Redis must become healthy before the one-shot `database-migrations` service runs. The API starts only after that service completes successfully; the web service starts after API liveness is healthy. PostgreSQL data persists in `proprium_proprium-postgres`; Redis intentionally has no persistence in the development profile.
 
+CI writes a PostgreSQL sentinel, restarts the PostgreSQL container, and verifies the sentinel and API readiness after recovery. Redis integration tests separately qualify write, read, expiration, removal, miss, unavailable, and serialization-failure behavior.
+
 ## Verification
 
 ```powershell

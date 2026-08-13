@@ -13,7 +13,10 @@ public sealed class PropriumSessionAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder,
-    AuthenticationCookiePolicy cookies) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    AuthenticationCookiePolicy cookies,
+    PropriumDbContext database,
+    ISessionService sessions,
+    IPermissionResolver permissions) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "PropriumSession";
 
@@ -23,15 +26,12 @@ public sealed class PropriumSessionAuthenticationHandler(
             .Where(value => value.StartsWith($"{cookies.Name}=", StringComparison.Ordinal)).Select(value => value[(cookies.Name.Length + 1)..]).ToArray();
         if (values.Length == 0) return AuthenticateResult.NoResult();
 
-        var database = Context.RequestServices.GetRequiredService<PropriumDbContext>();
         if (values.Length != 1 || string.IsNullOrWhiteSpace(values[0]))
         {
             await RecordRejectionAsync(database, new SessionValidationResult(SessionValidationOutcome.Malformed));
             return AuthenticateResult.Fail("Invalid session cookie.");
         }
 
-        var sessions = Context.RequestServices.GetRequiredService<ISessionService>();
-        var permissions = Context.RequestServices.GetRequiredService<IPermissionResolver>();
         var result = await sessions.ValidateAsync(new RawSessionToken(values[0]), Context.RequestAborted);
         if (!result.IsValid || result.User is null || result.Session is null)
         {
