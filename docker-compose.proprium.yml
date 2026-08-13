@@ -3,6 +3,7 @@ name: proprium
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: proprium
       POSTGRES_USER: proprium
@@ -17,6 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports: ["6379:6379"]
     healthcheck:
@@ -61,6 +63,7 @@ services:
     build:
       context: .
       dockerfile: services/api/Proprium.Api/Dockerfile
+    restart: unless-stopped
     environment: *platform_environment
     ports: ["8080:8080"]
     depends_on:
@@ -80,6 +83,7 @@ services:
         NEXT_PUBLIC_APP_VERSION: 0.1.0
         NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
         NEXT_PUBLIC_ENVIRONMENT: development
+    restart: unless-stopped
     ports: ["3000:3000"]
     depends_on:
       platform-api: { condition: service_healthy }
