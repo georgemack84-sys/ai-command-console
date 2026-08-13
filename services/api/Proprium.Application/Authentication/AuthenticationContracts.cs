@@ -1,4 +1,5 @@
 using Proprium.Domain.Identity;
+using Proprium.Application.Retry;
 
 namespace Proprium.Application.Authentication;
 
@@ -52,6 +53,11 @@ public interface ISessionRepository
     Task RevokeAsync(Guid sessionId, DateTimeOffset revokedAtUtc, string reasonCode, CancellationToken cancellationToken = default);
     Task RevokeAllForUserAsync(Guid userId, DateTimeOffset revokedAtUtc, string reasonCode, CancellationToken cancellationToken = default);
     Task<int> CountExpiredAsync(DateTimeOffset nowUtc, CancellationToken cancellationToken = default);
+}
+
+public interface ISessionPersistenceAttempt : IRetryAttemptDependencies
+{
+    ISessionRepository Sessions { get; }
 }
 
 public interface ISessionService

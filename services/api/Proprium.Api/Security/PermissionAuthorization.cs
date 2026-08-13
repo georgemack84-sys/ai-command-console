@@ -18,7 +18,7 @@ public sealed class PermissionRequirement : IAuthorizationRequirement
     public string Permission { get; }
 }
 
-public sealed class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
+public sealed class PermissionAuthorizationHandler(PropriumDbContext database) : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
     {
@@ -33,7 +33,6 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
 
         try
         {
-            var database = httpContext.RequestServices.GetRequiredService<PropriumDbContext>();
             database.AuthenticationEvents.Add(AuthenticationEventFactory.Create(AuthenticationEventType.AuthorizationDenied, AuthenticationEventOutcome.Denied, httpContext.TraceIdentifier, authenticated.UserId, authenticated.SessionId, reasonCode: requirement.Permission));
             await database.SaveChangesAsync(httpContext.RequestAborted);
         }

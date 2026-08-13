@@ -118,6 +118,19 @@ jobs:
       - run: curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/live
       - run: curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/ready
       - run: curl --fail --retry 5 --retry-connrefused http://localhost:3000/health
+      - name: Write PostgreSQL persistence sentinel
+        run: >-
+          docker compose -f docker-compose.proprium.yml exec -T postgres
+          psql -U proprium -d proprium -v ON_ERROR_STOP=1
+          -c "INSERT INTO platform_metadata (\"Id\", \"Key\", \"Value\", \"CreatedAtUtc\") VALUES ('00000000-0000-0000-0000-000000000004', 'ci.persistence', 'before-restart', CURRENT_TIMESTAMP);"
+      - name: Restart PostgreSQL
+        run: |
+          docker compose -f docker-compose.proprium.yml restart postgres
+          docker compose -f docker-compose.proprium.yml up --detach --wait postgres
+      - name: Verify PostgreSQL persistence after restart
+        run: |
+          test "$(docker compose -f docker-compose.proprium.yml exec -T postgres psql -U proprium -d proprium -Atc "SELECT \"Value\" FROM platform_metadata WHERE \"Key\" = 'ci.persistence';" | tr -d '\r')" = "before-restart"
+          curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/ready
       - if: failure()
         run: docker compose -f docker-compose.proprium.yml logs --no-color
       - if: always()
