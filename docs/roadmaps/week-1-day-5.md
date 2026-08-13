@@ -54,6 +54,8 @@ Part II is implemented through the repository, frontend, and backend templates p
 
 The GP-02 template inventory and its transitional root boundary are frozen in the [environment-template specification](../engineering/gp-02-environment-templates.md). Configuration precedence remains deferred to GP-03.
 
+GP-03 is implemented through the [configuration precedence specification](../engineering/gp-03-configuration-precedence.md), the strict frontend environment boundary, and the API's typed startup snapshot and deterministic validation tests.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

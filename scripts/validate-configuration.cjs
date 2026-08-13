@@ -159,6 +159,7 @@ requireExactKeys('backend template', api, apiKeys);
 requireConsumers(root, templates.root, ['docker-compose.proprium.yml']);
 requireConsumers(web, templates.web, ['apps/web/src/config/environment-schema.ts']);
 requireConsumers(api, templates.api, [
+  'services/api/Proprium.Api/Configuration/ApiConfiguration.cs',
   'services/api/Proprium.Api/Program.cs',
   'services/api/Proprium.Api/appsettings.json',
   'services/api/Proprium.Api/Configuration/PlatformOptions.cs',

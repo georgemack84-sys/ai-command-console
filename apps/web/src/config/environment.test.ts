@@ -15,11 +15,33 @@ describe('public environment', () => {
     expect(() =>
       parsePublicEnvironment({ ...valid, NEXT_PUBLIC_APP_NAME: undefined }),
     ).toThrow());
+  it('rejects empty and whitespace-only required configuration', () => {
+    expect(() =>
+      parsePublicEnvironment({ ...valid, NEXT_PUBLIC_APP_NAME: '' }),
+    ).toThrow();
+    expect(() =>
+      parsePublicEnvironment({ ...valid, NEXT_PUBLIC_APP_NAME: '   ' }),
+    ).toThrow();
+  });
   it('rejects invalid configuration', () =>
     expect(() =>
       parsePublicEnvironment({
         ...valid,
         NEXT_PUBLIC_API_BASE_URL: 'not-a-url',
+      }),
+    ).toThrow());
+  it('rejects unsupported environments', () =>
+    expect(() =>
+      parsePublicEnvironment({
+        ...valid,
+        NEXT_PUBLIC_ENVIRONMENT: 'developer-laptop',
+      }),
+    ).toThrow());
+  it('does not admit undeclared values into public configuration', () =>
+    expect(() =>
+      parsePublicEnvironment({
+        ...valid,
+        NEXT_PUBLIC_API_SECRET: 'must-not-be-public',
       }),
     ).toThrow());
 });

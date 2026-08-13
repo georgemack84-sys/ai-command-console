@@ -29,6 +29,22 @@ Docker Compose automatically reads the root `.env`. Next.js reads `apps/web/.env
 
 All local `.env` files are ignored. Never commit them. Replace sensitive examples before using a non-local environment.
 
+## Resolution and precedence
+
+Later sources win.
+
+| Component | Lowest to highest precedence |
+| --- | --- |
+| Proprium Compose | interpolation default → root `.env` → invoking process environment |
+| Web build | `apps/web/.env.local` fills missing values → existing process environment |
+| Platform API | code defaults for optional values → `appsettings.json` → optional `appsettings.{Environment}.json` → process environment → `--Key=value` command line |
+
+The API does not load `.env` files. Supply its values through the shell, IDE launch configuration, container environment, or CI environment. ASP.NET hierarchical overrides use double underscores, so `PLATFORM__NAME` overrides `Platform:Name`. API configuration is resolved once at startup and does not dynamically reload.
+
+The internal OpenAPI export command adds deterministic in-memory values after normal providers. Those values are tool-specific and are not a general developer override layer. Never pass secrets through command-line configuration.
+
+The API supports `Development`, `Test`, `Staging`, and `Production` environment names case-insensitively. The web schema accepts their lowercase equivalents. Unknown names fail validation.
+
 ## Proprium inventory
 
 ### Repository platform
@@ -92,3 +108,5 @@ Template values are non-production examples. Real values come from ignored local
 ## Validation
 
 Run `npm run validate:configuration` from the repository root. It verifies exact frontend and backend inventories, the root Proprium section, template tracking and ignore behavior, syntax, duplicate ownership, consumer correspondence, public-variable safety, approved sensitive examples, and the absence of tracked local environment files. It requires no Docker, PostgreSQL, Redis, local `.env` file, or credential.
+
+At runtime, the web validates its public values before building. The API resolves a typed startup snapshot before service registration and rejects missing or empty required values, malformed types, invalid ranges and origins, invalid key encodings, unknown environments, and invalid conditional local-administrator configuration. Diagnostics identify the setting and expected form without including the supplied value. See the [GP-03 configuration specification](../engineering/gp-03-configuration-precedence.md) for the frozen provider and ownership model.
