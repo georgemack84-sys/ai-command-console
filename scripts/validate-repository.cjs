@@ -7,7 +7,6 @@ const baselineFiles = ['.editorconfig', '.gitattributes', '.gitignore'];
 const configurationFiles = [
   '.env.example',
   'apps/web/.env.example',
-  'services/platform-api/.env.example',
   'services/api/.env.example',
   'scripts/validate-configuration.cjs',
 ];

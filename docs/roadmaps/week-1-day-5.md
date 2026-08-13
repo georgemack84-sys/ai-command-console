@@ -50,7 +50,9 @@ Part I-B / Part II will define the concrete environment-template keys, configura
 
 ## Part II implementation
 
-Part II is implemented through the repository, frontend, and backend templates plus the fail-closed `npm run validate:configuration` command. See the [configuration guide](../onboarding/configuration.md) for ownership, precedence, secret boundaries, and local setup. Formatting, linting, and broader repository-wide validation remain reserved for Part III.
+Part II is implemented through the repository, frontend, and backend templates plus the fail-closed `npm run validate:configuration` command. See the [configuration guide](../onboarding/configuration.md) for ownership, inventory, secret boundaries, and local setup. Formatting, linting, and broader repository-wide validation remain reserved for Part III.
+
+The GP-02 template inventory and its transitional root boundary are frozen in the [environment-template specification](../engineering/gp-02-environment-templates.md). Configuration precedence remains deferred to GP-03.
 
 ## Part III implementation
 

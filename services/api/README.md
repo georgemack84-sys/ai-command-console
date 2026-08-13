@@ -1,5 +1,7 @@
 # Proprium API
 
+The canonical environment inventory is `services/api/.env.example`; required, optional, sensitive, and conditional settings are documented in the [configuration guide](../../docs/onboarding/configuration.md).
+
 The backend is a .NET 8 layered solution. Run the complete qualification suite with:
 
 ```bash
