@@ -205,7 +205,14 @@ public sealed class PostgresRetryIntegrationTests
         private readonly PostgresRetryClassifier _inner = new();
         public RetryFailureClassification Classify(Exception exception)
         {
-            if (exception is PostgresException postgres) recorder.SqlStates.Add(postgres.SqlState);
+            for (var current = exception; current is not null; current = current.InnerException)
+            {
+                if (current is PostgresException postgres)
+                {
+                    recorder.SqlStates.Add(postgres.SqlState);
+                    break;
+                }
+            }
             return _inner.Classify(exception);
         }
     }
