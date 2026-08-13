@@ -14,11 +14,11 @@
 
 ## File rules
 
-Text is UTF-8 without BOM, uses LF, ends with one newline, and has no trailing whitespace unless Markdown rendering requires it. `.gitattributes` owns normalization and defines the documented PowerShell CRLF exception. `.editorconfig` owns indentation and language-specific editor behavior.
+Text is UTF-8 without BOM, uses LF, ends with one newline, and has no trailing whitespace unless Markdown rendering requires it. `.gitattributes` owns normalization and defines the documented PowerShell and Visual Studio solution CRLF exceptions. `.editorconfig` owns indentation and editor behavior. The [GP-01 repository baseline](gp-01-repository-baseline.md) records the exact decisions, validation boundary, and deferred work.
 
 ## Commands
 
-Run `npm run validate:repository` for required files, templates, local-configuration exclusions, Markdown fences/headings/links, YAML indentation, JSON syntax, UTF-8 BOM detection, final-newline checks, and configuration validation. The command does not require infrastructure.
+Run `npm run validate:repository` for required files, resolved Git attributes, representative ignore behavior, tracked-artifact and local-configuration exclusions, Markdown fences/headings/links, YAML indentation, JSON syntax, UTF-8 validation, final-newline checks, trailing-whitespace checks, and configuration validation. The command does not require infrastructure.
 
 Run `npm run validate` from `apps/web` for Prettier, strict TypeScript, ESLint, dependency-cruiser, architecture-fixture rejection, and unit tests. Run `dotnet format services/api/Proprium.sln --verify-no-changes --no-restore` and `dotnet test services/api/Proprium.sln` for the backend; Docker supplies the SDK qualification path when a local SDK is unavailable.
 

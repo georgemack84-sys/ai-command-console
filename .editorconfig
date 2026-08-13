@@ -1,5 +1,7 @@
 root = true
 
+# Repository-wide text defaults. Language formatters may add stricter rules in
+# their own configuration files, but they must not contradict these basics.
 [*]
 charset = utf-8
 end_of_line = lf
@@ -33,6 +35,9 @@ indent_size = 2
 indent_size = 2
 
 [*.ps1]
+end_of_line = crlf
+
+[*.sln]
 end_of_line = crlf
 
 [Makefile]

@@ -55,3 +55,5 @@ Part II is implemented through the repository, frontend, and backend templates p
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.
+
+The GP-01 portion is frozen in the [repository baseline](../engineering/gp-01-repository-baseline.md). It qualifies root file policy and tracked artifacts without expanding into environment schemas, language-tooling changes, renormalization, or CI orchestration.
