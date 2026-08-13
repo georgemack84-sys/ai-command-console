@@ -66,6 +66,8 @@ GP-07 is implemented through the [frontend architecture specification](../engine
 
 GP-08 is implemented through the [backend compiler specification](../engineering/gp-08-backend-compiler-standards.md), centralized nullable and warnings-as-errors policy, a fixed .NET 8 SDK-analyzer level, evaluated-property enforcement, suppression auditing, and isolated compiler/analyzer fixtures.
 
+GP-09 is implemented through the [backend formatting specification](../engineering/gp-09-backend-formatting.md), the SDK-bundled `dotnet format`, explicit C# whitespace policy, bounded write/check commands, stable source-controlled migration handling, and disposable drift/idempotence verification.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.
