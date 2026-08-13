@@ -64,6 +64,8 @@ GP-06 is implemented through the [frontend static-analysis specification](../eng
 
 GP-07 is implemented through the [frontend architecture specification](../engineering/gp-07-frontend-architecture.md), the locked dependency-cruiser configuration, TypeScript-alias-aware layer rules, circular and upward-dependency failures, and isolated positive and negative fixtures.
 
+GP-08 is implemented through the [backend compiler specification](../engineering/gp-08-backend-compiler-standards.md), centralized nullable and warnings-as-errors policy, a fixed .NET 8 SDK-analyzer level, evaluated-property enforcement, suppression auditing, and isolated compiler/analyzer fixtures.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

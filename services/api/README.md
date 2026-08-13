@@ -11,6 +11,16 @@ docker compose build api
 docker compose up api
 ```
 
+The canonical compiler/analyzer sequence is infrastructure-independent:
+
+```bash
+dotnet restore services/api/Proprium.sln
+dotnet build services/api/Proprium.sln --configuration Release --no-restore --nologo
+npm run validate:backend-compiler
+```
+
+The build must finish with zero warnings and zero errors. The [GP-08 backend compiler specification](../../docs/engineering/gp-08-backend-compiler-standards.md) defines nullable analysis, warnings-as-errors, the fixed .NET 8 analyzer baseline, generated-code handling, and the suppression policy.
+
 The platform endpoints are `/api/v1`, `/api/v1/health`, `/api/v1/health/live`, and `/api/v1/health/ready`. OpenAPI is at `/openapi/v1.json`; Swagger UI is available in Development only.
 
 ## Week 3 identity foundation

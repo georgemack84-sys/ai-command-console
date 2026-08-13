@@ -8,7 +8,8 @@
 | Frontend static analysis | ESLint in `apps/web` |
 | Frontend dependency architecture | dependency-cruiser in `apps/web` |
 | Type safety | Strict TypeScript compiler settings |
-| Backend formatting and analysis | `dotnet format` and centralized .NET analyzers |
+| Backend compiler and analysis | C# compiler and centralized .NET SDK analyzers |
+| Backend formatting | `dotnet format` |
 | Backend architecture | Architecture test project |
 | Repository consistency | `npm run validate:repository` |
 | Secret safety | `npm run validate:secrets` |
@@ -24,7 +25,7 @@ Run `npm run validate:repository` for required files, resolved Git attributes, r
 
 Run `npm run validate:secrets` for focused tracked-file, private-key, provider-token, public-configuration, placeholder, configuration-dump, and API exception-logging checks. Candidate values are never printed. The repository validator invokes this command automatically.
 
-Run `npm run format`, `npm run format:check`, and `npm run format:verify` from `apps/web` to apply, check, and exercise the canonical frontend formatting contract. The [GP-05 frontend-formatting specification](gp-05-frontend-formatting.md) defines its file ownership and generated-output exclusions. Run `npm run lint`, `npm run typecheck`, and `npm run static-analysis:verify` for the zero-warning ESLint, strict non-emitting TypeScript, and negative-fixture contracts defined by [GP-06](gp-06-frontend-static-analysis.md). Run `npm run architecture` for the production dependency graph plus positive and isolated negative fixtures defined by the [GP-07 frontend architecture specification](gp-07-frontend-architecture.md). `npm run validate` includes all of these frontend gates and unit tests. Run `dotnet format services/api/Proprium.sln --verify-no-changes --no-restore` and `dotnet test services/api/Proprium.sln` for the backend; Docker supplies the SDK qualification path when a local SDK is unavailable.
+Run `npm run format`, `npm run format:check`, and `npm run format:verify` from `apps/web` to apply, check, and exercise the canonical frontend formatting contract. The [GP-05 frontend-formatting specification](gp-05-frontend-formatting.md) defines its file ownership and generated-output exclusions. Run `npm run lint`, `npm run typecheck`, and `npm run static-analysis:verify` for the zero-warning ESLint, strict non-emitting TypeScript, and negative-fixture contracts defined by [GP-06](gp-06-frontend-static-analysis.md). Run `npm run architecture` for the production dependency graph plus positive and isolated negative fixtures defined by the [GP-07 frontend architecture specification](gp-07-frontend-architecture.md). `npm run validate` includes all of these frontend gates and unit tests. For the backend, run the restore and zero-warning Release build defined by [GP-08](gp-08-backend-compiler-standards.md), then `npm run validate:backend-compiler` for policy and negative-fixture verification. `dotnet format services/api/Proprium.sln --verify-no-changes --no-restore` and `dotnet test services/api/Proprium.sln` remain separate backend gates; Docker supplies an additional SDK qualification path rather than being required for compilation.
 
 ## Enforcement policy
 
