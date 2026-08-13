@@ -1,5 +1,7 @@
 using System.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Proprium.Application.Retry;
 using Proprium.Infrastructure.Retry;
 using Xunit;
@@ -21,6 +23,15 @@ public sealed class RetryInfrastructureTests
     [Fact]
     public void Indeterminate_commit_is_never_retryable() =>
         Assert.Equal(RetryFailureClassification.Indeterminate, new PostgresRetryClassifier().Classify(new IndeterminateCommitException("unknown outcome")));
+
+    [Fact]
+    public void EF_wrapped_PostgreSQL_failure_is_classified_from_its_SQLSTATE()
+    {
+        var postgres = new PostgresException("serialization failure", "ERROR", "ERROR", PostgresErrorCodes.SerializationFailure);
+        var wrapped = new InvalidOperationException("transient execution failure", new DbUpdateException("save failed", postgres));
+
+        Assert.Equal(RetryFailureClassification.TransactionTransient, new PostgresRetryClassifier().Classify(wrapped));
+    }
 
     [Fact]
     public async Task Every_retry_owns_fresh_scope_dependencies_and_transaction_lifecycle()

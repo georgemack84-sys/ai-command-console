@@ -12,12 +12,24 @@ public sealed class PostgresRetryClassifier : IRetryFailureClassifier
         _ => RetryFailureClassification.Fatal
     };
 
-    public RetryFailureClassification Classify(Exception exception) => exception switch
+    public RetryFailureClassification Classify(Exception exception)
     {
-        IndeterminateCommitException => RetryFailureClassification.Indeterminate,
-        PostgresException postgres => ClassifySqlState(postgres.SqlState),
-        NpgsqlException { IsTransient: true } => RetryFailureClassification.ConnectionTransient,
-        NpgsqlException => RetryFailureClassification.Fatal,
-        _ => RetryFailureClassification.Fatal
-    };
+        ArgumentNullException.ThrowIfNull(exception);
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            switch (current)
+            {
+                case IndeterminateCommitException:
+                    return RetryFailureClassification.Indeterminate;
+                case PostgresException postgres:
+                    return ClassifySqlState(postgres.SqlState);
+                case NpgsqlException { IsTransient: true }:
+                    return RetryFailureClassification.ConnectionTransient;
+                case NpgsqlException:
+                    return RetryFailureClassification.Fatal;
+            }
+        }
+
+        return RetryFailureClassification.Fatal;
+    }
 }
