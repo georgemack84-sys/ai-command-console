@@ -18,7 +18,6 @@ export default defineConfig([
     'next-env.d.ts',
     'public/theme-bootstrap.js',
     'src/generated/**',
-    'src/test/architecture-fixtures/**',
     'tests/architecture/fixtures/**',
   ]),
   {

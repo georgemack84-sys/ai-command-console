@@ -33,5 +33,5 @@
     "src/**/*.tsx",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "src/test/architecture-fixtures"]
+  "exclude": ["node_modules"]
 }

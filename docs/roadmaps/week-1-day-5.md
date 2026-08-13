@@ -62,6 +62,8 @@ GP-05 is implemented through the [frontend-formatting specification](../engineer
 
 GP-06 is implemented through the [frontend static-analysis specification](../engineering/gp-06-frontend-static-analysis.md), strict non-emitting TypeScript validation, zero-warning ESLint policy, deterministic import rules, type-aware source checks, and disposable negative fixtures.
 
+GP-07 is implemented through the [frontend architecture specification](../engineering/gp-07-frontend-architecture.md), the locked dependency-cruiser configuration, TypeScript-alias-aware layer rules, circular and upward-dependency failures, and isolated positive and negative fixtures.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

@@ -21,8 +21,9 @@
     "permissions:fixtures": "node scripts/verify-permission-fixtures.mjs",
     "transport:validate": "node scripts/validate-transport-boundary.mjs",
     "transport:fixtures": "node scripts/verify-transport-fixtures.mjs",
-    "architecture:check": "depcruise --config .dependency-cruiser.cjs --output-type err src/app src/config src/lib src/types src/components src/ui src/shell src/theme src/providers src/state",
-    "architecture:fixtures:passing": "depcruise --config .dependency-cruiser.cjs --output-type err tests/architecture/fixtures/passing",
+    "architecture": "npm run architecture:check && npm run architecture:fixtures:passing && npm run architecture:fixtures:failing",
+    "architecture:check": "node scripts/run-dependency-cruiser.mjs --config .dependency-cruiser.cjs --output-type err src/app src/components src/config src/lib src/providers src/shell src/state src/theme src/types src/ui",
+    "architecture:fixtures:passing": "node scripts/run-dependency-cruiser.mjs --config .dependency-cruiser.cjs --output-type err tests/architecture/fixtures/passing",
     "architecture:fixtures:failing": "node scripts/verify-architecture-fixtures.mjs",
     "architecture:verify-failure": "npm run architecture:fixtures:failing",
     "format": "prettier --write .",
@@ -35,7 +36,7 @@
     "test:browser": "node scripts/test-browser.mjs",
     "test:theme": "vitest run src/theme tests/unit/theme-provider.test.tsx",
     "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
-    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run typecheck && npm run lint && npm run architecture:check && npm run architecture:fixtures:passing && npm run architecture:fixtures:failing && npm run test:theme && npm run test:coverage",
+    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:coverage",
     "validate": "npm run validate:frontend"
   },
   "dependencies": {

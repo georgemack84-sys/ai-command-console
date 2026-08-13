@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,10 +58,21 @@ function verifyRepositorySuppressions() {
   const focusedSuppression = new RegExp(
     `${suppressionMarker}-(?:next-)?line\\s+[^-\\s][^]*?\\s--\\s\\S`,
   );
-  const tracked = spawnSync('git', ['ls-files', '-z', 'apps/web'], {
-    cwd: join(packageRoot, '..', '..'),
-    encoding: 'buffer',
-  });
+  const tracked = spawnSync(
+    'git',
+    [
+      'ls-files',
+      '-z',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+      'apps/web',
+    ],
+    {
+      cwd: join(packageRoot, '..', '..'),
+      encoding: 'buffer',
+    },
+  );
   assert.equal(
     tracked.status,
     0,
@@ -68,10 +85,9 @@ function verifyRepositorySuppressions() {
     .split('\0')
     .filter(Boolean)) {
     if (!/\.(?:[cm]?[jt]sx?)$/.test(repositoryPath)) continue;
-    const content = readFileSync(
-      join(packageRoot, '..', '..', repositoryPath),
-      'utf8',
-    );
+    const absolutePath = join(packageRoot, '..', '..', repositoryPath);
+    if (!existsSync(absolutePath)) continue;
+    const content = readFileSync(absolutePath, 'utf8');
     for (const [index, line] of content.split(/\r?\n/).entries()) {
       if (!line.includes(suppressionMarker)) continue;
       if (!focusedSuppression.test(line))
