@@ -105,6 +105,8 @@ Changing a `NEXT_PUBLIC_*` value requires rebuilding the frontend. Public variab
 
 Template values are non-production examples. Real values come from ignored local files, process configuration, CI secrets, or a future approved secret provider. Do not log secrets, put them in OpenAPI, pass them on command lines, embed them in frontend variables, or bake them into images. Treat a committed real secret as permanently compromised.
 
+The [GP-04 secret-safety policy](../engineering/gp-04-secret-safety.md) defines current secret owners, allowed and prohibited locations, exact fixture exceptions, mechanical checks, and the revoke/rotate response required for any exposure.
+
 ## Validation
 
 Run `npm run validate:configuration` from the repository root. It verifies exact frontend and backend inventories, the root Proprium section, template tracking and ignore behavior, syntax, duplicate ownership, consumer correspondence, public-variable safety, approved sensitive examples, and the absence of tracked local environment files. It requires no Docker, PostgreSQL, Redis, local `.env` file, or credential.

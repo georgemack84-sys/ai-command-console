@@ -10,6 +10,7 @@
 | Backend formatting and analysis | `dotnet format` and centralized .NET analyzers |
 | Backend architecture | Architecture test project |
 | Repository consistency | `npm run validate:repository` |
+| Secret safety | `npm run validate:secrets` |
 | CI orchestration | GitHub Actions |
 
 ## File rules
@@ -19,6 +20,8 @@ Text is UTF-8 without BOM, uses LF, ends with one newline, and has no trailing w
 ## Commands
 
 Run `npm run validate:repository` for required files, resolved Git attributes, representative ignore behavior, tracked-artifact and local-configuration exclusions, Markdown fences/headings/links, YAML indentation, JSON syntax, UTF-8 validation, final-newline checks, trailing-whitespace checks, and configuration validation. The command does not require infrastructure.
+
+Run `npm run validate:secrets` for focused tracked-file, private-key, provider-token, public-configuration, placeholder, configuration-dump, and API exception-logging checks. Candidate values are never printed. The repository validator invokes this command automatically.
 
 Run `npm run validate` from `apps/web` for Prettier, strict TypeScript, ESLint, dependency-cruiser, architecture-fixture rejection, and unit tests. Run `dotnet format services/api/Proprium.sln --verify-no-changes --no-restore` and `dotnet test services/api/Proprium.sln` for the backend; Docker supplies the SDK qualification path when a local SDK is unavailable.
 

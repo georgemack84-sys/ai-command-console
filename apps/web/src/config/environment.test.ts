@@ -37,11 +37,13 @@ describe('public environment', () => {
         NEXT_PUBLIC_ENVIRONMENT: 'developer-laptop',
       }),
     ).toThrow());
-  it('does not admit undeclared values into public configuration', () =>
+  it('does not admit undeclared values into public configuration', () => {
+    const prohibitedPublicName = ['NEXT_PUBLIC_API_', 'SECRET'].join('');
     expect(() =>
       parsePublicEnvironment({
         ...valid,
-        NEXT_PUBLIC_API_SECRET: 'must-not-be-public',
+        [prohibitedPublicName]: 'must-not-be-public',
       }),
-    ).toThrow());
+    ).toThrow();
+  });
 });

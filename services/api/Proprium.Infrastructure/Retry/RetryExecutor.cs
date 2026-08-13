@@ -58,18 +58,18 @@ public sealed class RetryExecutor(
                         try { await factory.RollbackTransactionAsync(CancellationToken.None); }
                         catch (Exception rollbackException)
                         {
-                            logger.LogError(rollbackException, "Rollback failed for {Operation} attempt {AttemptId}", operation.Name, context.AttemptId);
+                            logger.LogError("Rollback failed for {Operation} attempt {AttemptId} with type {ExceptionType}", operation.Name, context.AttemptId, rollbackException.GetType().Name);
                         }
                     }
 
                     var classification = classifier.Classify(exception);
                     if (attemptNumber >= operation.MaximumAttempts || !CanRetry(classification))
                     {
-                        logger.LogError(exception, "Retry operation {Operation} stopped at attempt {Attempt} with classification {Classification} and correlation {CorrelationId}", operation.Name, attemptNumber, classification, operation.CorrelationId);
+                        logger.LogError("Retry operation {Operation} stopped at attempt {Attempt} with classification {Classification}, correlation {CorrelationId}, and type {ExceptionType}", operation.Name, attemptNumber, classification, operation.CorrelationId, exception.GetType().Name);
                         throw;
                     }
 
-                    logger.LogWarning(exception, "Retrying {Operation} after attempt {Attempt} classified as {Classification} with correlation {CorrelationId}", operation.Name, attemptNumber, classification, operation.CorrelationId);
+                    logger.LogWarning("Retrying {Operation} after attempt {Attempt} classified as {Classification} with correlation {CorrelationId} and type {ExceptionType}", operation.Name, attemptNumber, classification, operation.CorrelationId, exception.GetType().Name);
                 }
             }
         }

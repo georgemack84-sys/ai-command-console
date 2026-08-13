@@ -56,6 +56,8 @@ The GP-02 template inventory and its transitional root boundary are frozen in th
 
 GP-03 is implemented through the [configuration precedence specification](../engineering/gp-03-configuration-precedence.md), the strict frontend environment boundary, and the API's typed startup snapshot and deterministic validation tests.
 
+GP-04 is implemented through the [secret-safety specification](../engineering/gp-04-secret-safety.md), focused tracked-content validation, redacted secret-bearing representations, and secret-safe API logging.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

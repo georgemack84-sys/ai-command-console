@@ -20,6 +20,14 @@ test-results/
 !.env.*.example
 !apps/web/.env.docker
 !apps/web/.env.test
+*.jks
+*.key
+*.keystore
+*.p12
+*.pem
+*.pfx
+credentials.json
+service-account*.json
 
 # Runtime state, logs, reports, and local data
 .codex-temp/

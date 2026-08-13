@@ -10,16 +10,32 @@ public sealed class ApiConfigurationException(string setting, string expectation
     public string Setting { get; } = setting;
 }
 
-public sealed record LocalAdministratorOptions(bool Enabled, string? Username, string? Password);
+public sealed class LocalAdministratorOptions(bool enabled, string? username, string? password)
+{
+    public bool Enabled { get; } = enabled;
+    public string? Username { get; } = username;
+    public string? Password { get; } = password;
+    public override string ToString() => $"{nameof(LocalAdministratorOptions)} {{ Enabled = {Enabled}, Username = [REDACTED], Password = [REDACTED] }}";
+}
 
-public sealed record ApiConfigurationSnapshot(
-    PlatformOptions Platform,
-    PostgresOptions Postgres,
-    RedisOptions Redis,
-    Proprium.Infrastructure.Configuration.SessionOptions Session,
-    LoginRateLimitOptions LoginRateLimit,
-    AuthenticationRequestOptions Authentication,
-    LocalAdministratorOptions LocalAdministrator);
+public sealed class ApiConfigurationSnapshot(
+    PlatformOptions platform,
+    PostgresOptions postgres,
+    RedisOptions redis,
+    Proprium.Infrastructure.Configuration.SessionOptions session,
+    LoginRateLimitOptions loginRateLimit,
+    AuthenticationRequestOptions authentication,
+    LocalAdministratorOptions localAdministrator)
+{
+    public PlatformOptions Platform { get; } = platform;
+    public PostgresOptions Postgres { get; } = postgres;
+    public RedisOptions Redis { get; } = redis;
+    public Proprium.Infrastructure.Configuration.SessionOptions Session { get; } = session;
+    public LoginRateLimitOptions LoginRateLimit { get; } = loginRateLimit;
+    public AuthenticationRequestOptions Authentication { get; } = authentication;
+    public LocalAdministratorOptions LocalAdministrator { get; } = localAdministrator;
+    public override string ToString() => $"{nameof(ApiConfigurationSnapshot)} {{ Values = [REDACTED] }}";
+}
 
 public static class ApiConfiguration
 {

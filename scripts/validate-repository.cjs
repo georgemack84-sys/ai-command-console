@@ -244,6 +244,8 @@ for (const path of trackedFiles()) {
   if (extname(path) === '.md') validateMarkdown(path, content);
 }
 
+const secrets = spawnSync(process.execPath, ['scripts/validate-secrets.cjs'], { stdio: 'inherit' });
+if (secrets.status !== 0) process.exit(secrets.status ?? 1);
 const configuration = spawnSync(process.execPath, ['scripts/validate-configuration.cjs'], { stdio: 'inherit' });
 if (configuration.status !== 0) process.exit(configuration.status ?? 1);
 console.log('Repository consistency: PASS');
