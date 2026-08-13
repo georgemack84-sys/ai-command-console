@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { Permission } from '@/generated/permission-catalog';
 import { apiRequest } from '@/lib/api/api-client';
+
 import { useAuthentication } from './auth-context';
 import { AuthenticationProvider } from './auth-provider';
 

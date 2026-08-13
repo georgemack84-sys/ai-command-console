@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { useContext } from 'react';
 import { describe, expect, it } from 'vitest';
+
 import { ThemeContext, ThemeProvider } from '@/providers/theme-provider';
 
 function Probe() {

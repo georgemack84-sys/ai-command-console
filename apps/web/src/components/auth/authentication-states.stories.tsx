@@ -1,14 +1,16 @@
-import type { Meta, StoryObj } from '@storybook/react';
 import { Permission } from '@/generated/permission-catalog';
 import {
   AuthenticationContext,
   type AuthenticationContextValue,
 } from '@/lib/auth/auth-context';
+
 import { AuthenticationErrorState } from './authentication-error-state';
 import { AuthenticationResolutionFrame } from './authentication-resolution-frame';
 import { LoginForm } from './login-form';
 import { ShellUnauthorizedState } from './shell-unauthorized-state';
 import { UnauthorizedState } from './unauthorized-state';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 function context(
   state: AuthenticationContextValue['state'],

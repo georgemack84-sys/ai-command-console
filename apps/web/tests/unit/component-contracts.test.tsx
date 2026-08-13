@@ -1,6 +1,7 @@
-import { createRef, type FormEvent } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { createRef, type FormEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+
 import { Button, Field, Input, Textarea } from '@/ui/components';
 
 describe('shared component contracts', () => {

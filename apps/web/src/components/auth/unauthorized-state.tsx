@@ -1,4 +1,5 @@
 import Link from 'next/link';
+
 import { EmptyState } from '@/ui/components/primitives';
 export function UnauthorizedState() {
   return (

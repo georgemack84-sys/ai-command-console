@@ -1,12 +1,15 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiError } from '@/lib/api/api-error';
+
 import { registerAuthenticationFailureHandler } from '@/lib/api/api-client';
-import { endSession, getCurrentUser } from './auth-service';
+import { ApiError } from '@/lib/api/api-error';
+
 import {
   AuthenticationContext,
   type AuthenticationContextValue,
 } from './auth-context';
+import { endSession, getCurrentUser } from './auth-service';
+
 import type { AuthenticationState } from './auth-state';
 
 export function AuthenticationProvider({ children }: React.PropsWithChildren) {

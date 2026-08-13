@@ -1,4 +1,3 @@
-import type { Meta, StoryObj } from '@storybook/react';
 import {
   Button,
   Card,
@@ -10,6 +9,8 @@ import {
   Spinner,
   Textarea,
 } from './index';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 function PrimitiveSpecimen() {
   return (

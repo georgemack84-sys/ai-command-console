@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { login } from '@/lib/auth/auth-service';
+import { useState } from 'react';
+
 import { ApiError } from '@/lib/api/api-error';
 import { useAuthentication } from '@/lib/auth/auth-context';
+import { login } from '@/lib/auth/auth-service';
 import { resolveSafeReturnPath } from '@/lib/auth/return-path';
 import { Button, Field, Input } from '@/ui/components/primitives';
 export function LoginForm() {

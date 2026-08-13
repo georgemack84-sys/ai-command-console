@@ -1,8 +1,9 @@
 'use client';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as DropdownPrimitive from '@radix-ui/react-dropdown-menu';
 import { useEffect, useState, type ReactNode } from 'react';
+
 import { acquireScrollLock } from './scroll-lock';
 
 function overlayRoot() {

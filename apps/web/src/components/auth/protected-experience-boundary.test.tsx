@@ -1,10 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
 import { Permission } from '@/generated/permission-catalog';
 import {
   AuthenticationContext,
   type AuthenticationContextValue,
 } from '@/lib/auth/auth-context';
+
 import { ProtectedExperienceBoundary } from './protected-experience-boundary';
 
 const replace = vi.fn();

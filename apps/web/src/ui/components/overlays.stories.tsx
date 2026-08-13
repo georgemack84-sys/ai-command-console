@@ -1,6 +1,5 @@
 'use client';
 
-import type { Meta, StoryObj } from '@storybook/react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './index';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 function OverlaySpecimen() {
   return (

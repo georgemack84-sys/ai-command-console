@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import {
   copyFileSync,
   mkdirSync,
@@ -7,11 +8,10 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = join(here, '..');

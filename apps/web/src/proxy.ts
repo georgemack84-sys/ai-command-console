@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+
 import { resolveSafeReturnPath } from '@/lib/auth/return-path';
 import { sessionCookieContract } from '@/lib/auth/session-cookie-contract';
 

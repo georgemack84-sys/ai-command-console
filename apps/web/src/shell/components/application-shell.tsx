@@ -1,9 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+
+import { UserMenu } from '@/components/auth/user-menu';
 import { breakpoints } from '@/config/breakpoints';
 import { acquireScrollLock } from '@/ui/components/scroll-lock';
+
 import {
   temporaryNavigation,
   isActiveRoute,
@@ -13,7 +16,6 @@ import {
   type DesktopSidebarState,
   type MobileDrawerState,
 } from '../state/contracts';
-import { UserMenu } from '@/components/auth/user-menu';
 
 function readDesktopState(): DesktopSidebarState {
   try {

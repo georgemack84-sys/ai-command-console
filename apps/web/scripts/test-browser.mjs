@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import process from 'node:process';
+
 import AxeBuilder from '@axe-core/playwright';
 import { chromium } from 'playwright';
 

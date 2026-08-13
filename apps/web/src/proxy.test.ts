@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it } from 'vitest';
+
 import { sessionCookieContract } from '@/lib/auth/session-cookie-contract';
+
 import { proxy } from './proxy';
 
 function request(cookie?: string) {

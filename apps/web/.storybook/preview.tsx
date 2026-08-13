@@ -1,7 +1,8 @@
-import type { Preview } from '@storybook/react';
 import '../src/styles/index.css';
-import { StorybookProviders } from '../src/providers/storybook-providers';
 import { breakpoints } from '../src/config/breakpoints';
+import { StorybookProviders } from '../src/providers/storybook-providers';
+
+import type { Preview } from '@storybook/react';
 
 const preview: Preview = {
   globalTypes: {

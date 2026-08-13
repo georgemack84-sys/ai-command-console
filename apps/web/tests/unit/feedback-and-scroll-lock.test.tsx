@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+
 import { Alert, ErrorState, UnavailableState } from '@/ui/components';
 import { acquireScrollLock } from '@/ui/components/scroll-lock';
 

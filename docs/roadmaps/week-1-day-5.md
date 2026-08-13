@@ -60,6 +60,8 @@ GP-04 is implemented through the [secret-safety specification](../engineering/gp
 
 GP-05 is implemented through the [frontend-formatting specification](../engineering/gp-05-frontend-formatting.md), the locked Prettier configuration and commands in `apps/web`, explicit generator ownership, and temporary-fixture contract verification.
 
+GP-06 is implemented through the [frontend static-analysis specification](../engineering/gp-06-frontend-static-analysis.md), strict non-emitting TypeScript validation, zero-warning ESLint policy, deterministic import rules, type-aware source checks, and disposable negative fixtures.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

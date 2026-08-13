@@ -1,11 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+
 import { Permission } from '@/generated/permission-catalog';
 import type { PermissionKey } from '@/generated/permission-catalog';
 import {
   AuthenticationContext,
   type AuthenticationContextValue,
 } from '@/lib/auth/auth-context';
+
 import { PermissionGate } from './permission-gate';
 
 function context(
