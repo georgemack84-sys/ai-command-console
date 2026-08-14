@@ -8,6 +8,7 @@ run its canonical infrastructure-independent qualification with:
 ```bash
 npm run repo -- bootstrap
 npm run repo -- validate backend
+npm run repo -- validate authentication-core
 npm run backend:test:unit
 ```
 
@@ -34,6 +35,10 @@ Run `npm run validate:backend-test-classification` after the build to prove ever
 Apply canonical backend formatting with `npm run backend:format` and verify it without changing files with `npm run backend:format:check`. `npm run backend:format:verify` proves drift detection, correction, non-mutation, and idempotence with a disposable project. The [GP-09 backend formatting specification](../../docs/engineering/gp-09-backend-formatting.md) defines the `.editorconfig` policy, solution target, generated-code ownership, and separation from analyzer auto-fixes.
 
 The platform endpoints are `/api/v1`, `/api/v1/health`, `/api/v1/health/live`, and `/api/v1/health/ready`. OpenAPI is at `/openapi/v1.json`; Swagger UI is available in Development only.
+
+The [GP-26 backend authentication specification](../../docs/engineering/gp-26-backend-authentication-core.md)
+freezes password verification, opaque session issuance and validation, cookie
+policy, authentication events, and the protected OpenAPI contract.
 
 ## Week 3 identity foundation
 

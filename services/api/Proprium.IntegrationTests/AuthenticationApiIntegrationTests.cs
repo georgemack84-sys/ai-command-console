@@ -42,7 +42,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             return "replacement-hash";
         }
 
-        public PasswordVerificationOutcome Verify(User user, string storedHash, string password) => PasswordVerificationOutcome.SuccessRehashNeeded;
+        public PasswordVerificationOutcome Verify(User user, string storedHash, string password) => PasswordVerificationOutcome.RehashNeeded;
     }
 
     private HttpClient CreateAuthenticationClient(bool handleCookies = false)

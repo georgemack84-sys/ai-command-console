@@ -46,6 +46,7 @@ test('canonical command surface contains the GP-13 contract', () => {
       'validate week-2',
       'validate authentication-ui',
       'validate test-classification',
+      'validate authentication-core',
       'validate backend',
       'validate docker',
       'validate openapi',
@@ -69,7 +70,7 @@ test('root validation dispatches repository, frontend, then backend', () => {
   const recorded = recorder();
   execute('validate', { spawn: recorded.spawn, log() {} });
 
-  assert.equal(recorded.calls.length, 9);
+  assert.equal(recorded.calls.length, 10);
   assert.deepEqual(npmArguments(recorded.calls[0]), [
     'run',
     'validate:repository',
@@ -103,7 +104,7 @@ test('the single-word validate command is accepted by the CLI', async () => {
     await main(['validate'], { spawn: recorded.spawn, log() {} }),
     0,
   );
-  assert.equal(recorded.calls.length, 9);
+  assert.equal(recorded.calls.length, 10);
 });
 
 test('a child failure propagates and stops grouped validation', () => {
@@ -280,6 +281,18 @@ test('authentication UI validation delegates to the frontend package', () => {
   assert.deepEqual(npmArguments(validation.calls[0]), [
     'run',
     'validate:authentication-ui',
+  ]);
+});
+
+test('backend authentication core validation delegates to its policy gate', () => {
+  const validation = recorder();
+  execute('validate authentication-core', {
+    spawn: validation.spawn,
+    log() {},
+  });
+  assert.deepEqual(npmArguments(validation.calls[0]), [
+    'run',
+    'validate:authentication-core',
   ]);
 });
 

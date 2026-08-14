@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Proprium.Api.Configuration;
 using Proprium.Api.Endpoints;
 using Proprium.Api.Middleware;
+using Proprium.Api.OpenApi;
 using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Infrastructure;
@@ -95,7 +96,18 @@ builder.Services.AddAuthentication(PropriumSessionAuthenticationHandler.SchemeNa
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options => options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" }));
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" });
+    options.AddSecurityDefinition(CookieAuthenticationOperationFilter.SchemeName, new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Cookie,
+        Name = AuthenticationCookiePolicy.ProductionCookieName,
+        Description = "Opaque HttpOnly session cookie. Non-production environments use proprium_session."
+    });
+    options.OperationFilter<CookieAuthenticationOperationFilter>();
+});
 
 var app = builder.Build();
 

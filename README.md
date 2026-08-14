@@ -69,6 +69,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [GP-23 route-state UX](docs/engineering/gp-23-route-state-ux.md)
 - [GP-24 UI foundation qualification](docs/engineering/gp-24-ui-foundation-qualification.md)
 - [GP-25 authentication UI foundation](docs/engineering/gp-25-authentication-ui.md)
+- [GP-26 backend authentication core](docs/engineering/gp-26-backend-authentication-core.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -101,6 +102,9 @@ the named human screen-reader, native-zoom, and visual review is recorded.
 Validate the Week 3 login, session bootstrap, protected-shell gating, redirect
 safety, and no-flash contract with
 `npm run repo -- validate authentication-ui`.
+Validate password verification, opaque PostgreSQL sessions, cookie/request
+policy, protected OpenAPI semantics, and controlled failures with
+`npm run repo -- validate authentication-core`.
 With a disposable local administrator and the real development API available,
 run `npm run test:browser:live-auth` from `apps/web` to qualify login, refresh,
 logout, cookie policy, and revoked-session replay against PostgreSQL and Redis.

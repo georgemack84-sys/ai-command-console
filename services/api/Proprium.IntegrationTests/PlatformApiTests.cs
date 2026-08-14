@@ -65,4 +65,24 @@ public sealed class PlatformApiTests(WebApplicationFactory<Program> factory) : I
         var loginResponses = paths.GetProperty("/api/v1/auth/login").GetProperty("post").GetProperty("responses");
         Assert.True(loginResponses.TryGetProperty("429", out _));
     }
+
+    [Fact]
+    public async Task Authentication_openapi_contract_declares_cookie_security_only_for_protected_operations()
+    {
+        var response = await factory.CreateClient().GetAsync("/openapi/v1.json");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var scheme = root.GetProperty("components").GetProperty("securitySchemes").GetProperty("PropriumSession");
+        Assert.Equal("apiKey", scheme.GetProperty("type").GetString());
+        Assert.Equal("cookie", scheme.GetProperty("in").GetString());
+        Assert.Equal("__Host-proprium_session", scheme.GetProperty("name").GetString());
+
+        var paths = root.GetProperty("paths");
+        var currentUserSecurity = paths.GetProperty("/api/v1/auth/me").GetProperty("get").GetProperty("security");
+        Assert.Contains(
+            currentUserSecurity.EnumerateArray(),
+            requirement => requirement.TryGetProperty("PropriumSession", out _));
+        Assert.False(paths.GetProperty("/api/v1/auth/login").GetProperty("post").TryGetProperty("security", out _));
+        Assert.False(paths.GetProperty("/api/v1/auth/logout").GetProperty("post").TryGetProperty("security", out _));
+    }
 }

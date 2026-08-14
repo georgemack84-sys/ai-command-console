@@ -20,7 +20,7 @@ public sealed class UserPasswordHasher(IPasswordHasher<User> passwordHasher) : I
         return passwordHasher.VerifyHashedPassword(user, storedHash, password) switch
         {
             PasswordVerificationResult.Success => PasswordVerificationOutcome.Success,
-            PasswordVerificationResult.SuccessRehashNeeded => PasswordVerificationOutcome.SuccessRehashNeeded,
+            PasswordVerificationResult.SuccessRehashNeeded => PasswordVerificationOutcome.RehashNeeded,
             _ => PasswordVerificationOutcome.Failed
         };
     }

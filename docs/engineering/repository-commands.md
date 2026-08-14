@@ -57,6 +57,7 @@ They fail non-zero at the first required child failure.
 | Route-state UX | `npm run repo -- validate route-states` | `.\scripts\proprium.ps1 validate route-states` | None |
 | Week 2 UI qualification | `npm run repo -- validate week-2` | `.\scripts\proprium.ps1 validate week-2` | None |
 | Authentication UI | `npm run repo -- validate authentication-ui` | `.\scripts\proprium.ps1 validate authentication-ui` | None |
+| Backend authentication core | `npm run repo -- validate authentication-core` | `.\scripts\proprium.ps1 validate authentication-core` | None |
 | Backend | `npm run repo -- validate backend` | `.\scripts\proprium.ps1 validate backend` | None |
 | Test classification | `npm run repo -- validate test-classification` | `.\scripts\proprium.ps1 validate test-classification` | None |
 | Compose and image builds | `npm run repo -- validate docker` | `.\scripts\proprium.ps1 validate docker` | Docker engine; no running services |

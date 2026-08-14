@@ -3,7 +3,7 @@ using Proprium.Application.Retry;
 
 namespace Proprium.Application.Authentication;
 
-public enum PasswordVerificationOutcome { Failed, Success, SuccessRehashNeeded }
+public enum PasswordVerificationOutcome { Failed, Success, RehashNeeded }
 
 public interface IUserPasswordHasher
 {

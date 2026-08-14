@@ -16,3 +16,18 @@ cannot flash before session resolution. See the
 GP-26 may evolve backend authentication internals only through their existing
 contract and security validation. It must not create a second frontend session
 authority or expose the opaque session token to browser application state.
+
+## GP-26: Backend authentication core
+
+GP-26 freezes the backend credential and opaque-session contract. ASP.NET Core
+Identity verifies passwords through typed outcomes, PostgreSQL remains the sole
+session authority, and only a keyed digest of each random session token is
+persisted. Login, current-user bootstrap, logout, cookie policy, audit evidence,
+and protected OpenAPI operations are qualified by repository-owned positive and
+controlled-failure gates. See the
+[implementation specification](../engineering/gp-26-backend-authentication-core.md)
+and [validation record](../validation/week-3/gp-26-backend-authentication-core.md).
+
+GP-27 may build authorization policy on this identity foundation. It must not
+make role names an authorization API, permit Redis to authenticate requests, or
+weaken the security-version invalidation boundary.

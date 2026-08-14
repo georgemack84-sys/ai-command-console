@@ -218,6 +218,18 @@ const commands = new Map([
     },
   ],
   [
+    'validate authentication-core',
+    {
+      description: 'Validate the backend authentication and session contract.',
+      steps: [
+        processStep('Backend authentication core', 'npm', [
+          'run',
+          'validate:authentication-core',
+        ]),
+      ],
+    },
+  ],
+  [
     'validate backend',
     {
       description: 'Run all infrastructure-independent backend validation.',
@@ -244,6 +256,10 @@ const commands = new Map([
           'run',
           'validate:backend-architecture',
         ]),
+        commandStep(
+          'Backend authentication core',
+          'validate authentication-core',
+        ),
         commandStep(
           'Backend test classification',
           'validate test-classification',
