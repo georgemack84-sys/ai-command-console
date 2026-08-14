@@ -76,6 +76,10 @@
   --shell-sidebar-width: 17rem;
   --shell-sidebar-collapsed-width: 5rem;
   --shell-drawer-max-width: 22rem;
+  --overlay-dialog-small-width: 28rem;
+  --overlay-dialog-medium-width: 40rem;
+  --overlay-dialog-large-width: 56rem;
+  --overlay-menu-min-width: 12rem;
   --layer-base: 0;
   --layer-sticky: 10;
   --layer-dropdown: 20;

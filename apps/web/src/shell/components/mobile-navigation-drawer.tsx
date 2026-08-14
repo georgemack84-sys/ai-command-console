@@ -1,17 +1,16 @@
-import { useEffect, useRef, type RefObject } from 'react';
-
-import { IconButton } from '@/ui/components';
-import { acquireScrollLock } from '@/ui/components/scroll-lock';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  IconButton,
+} from '@/ui/components';
 
 import { ShellNavigation } from './shell-navigation';
 
 import type { ShellNavigationItem } from '../state/contracts';
-
-const focusableSelector = [
-  'a[href]',
-  'button:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',');
+import type { RefObject } from 'react';
 
 export interface MobileNavigationDrawerProps {
   open: boolean;
@@ -28,72 +27,36 @@ export function MobileNavigationDrawer({
   triggerRef,
   onClose,
 }: MobileNavigationDrawerProps) {
-  const drawerRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const trigger = triggerRef.current;
-    const releaseScrollLock = acquireScrollLock();
-    const drawer = drawerRef.current;
-    drawer?.querySelector<HTMLElement>(focusableSelector)?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key !== 'Tab' || !drawer) return;
-      const focusable = [
-        ...drawer.querySelectorAll<HTMLElement>(focusableSelector),
-      ];
-      const first = focusable[0];
-      const last = focusable.at(-1);
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      releaseScrollLock();
-      trigger?.focus();
-    };
-  }, [onClose, open, triggerRef]);
-
-  if (!open) return null;
   return (
-    <>
-      <div className="mobile-drawer-backdrop" onPointerDown={onClose} />
-      <aside
-        ref={drawerRef}
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent
         id="mobile-navigation"
         className="mobile-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="mobile-navigation-title"
+        overlayClassName="mobile-drawer-backdrop"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          document.querySelector<HTMLElement>('.mobile-drawer button')?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          triggerRef.current?.focus();
+        }}
       >
         <div className="mobile-drawer__header">
-          <h2 id="mobile-navigation-title">Navigation</h2>
-          <IconButton
-            variant="ghost"
-            label="Close navigation"
-            icon="×"
-            onClick={onClose}
-          />
+          <DialogTitle>Navigation</DialogTitle>
+          <DialogDescription className="sr-only">
+            Choose a destination in the application.
+          </DialogDescription>
+          <DialogClose asChild>
+            <IconButton variant="ghost" label="Close navigation" icon="×" />
+          </DialogClose>
         </div>
         <ShellNavigation
           items={navigation}
           pathname={pathname}
           onNavigate={onClose}
         />
-      </aside>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

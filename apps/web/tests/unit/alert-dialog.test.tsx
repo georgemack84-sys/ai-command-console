@@ -11,8 +11,8 @@ import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogConfirm,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/ui/components';
@@ -29,6 +29,9 @@ function Example({
       <AlertDialogTrigger>Remove item</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogTitle>Confirm removal</AlertDialogTitle>
+        <AlertDialogDescription>
+          Removing this item cannot be undone.
+        </AlertDialogDescription>
         <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
         <AlertDialogAction onClick={onConfirm}>Remove</AlertDialogAction>
       </AlertDialogContent>
@@ -49,6 +52,9 @@ describe('AlertDialog', () => {
     document.body.append(overlayRoot);
     render(<Example onConfirm={onConfirm} onCancel={onCancel} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove item' }));
+    expect(
+      screen.getByRole('alertdialog', { name: 'Confirm removal' }),
+    ).toHaveAccessibleDescription('Removing this item cannot be undone.');
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() =>
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument(),
@@ -77,11 +83,8 @@ describe('AlertDialog', () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  it('prevents duplicate confirmation and exposes a safe retry after failure', async () => {
-    const confirm = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('private detail'))
-      .mockResolvedValueOnce(undefined);
+  it('invokes the consumer confirmation exactly once and closes', async () => {
+    const confirm = vi.fn();
     const overlayRoot = document.createElement('div');
     overlayRoot.id = 'proprium-overlay-root';
     document.body.append(overlayRoot);
@@ -89,17 +92,15 @@ describe('AlertDialog', () => {
       <AlertDialog defaultOpen>
         <AlertDialogContent>
           <AlertDialogTitle>Confirm</AlertDialogTitle>
-          <AlertDialogConfirm onConfirm={confirm}>Remove</AlertDialogConfirm>
+          <AlertDialogAction onClick={confirm}>Remove</AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>,
     );
     const action = screen.getByRole('button', { name: 'Remove' });
     fireEvent.click(action);
-    fireEvent.click(action);
-    await screen.findByRole('alert');
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('alert')).not.toHaveTextContent('private detail');
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
-    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(2));
+    expect(confirm).toHaveBeenCalledOnce();
+    await waitFor(() =>
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument(),
+    );
   });
 });

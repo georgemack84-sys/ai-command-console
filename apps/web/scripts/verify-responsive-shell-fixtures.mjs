@@ -47,11 +47,8 @@ assert.ok(
 assert.ok(
   validateResponsiveShell({
     ...valid,
-    drawer: valid.drawer.replace(
-      "event.key === 'Escape'",
-      "event.key === 'Dismiss'",
-    ),
-  }).some((error) => error.includes("event.key === 'Escape'")),
+    drawer: valid.drawer.replace('onCloseAutoFocus', 'onDismissAutoFocus'),
+  }).some((error) => error.includes('onCloseAutoFocus')),
 );
 assert.ok(
   validateResponsiveShell({

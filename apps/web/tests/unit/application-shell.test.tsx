@@ -93,7 +93,7 @@ describe('application shell', () => {
     fireEvent.click(trigger);
     const dialog = screen.getByRole('dialog', { name: 'Navigation' });
     expect(dialog).toBeVisible();
-    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body).toHaveAttribute('data-scroll-locked');
     await waitFor(() =>
       expect(
         screen.getByRole('button', { name: 'Close navigation' }),
@@ -101,24 +101,8 @@ describe('application shell', () => {
     );
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(document.body.style.overflow).toBe('');
-    expect(trigger).toHaveFocus();
-  });
-
-  it('wraps focus from the final drawer destination to the close action', async () => {
-    render(
-      <ApplicationShell navigation={navigation} defaultMobileNavigationOpen>
-        Workspace
-      </ApplicationShell>,
-    );
-    const close = screen.getByRole('button', { name: 'Close navigation' });
-    const projectLinks = screen.getAllByRole('link', { name: 'Projects' });
-    const finalLink = projectLinks[projectLinks.length - 1];
-    expect(finalLink).toBeDefined();
-    if (!finalLink) return;
-    finalLink.focus();
-    fireEvent.keyDown(document, { key: 'Tab' });
-    expect(close).toHaveFocus();
+    expect(document.body).not.toHaveAttribute('data-scroll-locked');
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });
 

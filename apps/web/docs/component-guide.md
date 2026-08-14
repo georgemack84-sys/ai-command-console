@@ -85,4 +85,36 @@ stories; controlled negative fixtures prove those failures close the gate.
 
 ## Overlays
 
-`Dialog`, `AlertDialog`, and `DropdownMenu` are Proprium-owned wrappers and target the canonical overlay root. Do not import Radix primitives directly. Standard Dialogs may be dismissed with Escape. Alert Dialogs are for explicit confirmation; use a cancellation path and never treat Escape as confirmation. Feature code must not manage body scroll or focus traps directly.
+Proprium owns typed wrappers over the single approved Radix behavior layer. All
+portaled content targets `#proprium-overlay-root` when present and otherwise uses
+Radix's body portal for Storybook compatibility. Feature code imports only from
+`@/ui/components`; direct Radix imports, fixed-position portal markup, focus traps,
+scroll locks, and global Escape handlers are prohibited outside the wrapper.
+
+Use this decision rule:
+
+- focused, compact modal content → `Dialog`;
+- an explicit consequential decision → `AlertDialog`;
+- a keyboard-navigable list of actions → `DropdownMenu`;
+- small arbitrary anchored contextual UI → Popover, once a concrete reusable need
+  justifies adding it. GP-22 does not implement Popover.
+
+Compose Dialog from `DialogTrigger`, `DialogContent`, `DialogHeader`,
+`DialogTitle`, optional `DialogDescription`, `DialogBody`, `DialogFooter`, and
+`DialogClose`. Every dialog requires an accessible title. Content supports
+small/medium/large responsive widths, viewport-bounded scrolling, controlled or
+uncontrolled state, and low-level focus callbacks for documented exceptional
+workflows. Prefer route content for spacious, deeply navigable, or multi-step work.
+
+AlertDialog requires a title, consequence description, explicit cancel, and
+explicit action. Place the safe cancel action first so it receives initial focus.
+Outside pointer interaction does not dismiss it. DropdownMenu supports semantic
+items, separators, disabled state, danger styling, collision handling, arrows,
+Home/End, Escape, and typeahead through Radix. A destructive menu item may exist,
+but an irreversible operation should transition to AlertDialog when confirmation
+is required.
+
+Escape closes only the topmost dismissible overlay. Application code must not
+fight focus restoration using arbitrary `setTimeout(() => element.focus())`
+patterns. Overlays consume GP-19 surfaces, layers, spacing, focus, and motion;
+reduced-motion preferences remove their transitions.

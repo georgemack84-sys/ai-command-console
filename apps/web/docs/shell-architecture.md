@@ -9,8 +9,10 @@ owns only global structure and local responsive interaction state.
 - `ApplicationHeader` owns the sticky header, route-title slot, generic actions
   slot, account slot, and mobile trigger.
 - `DesktopSidebar` owns expanded/collapsed desktop presentation.
-- `MobileNavigationDrawer` is a shell-specific modal surface with focus
-  containment, Escape/outside dismissal, focus restoration, and scroll locking.
+- `MobileNavigationDrawer` is shell-specific presentation composed on the GP-22
+  Dialog behavior layer. Radix owns focus containment, Escape/outside dismissal,
+  background isolation, and scroll locking; the drawer supplies its restoration
+  target and navigation content.
 - `ShellNavigation` is the only navigation renderer. Both desktop and mobile
   surfaces receive the same `ShellNavigationItem[]` model.
 - `main#main-workspace` is the single route-content landmark and skip-link target.

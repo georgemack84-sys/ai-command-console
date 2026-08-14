@@ -13,7 +13,7 @@ const requiredFiles = [
   'src/ui/components/components.css',
   'src/ui/components/primitives.stories.tsx',
   'tests/unit/component-contracts.test.tsx',
-  'tests/unit/feedback-and-scroll-lock.test.tsx',
+  'tests/unit/feedback.test.tsx',
   'tests/types/icon-button-contract.tsx',
   'tests/storybook/core-components.spec.ts',
   'docs/component-guide.md',

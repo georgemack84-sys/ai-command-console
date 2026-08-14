@@ -11,6 +11,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from '@/ui/components';
@@ -21,6 +22,7 @@ function Example() {
       <DialogTrigger>Open dialog</DialogTrigger>
       <DialogContent>
         <DialogTitle>Example dialog</DialogTitle>
+        <DialogDescription>Example dialog purpose.</DialogDescription>
         <DialogClose>Close dialog</DialogClose>
       </DialogContent>
     </Dialog>
@@ -41,7 +43,9 @@ describe('Dialog', () => {
     const trigger = screen.getByRole('button', { name: 'Open dialog' });
     trigger.focus();
     fireEvent.click(trigger);
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: 'Example dialog' }),
+    ).toHaveAccessibleDescription('Example dialog purpose.');
     expect(overlayRoot.querySelector('[role="dialog"]')).toBeTruthy();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

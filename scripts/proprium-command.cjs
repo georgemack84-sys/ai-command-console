@@ -150,6 +150,20 @@ const commands = new Map([
     },
   ],
   [
+    'validate overlays',
+    {
+      description: 'Validate reusable overlay interaction contracts.',
+      steps: [
+        processStep(
+          'Frontend overlay foundation',
+          'npm',
+          ['run', 'validate:overlays'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'validate test-classification',
     {
       description: 'Verify backend test category and filter contracts.',

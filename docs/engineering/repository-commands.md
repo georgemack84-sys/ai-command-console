@@ -53,6 +53,7 @@ They fail non-zero at the first required child failure.
 | UI foundation | `npm run repo -- validate ui-foundation` | `.\scripts\proprium.ps1 validate ui-foundation` | None |
 | Core components | `npm run repo -- validate components` | `.\scripts\proprium.ps1 validate components` | None |
 | Responsive shell | `npm run repo -- validate shell` | `.\scripts\proprium.ps1 validate shell` | None |
+| Overlay foundation | `npm run repo -- validate overlays` | `.\scripts\proprium.ps1 validate overlays` | None |
 | Backend | `npm run repo -- validate backend` | `.\scripts\proprium.ps1 validate backend` | None |
 | Test classification | `npm run repo -- validate test-classification` | `.\scripts\proprium.ps1 validate test-classification` | None |
 | Compose and image builds | `npm run repo -- validate docker` | `.\scripts\proprium.ps1 validate docker` | Docker engine; no running services |

@@ -3,7 +3,8 @@
 GP-21 establishes one persistent structural frame for protected Proprium routes.
 It composes GP-19 tokens and GP-20 controls into `ApplicationShell`, a sticky
 `ApplicationHeader`, collapsible `DesktopSidebar`, flexible main workspace, and a
-shell-specific `MobileNavigationDrawer`.
+shell-presented `MobileNavigationDrawer`, now harmonized with the GP-22 Dialog
+behavior layer.
 
 The shell is intentionally domain-neutral. Authentication remains in the
 protected layout and is passed through the account slot; permissions, search,

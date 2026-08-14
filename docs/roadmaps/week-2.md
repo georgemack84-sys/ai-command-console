@@ -28,3 +28,12 @@ renderer, collapsible desktop sidebar, flexible main landmark, and accessible
 mobile drawer at the canonical 1024px breakpoint. See the
 [implementation specification](../engineering/gp-21-responsive-shell.md) and
 [qualification record](../validation/week-2/gp-21-responsive-shell.md).
+
+## GP-22: Overlay interaction foundation
+
+GP-22 establishes repository-owned Dialog, AlertDialog, and DropdownMenu wrappers
+over the approved Radix behavior layer, including one portal strategy, focus and
+Escape ownership, responsive tokenized styling, nested interaction coverage, and
+mechanical enforcement. Popover is deferred until a concrete reusable consumer
+exists. See the [implementation specification](../engineering/gp-22-overlay-foundation.md)
+and [qualification record](../validation/week-2/gp-22-overlay-foundation.md).

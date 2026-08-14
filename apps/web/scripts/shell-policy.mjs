@@ -41,11 +41,11 @@ export function validateResponsiveShell({
   }
 
   for (const expected of [
-    'role="dialog"',
-    'aria-modal="true"',
-    "event.key === 'Escape'",
-    'trigger?.focus()',
-    'acquireScrollLock()',
+    '<Dialog',
+    '<DialogContent',
+    '<DialogTitle',
+    'onCloseAutoFocus',
+    'triggerRef.current?.focus()',
   ]) {
     requireSource(
       'mobile-navigation-drawer.tsx',

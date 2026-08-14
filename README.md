@@ -65,6 +65,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [GP-19 UI foundation](docs/engineering/gp-19-ui-foundation.md)
 - [GP-20 core UI components](docs/engineering/gp-20-core-components.md)
 - [GP-21 responsive application shell](docs/engineering/gp-21-responsive-shell.md)
+- [GP-22 overlay interaction foundation](docs/engineering/gp-22-overlay-foundation.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -86,6 +87,8 @@ Validate the reusable component contracts with
 `npm run repo -- validate components`.
 Validate responsive shell structure, interaction, styling, and controlled failures
 with `npm run repo -- validate shell`.
+Validate portal ownership, dialogs, alert dialogs, menus, focus behavior, and
+controlled failures with `npm run repo -- validate overlays`.
 
 ## Local endpoints
 
