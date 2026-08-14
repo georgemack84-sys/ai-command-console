@@ -1,9 +1,4 @@
 using NetArchTest.Rules;
-using Proprium.Api;
-using Proprium.Application;
-using Proprium.Contracts.V1;
-using Proprium.Domain;
-using Proprium.Infrastructure;
 using Xunit;
 
 namespace Proprium.ArchitectureTests;
@@ -11,30 +6,68 @@ namespace Proprium.ArchitectureTests;
 public sealed class LayeringTests
 {
     [Fact]
-    public void Domain_does_not_depend_on_outer_layers()
-    {
-        var result = Types.InAssembly(typeof(DomainAssemblyMarker).Assembly).Should().NotHaveDependencyOnAll("Proprium.Application", "Proprium.Infrastructure", "Proprium.Api", "Proprium.Contracts.V1").GetResult();
-        Assert.True(result.IsSuccessful);
-    }
+    public void Domain_must_not_depend_on_outer_layers_or_frameworks() => AssertNoDependencies(
+        ArchitectureDefinitions.DomainAssembly,
+        ArchitectureDefinitions.ApplicationNamespace,
+        ArchitectureDefinitions.InfrastructureNamespace,
+        ArchitectureDefinitions.ApiNamespace,
+        ArchitectureDefinitions.ContractsNamespace,
+        "Microsoft.AspNetCore",
+        "Microsoft.EntityFrameworkCore",
+        "Npgsql",
+        "StackExchange.Redis");
 
     [Fact]
-    public void Application_does_not_depend_on_api_or_infrastructure()
-    {
-        var result = Types.InAssembly(typeof(ApplicationAssemblyMarker).Assembly).Should().NotHaveDependencyOnAll("Proprium.Api", "Proprium.Infrastructure").GetResult();
-        Assert.True(result.IsSuccessful);
-    }
+    public void Application_must_not_depend_on_api_infrastructure_or_implementation_frameworks() => AssertNoDependencies(
+        ArchitectureDefinitions.ApplicationAssembly,
+        ArchitectureDefinitions.ApiNamespace,
+        ArchitectureDefinitions.InfrastructureNamespace,
+        "Microsoft.AspNetCore",
+        "Microsoft.EntityFrameworkCore",
+        "Npgsql",
+        "StackExchange.Redis");
 
     [Fact]
-    public void Contracts_are_a_leaf_boundary()
+    public void Infrastructure_must_not_depend_on_api() => AssertNoDependencies(
+        ArchitectureDefinitions.InfrastructureAssembly,
+        ArchitectureDefinitions.ApiNamespace);
+
+    [Fact]
+    public void Contracts_must_remain_a_leaf_boundary() => AssertNoDependencies(
+        ArchitectureDefinitions.ContractsAssembly,
+        ArchitectureDefinitions.ApiNamespace,
+        ArchitectureDefinitions.ApplicationNamespace,
+        ArchitectureDefinitions.DomainNamespace,
+        ArchitectureDefinitions.InfrastructureNamespace);
+
+    [Fact]
+    public void Production_types_must_use_their_owning_layer_namespace()
     {
-        var result = Types.InAssembly(typeof(PlatformInfoResponse).Assembly).Should().NotHaveDependencyOnAll("Proprium.Api", "Proprium.Application", "Proprium.Domain", "Proprium.Infrastructure").GetResult();
-        Assert.True(result.IsSuccessful);
+        var violations = ArchitectureDefinitions.ProductionLayers
+            .SelectMany(layer => ArchitectureRules.NamespaceViolations(
+                    layer.Assembly,
+                    layer.Namespace,
+                    layer.Assembly == ArchitectureDefinitions.ApiAssembly ? [typeof(Program)] : [])
+                .Select(type => $"{type} is outside {layer.Namespace}."))
+            .ToArray();
+
+        Assert.True(violations.Length == 0, string.Join(Environment.NewLine, violations));
     }
 
     [Fact]
     public void Api_contains_no_controllers()
     {
-        var controllerTypes = typeof(Program).Assembly.GetTypes().Where(type => type.Name.EndsWith("Controller", StringComparison.Ordinal));
+        var controllerTypes = ArchitectureDefinitions.ApiAssembly.GetTypes()
+            .Where(type => type.Name.EndsWith("Controller", StringComparison.Ordinal));
+
         Assert.Empty(controllerTypes);
+    }
+
+    private static void AssertNoDependencies(System.Reflection.Assembly assembly, params string[] forbidden)
+    {
+        var result = Types.InAssembly(assembly).Should().NotHaveDependencyOnAll(forbidden).GetResult();
+        Assert.True(
+            result.IsSuccessful,
+            $"{assembly.GetName().Name} has forbidden dependencies on: {string.Join(", ", forbidden)}.");
     }
 }

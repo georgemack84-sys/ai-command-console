@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Microsoft.Extensions.DependencyInjection;
 using Proprium.Api.Security;
-using Proprium.Application;
 using Proprium.Infrastructure;
 using Proprium.Infrastructure.Retry;
 using Xunit;
@@ -20,14 +19,29 @@ public sealed class DependencyResolutionArchitectureTests
     [Fact]
     public void Application_public_contracts_expose_no_container_types()
     {
-        var offenders = typeof(ApplicationAssemblyMarker).Assembly.ExportedTypes
-            .SelectMany(PublicSignatureTypes)
-            .Where(IsContainerType)
-            .Select(type => type.FullName)
-            .Distinct()
-            .ToArray();
+        var offenders = ArchitectureRules.ContainerSignatureViolations(ArchitectureDefinitions.ApplicationAssembly);
 
-        Assert.Empty(offenders);
+        Assert.True(offenders.Length == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    public void Domain_public_contracts_expose_no_container_types()
+    {
+        var offenders = ArchitectureRules.ContainerSignatureViolations(ArchitectureDefinitions.DomainAssembly);
+
+        Assert.True(offenders.Length == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    public void Domain_and_application_expose_no_generic_service_resolvers()
+    {
+        var offenders = new[]
+        {
+            ArchitectureDefinitions.DomainAssembly,
+            ArchitectureDefinitions.ApplicationAssembly,
+        }.SelectMany(ArchitectureRules.GenericResolverViolations).ToArray();
+
+        Assert.True(offenders.Length == 0, string.Join(Environment.NewLine, offenders));
     }
 
     [Fact]
@@ -57,35 +71,6 @@ public sealed class DependencyResolutionArchitectureTests
 
         Assert.Empty(forbidden);
     }
-
-    private static IEnumerable<Type> PublicSignatureTypes(Type type)
-    {
-        foreach (var constructor in type.GetConstructors())
-            foreach (var parameter in constructor.GetParameters())
-                foreach (var signatureType in Flatten(parameter.ParameterType)) yield return signatureType;
-        foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
-        {
-            foreach (var signatureType in Flatten(method.ReturnType)) yield return signatureType;
-            foreach (var parameter in method.GetParameters())
-                foreach (var signatureType in Flatten(parameter.ParameterType)) yield return signatureType;
-        }
-        foreach (var property in type.GetProperties())
-            foreach (var signatureType in Flatten(property.PropertyType)) yield return signatureType;
-        foreach (var field in type.GetFields())
-            foreach (var signatureType in Flatten(field.FieldType)) yield return signatureType;
-    }
-
-    private static IEnumerable<Type> Flatten(Type type)
-    {
-        yield return type;
-        if (type.HasElementType && type.GetElementType() is { } element)
-            foreach (var nested in Flatten(element)) yield return nested;
-        foreach (var argument in type.GetGenericArguments())
-            foreach (var nested in Flatten(argument)) yield return nested;
-    }
-
-    private static bool IsContainerType(Type type) => type == typeof(IServiceProvider)
-        || type.FullName is "Microsoft.Extensions.DependencyInjection.IServiceScope" or "Microsoft.Extensions.DependencyInjection.IServiceScopeFactory";
 
     private static IEnumerable<MethodBase> CalledMethods(MethodInfo method)
     {

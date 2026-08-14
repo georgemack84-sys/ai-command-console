@@ -68,6 +68,8 @@ GP-08 is implemented through the [backend compiler specification](../engineering
 
 GP-09 is implemented through the [backend formatting specification](../engineering/gp-09-backend-formatting.md), the SDK-bundled `dotnet format`, explicit C# whitespace policy, bounded write/check commands, stable source-controlled migration handling, and disposable drift/idempotence verification.
 
+GP-10 is implemented through the [backend architecture specification](../engineering/gp-10-backend-architecture.md), an exact project-reference matrix, framework and namespace isolation, compiled dependency and service-location rules, and controlled negative fixtures for both metadata and compiled enforcement.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

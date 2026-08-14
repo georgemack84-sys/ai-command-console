@@ -21,6 +21,8 @@ npm run validate:backend-compiler
 
 The build must finish with zero warnings and zero errors. The [GP-08 backend compiler specification](../../docs/engineering/gp-08-backend-compiler-standards.md) defines nullable analysis, warnings-as-errors, the fixed .NET 8 analyzer baseline, generated-code handling, and the suppression policy.
 
+After the Release build, run `npm run validate:backend-architecture` to verify the project graph, package isolation, compiled layer and namespace boundaries, and dependency-resolution rules without rebuilding or starting infrastructure. The [GP-10 backend architecture specification](../../docs/engineering/gp-10-backend-architecture.md) records the canonical dependency matrix, controlled negative fixtures, and narrow composition-boundary exceptions.
+
 Apply canonical backend formatting with `npm run backend:format` and verify it without changing files with `npm run backend:format:check`. `npm run backend:format:verify` proves drift detection, correction, non-mutation, and idempotence with a disposable project. The [GP-09 backend formatting specification](../../docs/engineering/gp-09-backend-formatting.md) defines the `.editorconfig` policy, solution target, generated-code ownership, and separation from analyzer auto-fixes.
 
 The platform endpoints are `/api/v1`, `/api/v1/health`, `/api/v1/health/live`, and `/api/v1/health/ready`. OpenAPI is at `/openapi/v1.json`; Swagger UI is available in Development only.
