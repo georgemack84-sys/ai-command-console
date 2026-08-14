@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Proprium.ArchitectureTests;
 
+[Trait("Category", "Architecture")]
 public sealed class LayeringTests
 {
     [Fact]

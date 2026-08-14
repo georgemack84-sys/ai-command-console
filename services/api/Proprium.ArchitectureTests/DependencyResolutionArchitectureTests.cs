@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Proprium.ArchitectureTests;
 
+[Trait("Category", "Architecture")]
 public sealed class DependencyResolutionArchitectureTests
 {
     private static readonly IReadOnlyDictionary<short, OpCode> OpCodesByValue = typeof(OpCodes)

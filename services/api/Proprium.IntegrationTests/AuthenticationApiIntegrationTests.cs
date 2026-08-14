@@ -19,7 +19,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Program> factory) : IIntegrationTest, IClassFixture<WebApplicationFactory<Program>>
 {
     private sealed class ExceededLoginRateLimiter : ILoginRateLimiter
     {

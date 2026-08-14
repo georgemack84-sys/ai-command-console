@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Proprium.ArchitectureTests;
 
+[Trait("Category", "Unit")]
 public sealed class AuthenticationInfrastructureTests
 {
     [Fact]

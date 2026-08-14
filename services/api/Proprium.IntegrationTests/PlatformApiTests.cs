@@ -8,7 +8,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class PlatformApiTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public sealed class PlatformApiTests(WebApplicationFactory<Program> factory) : IIntegrationTest, IClassFixture<WebApplicationFactory<Program>>
 {
     [Fact]
     public async Task V1_root_returns_only_the_v1_contract()

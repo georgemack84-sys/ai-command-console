@@ -70,6 +70,8 @@ GP-09 is implemented through the [backend formatting specification](../engineeri
 
 GP-10 is implemented through the [backend architecture specification](../engineering/gp-10-backend-architecture.md), an exact project-reference matrix, framework and namespace isolation, compiled dependency and service-location rules, and controlled negative fixtures for both metadata and compiled enforcement.
 
+GP-11 is implemented through the [integration-test classification specification](../engineering/gp-11-integration-test-classification.md), the repository-owned integration marker, xUnit category filters, exact compiled infrastructure evidence, explicit test-project/package policy, and controlled negative classification fixtures.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

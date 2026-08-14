@@ -6,7 +6,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class AuthorizationSeedIntegrationTests
+public sealed class AuthorizationSeedIntegrationTests : IIntegrationTest
 {
     private static PropriumDbContext CreateContext()
     {
