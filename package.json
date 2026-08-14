@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "repo": "node scripts/proprium-command.cjs",
+    "test:repository-commands": "node --test scripts/proprium-command.test.cjs",
     "dev": "node scripts/run-next.cjs dev",
     "dev:with-worker": "node scripts/dev-with-worker.cjs",
     "dev:doctor": "node scripts/dev-doctor.cjs",
