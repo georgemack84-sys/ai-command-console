@@ -91,7 +91,7 @@ a:hover {
   position: fixed;
   inset: 0;
   z-index: var(--layer-overlay);
-  background: rgb(0 0 0 / 0.45);
+  background: var(--surface-scrim);
   border: 0;
 }
 .mobile-drawer {
@@ -179,7 +179,7 @@ a:hover {
   position: fixed;
   inset: 0;
   z-index: var(--layer-overlay);
-  background: rgb(0 0 0 / 0.45);
+  background: var(--surface-scrim);
 }
 .ui-alert {
   display: grid;

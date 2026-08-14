@@ -26,6 +26,7 @@ inventory. Commands do not accept flags that suppress required gates.
 | Verify full prerequisites | `npm run repo -- doctor` | `.\scripts\proprium.ps1 doctor` | Docker daemon is checked | None | Tools and pinned runtime bands pass |
 | Locked restore | `npm run repo -- bootstrap` | `.\scripts\proprium.ps1 bootstrap` | None; network/package registries required | Dependency/build caches | All three restores exit `0` |
 | Start complete stack | `npm run repo -- dev` | `.\scripts\proprium.ps1 dev` | Docker | Containers, images, network, PostgreSQL volume | Compose services are healthy |
+| Start Storybook | `npm run repo -- storybook` | `.\scripts\proprium.ps1 storybook` | None | Local Storybook cache/output | Storybook development server starts |
 | Stop stack | `npm run repo -- stop` | `.\scripts\proprium.ps1 stop` | Docker | Stops/removes containers and network; retains volume | Compose exits `0` |
 | Apply migrations | `npm run repo -- migrate` | `.\scripts\proprium.ps1 migrate` | Docker | Starts dependencies; changes schema/data | Migration service exits `0` |
 | Verify health | `npm run repo -- health` | `.\scripts\proprium.ps1 health` | Running full stack | None | Three health URLs return success |
@@ -49,6 +50,7 @@ They fail non-zero at the first required child failure.
 | Day 5 qualification evidence | `npm run repo -- validate qualification` | `.\scripts\proprium.ps1 validate qualification` | None |
 | Frozen baseline and Week 2 admission | `npm run repo -- validate baseline` | `.\scripts\proprium.ps1 validate baseline` | None |
 | Frontend | `npm run repo -- validate frontend` | `.\scripts\proprium.ps1 validate frontend` | None |
+| UI foundation | `npm run repo -- validate ui-foundation` | `.\scripts\proprium.ps1 validate ui-foundation` | None |
 | Backend | `npm run repo -- validate backend` | `.\scripts\proprium.ps1 validate backend` | None |
 | Test classification | `npm run repo -- validate test-classification` | `.\scripts\proprium.ps1 validate test-classification` | None |
 | Compose and image builds | `npm run repo -- validate docker` | `.\scripts\proprium.ps1 validate docker` | Docker engine; no running services |
@@ -69,6 +71,7 @@ configuration/template consistency, tracked-file policy, and secret safety.
 | Build both apps | `npm run repo -- build` | `.\scripts\proprium.ps1 build` | None | Ignored build output |
 | Build frontend | `npm run repo -- build frontend` | `.\scripts\proprium.ps1 build frontend` | None | Ignored build output |
 | Build backend | `npm run repo -- build backend` | `.\scripts\proprium.ps1 build backend` | None | Ignored build output |
+| Build Storybook | `npm run repo -- build storybook` | `.\scripts\proprium.ps1 build storybook` | None | Ignored static Storybook output |
 | Safe tests | `npm run repo -- test` | `.\scripts\proprium.ps1 test` | None | Ignored test output |
 | Unit tests | `npm run repo -- test unit` | `.\scripts\proprium.ps1 test unit` | None | Ignored test output |
 | Architecture tests | `npm run repo -- test architecture` | `.\scripts\proprium.ps1 test architecture` | None | Ignored test output |
@@ -84,7 +87,7 @@ Restore dependencies before using commands whose scripts specify `--no-restore` 
 | CI gate | Local reproduction |
 | --- | --- |
 | Repository Validation | `npm run repo -- validate repo`; `npm run test:repository-commands`; `npm run test:ci-workflow` |
-| Frontend Validation | `npm run repo -- validate frontend`; `npm run repo -- build frontend`; then `npm run storybook:build`, `npm run test:storybook`, `npm run test:browser`, and `npm run test:config-build-failure` from `apps/web` |
+| Frontend Validation | `npm run repo -- validate frontend`; `npm run repo -- build frontend`; `npm run repo -- build storybook`; then `npm run test:storybook`, `npm run test:browser`, and `npm run test:config-build-failure` from `apps/web` |
 | Backend Validation | `npm run repo -- validate backend`; `npm run backend:test:unit`; export permissions and verify no diff |
 | Integration Validation | Load the API template values into the process; build `Proprium.IntegrationTests` Release; `npm run repo -- migrate`; `npm run backend:test:integration`; always clean the disposable Compose project |
 | Docker Validation | `npm run repo -- validate docker` |

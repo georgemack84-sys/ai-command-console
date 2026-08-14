@@ -13,6 +13,7 @@ const preview: Preview = {
   },
   initialGlobals: { theme: 'system' },
   parameters: {
+    nextjs: { appDirectory: true },
     viewport: {
       viewports: Object.fromEntries(
         (['compact', 'small', 'medium', 'large', 'wide'] as const).map(

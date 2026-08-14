@@ -108,6 +108,20 @@ const commands = new Map([
     },
   ],
   [
+    'validate ui-foundation',
+    {
+      description: 'Validate design tokens, themes, and Storybook parity.',
+      steps: [
+        processStep(
+          'Frontend UI foundation',
+          'npm',
+          ['run', 'validate:ui-foundation'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'validate test-classification',
     {
       description: 'Verify backend test category and filter contracts.',
@@ -263,6 +277,20 @@ const commands = new Map([
     },
   ],
   [
+    'build storybook',
+    {
+      description: 'Build the infrastructure-independent Storybook site.',
+      steps: [
+        processStep(
+          'Build Storybook',
+          'npm',
+          ['run', 'storybook:build'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'build',
     {
       description: 'Build frontend and backend without starting infrastructure.',
@@ -366,7 +394,7 @@ function printHelp(log = console.log) {
   log('Validation, build, and test commands never start infrastructure.');
   log('Formatting commands without "check" intentionally modify source.');
   log('');
-  log('Operational compatibility commands: doctor, bootstrap, dev, stop, lint, migrate, reset-db, health, export-permissions');
+  log('Operational compatibility commands: doctor, bootstrap, dev, storybook, stop, lint, migrate, reset-db, health, export-permissions');
 }
 
 async function executeOperational(command, args, options = {}) {
@@ -385,6 +413,9 @@ async function executeOperational(command, args, options = {}) {
       return true;
     case 'dev':
       run('docker', [...compose, 'up', '--build', '--detach', '--wait']);
+      return true;
+    case 'storybook':
+      run('npm', ['run', 'storybook'], frontendRoot);
       return true;
     case 'stop':
       run('docker', [...compose, 'down']);

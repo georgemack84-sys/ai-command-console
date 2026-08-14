@@ -64,8 +64,7 @@ jobs:
       - name: Build frontend
         run: npm run repo -- build frontend
       - name: Build Storybook
-        run: npm run storybook:build
-        working-directory: apps/web
+        run: npm run repo -- build storybook
       - name: Test Storybook accessibility and interactions
         run: npm run test:storybook
         working-directory: apps/web

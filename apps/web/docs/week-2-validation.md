@@ -8,6 +8,7 @@ Run the following from `apps/web` before submitting frontend changes:
 
 ```sh
 npm run validate:frontend
+npm run validate:ui-foundation
 npm run test:coverage
 npm run storybook:build
 npm run test:storybook
@@ -15,7 +16,7 @@ npm run test:browser
 NEXT_PUBLIC_APP_NAME=Proprium NEXT_PUBLIC_APP_VERSION=local NEXT_PUBLIC_API_BASE_URL=https://api.local.example NEXT_PUBLIC_ENVIRONMENT=development npm run build
 ```
 
-`validate:frontend` runs formatting, strict TypeScript, ESLint, dependency-cruiser architecture rules, passing and intentional-failure architecture fixtures, theme tests, and the Vitest suite. `test:storybook` uses Playwright against the built Storybook to exercise public overlay interactions and reject serious or critical Axe findings. `test:browser` exercises the application shell and rejects serious or critical Axe findings. Coverage is collected separately so the report is available without making an unreviewed percentage threshold a release claim.
+`validate:frontend` runs formatting, strict TypeScript, ESLint, dependency-cruiser architecture rules, passing and intentional-failure architecture fixtures, the UI-foundation token/Storybook contract and negative fixtures, theme tests, and the Vitest suite. `test:storybook` uses Playwright against the built Storybook to exercise public overlay interactions and reject serious or critical Axe findings. `test:browser` exercises the application shell and rejects serious or critical Axe findings. Coverage is collected separately so the report is available without making an unreviewed percentage threshold a release claim.
 
 ## CI contract
 

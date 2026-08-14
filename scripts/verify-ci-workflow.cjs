@@ -49,6 +49,7 @@ function commands(job) {
 assert.match(commands('repository-validation'), /npm run repo -- validate repo/);
 assert.match(commands('frontend-validation'), /npm run repo -- validate frontend/);
 assert.match(commands('frontend-validation'), /npm run repo -- build frontend/);
+assert.match(commands('frontend-validation'), /npm run repo -- build storybook/);
 assert.match(commands('backend-validation'), /npm run repo -- validate backend/);
 assert.match(commands('backend-validation'), /npm run backend:test:unit/);
 assert.match(commands('integration-validation'), /npm run repo -- migrate/);

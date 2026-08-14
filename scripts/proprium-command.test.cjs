@@ -38,6 +38,7 @@ test('canonical command surface contains the GP-13 contract', () => {
       'validate qualification',
       'validate baseline',
       'validate frontend',
+      'validate ui-foundation',
       'validate test-classification',
       'validate backend',
       'validate docker',
@@ -49,6 +50,7 @@ test('canonical command surface contains the GP-13 contract', () => {
       'format',
       'build frontend',
       'build backend',
+      'build storybook',
       'build',
       'test unit',
       'test architecture',
@@ -193,6 +195,29 @@ test('Docker and OpenAPI validation remain focused canonical domains', () => {
     'run',
     'validate:openapi',
   ]);
+});
+
+test('UI foundation commands delegate to the frontend package', async () => {
+  const validation = recorder();
+  execute('validate ui-foundation', {
+    spawn: validation.spawn,
+    log() {},
+  });
+  assert.deepEqual(npmArguments(validation.calls[0]), [
+    'run',
+    'validate:ui-foundation',
+  ]);
+
+  const build = recorder();
+  execute('build storybook', { spawn: build.spawn, log() {} });
+  assert.deepEqual(npmArguments(build.calls[0]), ['run', 'storybook:build']);
+
+  const runtime = recorder();
+  assert.equal(
+    await main(['storybook'], { spawn: runtime.spawn, log() {} }),
+    0,
+  );
+  assert.deepEqual(npmArguments(runtime.calls[0]), ['run', 'storybook']);
 });
 
 test('doctor delegates to the repository-owned prerequisite verifier', async () => {

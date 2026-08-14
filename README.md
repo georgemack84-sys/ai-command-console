@@ -61,6 +61,8 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [Clean-machine validation](docs/onboarding/clean-machine-validation.md)
 - [Day 5 qualification](docs/validation/day-5/qualification.md)
 - [Week 2 foundation admission](docs/validation/day-5/week-2-admission.md)
+- [Week 2 UI foundation roadmap](docs/roadmaps/week-2.md)
+- [GP-19 UI foundation](docs/engineering/gp-19-ui-foundation.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -73,6 +75,11 @@ The [GP-18 baseline freeze](docs/engineering/gp-18-baseline-freeze.md) preserves
 the exact GP-17-qualified revision and defines foundation change classification,
 requalification, and Week 2 admission. Run `npm run repo -- validate baseline`
 before and after intentional changes to the engineering foundation.
+
+Week 2 UI work inherits that baseline through the [GP-19 UI foundation](docs/engineering/gp-19-ui-foundation.md).
+Use `npm run repo -- validate ui-foundation` for tokens, themes, and Storybook
+parity; start Storybook with `npm run repo -- storybook` and build it with
+`npm run repo -- build storybook`.
 
 ## Local endpoints
 
