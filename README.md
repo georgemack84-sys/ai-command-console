@@ -63,6 +63,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [Week 2 foundation admission](docs/validation/day-5/week-2-admission.md)
 - [Week 2 UI foundation roadmap](docs/roadmaps/week-2.md)
 - [GP-19 UI foundation](docs/engineering/gp-19-ui-foundation.md)
+- [GP-20 core UI components](docs/engineering/gp-20-core-components.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -80,6 +81,8 @@ Week 2 UI work inherits that baseline through the [GP-19 UI foundation](docs/eng
 Use `npm run repo -- validate ui-foundation` for tokens, themes, and Storybook
 parity; start Storybook with `npm run repo -- storybook` and build it with
 `npm run repo -- build storybook`.
+Validate the reusable component contracts with
+`npm run repo -- validate components`.
 
 ## Local endpoints
 

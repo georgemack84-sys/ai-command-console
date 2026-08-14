@@ -104,103 +104,11 @@ a:hover {
   padding: var(--space-4);
   box-shadow: var(--shadow-floating);
 }
-.ui-button,
-.ui-input {
-  min-height: var(--control-height-standard);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  font: inherit;
-}
-.ui-button {
-  background: var(--action-primary-background);
-  color: var(--action-primary-foreground);
-}
-.ui-button[data-variant='secondary'] {
-  background: var(--action-secondary-background);
-  color: var(--action-secondary-foreground);
-}
-.ui-button[data-variant='danger'] {
-  background: var(--action-destructive-background);
-  color: var(--action-destructive-foreground);
-}
-.ui-button[data-variant='tertiary'] {
-  background: transparent;
-  color: var(--text-link);
-}
-.ui-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.ui-input {
-  width: 100%;
-  background: var(--surface-primary);
-  color: var(--text-primary);
-}
-.ui-textarea {
-  resize: vertical;
-  min-height: 6rem;
-}
-.ui-field {
-  display: grid;
-  gap: var(--space-2);
-}
-.ui-field p {
-  margin: 0;
-  color: var(--text-secondary);
-}
-.ui-card,
-.ui-empty-state {
-  padding: var(--space-6);
-  background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-}
-.ui-empty-state {
-  text-align: center;
-  display: grid;
-  gap: var(--space-3);
-}
-.ui-spinner {
-  display: inline-block;
-  min-width: 1rem;
-}
-.ui-skeleton {
-  display: block;
-  min-height: 1rem;
-  background: var(--surface-secondary);
-  border-radius: var(--radius-sm);
-}
-.ui-skeleton[data-shape='circle'] {
-  width: 2rem;
-  border-radius: var(--radius-circle);
-}
 .ui-dialog-backdrop {
   position: fixed;
   inset: 0;
   z-index: var(--layer-overlay);
   background: var(--surface-scrim);
-}
-.ui-alert {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--feedback-info-background);
-  color: var(--feedback-info-foreground);
-}
-.ui-alert[data-variant='success'] {
-  background: var(--feedback-success-background);
-  color: var(--feedback-success-foreground);
-}
-.ui-alert[data-variant='warning'] {
-  background: var(--feedback-warning-background);
-  color: var(--feedback-warning-foreground);
-}
-.ui-alert[data-variant='error'] {
-  background: var(--feedback-danger-background);
-  color: var(--feedback-danger-foreground);
 }
 .ui-dialog-content {
   position: fixed;

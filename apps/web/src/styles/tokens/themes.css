@@ -16,6 +16,7 @@ html[data-theme='dark'] {
   --border-subtle: var(--color-neutral-800);
   --border-strong: var(--color-neutral-500);
   --focus-ring-offset: var(--color-neutral-950);
+  --action-destructive-hover: var(--color-danger-500);
   --feedback-success-background: var(--color-success-900);
   --feedback-success-foreground: var(--color-success-200);
   --feedback-warning-background: var(--color-warning-900);

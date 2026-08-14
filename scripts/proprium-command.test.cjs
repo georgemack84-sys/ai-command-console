@@ -39,6 +39,7 @@ test('canonical command surface contains the GP-13 contract', () => {
       'validate baseline',
       'validate frontend',
       'validate ui-foundation',
+      'validate components',
       'validate test-classification',
       'validate backend',
       'validate docker',
@@ -218,6 +219,15 @@ test('UI foundation commands delegate to the frontend package', async () => {
     0,
   );
   assert.deepEqual(npmArguments(runtime.calls[0]), ['run', 'storybook']);
+});
+
+test('core component validation delegates to the frontend package', () => {
+  const validation = recorder();
+  execute('validate components', { spawn: validation.spawn, log() {} });
+  assert.deepEqual(npmArguments(validation.calls[0]), [
+    'run',
+    'validate:components',
+  ]);
 });
 
 test('doctor delegates to the repository-owned prerequisite verifier', async () => {

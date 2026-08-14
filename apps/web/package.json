@@ -18,6 +18,9 @@
     "ui-foundation:check": "node scripts/validate-ui-foundation.mjs",
     "ui-foundation:fixtures": "node scripts/verify-ui-foundation-fixtures.mjs",
     "validate:ui-foundation": "npm run ui-foundation:check && npm run ui-foundation:fixtures",
+    "components:check": "node scripts/validate-core-components.mjs",
+    "components:fixtures": "node scripts/verify-core-component-fixtures.mjs",
+    "validate:components": "npm run components:check && npm run components:fixtures",
     "permissions:generate": "node scripts/generate-permission-catalog.mjs",
     "permissions:check": "node scripts/generate-permission-catalog.mjs --check",
     "permissions:validate": "node scripts/validate-permission-governance.mjs",
@@ -39,7 +42,7 @@
     "test:browser": "node scripts/test-browser.mjs",
     "test:theme": "vitest run src/theme tests/unit/theme-provider.test.tsx",
     "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
-    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run validate:ui-foundation && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:coverage",
+    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run validate:ui-foundation && npm run validate:components && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:coverage",
     "validate": "npm run validate:frontend"
   },
   "dependencies": {

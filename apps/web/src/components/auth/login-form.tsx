@@ -65,16 +65,14 @@ export function LoginForm() {
           disabled={pending}
         />
       </Field>
-      <button
-        type="button"
-        className="ui-button"
-        data-variant="tertiary"
+      <Button
+        variant="ghost"
         aria-pressed={visible}
         onClick={() => setVisible((value) => !value)}
         disabled={pending}
       >
         {visible ? 'Hide password' : 'Show password'}
-      </button>
+      </Button>
       {error ? (
         <p id="login-error" role="alert">
           {error}

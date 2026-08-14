@@ -122,6 +122,20 @@ const commands = new Map([
     },
   ],
   [
+    'validate components',
+    {
+      description: 'Validate reusable component APIs, styling, and stories.',
+      steps: [
+        processStep(
+          'Frontend core components',
+          'npm',
+          ['run', 'validate:components'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'validate test-classification',
     {
       description: 'Verify backend test category and filter contracts.',

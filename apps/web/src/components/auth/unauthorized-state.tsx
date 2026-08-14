@@ -6,7 +6,7 @@ export function UnauthorizedState() {
     <EmptyState
       title="Access unavailable"
       description="You do not have access to this area."
-      primaryAction={
+      action={
         <Link className="ui-button" href="/">
           Return to home
         </Link>

@@ -20,7 +20,7 @@ export function ShellUnauthorizedState() {
       <EmptyState
         title="Access unavailable"
         description="Your account does not have access to this application."
-        primaryAction={
+        action={
           <Button
             loading={pending}
             loadingLabel="Signing out"

@@ -51,6 +51,7 @@ They fail non-zero at the first required child failure.
 | Frozen baseline and Week 2 admission | `npm run repo -- validate baseline` | `.\scripts\proprium.ps1 validate baseline` | None |
 | Frontend | `npm run repo -- validate frontend` | `.\scripts\proprium.ps1 validate frontend` | None |
 | UI foundation | `npm run repo -- validate ui-foundation` | `.\scripts\proprium.ps1 validate ui-foundation` | None |
+| Core components | `npm run repo -- validate components` | `.\scripts\proprium.ps1 validate components` | None |
 | Backend | `npm run repo -- validate backend` | `.\scripts\proprium.ps1 validate backend` | None |
 | Test classification | `npm run repo -- validate test-classification` | `.\scripts\proprium.ps1 validate test-classification` | None |
 | Compose and image builds | `npm run repo -- validate docker` | `.\scripts\proprium.ps1 validate docker` | Docker engine; no running services |

@@ -12,3 +12,11 @@ and [qualification record](../validation/week-2/gp-19-ui-foundation.md).
 Later Week 2 component and application-shell plans must be specified separately.
 They inherit GP-19 and may not introduce parallel token, theme, styling, Storybook,
 or dependency systems.
+
+## GP-20: Core UI components
+
+GP-20 qualifies the admitted primitive prototype and establishes production-ready
+actions, form controls and relationships, cards, loading feedback, and reusable
+empty/error/unavailable states. The scope deliberately excludes shell, overlay, and
+domain-specific work. See the [implementation specification](../engineering/gp-20-core-components.md)
+and [qualification record](../validation/week-2/gp-20-core-components.md).
