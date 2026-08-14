@@ -19,9 +19,13 @@ const valid = {
     'export const LoginDefault export const LoginInvalidCredentials export const LoginSubmitting export const LoginRateLimited export const LoginServiceUnavailable export const BootstrapLoading',
   browserCertification:
     'invalid-opaque-session Too many sign-in attempts synthetic-valid-password 200%',
+  liveBrowserCertification:
+    "PROPRIUM_LIVE_AUTH_USERNAME PROPRIUM_LIVE_AUTH_PASSWORD /api/v1/health/ready cookie.name === 'proprium_session' A revoked PostgreSQL session exposed protected content on replay.",
   authSources: '',
   backendEndpoints: 'MapPost("/login" MapGet("/me" MapPost("/logout"',
   requestPolicy: "X-Proprium-CSRF '1'",
+  sessionCookieContract:
+    "__Host-proprium_session proprium_session environment === 'production'",
   documentation:
     '## Backend contract ## Session state model ## No-flash invariant ## Security boundaries ## Validation',
 };
@@ -55,6 +59,23 @@ const fixtures = [
       ),
     },
     'invalid-opaque-session',
+  ],
+  [
+    'live transport interception',
+    {
+      liveBrowserCertification: `${valid.liveBrowserCertification} context.route`,
+    },
+    'may not intercept authentication transport',
+  ],
+  [
+    'missing non-production cookie',
+    {
+      sessionCookieContract: valid.sessionCookieContract.replace(
+        'proprium_session',
+        '',
+      ),
+    },
+    'proprium_session',
   ],
 ];
 

@@ -21,6 +21,7 @@ const requiredFiles = [
   'src/app/(protected)/layout.tsx',
   'tests/browser/authentication-boundary.spec.ts',
   'tests/storybook/authentication.spec.ts',
+  'scripts/test-browser-live-auth.mjs',
   'docs/authentication-ui.md',
 ];
 const read = (base, path) =>
@@ -58,12 +59,17 @@ const errors = [
       'src/components/auth/authentication-states.stories.tsx',
     ),
     browserCertification: read(root, 'scripts/test-browser.mjs'),
+    liveBrowserCertification: read(root, 'scripts/test-browser-live-auth.mjs'),
     authSources: authFiles,
     backendEndpoints: read(
       repositoryRoot,
       'services/api/Proprium.Api/Endpoints/AuthenticationEndpoints.cs',
     ),
     requestPolicy: read(root, 'src/lib/api/request-policy.ts'),
+    sessionCookieContract: read(
+      root,
+      'src/lib/auth/session-cookie-contract.ts',
+    ),
     documentation: read(root, 'docs/authentication-ui.md'),
   }),
 ];

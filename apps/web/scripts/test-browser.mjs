@@ -64,7 +64,7 @@ let exitCode = 0;
 try {
   await waitForServer();
 
-  const opaqueCookie = '__Host-proprium_session=opaque-session-value';
+  const opaqueCookie = 'proprium_session=opaque-session-value';
   const protectedHtml = await fetch(`${baseUrl}/dashboard`, {
     headers: { cookie: opaqueCookie },
   });
@@ -118,10 +118,10 @@ try {
   const authenticatedContext = await browser.newContext({
     viewport: { width: 1280, height: 900 },
   });
-  // Chromium correctly refuses insecure __Host- cookies. The local harness is
-  // HTTP, so inject the opaque header only for these admission-path checks.
+  // Inject the non-production opaque cookie header for admission-path checks;
+  // mocked identity resolution remains the authentication authority.
   await authenticatedContext.setExtraHTTPHeaders({
-    cookie: '__Host-proprium_session=opaque-session-value',
+    cookie: 'proprium_session=opaque-session-value',
   });
   let releaseIdentity;
   const identityReady = new Promise((resolve) => {
@@ -330,7 +330,7 @@ try {
 
   const expiredContext = await browser.newContext({
     extraHTTPHeaders: {
-      cookie: '__Host-proprium_session=invalid-opaque-session',
+      cookie: 'proprium_session=invalid-opaque-session',
     },
   });
   await expiredContext.route('**/api/v1/auth/me', (route) =>
@@ -352,7 +352,7 @@ try {
 
   const loginContext = await browser.newContext({
     extraHTTPHeaders: {
-      cookie: '__Host-proprium_session=opaque-session-value',
+      cookie: 'proprium_session=opaque-session-value',
     },
   });
   let loginIdentityRequests = 0;

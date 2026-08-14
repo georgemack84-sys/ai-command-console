@@ -79,10 +79,28 @@ and no dead registration, reset, remember-me, MFA, or SSO controls.
 ## Validation
 
 Run `npm run repo -- validate authentication-ui` for the focused contract and
-five controlled failures. The canonical frontend gate includes it. Unit tests
+seven controlled failures. The canonical frontend gate includes it. Unit tests
 cover login semantics, error safety, state transitions, redirects, and shell
 gating. Storybook covers default, invalid, submitting, rate-limited, service-error,
 and bootstrap states without a backend. Browser certification covers no-cookie
 and invalid-cookie direct access, mocked valid/invalid/rate-limited login,
 refresh/logout behavior, browser Back, 320px through desktop, 200% text scaling,
 password reveal, and Axe.
+
+The infrastructure-independent browser suite remains the fast deterministic
+gate. To qualify the real boundary, start a disposable development API with
+PostgreSQL and Redis, configure its allowed origin as
+`http://127.0.0.1:3100`, and run:
+
+```powershell
+$env:PROPRIUM_LIVE_AUTH_USERNAME = '<disposable-development-user>'
+$env:PROPRIUM_LIVE_AUTH_PASSWORD = '<disposable-development-password>'
+$env:PROPRIUM_LIVE_API_BASE_URL = 'http://127.0.0.1:8080'
+npm run test:browser:live-auth
+```
+
+This command fails closed when credentials are absent and never logs them. It
+does not intercept browser requests. It proves real `401` and `204` login
+outcomes, the environment-specific HttpOnly cookie, `/me` refresh continuity,
+logout cookie clearing, PostgreSQL revocation, revoked-cookie replay rejection,
+safe returns, browser-storage absence, and the no-flash invariant.

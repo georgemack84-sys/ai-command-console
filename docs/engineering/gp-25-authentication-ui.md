@@ -28,10 +28,18 @@ cookie as proof of authentication.
 through GP-24 contracts without changing App Router ownership, CI topology,
 environment variables, the backend contract, or the design system.
 
-## Environment boundary
+## Integration qualification
 
-Browser tests exercise the complete frontend transition with deterministic API
-responses. Existing backend integration tests own real PostgreSQL session,
-cookie, invalid-credential, expiration/revocation, CSRF/origin, rate-limit, and
-logout behavior. A live full-stack credential run requires disposable PostgreSQL
-and Redis infrastructure and is reported separately when executed.
+The fast browser gate exercises the complete frontend transition with
+deterministic API responses. The separate `test:browser:live-auth` command must
+use disposable development credentials and a real API, PostgreSQL, and Redis. It
+contains no route interception and verifies login, cookie issuance, `/me`,
+refresh, logout, persisted revocation, revoked-cookie rejection, safe returns,
+and no protected-content flash.
+
+The live run exposed a contract mismatch that deterministic transport could not:
+the backend uses `proprium_session` outside production, while the frontend proxy
+previously admitted only `__Host-proprium_session`. Proxy admission now selects
+the same environment-specific name as the backend. Production retains the
+`__Host-` cookie; all non-production environments use the local HTTP-compatible
+name. In both cases `/me`, not cookie presence, remains authoritative.

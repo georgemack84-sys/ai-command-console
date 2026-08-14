@@ -101,19 +101,22 @@ the named human screen-reader, native-zoom, and visual review is recorded.
 Validate the Week 3 login, session bootstrap, protected-shell gating, redirect
 safety, and no-flash contract with
 `npm run repo -- validate authentication-ui`.
+With a disposable local administrator and the real development API available,
+run `npm run test:browser:live-auth` from `apps/web` to qualify login, refresh,
+logout, cookie policy, and revoked-session replay against PostgreSQL and Redis.
 
 ## Local endpoints
 
 The Compose-owned development stack exposes:
 
-| Service | URL or port | Authority |
-| --- | --- | --- |
-| Web | `http://localhost:3000` | `docker-compose.proprium.yml` |
-| API | `http://localhost:8080/api/v1` | `docker-compose.proprium.yml` |
-| API liveness | `http://localhost:8080/api/v1/health/live` | API route contract |
-| API readiness | `http://localhost:8080/api/v1/health/ready` | API route contract |
-| PostgreSQL | host port `55432` by default | `.env.example` / Compose default |
-| Redis | host port `6379` by default | `.env.example` / Compose default |
+| Service       | URL or port                                 | Authority                        |
+| ------------- | ------------------------------------------- | -------------------------------- |
+| Web           | `http://localhost:3000`                     | `docker-compose.proprium.yml`    |
+| API           | `http://localhost:8080/api/v1`              | `docker-compose.proprium.yml`    |
+| API liveness  | `http://localhost:8080/api/v1/health/live`  | API route contract               |
+| API readiness | `http://localhost:8080/api/v1/health/ready` | API route contract               |
+| PostgreSQL    | host port `55432` by default                | `.env.example` / Compose default |
+| Redis         | host port `6379` by default                 | `.env.example` / Compose default |
 
 Stop services without deleting PostgreSQL data with `npm run repo -- stop`. The
 database-reset command is deliberately destructive and is documented separately.

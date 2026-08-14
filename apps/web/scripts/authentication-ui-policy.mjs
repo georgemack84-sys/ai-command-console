@@ -16,9 +16,11 @@ export function validateAuthenticationUi({
   returnPath,
   stories,
   browserCertification,
+  liveBrowserCertification,
   authSources,
   backendEndpoints,
   requestPolicy,
+  sessionCookieContract,
   documentation,
 }) {
   const errors = [];
@@ -78,6 +80,17 @@ export function validateAuthenticationUi({
     /X-Proprium-CSRF[\s\S]*['"]1['"]/,
     'canonical CSRF header contract is missing',
   );
+  for (const marker of [
+    '__Host-proprium_session',
+    'proprium_session',
+    "environment === 'production'",
+  ])
+    requirePattern(
+      errors,
+      sessionCookieContract,
+      new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `session cookie contract is missing ${marker}`,
+    );
   requirePattern(
     errors,
     backendEndpoints,
@@ -163,6 +176,25 @@ export function validateAuthenticationUi({
       new RegExp(marker),
       `browser certification is missing ${marker}`,
     );
+  for (const marker of [
+    'PROPRIUM_LIVE_AUTH_USERNAME',
+    'PROPRIUM_LIVE_AUTH_PASSWORD',
+    '/api/v1/health/ready',
+    "cookie.name === 'proprium_session'",
+    'A revoked PostgreSQL session exposed protected content on replay.',
+  ])
+    requirePattern(
+      errors,
+      liveBrowserCertification,
+      new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `live browser certification is missing ${marker}`,
+    );
+  rejectPattern(
+    errors,
+    liveBrowserCertification,
+    /context\.route|page\.route|route\.fulfill/,
+    'live browser certification may not intercept authentication transport',
+  );
 
   rejectPattern(
     errors,

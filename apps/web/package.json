@@ -55,6 +55,7 @@
     "test:coverage": "vitest run --coverage",
     "test:storybook": "playwright test --config playwright.storybook.config.ts",
     "test:browser": "node scripts/test-browser.mjs",
+    "test:browser:live-auth": "node scripts/test-browser-live-auth.mjs",
     "test:theme": "vitest run src/theme tests/unit/theme-provider.test.tsx",
     "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
     "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run validate:ui-foundation && npm run validate:components && npm run validate:shell && npm run validate:overlays && npm run validate:route-states && npm run validate:week-2 && npm run validate:authentication-ui && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:coverage",
