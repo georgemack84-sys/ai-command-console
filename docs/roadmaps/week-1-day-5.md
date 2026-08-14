@@ -80,6 +80,8 @@ GP-16 is implemented through the [developer-onboarding specification](../enginee
 
 GP-17 is implemented through the [final-qualification specification](../engineering/gp-17-final-qualification.md), a traceable evidence package, mechanical qualification validation, observed CI results, controlled fail-closed evidence, and the Week 2 handoff baseline.
 
+GP-18 is a derived transition control implemented through the [baseline-freeze specification](../engineering/gp-18-baseline-freeze.md), the immutable GP-17 revision identity, a protected-contract inventory, mechanical drift checks, an amendment protocol, and the [Week 2 admission record](../validation/day-5/week-2-admission.md). It preserves the canonical Day 5 scope rather than adding another deliverable category.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

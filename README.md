@@ -60,6 +60,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [Troubleshooting](docs/operations/troubleshooting.md)
 - [Clean-machine validation](docs/onboarding/clean-machine-validation.md)
 - [Day 5 qualification](docs/validation/day-5/qualification.md)
+- [Week 2 foundation admission](docs/validation/day-5/week-2-admission.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -67,6 +68,11 @@ configuration consistency, secret safety, and the developer-documentation
 contract. Run `npm run repo -- validate` for the full infrastructure-independent
 source gate. The [GP-15 CI specification](docs/engineering/gp-15-ci-merge-gates.md)
 maps every GitHub merge gate to a local reproduction path.
+
+The [GP-18 baseline freeze](docs/engineering/gp-18-baseline-freeze.md) preserves
+the exact GP-17-qualified revision and defines foundation change classification,
+requalification, and Week 2 admission. Run `npm run repo -- validate baseline`
+before and after intentional changes to the engineering foundation.
 
 ## Local endpoints
 

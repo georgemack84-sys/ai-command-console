@@ -51,9 +51,12 @@ const requiredFiles = [
   'docs/validation/day-5/developer-onboarding.md',
   'docs/validation/day-5/repository-validation.md',
   'docs/validation/day-5/qualification.md',
+  'docs/validation/day-5/week-2-admission.md',
+  'docs/engineering/gp-18-baseline-freeze.md',
   'scripts/validate-configuration.cjs',
   'scripts/validate-developer-documentation.cjs',
   'scripts/validate-day-5-qualification.cjs',
+  'scripts/validate-baseline-freeze.cjs',
   'scripts/validate-secrets.cjs',
   'scripts/verify-prerequisites.cjs',
 ];

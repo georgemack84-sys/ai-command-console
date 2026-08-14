@@ -36,6 +36,7 @@ test('canonical command surface contains the GP-13 contract', () => {
       'validate repo',
       'validate documentation',
       'validate qualification',
+      'validate baseline',
       'validate frontend',
       'validate test-classification',
       'validate backend',
@@ -71,7 +72,7 @@ test('root validation dispatches repository, frontend, then backend', () => {
   ]);
   assert.deepEqual(npmArguments(recorded.calls[2]), [
     'run',
-    'validate:qualification',
+    'validate:baseline',
   ]);
   assert.deepEqual(npmArguments(recorded.calls[3]), [
     'run',

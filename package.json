@@ -8,6 +8,7 @@
     "test:ci-workflow": "node scripts/verify-ci-workflow.cjs",
     "validate:documentation": "node scripts/validate-developer-documentation.cjs",
     "validate:qualification": "node scripts/validate-day-5-qualification.cjs",
+    "validate:baseline": "npm run validate:qualification && npm run test:ci-workflow && node scripts/validate-baseline-freeze.cjs",
     "dev": "node scripts/run-next.cjs dev",
     "dev:with-worker": "node scripts/dev-with-worker.cjs",
     "dev:doctor": "node scripts/dev-doctor.cjs",

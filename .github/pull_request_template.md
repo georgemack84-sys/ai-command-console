@@ -15,6 +15,16 @@
 - [ ] Documentation updated, or not needed
 - [ ] Configuration impact reviewed
 
+## Foundation impact
+
+<!-- Select exactly one: NON_FOUNDATION, FOUNDATION_COMPATIBLE, FOUNDATION_AMENDMENT, FOUNDATION_BREAKING. -->
+
+- Classification:
+- [ ] Environment/configuration, canonical commands, CI, architecture rules,
+      migrations, OpenAPI, health semantics, and developer setup were reviewed
+- [ ] Any foundation amendment includes compatibility, documentation, validation,
+      requalification, and ADR impact
+
 ## Security impact
 
 <!-- Security impact, including "none identified" with reasoning. -->

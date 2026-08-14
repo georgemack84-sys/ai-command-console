@@ -52,9 +52,9 @@ const commands = new Map([
           'run',
           'validate:documentation',
         ]),
-        processStep('Day 5 qualification evidence', 'npm', [
+        processStep('Day 5 baseline and Week 2 admission', 'npm', [
           'run',
-          'validate:qualification',
+          'validate:baseline',
         ]),
       ],
     },
@@ -79,6 +79,18 @@ const commands = new Map([
         processStep('Day 5 qualification evidence', 'npm', [
           'run',
           'validate:qualification',
+        ]),
+      ],
+    },
+  ],
+  [
+    'validate baseline',
+    {
+      description: 'Validate the frozen Day 5 baseline and Week 2 admission.',
+      steps: [
+        processStep('Day 5 baseline and Week 2 admission', 'npm', [
+          'run',
+          'validate:baseline',
         ]),
       ],
     },
