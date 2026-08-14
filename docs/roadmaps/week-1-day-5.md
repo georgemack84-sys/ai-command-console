@@ -72,6 +72,8 @@ GP-10 is implemented through the [backend architecture specification](../enginee
 
 GP-11 is implemented through the [integration-test classification specification](../engineering/gp-11-integration-test-classification.md), the repository-owned integration marker, xUnit category filters, exact compiled infrastructure evidence, explicit test-project/package policy, and controlled negative classification fixtures.
 
+GP-12 is implemented through the [repository-validation specification](../engineering/gp-12-repository-validation.md), the canonical non-mutating Node.js validator, stable aggregate `RVAL-*` diagnostics, tracked-file and structured-text policy, configuration/package/project consistency checks, composed environment and secret validation, and isolated negative fixtures.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.
