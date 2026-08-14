@@ -15,9 +15,11 @@ process exit-code propagation, and inherited tool diagnostics. The facade invoke
 only repository scripts, package-local binaries, and the SDK selected by
 `global.json`; no global JavaScript tools or orchestration framework are required.
 
-The existing Makefile and PowerShell script remain compatibility entry points for
-the earlier operational command set. GP-14 owns complete cross-platform wrapper
-parity. New developer and CI automation should use the authoritative npm syntax.
+The existing Makefile remains a compatibility entry point for the earlier
+operational command set. The [GP-14 Windows parity specification](gp-14-windows-command-parity.md)
+defines the PowerShell adapter for this complete command surface. New automation
+should use the authoritative npm syntax; Windows developers may use either entry
+point with the same command semantics.
 
 ## Command reference
 
