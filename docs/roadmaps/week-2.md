@@ -20,3 +20,11 @@ actions, form controls and relationships, cards, loading feedback, and reusable
 empty/error/unavailable states. The scope deliberately excludes shell, overlay, and
 domain-specific work. See the [implementation specification](../engineering/gp-20-core-components.md)
 and [qualification record](../validation/week-2/gp-20-core-components.md).
+
+## GP-21: Responsive application shell
+
+GP-21 establishes the shared protected-route frame: header slots, one navigation
+renderer, collapsible desktop sidebar, flexible main landmark, and accessible
+mobile drawer at the canonical 1024px breakpoint. See the
+[implementation specification](../engineering/gp-21-responsive-shell.md) and
+[qualification record](../validation/week-2/gp-21-responsive-shell.md).

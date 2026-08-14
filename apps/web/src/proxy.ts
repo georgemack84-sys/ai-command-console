@@ -17,4 +17,6 @@ export function proxy(request: NextRequest) {
   );
   return NextResponse.redirect(login);
 }
-export const config = { matcher: ['/dashboard/:path*'] };
+export const config = {
+  matcher: ['/dashboard/:path*', '/components/:path*', '/shell-states/:path*'],
+};

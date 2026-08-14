@@ -74,6 +74,8 @@
   --icon-size: 1.25rem;
   --shell-header-height: 4rem;
   --shell-sidebar-width: 17rem;
+  --shell-sidebar-collapsed-width: 5rem;
+  --shell-drawer-max-width: 22rem;
   --layer-base: 0;
   --layer-sticky: 10;
   --layer-dropdown: 20;

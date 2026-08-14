@@ -75,7 +75,7 @@ module.exports = {
       from: {
         path: '^(src/shell|tests/architecture/fixtures/failing/shell-to-provider\\.ts)',
       },
-      to: { path: '^src/(app|providers)' },
+      to: { path: '^src/(app|components|lib|providers)' },
     },
     {
       name: 'config-is-a-leaf',

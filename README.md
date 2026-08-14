@@ -64,6 +64,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [Week 2 UI foundation roadmap](docs/roadmaps/week-2.md)
 - [GP-19 UI foundation](docs/engineering/gp-19-ui-foundation.md)
 - [GP-20 core UI components](docs/engineering/gp-20-core-components.md)
+- [GP-21 responsive application shell](docs/engineering/gp-21-responsive-shell.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -83,6 +84,8 @@ parity; start Storybook with `npm run repo -- storybook` and build it with
 `npm run repo -- build storybook`.
 Validate the reusable component contracts with
 `npm run repo -- validate components`.
+Validate responsive shell structure, interaction, styling, and controlled failures
+with `npm run repo -- validate shell`.
 
 ## Local endpoints
 

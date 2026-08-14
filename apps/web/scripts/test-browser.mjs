@@ -160,6 +160,60 @@ try {
   );
   releaseIdentity();
   await authenticatedPage.getByRole('heading', { name: 'Dashboard' }).waitFor();
+  await check(
+    authenticatedPage.getByLabel('Application sidebar').isVisible(),
+    'Desktop sidebar was not visible at 1280px.',
+  );
+  await check(
+    authenticatedPage
+      .getByRole('button', { name: 'Open navigation' })
+      .isHidden(),
+    'Mobile trigger remained visible at the desktop breakpoint.',
+  );
+  await check(
+    authenticatedPage
+      .getByRole('link', { name: 'Dashboard' })
+      .getAttribute('aria-current')
+      .then((value) => value === 'page'),
+    'Dashboard navigation did not expose current-page semantics.',
+  );
+  await authenticatedPage
+    .getByRole('button', { name: 'Collapse sidebar' })
+    .click();
+  await check(
+    authenticatedPage
+      .locator('.shell')
+      .getAttribute('data-sidebar')
+      .then((value) => value === 'collapsed'),
+    'Desktop sidebar did not enter collapsed state.',
+  );
+  await authenticatedPage.setViewportSize({ width: 320, height: 800 });
+  const mobileTrigger = authenticatedPage.getByRole('button', {
+    name: 'Open navigation',
+  });
+  await mobileTrigger.waitFor();
+  await check(
+    authenticatedPage.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+    'Application shell overflowed at 320px.',
+  );
+  await mobileTrigger.click();
+  await authenticatedPage.getByRole('dialog', { name: 'Navigation' }).waitFor();
+  await check(
+    authenticatedPage
+      .getByRole('button', { name: 'Close navigation' })
+      .evaluate((element) => element === document.activeElement),
+    'Mobile drawer did not move focus to its close control.',
+  );
+  await authenticatedPage.keyboard.press('Escape');
+  await check(
+    mobileTrigger.evaluate((element) => element === document.activeElement),
+    'Mobile drawer did not return focus after Escape.',
+  );
+  await authenticatedPage.setViewportSize({ width: 1280, height: 900 });
   await authenticatedPage
     .getByRole('button', { name: 'Open user menu' })
     .click();
@@ -223,7 +277,7 @@ try {
     [],
     'Login has serious or critical Axe violations.',
   );
-  console.log('Browser certification checks passed: 14 assertions.');
+  console.log('Browser certification checks passed: 21 assertions.');
 } catch (error) {
   exitCode = 1;
   console.error(error);

@@ -136,6 +136,20 @@ const commands = new Map([
     },
   ],
   [
+    'validate shell',
+    {
+      description: 'Validate the responsive application-shell contract.',
+      steps: [
+        processStep(
+          'Frontend responsive shell',
+          'npm',
+          ['run', 'validate:shell'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'validate test-classification',
     {
       description: 'Verify backend test category and filter contracts.',
