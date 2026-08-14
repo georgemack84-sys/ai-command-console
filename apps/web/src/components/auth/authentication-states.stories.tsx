@@ -48,8 +48,8 @@ function AuthenticationStates() {
       >
         <ShellUnauthorizedState />
       </AuthenticationContext.Provider>
-      <AuthenticationContext.Provider value={context({ status: 'loading' })}>
-        <LoginForm />
+      <AuthenticationContext.Provider value={context({ status: 'unknown' })}>
+        <LoginForm authenticate={async () => undefined} />
       </AuthenticationContext.Provider>
     </main>
   );
@@ -61,3 +61,38 @@ export default {
 } satisfies Meta<typeof AuthenticationStates>;
 
 export const Default: StoryObj<typeof AuthenticationStates> = {};
+
+const loginContext = context({ status: 'unauthenticated' });
+const loginStory = (props: React.ComponentProps<typeof LoginForm> = {}) => (
+  <AuthenticationContext.Provider value={loginContext}>
+    <main className="login-page">
+      <LoginForm authenticate={async () => undefined} {...props} />
+    </main>
+  </AuthenticationContext.Provider>
+);
+
+export const LoginDefault: StoryObj<typeof AuthenticationStates> = {
+  render: () => loginStory(),
+};
+export const LoginInvalidCredentials: StoryObj<typeof AuthenticationStates> = {
+  render: () =>
+    loginStory({ initialError: 'Unable to sign in with those credentials.' }),
+};
+export const LoginSubmitting: StoryObj<typeof AuthenticationStates> = {
+  render: () => loginStory({ submitting: true }),
+};
+export const LoginRateLimited: StoryObj<typeof AuthenticationStates> = {
+  render: () =>
+    loginStory({
+      initialError: 'Too many sign-in attempts. Please try again later.',
+    }),
+};
+export const LoginServiceUnavailable: StoryObj<typeof AuthenticationStates> = {
+  render: () =>
+    loginStory({
+      initialError: 'Unable to sign in right now. Please try again.',
+    }),
+};
+export const BootstrapLoading: StoryObj<typeof AuthenticationStates> = {
+  render: () => <AuthenticationResolutionFrame />,
+};

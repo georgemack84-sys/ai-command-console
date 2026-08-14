@@ -72,9 +72,9 @@ describe('PermissionGate', () => {
     expect(screen.getByText('Any granted')).toBeVisible();
     expect(screen.getByText('All granted')).toBeVisible();
   });
-  it('fails closed during loading and when denied', () => {
+  it('fails closed while authentication is unknown and when denied', () => {
     const { rerender } = renderGate(
-      { status: 'loading' },
+      { status: 'unknown' },
       <PermissionGate
         permission={Permission.UserManage}
         fallback={<p>Unavailable</p>}

@@ -14,7 +14,7 @@ import type { AuthenticationState } from './auth-state';
 
 export function AuthenticationProvider({ children }: React.PropsWithChildren) {
   const [state, setState] = useState<AuthenticationState>({
-    status: 'loading',
+    status: 'unknown',
   });
   const generation = useRef(0);
   const active = useRef<AbortController | undefined>(undefined);
@@ -31,7 +31,7 @@ export function AuthenticationProvider({ children }: React.PropsWithChildren) {
     active.current?.abort();
     const controller = new AbortController();
     active.current = controller;
-    setState({ status: 'loading' });
+    setState({ status: 'unknown' });
     try {
       const user = await getCurrentUser(controller.signal);
       if (request === generation.current) {

@@ -192,6 +192,20 @@ const commands = new Map([
     },
   ],
   [
+    'validate authentication-ui',
+    {
+      description: 'Validate the authentication UI and no-flash boundary.',
+      steps: [
+        processStep(
+          'Frontend authentication UI',
+          'npm',
+          ['run', 'validate:authentication-ui'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'validate test-classification',
     {
       description: 'Verify backend test category and filter contracts.',

@@ -37,7 +37,7 @@ function renderBoundary(state: AuthenticationContextValue['state']) {
 
 describe('ProtectedExperienceBoundary', () => {
   it('does not mount protected children while authentication resolves', () => {
-    renderBoundary({ status: 'loading' });
+    renderBoundary({ status: 'unknown' });
     expect(
       screen.queryByText('Protected dashboard content'),
     ).not.toBeInTheDocument();

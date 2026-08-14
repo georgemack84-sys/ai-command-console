@@ -1,6 +1,6 @@
 declare const safePath: unique symbol;
 export type SafeInternalPath = string & { readonly [safePath]: true };
-export const defaultAuthenticatedPath = '/' as SafeInternalPath;
+export const defaultAuthenticatedPath = '/dashboard' as SafeInternalPath;
 
 const excludedPaths = new Set(['/login', '/logout', '/auth']);
 export function resolveSafeReturnPath(

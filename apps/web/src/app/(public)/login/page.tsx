@@ -1,8 +1,9 @@
+import { LoginExperienceBoundary } from '@/components/auth/login-experience-boundary';
 import { LoginForm } from '@/components/auth/login-form';
 export default function LoginPage() {
   return (
-    <main className="login-page">
+    <LoginExperienceBoundary>
       <LoginForm />
-    </main>
+    </LoginExperienceBoundary>
   );
 }

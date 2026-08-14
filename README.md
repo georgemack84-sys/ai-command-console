@@ -68,6 +68,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [GP-22 overlay interaction foundation](docs/engineering/gp-22-overlay-foundation.md)
 - [GP-23 route-state UX](docs/engineering/gp-23-route-state-ux.md)
 - [GP-24 UI foundation qualification](docs/engineering/gp-24-ui-foundation-qualification.md)
+- [GP-25 authentication UI foundation](docs/engineering/gp-25-authentication-ui.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -97,6 +98,9 @@ focus behavior, and controlled failures with
 Qualify the complete Week 2 UI foundation and its evidence contract with
 `npm run repo -- validate week-2`. The current qualification is conditional until
 the named human screen-reader, native-zoom, and visual review is recorded.
+Validate the Week 3 login, session bootstrap, protected-shell gating, redirect
+safety, and no-flash contract with
+`npm run repo -- validate authentication-ui`.
 
 ## Local endpoints
 

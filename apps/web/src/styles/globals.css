@@ -36,6 +36,11 @@ a:hover {
   display: grid;
   gap: var(--space-4);
 }
+.login-experience {
+  width: min(100%, 28rem);
+  display: grid;
+  gap: var(--space-3);
+}
 .login-form h1 {
   margin: 0;
 }

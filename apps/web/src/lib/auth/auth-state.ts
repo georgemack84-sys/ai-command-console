@@ -8,7 +8,7 @@ export interface CurrentUser {
   permissions: ReadonlySet<PermissionKey>;
 }
 export type AuthenticationState =
-  | { status: 'loading' }
+  | { status: 'unknown' }
   | { status: 'authenticated'; user: CurrentUser }
   | { status: 'unauthenticated'; sessionEnded?: boolean }
   | { status: 'unauthorized' }

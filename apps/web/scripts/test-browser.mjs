@@ -99,6 +99,9 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
   });
+  await context.route('**/api/v1/auth/me', (route) =>
+    route.fulfill({ status: 401 }),
+  );
   const page = await context.newPage();
 
   await page.goto(`${baseUrl}/dashboard?tab=recent`);
@@ -250,6 +253,20 @@ try {
     );
   }
 
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.goto(`${baseUrl}/login`);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await check(
+    page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+    'Login overflowed at 200% text scaling.',
+  );
+
   await page.goto(`${baseUrl}/login`);
   const password = page.getByLabel('Password *');
   await password.fill('not-a-real-password');
@@ -268,6 +285,39 @@ try {
     'Password was not remasked.',
   );
 
+  await context.route('**/api/v1/auth/login', (route) =>
+    route.fulfill({ status: 401 }),
+  );
+  await page.getByLabel('Username *').fill('unknown-user');
+  await password.fill('synthetic-invalid-password');
+  await password.press('Enter');
+  const loginError = page.locator('#login-error');
+  await loginError.waitFor();
+  await check(
+    loginError
+      .textContent()
+      .then((text) => text?.includes('those credentials')),
+    'Invalid credentials did not produce the generic authentication error.',
+  );
+  await check(
+    loginError
+      .textContent()
+      .then((text) => !text?.includes('synthetic-invalid-password')),
+    'Invalid-credential feedback exposed the submitted password.',
+  );
+  await context.unroute('**/api/v1/auth/login');
+  await context.route('**/api/v1/auth/login', (route) =>
+    route.fulfill({ status: 429 }),
+  );
+  await password.press('Enter');
+  await check(
+    loginError
+      .textContent()
+      .then((text) => text?.includes('Too many sign-in attempts')),
+    'Rate limiting did not produce safe retry guidance.',
+  );
+  await context.unroute('**/api/v1/auth/login');
+
   const axe = await new AxeBuilder({ page }).analyze();
   const serious = axe.violations.filter((violation) =>
     ['serious', 'critical'].includes(violation.impact ?? ''),
@@ -277,7 +327,67 @@ try {
     [],
     'Login has serious or critical Axe violations.',
   );
-  console.log('Browser certification checks passed: 21 assertions.');
+
+  const expiredContext = await browser.newContext({
+    extraHTTPHeaders: {
+      cookie: '__Host-proprium_session=invalid-opaque-session',
+    },
+  });
+  await expiredContext.route('**/api/v1/auth/me', (route) =>
+    route.fulfill({ status: 401 }),
+  );
+  const expiredPage = await expiredContext.newPage();
+  await expiredPage.goto(`${baseUrl}/dashboard`, {
+    waitUntil: 'domcontentloaded',
+  });
+  await expiredPage.getByRole('heading', { name: 'Sign in' }).waitFor();
+  await check(
+    expiredPage
+      .getByRole('heading', { name: 'Dashboard' })
+      .count()
+      .then((count) => count === 0),
+    'An invalid admitted cookie exposed protected content before redirect.',
+  );
+  await expiredContext.close();
+
+  const loginContext = await browser.newContext({
+    extraHTTPHeaders: {
+      cookie: '__Host-proprium_session=opaque-session-value',
+    },
+  });
+  let loginIdentityRequests = 0;
+  await loginContext.route('**/api/v1/auth/me', (route) => {
+    loginIdentityRequests += 1;
+    return loginIdentityRequests === 1
+      ? route.fulfill({ status: 401 })
+      : route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'user-2',
+            username: 'login-operator',
+            displayName: 'Login Operator',
+            roles: [],
+            permissions: ['application.authenticated.access'],
+          }),
+        });
+  });
+  await loginContext.route('**/api/v1/auth/login', (route) =>
+    route.fulfill({ status: 204 }),
+  );
+  const loginPage = await loginContext.newPage();
+  await loginPage.goto(`${baseUrl}/login?returnTo=%2Fdashboard`);
+  await loginPage.getByRole('heading', { name: 'Sign in' }).waitFor();
+  await loginPage.getByLabel('Username *').fill('login-operator');
+  await loginPage.getByLabel('Password *').fill('synthetic-valid-password');
+  await loginPage.getByLabel('Password *').press('Enter');
+  await loginPage.getByRole('heading', { name: 'Dashboard' }).waitFor();
+  await check(
+    Promise.resolve(loginPage.url().endsWith('/dashboard')),
+    'Successful login did not reach the safe protected destination.',
+  );
+  await loginContext.close();
+
+  console.log('Browser certification checks passed: 29 assertions.');
 } catch (error) {
   exitCode = 1;
   console.error(error);

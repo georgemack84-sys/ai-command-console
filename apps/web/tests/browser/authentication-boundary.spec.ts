@@ -1,6 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ context }) => {
+  await context.route('**/api/v1/auth/me', (route) =>
+    route.fulfill({ status: 401 }),
+  );
+});
+
 test('a no-cookie protected request redirects before protected content is rendered', async ({
   page,
 }) => {
