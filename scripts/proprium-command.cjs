@@ -164,6 +164,20 @@ const commands = new Map([
     },
   ],
   [
+    'validate route-states',
+    {
+      description: 'Validate route loading, recovery, and absence contracts.',
+      steps: [
+        processStep(
+          'Frontend route-state UX',
+          'npm',
+          ['run', 'validate:route-states'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'validate test-classification',
     {
       description: 'Verify backend test category and filter contracts.',

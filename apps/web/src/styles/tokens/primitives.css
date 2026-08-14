@@ -80,6 +80,7 @@
   --overlay-dialog-medium-width: 40rem;
   --overlay-dialog-large-width: 56rem;
   --overlay-menu-min-width: 12rem;
+  --content-reading-max-width: 64rem;
   --layer-base: 0;
   --layer-sticky: 10;
   --layer-dropdown: 20;

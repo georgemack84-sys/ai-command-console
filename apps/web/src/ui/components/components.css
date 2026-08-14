@@ -284,6 +284,7 @@
   text-align: center;
 }
 
+.ui-empty-state h1,
 .ui-empty-state h2,
 .ui-empty-state p {
   max-width: 50ch;

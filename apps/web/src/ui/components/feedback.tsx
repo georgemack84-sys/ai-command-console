@@ -1,4 +1,10 @@
-import { forwardRef, useId, type HTMLAttributes, type ReactNode } from 'react';
+import {
+  forwardRef,
+  useId,
+  type HTMLAttributes,
+  type ReactNode,
+  type Ref,
+} from 'react';
 
 import { Button } from './button';
 import { classNames } from './class-names';
@@ -94,6 +100,8 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLElement> {
   visual?: ReactNode;
   action?: ReactNode;
   secondaryAction?: ReactNode;
+  headingLevel?: 1 | 2;
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 export function EmptyState({
@@ -102,10 +110,13 @@ export function EmptyState({
   visual,
   action,
   secondaryAction,
+  headingLevel = 2,
+  headingRef,
   className,
   ...props
 }: EmptyStateProps) {
   const titleId = useId();
+  const Heading = headingLevel === 1 ? 'h1' : 'h2';
   return (
     <section
       {...props}
@@ -117,7 +128,13 @@ export function EmptyState({
           {visual}
         </div>
       ) : null}
-      <h2 id={titleId}>{title}</h2>
+      <Heading
+        ref={headingRef}
+        id={titleId}
+        tabIndex={headingRef ? -1 : undefined}
+      >
+        {title}
+      </Heading>
       {description ? <p>{description}</p> : null}
       {action || secondaryAction ? (
         <div className="ui-empty-state__actions">

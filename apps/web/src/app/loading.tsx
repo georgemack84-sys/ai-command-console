@@ -1,7 +1,9 @@
+import { RouteLoadingState } from '@/ui/route-states';
+
 export default function Loading() {
   return (
-    <main aria-busy="true">
-      <p role="status">Loading content…</p>
+    <main className="route-state-standalone">
+      <RouteLoadingState />
     </main>
   );
 }

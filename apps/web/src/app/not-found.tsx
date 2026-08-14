@@ -1,10 +1,9 @@
-import Link from 'next/link';
+import { RouteNotFoundState } from '@/ui/route-states';
 
 export default function NotFound() {
   return (
-    <main>
-      <h1>Page not found</h1>
-      <Link href="/">Return home</Link>
+    <main className="route-state-standalone">
+      <RouteNotFoundState />
     </main>
   );
 }

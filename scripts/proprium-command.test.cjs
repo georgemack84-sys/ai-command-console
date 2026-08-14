@@ -42,6 +42,7 @@ test('canonical command surface contains the GP-13 contract', () => {
       'validate components',
       'validate shell',
       'validate overlays',
+      'validate route-states',
       'validate test-classification',
       'validate backend',
       'validate docker',
@@ -247,6 +248,15 @@ test('overlay validation delegates to the frontend package', () => {
   assert.deepEqual(npmArguments(validation.calls[0]), [
     'run',
     'validate:overlays',
+  ]);
+});
+
+test('route-state validation delegates to the frontend package', () => {
+  const validation = recorder();
+  execute('validate route-states', { spawn: validation.spawn, log() {} });
+  assert.deepEqual(npmArguments(validation.calls[0]), [
+    'run',
+    'validate:route-states',
   ]);
 });
 

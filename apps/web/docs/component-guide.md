@@ -74,6 +74,11 @@ All three accept composed actions without owning routing or refetch behavior. Ne
 pass raw exceptions, stacks, tokens, paths, connection strings, or backend payloads
 to a reusable state component.
 
+Route-level compositions are documented in [Route-state UX](route-state-ux.md).
+Use `RouteLoadingState`, `RouteErrorState`, and `RouteNotFoundState` from
+`@/ui/route-states` only for route outcomes; they compose these GP-20 primitives
+and do not replace `EmptyState` or `UnavailableState` semantics.
+
 ## Contribution contract
 
 Every new reusable interactive component ships with semantic behavioral tests and a
@@ -82,6 +87,8 @@ deterministic Storybook story. Run `npm run repo -- validate components`,
 component validator rejects missing API/accessibility contracts, application-layer
 imports, raw colors, unresolved tokens, lost motion handling, and missing core
 stories; controlled negative fixtures prove those failures close the gate.
+
+Route-boundary changes additionally run `npm run repo -- validate route-states`.
 
 ## Overlays
 

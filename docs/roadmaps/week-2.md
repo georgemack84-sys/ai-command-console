@@ -37,3 +37,16 @@ Escape ownership, responsive tokenized styling, nested interaction coverage, and
 mechanical enforcement. Popover is deferred until a concrete reusable consumer
 exists. See the [implementation specification](../engineering/gp-22-overlay-foundation.md)
 and [qualification record](../validation/week-2/gp-22-overlay-foundation.md).
+
+## GP-23: Route-state UX
+
+GP-23 establishes reusable loading, recoverable error, and not-found patterns plus
+root and protected App Router boundaries. Protected failures preserve the GP-21
+shell; generic error UI never exposes exception detail; loading remains polite and
+focus-neutral; terminal states provide keyboard recovery and discoverable context.
+See the [implementation specification](../engineering/gp-23-route-state-ux.md) and
+[qualification record](../validation/week-2/gp-23-route-state-ux.md).
+
+GP-24 will perform the final Week 2 UI-foundation qualification across responsive
+shell, primitives, overlays, route states, Storybook, accessibility, keyboard
+walkthroughs, and 320px-or-wider certification.

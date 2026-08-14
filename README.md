@@ -66,6 +66,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [GP-20 core UI components](docs/engineering/gp-20-core-components.md)
 - [GP-21 responsive application shell](docs/engineering/gp-21-responsive-shell.md)
 - [GP-22 overlay interaction foundation](docs/engineering/gp-22-overlay-foundation.md)
+- [GP-23 route-state UX](docs/engineering/gp-23-route-state-ux.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -89,6 +90,9 @@ Validate responsive shell structure, interaction, styling, and controlled failur
 with `npm run repo -- validate shell`.
 Validate portal ownership, dialogs, alert dialogs, menus, focus behavior, and
 controlled failures with `npm run repo -- validate overlays`.
+Validate loading, safe route recovery, not-found semantics, shell preservation,
+focus behavior, and controlled failures with
+`npm run repo -- validate route-states`.
 
 ## Local endpoints
 
