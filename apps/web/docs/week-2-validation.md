@@ -50,3 +50,15 @@ The Storybook a11y panel remains development feedback rather than a release asse
 ## Exit-gate rule
 
 Week 2 may be closed only when every automated command above passes and the outstanding manual/browser checks have either been completed with dated evidence or are explicitly accepted in the exception register. A passing CI job alone is not evidence that the manual checks were performed.
+
+## GP-24 qualification
+
+Run `npm run repo -- validate week-2` from the repository root for the aggregate
+policy and controlled-failure gate. The complete certification also requires the
+canonical frontend validation, production frontend and Storybook builds,
+Storybook and application browser suites, repository-command tests, and
+repository validation documented in `docs/week-2-qualification.md`.
+
+As of 2026-08-14, the automated foundation is expected to qualify, but Week 2 is
+`CONDITIONALLY_QUALIFIED`: `W2-A11Y-002` expired without a named human
+screen-reader, native 200% zoom, and visual contrast attestation.

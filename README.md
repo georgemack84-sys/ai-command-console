@@ -67,6 +67,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [GP-21 responsive application shell](docs/engineering/gp-21-responsive-shell.md)
 - [GP-22 overlay interaction foundation](docs/engineering/gp-22-overlay-foundation.md)
 - [GP-23 route-state UX](docs/engineering/gp-23-route-state-ux.md)
+- [GP-24 UI foundation qualification](docs/engineering/gp-24-ui-foundation-qualification.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,
@@ -93,6 +94,9 @@ controlled failures with `npm run repo -- validate overlays`.
 Validate loading, safe route recovery, not-found semantics, shell preservation,
 focus behavior, and controlled failures with
 `npm run repo -- validate route-states`.
+Qualify the complete Week 2 UI foundation and its evidence contract with
+`npm run repo -- validate week-2`. The current qualification is conditional until
+the named human screen-reader, native-zoom, and visual review is recorded.
 
 ## Local endpoints
 

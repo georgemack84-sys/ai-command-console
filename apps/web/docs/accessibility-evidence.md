@@ -2,18 +2,20 @@
 
 Use this checklist during a manual browser and assistive-technology review. Record the date, reviewer, route or story, browser, viewport, and result in the pull request or validation report. Do not mark an item complete based only on a static build.
 
-## Automated evidence — 2026-07-22
+## Automated evidence — 2026-08-14 (GP-24)
 
-| Check                         | Evidence                                                                                                                                                                    | Result |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| Responsive shell              | Playwright Chromium verifies no document overflow at 320, 375, 768, 1024, 1280, 1440, and 1920 px.                                                                          | Passed |
-| Keyboard and focus            | Playwright verifies the skip link, drawer Escape dismissal, and trigger focus restoration. Storybook Chromium interactions verify dialog dismissal and menu disabled state. | Passed |
-| Automated accessibility       | Axe on the shell rejects every serious and critical violation.                                                                                                              | Passed |
-| Public component interactions | Playwright runs dialog dismissal and disabled-menu behavior against the built Storybook.                                                                                    | Passed |
+| Check                         | Evidence                                                                                                                                                                 | Result |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| Responsive shell              | Playwright Chromium verifies no document overflow at 320, 375, 768, 1024, 1280, 1440, and 1920 px, including cleanup when an open drawer crosses the 1024 px breakpoint. | Passed |
+| Keyboard and focus            | Playwright verifies skip-link, drawer, form, Dialog, Alert Dialog, Dropdown Menu, route-recovery, focus-visible, Escape, and trigger-restoration contracts.              | Passed |
+| Automated accessibility       | Axe on the shell rejects every serious and critical violation.                                                                                                           | Passed |
+| Public component interactions | Built Storybook tests 320 px layouts, 200% root text scaling, themes, reduced motion, portal cleanup, browser errors, and overlay interaction.                           | Passed |
 
 This automated evidence does not substitute for manual zoom, screen-reader, and visual contrast review. Those items remain un-attested until a named reviewer records the browser, assistive technology, and outcome.
 
-The Week 2 exit gate accepts this remaining manual review temporarily under exception `W2-A11Y-002`. The exception has a named owner, mitigation, and expiry date; it does not remove the requirement for a human review.
+The former temporary exception `W2-A11Y-002` expired on 2026-08-05. It has not
+been renewed, so the Week 2 result remains conditional until a named human review
+records its environment and outcome here.
 
 ## Keyboard and focus
 

@@ -178,6 +178,20 @@ const commands = new Map([
     },
   ],
   [
+    'validate week-2',
+    {
+      description: 'Qualify the complete Week 2 UI foundation.',
+      steps: [
+        processStep(
+          'Week 2 UI foundation qualification',
+          'npm',
+          ['run', 'validate:week-2'],
+          frontendRoot,
+        ),
+      ],
+    },
+  ],
+  [
     'validate test-classification',
     {
       description: 'Verify backend test category and filter contracts.',

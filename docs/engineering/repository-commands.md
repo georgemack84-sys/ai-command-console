@@ -55,6 +55,7 @@ They fail non-zero at the first required child failure.
 | Responsive shell | `npm run repo -- validate shell` | `.\scripts\proprium.ps1 validate shell` | None |
 | Overlay foundation | `npm run repo -- validate overlays` | `.\scripts\proprium.ps1 validate overlays` | None |
 | Route-state UX | `npm run repo -- validate route-states` | `.\scripts\proprium.ps1 validate route-states` | None |
+| Week 2 UI qualification | `npm run repo -- validate week-2` | `.\scripts\proprium.ps1 validate week-2` | None |
 | Backend | `npm run repo -- validate backend` | `.\scripts\proprium.ps1 validate backend` | None |
 | Test classification | `npm run repo -- validate test-classification` | `.\scripts\proprium.ps1 validate test-classification` | None |
 | Compose and image builds | `npm run repo -- validate docker` | `.\scripts\proprium.ps1 validate docker` | Docker engine; no running services |
@@ -117,3 +118,7 @@ Use these to isolate a failure, not to replace the canonical gates:
 
 `lint` remains a compatibility command, but `validate` is the complete canonical
 source gate.
+
+The focused Week 2 qualification command verifies the cross-layer evidence and
+controlled failures. It complements rather than replaces `validate frontend`,
+the Storybook/browser suites, production builds, or human accessibility review.

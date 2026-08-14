@@ -47,6 +47,15 @@ focus-neutral; terminal states provide keyboard recovery and discoverable contex
 See the [implementation specification](../engineering/gp-23-route-state-ux.md) and
 [qualification record](../validation/week-2/gp-23-route-state-ux.md).
 
-GP-24 will perform the final Week 2 UI-foundation qualification across responsive
+## GP-24: UI foundation qualification
+
+GP-24 aggregates and qualifies the complete Week 2 foundation across responsive
 shell, primitives, overlays, route states, Storybook, accessibility, keyboard
-walkthroughs, and 320px-or-wider certification.
+walkthroughs, 320px-or-wider behavior, scaling, cleanup, and CI ownership. The
+automated foundation is ready, while the expired human assistive-technology and
+visual-review exception makes the exit result conditional. See the
+[implementation specification](../engineering/gp-24-ui-foundation-qualification.md)
+and [qualification record](../validation/week-2/gp-24-ui-foundation-qualification.md).
+
+GP-25 may begin feature delivery on this foundation but may not claim the pending
+human accessibility attestation or introduce parallel foundation systems.

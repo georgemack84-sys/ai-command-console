@@ -13,7 +13,7 @@ const types = {
   '.svg': 'image/svg+xml',
 };
 
-createServer((request, response) => {
+const server = createServer((request, response) => {
   const requested = decodeURIComponent(request.url?.split('?')[0] ?? '/');
   const target = resolve(
     root,
@@ -29,3 +29,9 @@ createServer((request, response) => {
   );
   createReadStream(target).pipe(response);
 }).listen(port, '127.0.0.1');
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    server.close(() => process.exit(0));
+  });
+}
