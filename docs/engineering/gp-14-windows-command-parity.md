@@ -54,13 +54,11 @@ clean-machine workflow.
 
 ## Deliberate boundary
 
-GP-14 does not add commands that GP-13 did not define. OpenAPI generation and drift
-checking, integration execution, Docker qualification, persistence qualification,
-and full health qualification already have CI or low-level implementation paths,
-but their stable canonical semantics belong to later game plans. Creating Windows
-aliases now would establish an unreviewed second public API. Existing operational
-`dev`, `stop`, `migrate`, and `health` commands remain available through PowerShell
-and fail closed when their Docker or runtime prerequisites are unavailable.
+GP-14 did not add commands that GP-13 had not defined. GP-15 subsequently promotes
+Docker build validation and CI-owned OpenAPI generation into focused canonical
+commands; the existing argument-forwarding adapter supports them without a Windows
+code change. Integration, persistence, and health orchestration continue to compose
+the existing `migrate`, classified-test, `dev`, `health`, and cleanup commands.
 
 CI currently calls the same underlying repository, frontend, backend, architecture,
 and classification validators. GP-14 does not rewrite GitHub Actions ahead of the

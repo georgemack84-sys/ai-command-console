@@ -5,6 +5,7 @@
   "scripts": {
     "repo": "node scripts/proprium-command.cjs",
     "test:repository-commands": "node --test scripts/proprium-command.test.cjs scripts/proprium-powershell.test.cjs",
+    "test:ci-workflow": "node scripts/verify-ci-workflow.cjs",
     "dev": "node scripts/run-next.cjs dev",
     "dev:with-worker": "node scripts/dev-with-worker.cjs",
     "dev:doctor": "node scripts/dev-doctor.cjs",
@@ -40,6 +41,7 @@
     "validate:deploy": "node scripts/validate-deploy.cjs",
     "validate:configuration": "node scripts/validate-configuration.cjs",
     "validate:secrets": "node scripts/validate-secrets.cjs",
+    "validate:openapi": "node scripts/validate-openapi-generation.cjs",
     "repository:check": "node scripts/validate-repository.cjs",
     "repository:fixtures": "node scripts/verify-repository-validation-fixtures.cjs",
     "validate:repository": "npm run repository:check && npm run repository:fixtures",

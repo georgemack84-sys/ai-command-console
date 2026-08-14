@@ -31,6 +31,8 @@ PowerShell quoting around the script path.
 | Frontend validation | `npm run repo -- validate frontend` | `.\scripts\proprium.ps1 validate frontend` |
 | Backend validation | `npm run repo -- validate backend` | `.\scripts\proprium.ps1 validate backend` |
 | Test-classification validation | `npm run repo -- validate test-classification` | `.\scripts\proprium.ps1 validate test-classification` |
+| Docker configuration and builds | `npm run repo -- validate docker` | `.\scripts\proprium.ps1 validate docker` |
+| OpenAPI generation and validation | `npm run repo -- validate openapi` | `.\scripts\proprium.ps1 validate openapi` |
 | Check formatting | `npm run repo -- format check` | `.\scripts\proprium.ps1 format check` |
 | Apply all formatting | `npm run repo -- format` | `.\scripts\proprium.ps1 format` |
 | Apply frontend formatting | `npm run repo -- format frontend` | `.\scripts\proprium.ps1 format frontend` |
@@ -76,12 +78,23 @@ For example:
 `reset-db` removes only the Compose volumes named by this repository and requires
 the explicit PowerShell `-Force` switch. Do not use it for shared environments.
 
-## Current boundary
+## CI domain reproduction
 
-GP-14 provides parity for the commands established by GP-13 and the operational
-commands that already existed. Integration execution, OpenAPI generation/checking,
-Docker qualification, and persistence qualification remain separate CI workflows
-or low-level diagnostic commands until their planned canonical game plans define
-stable public semantics. GP-14 does not invent placeholder PowerShell commands for
-them. CI currently invokes the same underlying validators; later CI orchestration
-may switch to the canonical category commands without changing their behavior.
+GP-15's seven merge gates use the same commands documented above. Infrastructure
+jobs compose small repository-owned operations rather than hiding policy in YAML:
+
+| CI gate | Local reproduction after locked restore |
+| --- | --- |
+| Repository | `npm run repo -- validate repo` and repository command/CI contract tests |
+| Frontend | `validate frontend`, `build frontend`, then the documented Storybook/browser commands in `apps/web` |
+| Backend | `validate backend`, `npm run backend:test:unit`, and the permission-catalog freshness check |
+| Integration | Build the integration project, run `repo -- migrate`, then `npm run backend:test:integration`; finish with `docker compose -f docker-compose.proprium.yml down --volumes --remove-orphans` |
+| Docker | `npm run repo -- validate docker` |
+| OpenAPI | Build `Proprium.Api` in Release, then `npm run repo -- validate openapi` |
+| Health | `npm run repo -- dev`, `npm run repo -- health`, then the documented persistence check; always clean Compose resources |
+
+Integration and health commands intentionally require Docker. Repository, frontend,
+backend, and OpenAPI compilation/generation do not require running PostgreSQL or
+Redis. OpenAPI is generated into an ignored temporary directory and removed after
+validation; there is currently no committed generated contract to compare or
+automatically update.

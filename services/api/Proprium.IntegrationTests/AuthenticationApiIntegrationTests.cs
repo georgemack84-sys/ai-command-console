@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Proprium.Application.Authentication;
@@ -523,11 +522,9 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             await database.SaveChangesAsync();
         }
 
-        await using var unavailableRedisFactory = factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["REDIS_HOST"] = "redis-unavailable.invalid",
-            ["REDIS_PORT"] = "6379"
-        })));
+        await using var unavailableRedisFactory = factory.WithWebHostBuilder(builder => builder
+            .UseSetting("REDIS_HOST", "redis-unavailable.invalid")
+            .UseSetting("REDIS_PORT", "6379"));
         var client = unavailableRedisFactory.CreateClient();
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
         client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");

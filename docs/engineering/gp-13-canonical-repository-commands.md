@@ -30,6 +30,8 @@ point with the same command semantics.
 | `npm run repo -- validate backend` | Build artifacts only | None | GP-08-GP-11 formatting, compiler policy, Release build/analyzers, architecture, and test classification | After backend changes |
 | `npm run repo -- validate test-classification` | Test artifacts only | None | GP-11 test-category and filter contract | Troubleshooting classification failures |
 | `npm run repo -- validate` | Ignored build/test artifacts only | None | Repository, frontend, then backend validation | Required source-validation check before review |
+| `npm run repo -- validate docker` | Docker image cache | Docker engine | Validate Compose configuration and build application images | Reproduce the GP-15 Docker gate |
+| `npm run repo -- validate openapi` | Temporary file, removed | None | Generate and validate the backend OpenAPI contract | Reproduce the GP-15 OpenAPI gate after a backend build |
 | `npm run repo -- format frontend` | Source | None | Apply frontend Prettier formatting | Before committing frontend edits |
 | `npm run repo -- format backend` | Source | None | Apply bounded .NET whitespace/style formatting | Before committing backend edits |
 | `npm run repo -- format` | Source | None | Apply frontend, then backend formatting | Format all supported source |
@@ -77,6 +79,8 @@ npm run repo -- validate
 
 Future CI jobs may split repository, frontend, and backend validation for runtime
 efficiency, but each job must invoke the same category command documented here.
+GP-15 adds Docker and OpenAPI as focused validation domains; neither is included in
+the infrastructure-independent root `validate` command.
 
 ## GP-13 evidence
 

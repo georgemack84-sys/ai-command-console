@@ -37,6 +37,8 @@ test('canonical command surface contains the GP-13 contract', () => {
       'validate frontend',
       'validate test-classification',
       'validate backend',
+      'validate docker',
+      'validate openapi',
       'validate',
       'format frontend',
       'format backend',
@@ -161,4 +163,23 @@ test('frontend builds use the production mode required by Next.js', () => {
   const recorded = recorder();
   execute('build frontend', { spawn: recorded.spawn, log() {} });
   assert.equal(recorded.calls[0].env.NODE_ENV, 'production');
+});
+
+test('Docker and OpenAPI validation remain focused canonical domains', () => {
+  const docker = recorder();
+  execute('validate docker', { spawn: docker.spawn, log() {} });
+  assert.deepEqual(
+    docker.calls.map((call) => call.args),
+    [
+      ['compose', '-f', 'docker-compose.proprium.yml', 'config', '--quiet'],
+      ['compose', '-f', 'docker-compose.proprium.yml', 'build'],
+    ],
+  );
+
+  const openapi = recorder();
+  execute('validate openapi', { spawn: openapi.spawn, log() {} });
+  assert.deepEqual(npmArguments(openapi.calls[0]), [
+    'run',
+    'validate:openapi',
+  ]);
 });

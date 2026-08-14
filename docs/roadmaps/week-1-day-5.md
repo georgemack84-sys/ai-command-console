@@ -74,6 +74,8 @@ GP-11 is implemented through the [integration-test classification specification]
 
 GP-12 is implemented through the [repository-validation specification](../engineering/gp-12-repository-validation.md), the canonical non-mutating Node.js validator, stable aggregate `RVAL-*` diagnostics, tracked-file and structured-text policy, configuration/package/project consistency checks, composed environment and secret validation, and isolated negative fixtures.
 
+GP-15 is implemented through the [CI merge-gate specification](../engineering/gp-15-ci-merge-gates.md), seven stable GitHub Actions job domains, repository-owned local reproduction commands, deterministic runtime setup, bounded infrastructure workflows, fail-closed cleanup, and a mechanical workflow contract validator.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

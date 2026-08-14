@@ -110,6 +110,28 @@ const commands = new Map([
     },
   ],
   [
+    'validate docker',
+    {
+      description: 'Validate Compose configuration and application image builds.',
+      steps: [
+        processStep('Compose configuration', 'docker', [...compose, 'config', '--quiet']),
+        processStep('Application image builds', 'docker', [...compose, 'build']),
+      ],
+    },
+  ],
+  [
+    'validate openapi',
+    {
+      description: 'Generate and validate the canonical OpenAPI contract.',
+      steps: [
+        processStep('OpenAPI generation and validation', 'npm', [
+          'run',
+          'validate:openapi',
+        ]),
+      ],
+    },
+  ],
+  [
     'validate',
     {
       description: 'Run every infrastructure-independent validation gate.',

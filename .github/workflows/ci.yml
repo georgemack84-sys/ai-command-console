@@ -9,68 +9,101 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   repository-validation:
-    name: repository-validation
+    name: Repository Validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
-      - run: npm run validate:repository
+      - name: Restore locked validation dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate repository policy
+        run: npm run repo -- validate repo
+      - name: Verify canonical command contracts
+        run: npm run test:repository-commands
+      - name: Verify CI workflow contract
+        run: npm run test:ci-workflow
 
   frontend-validation:
-    name: frontend-validation
+    name: Frontend Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: apps/web
+    timeout-minutes: 25
     env:
       NEXT_PUBLIC_APP_NAME: Proprium
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_API_BASE_URL: https://api.ci.example
       NEXT_PUBLIC_ENVIRONMENT: test
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run validate
-      - run: npm run storybook:build
-      - run: npm run test:storybook
-      - run: npm run test:browser
-      - run: npm run test:config-build-failure
-      - run: npm run build
+      - name: Restore locked frontend dependencies
+        run: npm ci
+        working-directory: apps/web
+      - name: Install browser test runtime
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Validate frontend source
+        run: npm run repo -- validate frontend
+      - name: Build frontend
+        run: npm run repo -- build frontend
+      - name: Build Storybook
+        run: npm run storybook:build
+        working-directory: apps/web
+      - name: Test Storybook accessibility and interactions
+        run: npm run test:storybook
+        working-directory: apps/web
+      - name: Test application browser shell
+        run: npm run test:browser
+        working-directory: apps/web
+      - name: Verify invalid build configuration fails closed
+        run: npm run test:config-build-failure
+        working-directory: apps/web
 
   backend-validation:
-    name: backend-validation
+    name: Backend Validation
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - run: dotnet restore services/api/Proprium.sln
-      - run: dotnet build services/api/Proprium.sln --configuration Release --no-restore
-      - run: dotnet format services/api/Proprium.sln --verify-no-changes --no-restore
-      - run: dotnet test services/api/Proprium.sln --configuration Release --no-build --filter "Category!=Integration"
-      - run: dotnet run --project services/api/Proprium.Api --configuration Release --no-build -- --export-permissions ../permissions.json
-      - run: git diff --exit-code -- services/api/permissions.json
-      - run: dotnet run --project services/api/Proprium.Api --configuration Release --no-build -- --write-openapi "$RUNNER_TEMP/proprium-openapi.json"
-      - run: node scripts/validate-openapi.cjs "$RUNNER_TEMP/proprium-openapi.json"
+      - name: Restore backend dependencies
+        run: dotnet restore services/api/Proprium.sln
+      - name: Validate backend source and architecture
+        run: npm run repo -- validate backend
+      - name: Run backend unit tests
+        run: npm run backend:test:unit
+      - name: Export canonical permissions
+        run: dotnet run --project services/api/Proprium.Api --configuration Release --no-build --no-restore -- --export-permissions ../permissions.json
+      - name: Verify permission catalog is current
+        run: git diff --exit-code -- services/api/permissions.json
 
   integration-validation:
-    name: integration-validation
+    name: Integration Validation
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -95,43 +128,98 @@ jobs:
       LOGIN_RATE_LIMIT_WINDOW_MINUTES: 5
       LOGIN_RATE_LIMIT_FALLBACK_CAPACITY: 10000
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - run: dotnet restore services/api/Proprium.IntegrationTests/Proprium.IntegrationTests.csproj
-      - run: docker compose -f docker-compose.proprium.yml up --detach --wait postgres redis
-      - run: docker compose -f docker-compose.proprium.yml up --build --exit-code-from database-migrations database-migrations
-      - run: dotnet test services/api/Proprium.IntegrationTests/Proprium.IntegrationTests.csproj --configuration Release --filter "Category=Integration"
-      - if: failure()
+      - name: Restore integration dependencies
+        run: dotnet restore services/api/Proprium.IntegrationTests/Proprium.IntegrationTests.csproj
+      - name: Build integration tests
+        run: dotnet build services/api/Proprium.IntegrationTests/Proprium.IntegrationTests.csproj --configuration Release --no-restore
+      - name: Start dependencies and apply canonical migrations
+        run: npm run repo -- migrate
+      - name: Run classified integration tests
+        run: npm run backend:test:integration
+      - name: Capture infrastructure diagnostics
+        if: failure()
         run: docker compose -f docker-compose.proprium.yml logs --no-color
-      - if: always()
+      - name: Clean integration infrastructure
+        if: always()
         run: docker compose -f docker-compose.proprium.yml down --volumes --remove-orphans
 
   docker-validation:
-    name: docker-validation
+    name: Docker Validation
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v6
-      - run: docker compose -f docker-compose.proprium.yml up --build --detach --wait
-      - run: curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/live
-      - run: curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/ready
-      - run: curl --fail --retry 5 --retry-connrefused http://localhost:3000/health
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Validate Compose and image builds
+        run: npm run repo -- validate docker
+
+  openapi-validation:
+    name: OpenAPI Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Restore OpenAPI generator dependencies
+        run: dotnet restore services/api/Proprium.Api/Proprium.Api.csproj
+      - name: Build OpenAPI generator
+        run: dotnet build services/api/Proprium.Api/Proprium.Api.csproj --configuration Release --no-restore
+      - name: Generate and validate OpenAPI
+        run: npm run repo -- validate openapi
+
+  health-validation:
+    name: Health Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Start application stack and wait for readiness
+        run: npm run repo -- dev
+      - name: Validate application health contract
+        run: npm run repo -- health
       - name: Write PostgreSQL persistence sentinel
         run: >-
           docker compose -f docker-compose.proprium.yml exec -T postgres
           psql -U proprium -d proprium -v ON_ERROR_STOP=1
           -c "INSERT INTO platform_metadata (\"Id\", \"Key\", \"Value\", \"CreatedAtUtc\") VALUES ('00000000-0000-0000-0000-000000000004', 'ci.persistence', 'before-restart', CURRENT_TIMESTAMP);"
-      - name: Restart PostgreSQL
+      - name: Restart PostgreSQL and wait for readiness
         run: |
           docker compose -f docker-compose.proprium.yml restart postgres
           docker compose -f docker-compose.proprium.yml up --detach --wait postgres
-      - name: Verify PostgreSQL persistence after restart
+      - name: Verify persistence and application readiness
         run: |
           test "$(docker compose -f docker-compose.proprium.yml exec -T postgres psql -U proprium -d proprium -Atc "SELECT \"Value\" FROM platform_metadata WHERE \"Key\" = 'ci.persistence';" | tr -d '\r')" = "before-restart"
-          curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/v1/health/ready
-      - if: failure()
+          npm run repo -- health
+      - name: Capture application diagnostics
+        if: failure()
         run: docker compose -f docker-compose.proprium.yml logs --no-color
-      - if: always()
+      - name: Clean application infrastructure
+        if: always()
         run: docker compose -f docker-compose.proprium.yml down --volumes --remove-orphans
