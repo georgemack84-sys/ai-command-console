@@ -7,6 +7,7 @@
     "test:repository-commands": "node --test scripts/proprium-command.test.cjs scripts/proprium-powershell.test.cjs",
     "test:ci-workflow": "node scripts/verify-ci-workflow.cjs",
     "validate:documentation": "node scripts/validate-developer-documentation.cjs",
+    "validate:qualification": "node scripts/validate-day-5-qualification.cjs",
     "dev": "node scripts/run-next.cjs dev",
     "dev:with-worker": "node scripts/dev-with-worker.cjs",
     "dev:doctor": "node scripts/dev-doctor.cjs",

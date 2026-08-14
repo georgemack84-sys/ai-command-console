@@ -35,6 +35,7 @@ test('canonical command surface contains the GP-13 contract', () => {
     [
       'validate repo',
       'validate documentation',
+      'validate qualification',
       'validate frontend',
       'validate test-classification',
       'validate backend',
@@ -59,7 +60,7 @@ test('root validation dispatches repository, frontend, then backend', () => {
   const recorded = recorder();
   execute('validate', { spawn: recorded.spawn, log() {} });
 
-  assert.equal(recorded.calls.length, 8);
+  assert.equal(recorded.calls.length, 9);
   assert.deepEqual(npmArguments(recorded.calls[0]), [
     'run',
     'validate:repository',
@@ -70,9 +71,13 @@ test('root validation dispatches repository, frontend, then backend', () => {
   ]);
   assert.deepEqual(npmArguments(recorded.calls[2]), [
     'run',
-    'validate:frontend',
+    'validate:qualification',
   ]);
   assert.deepEqual(npmArguments(recorded.calls[3]), [
+    'run',
+    'validate:frontend',
+  ]);
+  assert.deepEqual(npmArguments(recorded.calls[4]), [
     'run',
     'backend:format:check',
   ]);
@@ -89,7 +94,7 @@ test('the single-word validate command is accepted by the CLI', async () => {
     await main(['validate'], { spawn: recorded.spawn, log() {} }),
     0,
   );
-  assert.equal(recorded.calls.length, 8);
+  assert.equal(recorded.calls.length, 9);
 });
 
 test('a child failure propagates and stops grouped validation', () => {

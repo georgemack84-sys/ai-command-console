@@ -78,6 +78,8 @@ GP-15 is implemented through the [CI merge-gate specification](../engineering/gp
 
 GP-16 is implemented through the [developer-onboarding specification](../engineering/gp-16-developer-onboarding.md), an authoritative setup entry point, prerequisite doctor, canonical operational guides, semantic documentation validation, and clean-machine certification evidence.
 
+GP-17 is implemented through the [final-qualification specification](../engineering/gp-17-final-qualification.md), a traceable evidence package, mechanical qualification validation, observed CI results, controlled fail-closed evidence, and the Week 2 handoff baseline.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

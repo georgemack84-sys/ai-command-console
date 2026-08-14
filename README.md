@@ -59,6 +59,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 - [Local database reset](docs/operations/database-reset.md)
 - [Troubleshooting](docs/operations/troubleshooting.md)
 - [Clean-machine validation](docs/onboarding/clean-machine-validation.md)
+- [Day 5 qualification](docs/validation/day-5/qualification.md)
 - [GP-16 certification evidence](docs/validation/gp-16-clean-machine.md)
 
 Run `npm run repo -- validate repo` to check repository policy, Markdown links,

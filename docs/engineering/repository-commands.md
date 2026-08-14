@@ -46,6 +46,7 @@ They fail non-zero at the first required child failure.
 | Full source gate | `npm run repo -- validate` | `.\scripts\proprium.ps1 validate` | None |
 | Repository and documentation | `npm run repo -- validate repo` | `.\scripts\proprium.ps1 validate repo` | None |
 | Developer documentation only | `npm run repo -- validate documentation` | `.\scripts\proprium.ps1 validate documentation` | None |
+| Day 5 qualification evidence | `npm run repo -- validate qualification` | `.\scripts\proprium.ps1 validate qualification` | None |
 | Frontend | `npm run repo -- validate frontend` | `.\scripts\proprium.ps1 validate frontend` | None |
 | Backend | `npm run repo -- validate backend` | `.\scripts\proprium.ps1 validate backend` | None |
 | Test classification | `npm run repo -- validate test-classification` | `.\scripts\proprium.ps1 validate test-classification` | None |

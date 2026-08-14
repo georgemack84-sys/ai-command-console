@@ -52,6 +52,10 @@ const commands = new Map([
           'run',
           'validate:documentation',
         ]),
+        processStep('Day 5 qualification evidence', 'npm', [
+          'run',
+          'validate:qualification',
+        ]),
       ],
     },
   ],
@@ -63,6 +67,18 @@ const commands = new Map([
         processStep('Developer documentation contract', 'npm', [
           'run',
           'validate:documentation',
+        ]),
+      ],
+    },
+  ],
+  [
+    'validate qualification',
+    {
+      description: 'Validate the Day 5 qualification evidence package.',
+      steps: [
+        processStep('Day 5 qualification evidence', 'npm', [
+          'run',
+          'validate:qualification',
         ]),
       ],
     },
