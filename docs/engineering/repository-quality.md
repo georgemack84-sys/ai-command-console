@@ -13,6 +13,7 @@
 | Backend architecture | Architecture test project |
 | Backend test classification | Architecture test project plus `IIntegrationTest` |
 | Repository consistency | `npm run validate:repository` |
+| Developer documentation | `npm run validate:documentation` |
 | Secret safety | `npm run validate:secrets` |
 | CI orchestration | GitHub Actions |
 
@@ -28,7 +29,13 @@ is the stable developer and future-CI interface over these validators. Use
 `repo`, `frontend`, and `backend` categories for focused feedback. The low-level
 commands below remain useful for diagnosis and implementation detail.
 
-Run `npm run validate:repository` for the actual tracked-repository check plus isolated policy fixtures. It verifies 24 required tracked files, resolved Git attributes and ignore behavior, tracked-artifact and local-configuration exclusions, configuration authority, npm lockfiles, backend solution/project policy, Markdown fences/headings/links, YAML parsing/indentation, strict and TypeScript-aware JSON syntax, UTF-8 validation, line endings, final newlines, trailing whitespace, configuration ownership, and secret safety. Failures use stable `RVAL-*` rule IDs and aggregate independent violations. The [GP-12 repository-validation specification](gp-12-repository-validation.md) defines scope, ownership, remediation, and intentional deferrals; the command requires no infrastructure or network access.
+Run `npm run validate:repository` for the actual tracked-repository check plus isolated policy fixtures. It verifies required tracked files, resolved Git attributes and ignore behavior, tracked-artifact and local-configuration exclusions, configuration authority, npm lockfiles, backend solution/project policy, Markdown fences/headings/links, YAML parsing/indentation, strict and TypeScript-aware JSON syntax, UTF-8 validation, line endings, final newlines, trailing whitespace, configuration ownership, and secret safety. Failures use stable `RVAL-*` rule IDs and aggregate independent violations. The [GP-12 repository-validation specification](gp-12-repository-validation.md) defines scope, ownership, remediation, and intentional deferrals; the command requires no infrastructure or network access.
+
+Run `npm run validate:documentation` for the GP-16 semantic onboarding contract.
+It checks the authoritative guide set, README navigation, canonical command
+coverage, environment-template inventory, migration and reset boundaries,
+clean-machine procedure, and evidence structure. `validate repo` invokes both the
+repository and documentation validators, so documentation drift fails CI.
 
 Run `npm run validate:secrets` for focused tracked-file, private-key, provider-token, public-configuration, placeholder, configuration-dump, and API exception-logging checks. Candidate values are never printed. The repository validator invokes this command automatically.
 

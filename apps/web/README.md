@@ -1,9 +1,13 @@
 # Proprium frontend
 
-Run locally with `npm install`, copy `.env.example` to `.env.local`, then use `npm run dev`. Public configuration is validated before production builds. `.env.docker` supplies Docker Compose build interpolation only:
+Restore with `npm ci`. For direct component development, copy `.env.example` to
+the ignored `.env.local`, then use `npm run dev`. The supported complete platform
+startup remains `npm run repo -- dev` from the repository root. Public
+configuration is validated before production builds. `.env.docker` supplies Docker
+Compose build interpolation only:
 
 ```bash
-docker compose --env-file ./apps/web/.env.docker build web
+docker compose -f docker-compose.proprium.yml --env-file ./apps/web/.env.docker build web
 ```
 
 Changing a `NEXT_PUBLIC_*` value requires rebuilding the image; it is not runtime configuration.

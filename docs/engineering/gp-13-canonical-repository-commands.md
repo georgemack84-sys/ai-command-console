@@ -26,6 +26,7 @@ point with the same command semantics.
 | Command | Mutation | Infrastructure | Purpose and underlying category | Typical use |
 | --- | --- | --- | --- | --- |
 | `npm run repo -- validate repo` | None | None | GP-12 repository structure and policy | After repository/configuration changes |
+| `npm run repo -- validate documentation` | None | None | GP-16 onboarding guides, command/template coverage, reset safety, and evidence contract | After developer-workflow changes |
 | `npm run repo -- validate frontend` | Ignored reports only | None | GP-05-GP-07 frontend format checks, static analysis, architecture, and unit validation | After frontend changes |
 | `npm run repo -- validate backend` | Build artifacts only | None | GP-08-GP-11 formatting, compiler policy, Release build/analyzers, architecture, and test classification | After backend changes |
 | `npm run repo -- validate test-classification` | Test artifacts only | None | GP-11 test-category and filter contract | Troubleshooting classification failures |
@@ -81,6 +82,8 @@ Future CI jobs may split repository, frontend, and backend validation for runtim
 efficiency, but each job must invoke the same category command documented here.
 GP-15 adds Docker and OpenAPI as focused validation domains; neither is included in
 the infrastructure-independent root `validate` command.
+GP-16 composes semantic developer-documentation validation into `validate repo`
+and adds `doctor` as the operational full-workflow prerequisite check.
 
 ## GP-13 evidence
 

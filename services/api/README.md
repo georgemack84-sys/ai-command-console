@@ -2,14 +2,20 @@
 
 The canonical environment inventory is `services/api/.env.example`; required, optional, sensitive, and conditional settings are documented in the [configuration guide](../../docs/onboarding/configuration.md).
 
-The backend is a .NET 8 layered solution. Run the complete qualification suite with:
+The backend is a .NET 8 layered solution. From the repository root, restore and
+run its canonical infrastructure-independent qualification with:
 
 ```bash
-dotnet test services/api/Proprium.sln
-dotnet build services/api/Proprium.sln
-docker compose build api
-docker compose up api
+npm run repo -- bootstrap
+npm run repo -- validate backend
+npm run backend:test:unit
 ```
+
+Start the supported local API together with its PostgreSQL, Redis, migration, and
+frontend dependencies through `npm run repo -- dev`; verify it with `npm run repo
+-- health`. The actual Compose service is `platform-api`. See the
+[developer setup](../../docs/onboarding/developer-setup.md) and
+[migration guide](../../docs/operations/migrations.md).
 
 The canonical compiler/analyzer sequence is infrastructure-independent:
 

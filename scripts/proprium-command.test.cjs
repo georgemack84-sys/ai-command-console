@@ -34,6 +34,7 @@ test('canonical command surface contains the GP-13 contract', () => {
     [...commands.keys()],
     [
       'validate repo',
+      'validate documentation',
       'validate frontend',
       'validate test-classification',
       'validate backend',
@@ -58,16 +59,20 @@ test('root validation dispatches repository, frontend, then backend', () => {
   const recorded = recorder();
   execute('validate', { spawn: recorded.spawn, log() {} });
 
-  assert.equal(recorded.calls.length, 7);
+  assert.equal(recorded.calls.length, 8);
   assert.deepEqual(npmArguments(recorded.calls[0]), [
     'run',
     'validate:repository',
   ]);
   assert.deepEqual(npmArguments(recorded.calls[1]), [
     'run',
-    'validate:frontend',
+    'validate:documentation',
   ]);
   assert.deepEqual(npmArguments(recorded.calls[2]), [
+    'run',
+    'validate:frontend',
+  ]);
+  assert.deepEqual(npmArguments(recorded.calls[3]), [
     'run',
     'backend:format:check',
   ]);
@@ -84,7 +89,7 @@ test('the single-word validate command is accepted by the CLI', async () => {
     await main(['validate'], { spawn: recorded.spawn, log() {} }),
     0,
   );
-  assert.equal(recorded.calls.length, 7);
+  assert.equal(recorded.calls.length, 8);
 });
 
 test('a child failure propagates and stops grouped validation', () => {
@@ -182,4 +187,12 @@ test('Docker and OpenAPI validation remain focused canonical domains', () => {
     'run',
     'validate:openapi',
   ]);
+});
+
+test('doctor delegates to the repository-owned prerequisite verifier', async () => {
+  const recorded = recorder();
+  assert.equal(await main(['doctor'], { spawn: recorded.spawn, log() {} }), 0);
+  assert.equal(recorded.calls.length, 1);
+  assert.equal(recorded.calls[0].name, process.execPath);
+  assert.deepEqual(recorded.calls[0].args, ['scripts/verify-prerequisites.cjs']);
 });

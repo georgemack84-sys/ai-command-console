@@ -76,6 +76,8 @@ GP-12 is implemented through the [repository-validation specification](../engine
 
 GP-15 is implemented through the [CI merge-gate specification](../engineering/gp-15-ci-merge-gates.md), seven stable GitHub Actions job domains, repository-owned local reproduction commands, deterministic runtime setup, bounded infrastructure workflows, fail-closed cleanup, and a mechanical workflow contract validator.
 
+GP-16 is implemented through the [developer-onboarding specification](../engineering/gp-16-developer-onboarding.md), an authoritative setup entry point, prerequisite doctor, canonical operational guides, semantic documentation validation, and clean-machine certification evidence.
+
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.

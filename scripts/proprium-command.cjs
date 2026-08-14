@@ -48,6 +48,22 @@ const commands = new Map([
           'run',
           'validate:repository',
         ]),
+        processStep('Developer documentation contract', 'npm', [
+          'run',
+          'validate:documentation',
+        ]),
+      ],
+    },
+  ],
+  [
+    'validate documentation',
+    {
+      description: 'Validate the developer documentation contract.',
+      steps: [
+        processStep('Developer documentation contract', 'npm', [
+          'run',
+          'validate:documentation',
+        ]),
       ],
     },
   ],
@@ -322,7 +338,7 @@ function printHelp(log = console.log) {
   log('Validation, build, and test commands never start infrastructure.');
   log('Formatting commands without "check" intentionally modify source.');
   log('');
-  log('Operational compatibility commands: bootstrap, dev, stop, lint, migrate, reset-db, health, export-permissions');
+  log('Operational compatibility commands: doctor, bootstrap, dev, stop, lint, migrate, reset-db, health, export-permissions');
 }
 
 async function executeOperational(command, args, options = {}) {
@@ -331,6 +347,9 @@ async function executeOperational(command, args, options = {}) {
     runProcess({ name, args: commandArgs, cwd }, spawn);
 
   switch (command) {
+    case 'doctor':
+      run(process.execPath, ['scripts/verify-prerequisites.cjs']);
+      return true;
     case 'bootstrap':
       run('npm', ['ci']);
       run('npm', ['ci'], frontendRoot);
