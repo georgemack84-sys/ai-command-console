@@ -5,6 +5,11 @@ const {
   canonicalTemplates,
   validateEnvironmentTemplateOwnership,
 } = require('./environment-template-ownership-policy.cjs');
+const {
+  canonicalRootKeys,
+  validateRootComposeAlignment,
+  validateRootEnvironmentTemplate,
+} = require('./root-environment-template-policy.cjs');
 
 const templates = {
   root: canonicalTemplates[0].path,
@@ -12,14 +17,7 @@ const templates = {
   api: canonicalTemplates[2].path,
 };
 
-const rootKeys = [
-  'COMPOSE_PROJECT_NAME',
-  'POSTGRES_DATABASE',
-  'POSTGRES_USER',
-  'POSTGRES_PASSWORD',
-  'POSTGRES_HOST_PORT',
-  'REDIS_HOST_PORT',
-];
+const rootKeys = canonicalRootKeys;
 const webKeys = [
   'NEXT_PUBLIC_APP_NAME',
   'NEXT_PUBLIC_APP_VERSION',
@@ -164,7 +162,12 @@ for (const path of Object.values(templates)) {
 const rootContent = readFileSync(templates.root, 'utf8');
 const boundary = '# Transitional root application contract.';
 if (!rootContent.includes(boundary)) fail(`${templates.root} is missing the transitional ownership boundary.`);
-const root = parseTemplate('root Proprium section', templates.root, rootContent.split(boundary, 1)[0]);
+const rootSection = rootContent.split(boundary, 1)[0];
+const rootErrors = validateRootEnvironmentTemplate(rootSection);
+if (rootErrors.length) fail(rootErrors.join('\n'));
+const composeErrors = validateRootComposeAlignment(readFileSync('docker-compose.proprium.yml', 'utf8'));
+if (composeErrors.length) fail(composeErrors.join('\n'));
+const root = parseTemplate('root Proprium section', templates.root, rootSection);
 const rootComplete = parseTemplate('root', templates.root, rootContent);
 const web = parseTemplate('frontend', templates.web);
 const api = parseTemplate('backend', templates.api);

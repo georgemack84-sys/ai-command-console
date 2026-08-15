@@ -10,12 +10,15 @@ legacy root `docker-compose.yml` is not part of this workflow.
 | `postgres` | Authoritative application database | `POSTGRES_HOST_PORT`, default `55432` | `5432` | Named `proprium-postgres` volume |
 | `redis` | Non-authoritative cache/rate-limit support | `REDIS_HOST_PORT`, default `6379` | `6379` | None |
 | `database-migrations` | One-shot schema owner | None | None | Changes PostgreSQL schema/data |
-| `platform-api` | ASP.NET Core API | `8080` | `8080` | None |
-| `web` | Next.js frontend | `3000` | `3000` | None |
+| `platform-api` | ASP.NET Core API | `API_PORT`, default `8080` | `8080` | None |
+| `web` | Next.js frontend | `WEB_PORT`, default `3000` | `3000` | None |
 
 The root `.env.example` and Compose interpolation defaults own host ports and the
 project name. Container-to-container traffic uses service names and container
 ports, so changing a host port does not change API container configuration.
+`API_PORT` also updates the browser API URL, while `WEB_PORT` updates the API's
+allowed browser origin; a local port override therefore remains internally
+coherent.
 
 ## Lifecycle
 

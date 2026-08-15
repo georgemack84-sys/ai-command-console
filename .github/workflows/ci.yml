@@ -114,9 +114,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      APP_NAME: Proprium
-      APP_ENVIRONMENT: Test
-      APP_VERSION: ci
       ASPNETCORE_ENVIRONMENT: Test
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 55432
