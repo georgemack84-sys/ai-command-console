@@ -53,6 +53,7 @@ assert.match(commands('repository-validation'), /npm run audit:dependencies:deve
 assert.match(commands('repository-validation'), /npm run test:dependency-audit-policy/);
 assert.match(commands('repository-validation'), /npm run test:release-workflows/);
 assert.match(commands('repository-validation'), /npm run validate:secrets/);
+assert.match(commands('repository-validation'), /npm run repo -- validate configuration/);
 assert.match(commands('frontend-validation'), /npm run repo -- validate frontend/);
 assert.match(commands('frontend-validation'), /npm run repo -- build frontend/);
 assert.match(commands('frontend-validation'), /npm run test:secret-isolation/);
@@ -87,8 +88,10 @@ assert.doesNotMatch(source, /secrets\./);
 const repositoryCommands = commands('repository-validation');
 assert.ok(
   repositoryCommands.indexOf('npm run validate:secrets') <
+    repositoryCommands.indexOf('npm run repo -- validate configuration') &&
+    repositoryCommands.indexOf('npm run repo -- validate configuration') <
     repositoryCommands.indexOf('npm run repo -- validate repo'),
-  'tracked-tree secret scanning must run before broader repository validation',
+  'secret scanning and Part II configuration qualification must precede broader repository validation',
 );
 const frontendCommands = commands('frontend-validation');
 assert.ok(

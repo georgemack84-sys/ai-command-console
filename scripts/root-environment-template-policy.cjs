@@ -8,6 +8,7 @@ const canonicalRootKeys = [
   "API_PORT",
   "WEB_PORT",
 ];
+const { parseEnvironmentTemplate } = require("./environment-template-parser.cjs");
 
 const portKeys = new Set([
   "POSTGRES_HOST_PORT",
@@ -18,21 +19,9 @@ const portKeys = new Set([
 
 function validateRootEnvironmentTemplate(content) {
   const errors = [];
-  const values = new Map();
-
-  for (const [index, line] of content.split(/\r?\n/).entries()) {
-    if (!line.trim() || line.trimStart().startsWith("#")) continue;
-    const match = line.match(/^([A-Z][A-Z0-9_]*)=(.*)$/);
-    if (!match) {
-      errors.push(`line ${index + 1} is not a portable KEY=value assignment`);
-      continue;
-    }
-    if (values.has(match[1])) {
-      errors.push(`line ${index + 1} duplicates ${match[1]}`);
-      continue;
-    }
-    values.set(match[1], match[2]);
-  }
+  const parsed = parseEnvironmentTemplate(content, ".env.example");
+  const values = parsed.values;
+  errors.push(...parsed.errors.map(({ line, message }) => `line ${line} ${message}`));
 
   const expected = new Set(canonicalRootKeys);
   for (const key of canonicalRootKeys) {
