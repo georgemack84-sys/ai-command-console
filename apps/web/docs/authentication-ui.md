@@ -41,6 +41,11 @@ authenticated, unauthenticated, unauthorized, or error state; login re-runs
 `/me`; confirmed logout and post-authentication `401` clear the user and enter
 `unauthenticated`. Concurrent stale requests cannot restore invalidated access.
 
+The provider is mounted at the public-login and protected route groups rather
+than the root layout. Authentication-independent routes such as `/health` do not
+download authentication client code or issue an unnecessary `/me` request. The
+theme provider remains global because every route consumes the theme contract.
+
 ## No-flash invariant
 
 > Protected UI SHALL not render while authentication status is UNKNOWN.
@@ -79,7 +84,7 @@ and no dead registration, reset, remember-me, MFA, or SSO controls.
 ## Validation
 
 Run `npm run repo -- validate authentication-ui` for the focused contract and
-seven controlled failures. The canonical frontend gate includes it. Unit tests
+nine controlled failures. The canonical frontend gate includes it. Unit tests
 cover login semantics, error safety, state transitions, redirects, and shell
 gating. Storybook covers default, invalid, submitting, rate-limited, service-error,
 and bootstrap states without a backend. Browser certification covers no-cookie

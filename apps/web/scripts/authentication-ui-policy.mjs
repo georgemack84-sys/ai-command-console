@@ -13,6 +13,9 @@ export function validateAuthenticationUi({
   loginForm,
   loginBoundary,
   protectedBoundary,
+  rootLayout,
+  publicLayout,
+  protectedLayout,
   returnPath,
   stories,
   browserCertification,
@@ -137,6 +140,22 @@ export function validateAuthenticationUi({
     /state\.status === 'authenticated'[\s\S]*return <>{children}<\/>/,
     'protected children are not gated by authentication',
   );
+  rejectPattern(
+    errors,
+    rootLayout,
+    /AuthenticationProvider|AppProviders/,
+    'authentication provider must not run for authentication-independent routes',
+  );
+  for (const [name, layout] of [
+    ['public', publicLayout],
+    ['protected', protectedLayout],
+  ])
+    requirePattern(
+      errors,
+      layout,
+      /AuthenticationProvider/,
+      `${name} route group is missing the authentication provider`,
+    );
   requirePattern(
     errors,
     returnPath,

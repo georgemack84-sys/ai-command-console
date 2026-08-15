@@ -18,6 +18,7 @@ const requiredFiles = [
   'src/components/auth/login-experience-boundary.test.tsx',
   'src/components/auth/protected-experience-boundary.test.tsx',
   'src/app/(public)/login/page.tsx',
+  'src/app/(public)/layout.tsx',
   'src/app/(protected)/layout.tsx',
   'tests/browser/authentication-boundary.spec.ts',
   'tests/storybook/authentication.spec.ts',
@@ -53,6 +54,9 @@ const errors = [
       root,
       'src/components/auth/protected-experience-boundary.tsx',
     ),
+    rootLayout: read(root, 'src/app/layout.tsx'),
+    publicLayout: read(root, 'src/app/(public)/layout.tsx'),
+    protectedLayout: read(root, 'src/app/(protected)/layout.tsx'),
     returnPath: read(root, 'src/lib/auth/return-path.ts'),
     stories: read(
       root,

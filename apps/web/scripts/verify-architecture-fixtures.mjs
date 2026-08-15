@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+
 import { runDependencyCruiser } from './run-dependency-cruiser.mjs';
 
 const cases = [
@@ -56,16 +58,30 @@ const cases = [
   ],
 ];
 
+const result = runDependencyCruiser(
+  [
+    '--config',
+    '.dependency-cruiser.cjs',
+    '--output-type',
+    'json',
+    'tests/architecture/fixtures/failing',
+  ],
+  { encoding: 'utf8' },
+);
+const output = `${result.stdout}\n${result.stderr}`;
+assert.equal(result.status, 0, output);
+
+const report = JSON.parse(result.stdout);
+const violations = report.summary?.violations ?? [];
 for (const [rule, fixture] of cases) {
-  const result = runDependencyCruiser(
-    ['--config', '.dependency-cruiser.cjs', '--output-type', 'err', fixture],
-    { encoding: 'utf8' },
+  assert.equal(
+    violations.some(
+      (violation) =>
+        violation.from === fixture && violation.rule?.name === rule,
+    ),
+    true,
+    `Expected ${fixture} to violate ${rule}.\n${output}`,
   );
-  const output = `${result.stdout}\n${result.stderr}`;
-  if (result.status === 0 || !output.includes(rule)) {
-    console.error(`Expected ${fixture} to violate ${rule}.\n${output}`);
-    process.exit(1);
-  }
 }
 console.log(
   'Expected architecture violations were detected by their named rules.',
