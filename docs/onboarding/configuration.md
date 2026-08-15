@@ -59,8 +59,10 @@ The API supports `Development`, `Test`, `Staging`, and `Production` environment 
 | `POSTGRES_PASSWORD` | Optional; local default supplied | Yes | String | Local-only PostgreSQL credential |
 | `POSTGRES_HOST_PORT` | Optional; defaults to `55432` | No | Port | PostgreSQL host binding |
 | `REDIS_HOST_PORT` | Optional; defaults to `6379` | No | Port | Redis host binding |
+| `API_PORT` | Optional; defaults to `8080` | No | Port | Platform API host binding and browser API URL |
+| `WEB_PORT` | Optional; defaults to `3000` | No | Port | Web host binding and API allowed origin |
 
-`POSTGRES_DATABASE`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` are intentionally shared with the API template: the repository provisions them and the API consumes them. Their owner remains repository infrastructure for Compose and API runtime configuration for direct execution.
+`POSTGRES_DATABASE`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` are intentionally shared with the API template: the repository provisions them and the API consumes them. Their owner remains repository infrastructure for Compose and API runtime configuration for direct execution. `API_PORT` and `WEB_PORT` are host-facing orchestration values; they do not replace container-internal listening configuration or become general application settings.
 
 ### Web application
 
