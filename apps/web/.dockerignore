@@ -1,5 +1,16 @@
 node_modules
 .next
 coverage
-.env.local
 .git
+.env
+.env.*
+**/.env
+**/.env.*
+*.jks
+*.key
+*.keystore
+*.p12
+*.pem
+*.pfx
+credentials.json
+service-account*.json

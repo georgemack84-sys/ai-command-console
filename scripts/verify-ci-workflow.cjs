@@ -52,10 +52,13 @@ assert.match(commands('repository-validation'), /npm run audit:dependencies:web/
 assert.match(commands('repository-validation'), /npm run audit:dependencies:development/);
 assert.match(commands('repository-validation'), /npm run test:dependency-audit-policy/);
 assert.match(commands('repository-validation'), /npm run test:release-workflows/);
+assert.match(commands('repository-validation'), /npm run validate:secrets/);
 assert.match(commands('frontend-validation'), /npm run repo -- validate frontend/);
 assert.match(commands('frontend-validation'), /npm run repo -- build frontend/);
+assert.match(commands('frontend-validation'), /npm run test:secret-isolation/);
 assert.match(commands('frontend-validation'), /npm run repo -- build storybook/);
 assert.match(commands('backend-validation'), /npm run repo -- validate backend/);
+assert.match(commands('backend-validation'), /npm ci --ignore-scripts/);
 assert.match(commands('backend-validation'), /npm run audit:dependencies:dotnet/);
 assert.match(commands('backend-validation'), /npm run backend:test:unit/);
 assert.equal(workflow.jobs['integration-validation'].needs, 'backend-validation');
@@ -80,5 +83,18 @@ assert.doesNotMatch(source, /continue-on-error/);
 assert.doesNotMatch(source, /\|\|\s*true/);
 assert.doesNotMatch(source, /permissions:\s*[\s\S]*?write:/);
 assert.doesNotMatch(source, /secrets\./);
+
+const repositoryCommands = commands('repository-validation');
+assert.ok(
+  repositoryCommands.indexOf('npm run validate:secrets') <
+    repositoryCommands.indexOf('npm run repo -- validate repo'),
+  'tracked-tree secret scanning must run before broader repository validation',
+);
+const frontendCommands = commands('frontend-validation');
+assert.ok(
+  frontendCommands.indexOf('npm run repo -- build frontend') <
+    frontendCommands.indexOf('npm run test:secret-isolation'),
+  'frontend artifact scanning must run immediately after the production build',
+);
 
 console.log('CI workflow contract: PASS (7 stable merge gates)');

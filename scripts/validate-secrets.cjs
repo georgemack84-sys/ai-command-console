@@ -15,6 +15,7 @@ const providerTokens = [
   /sk-[A-Za-z0-9_-]{20,}/g,
   /AKIA[0-9A-Z]{16}/g,
 ];
+const azureCredential = /(?:AccountKey|SharedAccessKey)\s*=\s*([^;\s"'${}]{20,})/gi;
 const approvedEncodedTestKey = 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=';
 
 function issue(path, content, index, code, message) {
@@ -98,6 +99,25 @@ function scanCredentialUrls(path, content) {
   return issues;
 }
 
+function scanDockerIgnore(path, content) {
+  if (basename(path) !== '.dockerignore') return [];
+  const activePatterns = new Set(
+    content
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#')),
+  );
+  const required = ['.env', '.env.*', '**/.env', '**/.env.*', '*.key', '*.pem', 'credentials.json'];
+  return required
+    .filter((pattern) => !activePatterns.has(pattern))
+    .map(() => ({
+      path,
+      line: 1,
+      code: 'docker-context',
+      message: 'Docker context policy must exclude local environment and credential files',
+    }));
+}
+
 function scanText(path, content) {
   const normalized = path.replaceAll('\\', '/');
   const issues = [];
@@ -112,6 +132,9 @@ function scanText(path, content) {
       issues.push(issue(normalized, content, match.index, 'provider-token', 'provider token signature must not be tracked'));
     }
   }
+  for (const match of content.matchAll(azureCredential)) {
+    issues.push(issue(normalized, content, match.index, 'azure-credential', 'Azure credential material must not be tracked'));
+  }
   for (const match of content.matchAll(publicSecretName)) {
     if (approvedPublicIdentifiers.has(match[0])) continue;
     issues.push(issue(normalized, content, match.index, 'public-secret-name', `${match[0]} may not use the browser-visible namespace`));
@@ -119,6 +142,7 @@ function scanText(path, content) {
 
   issues.push(...scanSensitiveAssignments(normalized, content));
   issues.push(...scanCredentialUrls(normalized, content));
+  issues.push(...scanDockerIgnore(normalized, content));
 
   const dumpPatterns = [
     /\b(?:configuration|config)\.AsEnumerable\s*\(/g,
@@ -134,6 +158,33 @@ function scanText(path, content) {
     const rawExceptionLog = /\b(?:logger|_logger)\.Log(?:Trace|Debug|Information|Warning|Error|Critical)\s*\(\s*(?:exception|[A-Za-z]+Exception)\s*,/g;
     for (const match of content.matchAll(rawExceptionLog)) {
       issues.push(issue(normalized, content, match.index, 'raw-exception-log', 'raw exception objects may carry secret values and must not be logged'));
+    }
+  }
+
+  if (normalized.startsWith('.github/workflows/') && /\.ya?ml$/i.test(normalized)) {
+    const unsafeWorkflowPatterns = [
+      /(^|\n)\s*(?:run:\s*)?(?:set\s+-x|printenv|env)\s*(?:\n|$)/g,
+      /\b(?:echo|printf)\b[^\n]*\$\{\{\s*secrets\./gi,
+      /toJSON\s*\(\s*secrets\s*\)/gi,
+    ];
+    for (const pattern of unsafeWorkflowPatterns) {
+      for (const match of content.matchAll(pattern)) {
+        issues.push(issue(normalized, content, match.index, 'workflow-secret-exposure', 'workflow commands must not dump environments or print secret expressions'));
+      }
+    }
+  }
+
+  if (basename(normalized).toLowerCase() === 'dockerfile') {
+    const unsafeDockerPatterns = [
+      new RegExp(`^\\s*ARG\\s+[A-Z0-9_]*${sensitiveName}[A-Z0-9_]*(?:\\s*=|\\s*$)`, 'gmi'),
+      new RegExp(`^\\s*ENV\\s+[A-Z0-9_]*${sensitiveName}[A-Z0-9_]*(?:\\s*=|\\s+)`, 'gmi'),
+      /^\s*(?:ADD|COPY)\s+[^\n]*(?:\.env(?:\.|\s|$)|\.pem(?:\s|$)|\.key(?:\s|$))/gmi,
+      new RegExp(`^\\s*RUN\\s+[^\\n]*(?:echo|printf|printenv)[^\\n]*${sensitiveName}`, 'gmi'),
+    ];
+    for (const pattern of unsafeDockerPatterns) {
+      for (const match of content.matchAll(pattern)) {
+        issues.push(issue(normalized, content, match.index, 'docker-secret-exposure', 'Docker build instructions must not accept, persist, copy, or print secrets'));
+      }
     }
   }
   return issues;

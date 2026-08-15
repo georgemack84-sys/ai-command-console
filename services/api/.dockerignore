@@ -1,3 +1,15 @@
 **/bin
 **/obj
 **/TestResults
+.env
+.env.*
+**/.env
+**/.env.*
+*.jks
+*.key
+*.keystore
+*.p12
+*.pem
+*.pfx
+credentials.json
+service-account*.json
