@@ -5,10 +5,13 @@ namespace Proprium.Infrastructure.Persistence;
 
 public sealed class PropriumDbContextFactory : IDesignTimeDbContextFactory<PropriumDbContext>
 {
+    private const string SyntheticConnectionString =
+        "Host=postgres.design-time.invalid;Port=5432;Database=proprium_design_metadata;Username=design_metadata;Password=synthetic-not-connected;Timeout=1";
+
     public PropriumDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<PropriumDbContext>()
-            .UseNpgsql("Host=localhost;Port=55432;Database=proprium;Username=proprium;Password=change-me")
+            .UseNpgsql(SyntheticConnectionString)
             .Options;
         return new PropriumDbContext(options);
     }
