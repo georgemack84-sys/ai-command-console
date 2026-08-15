@@ -45,8 +45,8 @@ local-administrator rules are validated deterministically.
 
 This resolver is the repository-approved equivalent of options binding plus
 `ValidateOnStart`: it completes before container construction and fails normal
-startup immediately. GP-33 may expand cross-model compatibility diagnostics but
-must not weaken this behavior.
+startup immediately. GP-33 added structured, aggregated failure categories
+without weakening this behavior.
 
 ## Consumption and secret safety
 

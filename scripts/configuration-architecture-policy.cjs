@@ -102,6 +102,24 @@ function validateConfigurationArchitecture({ files, documentation }) {
   );
   requirePattern(
     errors,
+    apiConfiguration,
+    /ConfigurationFailureCategory[\s\S]*Missing[\s\S]*Malformed[\s\S]*OutOfRange[\s\S]*Incompatible/,
+    "API startup validation must expose the canonical failure categories",
+  );
+  requirePattern(
+    errors,
+    apiConfiguration,
+    /ConfigurationValidationError[\s\S]*IsSecret/,
+    "API startup validation must retain secret classification in structured errors",
+  );
+  requirePattern(
+    errors,
+    apiConfiguration,
+    /ThrowIfInvalid\(\);[\s\S]*return new ApiConfigurationSnapshot/,
+    "API startup must finish validation before exposing the typed snapshot",
+  );
+  requirePattern(
+    errors,
     frontendEnvironment,
     /Object\.freeze\([\s\S]*parsePublicEnvironment/,
     "frontend environment adapter must expose a frozen validated object",

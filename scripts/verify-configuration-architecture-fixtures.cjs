@@ -32,7 +32,7 @@ const validFiles = [
   {
     file: "services/api/Proprium.Api/Configuration/ApiConfiguration.cs",
     source:
-      "IConfiguration ApiConfigurationSnapshot IOptions<PlatformOptions> ApiConfigurationException",
+      "IConfiguration ConfigurationFailureCategory Missing Malformed OutOfRange Incompatible ConfigurationValidationError IsSecret ApiConfigurationException ThrowIfInvalid(); return new ApiConfigurationSnapshot IOptions<PlatformOptions>",
   },
   {
     file: "services/api/Proprium.Application/Example.cs",
@@ -118,6 +118,24 @@ for (const [name, change, expected] of [
     },
     "frozen validated object",
   ],
+  [
+    "unclassified API validation",
+    {
+      file: validFiles[2].file,
+      source:
+        "IConfiguration ApiConfigurationSnapshot IOptions<PlatformOptions> ApiConfigurationException ThrowIfInvalid(); return new ApiConfigurationSnapshot",
+    },
+    "canonical failure categories",
+  ],
+  [
+    "snapshot exposed before validation completes",
+    {
+      file: validFiles[2].file,
+      source:
+        "IConfiguration ConfigurationFailureCategory Missing Malformed OutOfRange Incompatible ConfigurationValidationError IsSecret ApiConfigurationException return new ApiConfigurationSnapshot; ThrowIfInvalid(); IOptions<PlatformOptions>",
+    },
+    "before exposing the typed snapshot",
+  ],
 ]) {
   const files = validFiles.map((file) =>
     file.file === change.file ? change : file,
@@ -130,5 +148,5 @@ for (const [name, change, expected] of [
 }
 
 console.log(
-  "Configuration architecture controlled failures: PASS (6 rejected fixtures)",
+  "Configuration architecture controlled failures: PASS (8 rejected fixtures)",
 );

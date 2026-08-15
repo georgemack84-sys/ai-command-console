@@ -53,14 +53,24 @@ public static class ApiConfigurationSources
             }
 
             if (SecretKeyTerms.Any(term => key.Contains(term, StringComparison.OrdinalIgnoreCase)))
-                throw new ApiConfigurationException(key, "may not be supplied through command line.");
+                throw new ApiConfigurationException(
+                    key,
+                    ConfigurationFailureCategory.Incompatible,
+                    "may not be supplied through command line.",
+                    isSecret: true);
             if (!ApprovedCommandLineKeys.Contains(key))
-                throw new ApiConfigurationException(key, "is not an approved command-line override.");
+                throw new ApiConfigurationException(
+                    key,
+                    ConfigurationFailureCategory.Incompatible,
+                    "is not an approved command-line override.");
 
             approved.Add(argument);
             if (separator >= 0) continue;
             if (index + 1 >= arguments.Count || arguments[index + 1].StartsWith("--", StringComparison.Ordinal))
-                throw new ApiConfigurationException(key, "requires a value.");
+                throw new ApiConfigurationException(
+                    key,
+                    ConfigurationFailureCategory.Missing,
+                    "requires a value.");
             approved.Add(arguments[++index]);
         }
 
