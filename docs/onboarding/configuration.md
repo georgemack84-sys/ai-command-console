@@ -19,13 +19,15 @@ Create only the local file needed by the component being run:
 # POSIX shells
 cp .env.example .env
 cp apps/web/.env.example apps/web/.env.local
+cp services/api/.env.example services/api/.env
 
 # PowerShell
 Copy-Item .env.example .env
 Copy-Item apps/web/.env.example apps/web/.env.local
+Copy-Item services/api/.env.example services/api/.env
 ```
 
-Docker Compose automatically reads the root `.env`. Next.js reads `apps/web/.env.local`. The API currently uses ASP.NET Core process configuration and does not automatically load `services/api/.env`; use its template as the inventory for shell, IDE, container, or launch-profile environment values. GP-03 owns any later file-loading and precedence decision.
+Docker Compose automatically reads the root `.env`. Next.js reads `apps/web/.env.local`. `services/api/.env` is the canonical developer-owned API counterpart and local inventory, but the API does not automatically load it; source it through approved tooling or supply the same values through the shell, IDE, container, or launch profile. GP-32 owns any later file-loading and precedence change. A local file never overrides the documented provider model merely by existing.
 
 All local `.env` files are ignored. Never commit them. Replace sensitive examples before using a non-local environment.
 

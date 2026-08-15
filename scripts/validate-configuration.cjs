@@ -1,11 +1,15 @@
 const { readFileSync } = require('node:fs');
 const { basename } = require('node:path');
 const { spawnSync } = require('node:child_process');
+const {
+  canonicalTemplates,
+  validateEnvironmentTemplateOwnership,
+} = require('./environment-template-ownership-policy.cjs');
 
 const templates = {
-  root: '.env.example',
-  web: 'apps/web/.env.example',
-  api: 'services/api/.env.example',
+  root: canonicalTemplates[0].path,
+  web: canonicalTemplates[1].path,
+  api: canonicalTemplates[2].path,
 };
 
 const rootKeys = [
@@ -139,6 +143,19 @@ function trackedFiles() {
   return result.stdout.toString('utf8').split('\0').filter(Boolean);
 }
 
+const tracked = trackedFiles();
+const topologyErrors = validateEnvironmentTemplateOwnership({
+  trackedPaths: tracked,
+  ignoredPaths: [
+    ...canonicalTemplates.map(({ path }) => path),
+    ...canonicalTemplates.map(({ local }) => local),
+  ].filter(ignoreStatus),
+  contentsByPath: new Map(
+    canonicalTemplates.map(({ path }) => [path, readFileSync(path, 'utf8')]),
+  ),
+});
+if (topologyErrors.length) fail(topologyErrors.join('\n'));
+
 for (const path of Object.values(templates)) {
   requireTracked(path);
   requireTrackable(path);
@@ -196,7 +213,7 @@ for (const [key, owners] of ownersByKey) {
   }
 }
 
-for (const path of trackedFiles()) {
+for (const path of tracked) {
   if (approvedTrackedLocalProfiles.has(path)) continue;
   const name = basename(path);
   if (name === '.env' || (name.startsWith('.env.') && !name.endsWith('.example'))) {
@@ -204,13 +221,6 @@ for (const path of trackedFiles()) {
   }
 }
 
-[
-  '.env',
-  '.env.local',
-  '.env.production',
-  '.env.development.local',
-  'apps/web/.env.local',
-  'services/api/.env',
-].forEach(requireIgnored);
+['.env.local', '.env.production', '.env.development.local'].forEach(requireIgnored);
 
 console.log('Configuration templates and secret boundaries: PASS');

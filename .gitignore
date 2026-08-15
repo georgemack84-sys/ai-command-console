@@ -12,12 +12,14 @@ playwright-artifacts/
 playwright-report/
 test-results/
 
-# Local configuration and secrets. Examples and the two reviewed frontend
-# harness configurations remain tracked intentionally.
+# Local configuration and secrets. Canonical examples, deployment examples,
+# and the two reviewed frontend harness configurations remain tracked.
 .env
 .env.*
 !.env.example
 !.env.*.example
+!apps/web/.env.example
+!services/api/.env.example
 !apps/web/.env.docker
 !apps/web/.env.test
 *.jks
