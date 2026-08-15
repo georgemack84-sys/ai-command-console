@@ -14,6 +14,9 @@ const valid = {
   loginBoundary:
     "state.status === 'authenticated' router.replace(returnPath) state.status === 'unauthenticated'",
   protectedBoundary: "state.status === 'authenticated' return <>{children}</>",
+  rootLayout: 'ThemeProvider',
+  publicLayout: 'AuthenticationProvider',
+  protectedLayout: 'AuthenticationProvider',
   returnPath: "defaultAuthenticatedPath = '/dashboard'",
   stories:
     'export const LoginDefault export const LoginInvalidCredentials export const LoginSubmitting export const LoginRateLimited export const LoginServiceUnavailable export const BootstrapLoading',
@@ -76,6 +79,16 @@ const fixtures = [
       ),
     },
     'proprium_session',
+  ],
+  [
+    'root-wide authentication provider',
+    { rootLayout: 'ThemeProvider AuthenticationProvider' },
+    'authentication-independent routes',
+  ],
+  [
+    'missing public authentication provider',
+    { publicLayout: 'ThemeProvider' },
+    'public route group',
   ],
 ];
 

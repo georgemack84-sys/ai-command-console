@@ -2,7 +2,7 @@ import Script from 'next/script';
 
 import { application } from '@/config/application';
 import '@/styles/index.css';
-import { AppProviders } from '@/providers/app-providers';
+import { ThemeProvider } from '@/providers/theme-provider';
 
 import type { Metadata } from 'next';
 
@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <body>
         <Script src="/theme-bootstrap.js" strategy="beforeInteractive" />
-        <AppProviders>{children}</AppProviders>
+        <ThemeProvider>{children}</ThemeProvider>
         <div id="proprium-overlay-root" />
       </body>
     </html>
