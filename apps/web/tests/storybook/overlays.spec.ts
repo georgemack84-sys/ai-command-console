@@ -77,8 +77,31 @@ test('DropdownMenu supports arrows, disabled items, activation, and focus return
   await page.getByRole('menuitem', { name: 'Rename project' }).click();
   await expect(page.getByRole('status')).toHaveText('Rename selected');
   await trigger.click();
-  await page.mouse.click(1, 1);
-  await expect(page.getByRole('menu')).toHaveCount(0);
+  const reopenedMenu = page.getByRole('menu');
+  await expect(reopenedMenu).toBeVisible();
+  const menuBounds = await reopenedMenu.boundingBox();
+  const viewport = page.viewportSize();
+  expect(menuBounds).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  if (!menuBounds || !viewport)
+    throw new Error('Unable to locate the menu within the viewport.');
+  const outsidePoint = [
+    { x: 1, y: 1 },
+    { x: viewport.width - 2, y: 1 },
+    { x: 1, y: viewport.height - 2 },
+    { x: viewport.width - 2, y: viewport.height - 2 },
+  ].find(
+    ({ x, y }) =>
+      x < menuBounds.x ||
+      x > menuBounds.x + menuBounds.width ||
+      y < menuBounds.y ||
+      y > menuBounds.y + menuBounds.height,
+  );
+  expect(outsidePoint).toBeDefined();
+  if (!outsidePoint)
+    throw new Error('The menu unexpectedly covers the entire viewport.');
+  await page.mouse.click(outsidePoint.x, outsidePoint.y);
+  await expect(reopenedMenu).toHaveCount(0);
 });
 
 test('a menu can transfer interaction to a topmost AlertDialog', async ({
