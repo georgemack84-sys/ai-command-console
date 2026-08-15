@@ -127,24 +127,18 @@ try {
   const identityReady = new Promise((resolve) => {
     releaseIdentity = resolve;
   });
-  let identityRequests = 0;
   await authenticatedContext.route('**/api/v1/auth/me', async (route) => {
-    identityRequests += 1;
-    if (identityRequests === 1) {
-      await identityReady;
-      await route.fulfill({
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'user-1',
-          username: 'operator',
-          displayName: 'Operator',
-          roles: [],
-          permissions: ['application.authenticated.access'],
-        }),
-      });
-      return;
-    }
-    await route.fulfill({ status: 401 });
+    await identityReady;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'user-1',
+        username: 'operator',
+        displayName: 'Operator',
+        roles: [],
+        permissions: ['application.authenticated.access'],
+      }),
+    });
   });
   await authenticatedContext.route('**/api/v1/auth/logout', (route) =>
     route.fulfill({ status: 204 }),
@@ -355,12 +349,10 @@ try {
       cookie: 'proprium_session=opaque-session-value',
     },
   });
-  let loginIdentityRequests = 0;
+  let loginCompleted = false;
   await loginContext.route('**/api/v1/auth/me', (route) => {
-    loginIdentityRequests += 1;
-    return loginIdentityRequests === 1
-      ? route.fulfill({ status: 401 })
-      : route.fulfill({
+    return loginCompleted
+      ? route.fulfill({
           contentType: 'application/json',
           body: JSON.stringify({
             id: 'user-2',
@@ -369,11 +361,13 @@ try {
             roles: [],
             permissions: ['application.authenticated.access'],
           }),
-        });
+        })
+      : route.fulfill({ status: 401 });
   });
-  await loginContext.route('**/api/v1/auth/login', (route) =>
-    route.fulfill({ status: 204 }),
-  );
+  await loginContext.route('**/api/v1/auth/login', (route) => {
+    loginCompleted = true;
+    return route.fulfill({ status: 204 });
+  });
   const loginPage = await loginContext.newPage();
   await loginPage.goto(`${baseUrl}/login?returnTo=%2Fdashboard`);
   await loginPage.getByRole('heading', { name: 'Sign in' }).waitFor();
