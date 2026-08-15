@@ -11,7 +11,7 @@ exclusion, CI cleanup, and infrastructure-independent application builds.
 | Evidence                                 | Result                                            |
 | ---------------------------------------- | ------------------------------------------------- |
 | Root/configuration contract              | PASS: 8 canonical Proprium keys                   |
-| Controlled root and Compose failures     | PASS: 7 rejected fixtures                         |
+| Controlled root and Compose failures     | PASS: 8 rejected fixtures                         |
 | Environment-template ownership failures  | PASS: 6 rejected fixtures                         |
 | GP-27 configuration architecture policy  | PASS: 157 production source files                 |
 | GP-27 controlled architecture failures   | PASS: 5 rejected fixtures                         |

@@ -21,7 +21,7 @@
 | ------------------------------------------------ | ----------------------------------------------------------------------------- |
 | Focused environment tests                        | PASS — 13 tests                                                               |
 | Invalid prebuild configuration proof             | PASS — failure named the invalid key and did not print the unrelated sentinel |
-| Repository configuration and controlled fixtures | PASS — ownership and root contracts, 13 rejected fixtures                     |
+| Repository configuration and controlled fixtures | PASS — ownership and root contracts, 14 rejected fixtures                     |
 | Frontend typecheck                               | PASS                                                                          |
 | Frontend ESLint                                  | PASS — zero warnings                                                          |
 | Frontend dependency architecture                 | PASS — production and passing graphs clean; prohibited fixtures rejected      |

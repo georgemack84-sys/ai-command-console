@@ -8,6 +8,7 @@ const canonicalRootKeys = [
   "API_PORT",
   "WEB_PORT",
 ];
+const yaml = require("js-yaml");
 const { parseEnvironmentTemplate } = require("./environment-template-parser.cjs");
 
 const portKeys = new Set([
@@ -78,11 +79,30 @@ function validateRootComposeAlignment(content) {
     if (!content.includes(marker))
       errors.push(`Compose is missing the ${relationship} mapping`);
   }
+  errors.push(...validateMigrationExecution(content));
   return errors;
+}
+
+function validateMigrationExecution(content) {
+  let compose;
+  try {
+    compose = yaml.load(content);
+  } catch (error) {
+    return [`Compose cannot be parsed: ${error.message}`];
+  }
+
+  const command = compose?.services?.["database-migrations"]?.command;
+  if (!Array.isArray(command) || command.length !== 1 || command[0] !== "--migrate") {
+    return [
+      "Compose database-migrations command must append only --migrate to the image ENTRYPOINT",
+    ];
+  }
+  return [];
 }
 
 module.exports = {
   canonicalRootKeys,
+  validateMigrationExecution,
   validateRootComposeAlignment,
   validateRootEnvironmentTemplate,
 };

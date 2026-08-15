@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const {
+  validateMigrationExecution,
   validateRootComposeAlignment,
   validateRootEnvironmentTemplate,
 } = require("./root-environment-template-policy.cjs");
@@ -65,6 +66,21 @@ assert.ok(
   "a partially wired API port did not fail Compose alignment",
 );
 
+assert.deepEqual(
+  validateMigrationExecution(`services:
+  database-migrations:
+    command: ["--migrate"]
+`),
+  [],
+);
+assert.ok(
+  validateMigrationExecution(`services:
+  database-migrations:
+    command: ["dotnet", "Proprium.Api.dll", "--migrate"]
+`).some((error) => error.includes("append only --migrate")),
+  "a duplicated image entrypoint did not fail the migration execution contract",
+);
+
 console.log(
-  "Root environment template controlled failures: PASS (7 rejected fixtures)",
+  "Root environment template controlled failures: PASS (8 rejected fixtures)",
 );

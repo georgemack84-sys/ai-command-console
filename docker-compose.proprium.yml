@@ -31,7 +31,7 @@ services:
     build:
       context: .
       dockerfile: services/api/Proprium.Api/Dockerfile
-    command: ["dotnet", "Proprium.Api.dll", "--migrate"]
+    command: ["--migrate"]
     environment: &platform_environment
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
