@@ -256,6 +256,10 @@ const commands = new Map([
           'run',
           'validate:backend-architecture',
         ]),
+        processStep('Build-time infrastructure independence', 'npm', [
+          'run',
+          'validate:build-time-independence',
+        ]),
         commandStep(
           'Backend authentication core',
           'validate authentication-core',

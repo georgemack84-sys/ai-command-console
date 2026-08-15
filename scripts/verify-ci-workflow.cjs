@@ -52,6 +52,7 @@ assert.match(commands('frontend-validation'), /npm run repo -- build frontend/);
 assert.match(commands('frontend-validation'), /npm run repo -- build storybook/);
 assert.match(commands('backend-validation'), /npm run repo -- validate backend/);
 assert.match(commands('backend-validation'), /npm run backend:test:unit/);
+assert.equal(workflow.jobs['integration-validation'].needs, 'backend-validation');
 assert.match(commands('integration-validation'), /npm run repo -- migrate/);
 assert.match(commands('integration-validation'), /npm run backend:test:integration/);
 assert.match(commands('docker-validation'), /npm run repo -- validate docker/);

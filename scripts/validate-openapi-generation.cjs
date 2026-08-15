@@ -9,12 +9,14 @@ const repositoryRoot = join(__dirname, '..');
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'proprium-openapi-'));
 const openApiDocument = join(temporaryDirectory, 'proprium-openapi.json');
 
-function run(name, args) {
+function run(name, args, prohibitedOutput, workingDirectory = repositoryRoot) {
   const result = spawnSync(name, args, {
-    cwd: repositoryRoot,
-    stdio: 'inherit',
+    cwd: workingDirectory,
+    stdio: prohibitedOutput ? 'pipe' : 'inherit',
+    encoding: 'utf8',
     env: {
       ...process.env,
+      APPDATA: temporaryDirectory,
       DOTNET_CLI_HOME: temporaryDirectory,
       DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false',
       DOTNET_CLI_TELEMETRY_OPTOUT: '1',
@@ -26,9 +28,24 @@ function run(name, args) {
     },
   });
   if (result.error) {
-    console.error(`Required executable "${name}" could not be started: ${result.error.message}`);
+    console.error(
+      `Required executable "${name}" could not be started: ${result.error.message}`,
+    );
     process.exitCode = 1;
     return false;
+  }
+  if (prohibitedOutput) {
+    process.stdout.write(result.stdout ?? '');
+    process.stderr.write(result.stderr ?? '');
+    if (
+      prohibitedOutput.test(`${result.stdout ?? ''}\n${result.stderr ?? ''}`)
+    ) {
+      console.error(
+        'OpenAPI generation activated a runtime listener or infrastructure operation.',
+      );
+      process.exitCode = 1;
+      return false;
+    }
   }
   if (result.status !== 0) {
     process.exitCode = result.status ?? 1;
@@ -39,18 +56,23 @@ function run(name, args) {
 
 try {
   if (
-    run('dotnet', [
-      'run',
-      '--project',
-      'services/api/Proprium.Api',
-      '--configuration',
-      'Release',
-      '--no-build',
-      '--no-restore',
-      '--',
-      '--write-openapi',
-      openApiDocument,
-    ])
+    run(
+      'dotnet',
+      [
+        'run',
+        '--project',
+        join(repositoryRoot, 'services', 'api', 'Proprium.Api'),
+        '--configuration',
+        'Release',
+        '--no-build',
+        '--no-restore',
+        '--',
+        '--write-openapi',
+        openApiDocument,
+      ],
+      /Now listening on:|Application started|PostgreSQL is unavailable|Redis is unavailable|Applying migration/i,
+      temporaryDirectory,
+    )
   ) {
     run(process.execPath, [
       join(repositoryRoot, 'scripts', 'validate-openapi.cjs'),

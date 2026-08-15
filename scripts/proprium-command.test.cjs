@@ -70,7 +70,7 @@ test('root validation dispatches repository, frontend, then backend', () => {
   const recorded = recorder();
   execute('validate', { spawn: recorded.spawn, log() {} });
 
-  assert.equal(recorded.calls.length, 10);
+  assert.equal(recorded.calls.length, 11);
   assert.deepEqual(npmArguments(recorded.calls[0]), [
     'run',
     'validate:repository',
@@ -91,6 +91,12 @@ test('root validation dispatches repository, frontend, then backend', () => {
     'run',
     'backend:format:check',
   ]);
+  assert.ok(
+    recorded.calls.some(
+      (call) =>
+        npmArguments(call).join(' ') === 'run validate:build-time-independence',
+    ),
+  );
   assert.deepEqual(npmArguments(recorded.calls.at(-1)), [
     'run',
     'validate:backend-test-classification',
@@ -104,7 +110,7 @@ test('the single-word validate command is accepted by the CLI', async () => {
     await main(['validate'], { spawn: recorded.spawn, log() {} }),
     0,
   );
-  assert.equal(recorded.calls.length, 10);
+  assert.equal(recorded.calls.length, 11);
 });
 
 test('a child failure propagates and stops grouped validation', () => {
