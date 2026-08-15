@@ -34,6 +34,7 @@ test('canonical command surface contains the GP-13 contract', () => {
     [...commands.keys()],
     [
       'validate repo',
+      'validate configuration',
       'validate documentation',
       'validate qualification',
       'validate baseline',
@@ -64,6 +65,13 @@ test('canonical command surface contains the GP-13 contract', () => {
       'test',
     ],
   );
+});
+
+test('Part II configuration qualification delegates to one stable package gate', () => {
+  const recorded = recorder();
+  execute('validate configuration', { spawn: recorded.spawn, log() {} });
+  assert.equal(recorded.calls.length, 1);
+  assert.deepEqual(npmArguments(recorded.calls[0]), ['run', 'validate:configuration']);
 });
 
 test('root validation dispatches repository, frontend, then backend', () => {

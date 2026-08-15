@@ -60,6 +60,18 @@ const commands = new Map([
     },
   ],
   [
+    'validate configuration',
+    {
+      description: 'Run the complete infrastructure-independent Part II configuration gate.',
+      steps: [
+        processStep('Part II configuration qualification', 'npm', [
+          'run',
+          'validate:configuration',
+        ]),
+      ],
+    },
+  ],
+  [
     'validate documentation',
     {
       description: 'Validate the developer documentation contract.',

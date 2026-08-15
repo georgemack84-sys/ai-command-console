@@ -30,6 +30,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Scan tracked tree for secret leakage
         run: npm run validate:secrets
+      - name: Qualify Part II configuration
+        run: npm run repo -- validate configuration
       - name: Validate repository policy
         run: npm run repo -- validate repo
       - name: Verify canonical command contracts
