@@ -45,7 +45,13 @@ public sealed class SecretDisplayTests
             new AuthenticationRequestOptions(),
             localAdministrator);
 
-        foreach (var value in new object[] { localAdministrator, snapshot })
+        foreach (var value in new object[]
+        {
+            localAdministrator,
+            snapshot,
+            snapshot.Postgres,
+            snapshot.Redis,
+        })
         {
             Assert.DoesNotContain(secret, value.ToString(), StringComparison.Ordinal);
             Assert.DoesNotContain("operator", value.ToString(), StringComparison.Ordinal);
