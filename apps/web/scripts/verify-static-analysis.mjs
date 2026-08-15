@@ -33,7 +33,7 @@ function output(result) {
   return [result.stdout, result.stderr].filter(Boolean).join('\n');
 }
 
-function lint(path) {
+function lint(paths) {
   return run(eslintCli, [
     '--format',
     'json',
@@ -42,14 +42,15 @@ function lint(path) {
     '--report-unused-disable-directives',
     '--report-unused-inline-configs',
     'error',
-    relative(packageRoot, path),
+    ...paths.map((path) => relative(packageRoot, path)),
   ]);
 }
 
-function lintRuleIds(result) {
-  const report = JSON.parse(result.stdout);
-  return new Set(
-    report.flatMap(({ messages }) => messages.map(({ ruleId }) => ruleId)),
+function lintReport(result, path) {
+  const expectedPath = relative(packageRoot, path).replaceAll('\\', '/');
+  return JSON.parse(result.stdout).find(
+    ({ filePath }) =>
+      relative(packageRoot, filePath).replaceAll('\\', '/') === expectedPath,
   );
 }
 
@@ -109,8 +110,6 @@ try {
     cleanPath,
     'export function intentional(_unused: string): number { return 1; }\n',
   );
-  const clean = lint(cleanPath);
-  assert.equal(clean.status, 0, output(clean));
 
   const invalidPath = join(fixtureRoot, 'invalid.tsx');
   const invalidSource = `import { useMemo } from 'react';
@@ -132,18 +131,26 @@ export function InvalidHook({ enabled }: { enabled: boolean }) {
 }
 `;
   writeFileSync(invalidPath, invalidSource);
-  const invalid = lint(invalidPath);
+  const lintFixtures = lint([cleanPath, invalidPath]);
   assert.notEqual(
-    invalid.status,
+    lintFixtures.status,
     0,
     'ESLint accepted deliberately invalid source.',
   );
+  const cleanReport = lintReport(lintFixtures, cleanPath);
+  assert.ok(cleanReport, 'ESLint omitted the clean fixture from its report.');
+  assert.deepEqual(cleanReport.messages, [], output(lintFixtures));
   assert.equal(
     readFileSync(invalidPath, 'utf8'),
     invalidSource,
     'Canonical lint mutated source.',
   );
-  const rules = lintRuleIds(invalid);
+  const invalidReport = lintReport(lintFixtures, invalidPath);
+  assert.ok(
+    invalidReport,
+    'ESLint omitted the invalid fixture from its report.',
+  );
+  const rules = new Set(invalidReport.messages.map(({ ruleId }) => ruleId));
   for (const rule of [
     '@typescript-eslint/no-explicit-any',
     '@typescript-eslint/no-floating-promises',
@@ -160,12 +167,9 @@ export function InvalidHook({ enabled }: { enabled: boolean }) {
       `Expected fixture violation for ${rule}.`,
     );
   }
-  const report = JSON.parse(invalid.stdout);
-  const unusedCount = report
-    .flatMap(({ messages }) => messages)
-    .filter(
-      ({ ruleId }) => ruleId === '@typescript-eslint/no-unused-vars',
-    ).length;
+  const unusedCount = invalidReport.messages.filter(
+    ({ ruleId }) => ruleId === '@typescript-eslint/no-unused-vars',
+  ).length;
   assert.ok(
     unusedCount >= 2,
     'Expected unused import and variable violations.',
