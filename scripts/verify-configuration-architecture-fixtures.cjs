@@ -22,7 +22,12 @@ const validFiles = [
   {
     file: "services/api/Proprium.Api/Program.cs",
     source:
-      "ApiConfiguration.Resolve(builder.Configuration, env); builder.Build();",
+      "ApiConfigurationSources.Configure(builder.Configuration); ApiConfiguration.Resolve(builder.Configuration, env); builder.Build();",
+  },
+  {
+    file: "services/api/Proprium.Api/Configuration/ApiConfigurationSources.cs",
+    source:
+      'configuration.AddJsonFile("appsettings.json").AddJsonFile($"appsettings.{environmentName}.json").AddEnvironmentVariables(); addSecretProvider?.Invoke(configuration); configuration.AddCommandLine(args);',
   },
   {
     file: "services/api/Proprium.Api/Configuration/ApiConfiguration.cs",
@@ -75,6 +80,14 @@ const fixtures = [
     },
     "process.env",
   ],
+  [
+    "ad hoc backend provider",
+    {
+      file: "services/api/Proprium.Infrastructure/FeatureConfiguration.cs",
+      source: 'configuration.AddJsonFile("feature.json")',
+    },
+    "canonical composition root",
+  ],
 ];
 
 for (const [name, file, expected] of fixtures) {
@@ -100,7 +113,7 @@ for (const [name, change, expected] of [
   [
     "unvalidated frontend object",
     {
-      file: validFiles[3].file,
+      file: "apps/web/src/config/environment.ts",
       source: "export const environment = process.env",
     },
     "frozen validated object",
@@ -117,5 +130,5 @@ for (const [name, change, expected] of [
 }
 
 console.log(
-  "Configuration architecture controlled failures: PASS (5 rejected fixtures)",
+  "Configuration architecture controlled failures: PASS (6 rejected fixtures)",
 );

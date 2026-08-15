@@ -4,6 +4,8 @@ const backendProduction =
   /^services\/api\/Proprium\.(?:Api|Application|Domain|Infrastructure)\/.*\.cs$/;
 const backendBootstrap =
   /^services\/api\/Proprium\.Api\/(?:Program\.cs|Configuration\/.*\.cs)$/;
+const backendSourceComposition =
+  "services/api/Proprium.Api/Configuration/ApiConfigurationSources.cs";
 const frontendProduction = /^apps\/web\/src\/.*\.(?:ts|tsx)$/;
 const frontendEnvironmentAdapter = "apps/web/src/config/environment.ts";
 const frontendTestBootstrap = "apps/web/src/test/setup.ts";
@@ -34,6 +36,16 @@ function validateConfigurationArchitecture({ files, documentation }) {
           `${file}: IConfiguration is outside the API bootstrap boundary`,
         );
       }
+      if (
+        /\.(?:AddJsonFile|AddEnvironmentVariables|AddCommandLine|AddUserSecrets)\s*\(/.test(
+          source,
+        ) &&
+        file !== backendSourceComposition
+      ) {
+        errors.push(
+          `${file}: configuration provider registration is outside the canonical composition root`,
+        );
+      }
     }
 
     if (
@@ -53,10 +65,23 @@ function validateConfigurationArchitecture({ files, documentation }) {
   const apiConfiguration =
     byPath.get("services/api/Proprium.Api/Configuration/ApiConfiguration.cs") ??
     "";
+  const apiConfigurationSources = byPath.get(backendSourceComposition) ?? "";
   const frontendEnvironment = byPath.get(frontendEnvironmentAdapter) ?? "";
   const frontendSchema =
     byPath.get("apps/web/src/config/environment-schema.ts") ?? "";
 
+  requirePattern(
+    errors,
+    program,
+    /ApiConfigurationSources\.Configure\([\s\S]*ApiConfiguration\.Resolve\(/,
+    "API startup must compose canonical providers before configuration resolution",
+  );
+  requirePattern(
+    errors,
+    apiConfigurationSources,
+    /AddJsonFile\("appsettings\.json"[\s\S]*AddJsonFile\(\$"appsettings\.\{environmentName\}\.json"[\s\S]*AddEnvironmentVariables\([\s\S]*addSecretProvider\?\.Invoke\([\s\S]*AddCommandLine\(/,
+    "API provider order must be defaults, environment-specific settings, environment variables, secrets, then CLI",
+  );
   requirePattern(
     errors,
     program,

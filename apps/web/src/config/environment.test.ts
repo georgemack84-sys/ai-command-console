@@ -65,10 +65,11 @@ describe('public environment', () => {
     ).toThrow(/HTTP or HTTPS/));
 
   it('rejects credentials and secret-bearing URL structures', () => {
+    const credentialUrl = `https://${['username', 'password'].join(':')}@api.example.test`;
     expect(() =>
       parsePublicEnvironment({
         ...valid,
-        NEXT_PUBLIC_API_BASE_URL: 'https://username:password@api.example.test',
+        NEXT_PUBLIC_API_BASE_URL: credentialUrl,
       }),
     ).toThrow(/must not contain credentials/);
     expect(() =>

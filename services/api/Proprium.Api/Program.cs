@@ -46,11 +46,14 @@ if (permissionExport is not null)
 }
 
 var openApiOutput = args.SkipWhile(argument => argument != "--write-openapi").Skip(1).FirstOrDefault();
-var builder = WebApplication.CreateBuilder(args);
-if (openApiOutput is not null)
-{
-    builder.WebHost.UseUrls("http://127.0.0.1:0");
-    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+var approvedConfigurationArguments = ApiConfigurationSources.ApprovedConfigurationArguments(args);
+var builder = WebApplication.CreateBuilder(approvedConfigurationArguments);
+ApiConfigurationSources.Configure(
+    builder.Configuration,
+    builder.Environment.ContentRootPath,
+    builder.Environment.EnvironmentName,
+    approvedConfigurationArguments,
+    openApiOutput is null ? null : configuration => configuration.AddInMemoryCollection(new Dictionary<string, string?>
     {
         ["POSTGRES_HOST"] = "openapi",
         ["POSTGRES_PORT"] = "5432",
@@ -63,8 +66,8 @@ if (openApiOutput is not null)
         ["SESSION_LIFETIME_MINUTES"] = "480",
         ["AUTH_ALLOWED_ORIGIN"] = "http://localhost",
         ["LOGIN_RATE_LIMIT_PRIVACY_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
-    });
-}
+    }));
+if (openApiOutput is not null) builder.WebHost.UseUrls("http://127.0.0.1:0");
 
 var configuration = ApiConfiguration.Resolve(builder.Configuration, builder.Environment.EnvironmentName);
 
