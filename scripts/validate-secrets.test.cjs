@@ -33,6 +33,13 @@ test('rejects recognizable provider tokens assembled as fixtures', () => {
   assert.doesNotMatch(JSON.stringify(findings), new RegExp(token));
 });
 
+test('rejects Azure credentials and credential-bearing database URLs', () => {
+  const azureCredential = ['Account', 'Key=', 'A'.repeat(44)].join('');
+  const databaseUrl = ['postgresql://fixture:', 'plausible-value', '@database.example/proprium'].join('');
+  assert.equal(scanText('fixtures/azure.txt', azureCredential)[0].code, 'azure-credential');
+  assert.equal(scanText('fixtures/database.txt', databaseUrl)[0].code, 'credential-url');
+});
+
 test('rejects tracked local environment and private-key file names', () => {
   assert.equal(scanPath('services/api/.env')[0].code, 'tracked-environment');
   assert.equal(scanPath('certificates/service.key')[0].code, 'secret-file');
@@ -48,4 +55,21 @@ test('rejects broad configuration dumps and raw API exception logging', () => {
   const configurationDump = ['configuration.', 'AsEnumerable();'].join('');
   assert.equal(scanText('services/api/Example.cs', configurationDump)[0].code, 'configuration-dump');
   assert.equal(scanText('services/api/Example.cs', 'logger.LogError(exception, "failed");')[0].code, 'raw-exception-log');
+});
+
+test('rejects workflow and Docker secret exfiltration primitives', () => {
+  const secretExpression = ['${{ ', 'secrets.DEPLOY_TOKEN', ' }}'].join('');
+  assert.equal(
+    scanText('.github/workflows/release.yml', `run: echo ${secretExpression}\n`)[0].code,
+    'workflow-secret-exposure',
+  );
+  assert.equal(
+    scanText('services/api/Dockerfile', ['ARG DATABASE_', 'PASSWORD\n'].join(''))[0].code,
+    'docker-secret-exposure',
+  );
+});
+
+test('requires Docker build contexts to exclude environment and credential files', () => {
+  const findings = scanText('apps/web/.dockerignore', '.env\n.env.*\n');
+  assert.ok(findings.some((finding) => finding.code === 'docker-context'));
 });

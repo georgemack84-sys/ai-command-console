@@ -47,8 +47,10 @@ function commands(job) {
 }
 
 assert.match(commands('repository-validation'), /npm run repo -- validate repo/);
+assert.match(commands('repository-validation'), /npm run validate:secrets/);
 assert.match(commands('frontend-validation'), /npm run repo -- validate frontend/);
 assert.match(commands('frontend-validation'), /npm run repo -- build frontend/);
+assert.match(commands('frontend-validation'), /npm run test:secret-isolation/);
 assert.match(commands('frontend-validation'), /npm run repo -- build storybook/);
 assert.match(commands('backend-validation'), /npm run repo -- validate backend/);
 assert.match(commands('backend-validation'), /npm run backend:test:unit/);
@@ -74,5 +76,18 @@ assert.doesNotMatch(source, /continue-on-error/);
 assert.doesNotMatch(source, /\|\|\s*true/);
 assert.doesNotMatch(source, /permissions:\s*[\s\S]*?write:/);
 assert.doesNotMatch(source, /secrets\./);
+
+const repositoryCommands = commands('repository-validation');
+assert.ok(
+  repositoryCommands.indexOf('npm run validate:secrets') <
+    repositoryCommands.indexOf('npm run repo -- validate repo'),
+  'tracked-tree secret scanning must run before broader repository validation',
+);
+const frontendCommands = commands('frontend-validation');
+assert.ok(
+  frontendCommands.indexOf('npm run repo -- build frontend') <
+    frontendCommands.indexOf('npm run test:secret-isolation'),
+  'frontend artifact scanning must run immediately after the production build',
+);
 
 console.log('CI workflow contract: PASS (7 stable merge gates)');

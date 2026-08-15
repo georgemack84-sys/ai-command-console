@@ -53,11 +53,15 @@ const requiredFiles = [
   'docs/validation/day-5/qualification.md',
   'docs/validation/day-5/week-2-admission.md',
   'docs/engineering/gp-18-baseline-freeze.md',
+  'docs/engineering/gp-35-secret-management-and-leak-prevention.md',
+  'docs/validation/week-3/gp-35-secret-management-and-leak-prevention.md',
   'scripts/validate-configuration.cjs',
   'scripts/validate-developer-documentation.cjs',
   'scripts/validate-day-5-qualification.cjs',
   'scripts/validate-baseline-freeze.cjs',
   'scripts/validate-secrets.cjs',
+  'scripts/validate-secret-artifacts.cjs',
+  'scripts/validate-docker-images.cjs',
   'scripts/verify-prerequisites.cjs',
 ];
 const textExtensions = new Set([

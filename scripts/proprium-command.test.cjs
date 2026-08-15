@@ -195,10 +195,16 @@ test('Docker and OpenAPI validation remain focused canonical domains', () => {
   const docker = recorder();
   execute('validate docker', { spawn: docker.spawn, log() {} });
   assert.deepEqual(
-    docker.calls.map((call) => call.args),
     [
+      npmArguments(docker.calls[0]),
+      ...docker.calls.slice(1, 3).map((call) => call.args),
+      npmArguments(docker.calls[3]),
+    ],
+    [
+      ['run', 'validate:secrets'],
       ['compose', '-f', 'docker-compose.proprium.yml', 'config', '--quiet'],
       ['compose', '-f', 'docker-compose.proprium.yml', 'build'],
+      ['run', 'validate:docker-images'],
     ],
   );
 

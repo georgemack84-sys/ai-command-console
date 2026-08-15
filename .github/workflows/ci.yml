@@ -28,6 +28,8 @@ jobs:
           cache: npm
       - name: Restore locked validation dependencies
         run: npm ci --ignore-scripts
+      - name: Scan tracked tree for secret leakage
+        run: npm run validate:secrets
       - name: Validate repository policy
         run: npm run repo -- validate repo
       - name: Verify canonical command contracts
@@ -44,6 +46,7 @@ jobs:
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_API_BASE_URL: https://api.ci.example
       NEXT_PUBLIC_ENVIRONMENT: test
+      GP35_FRONTEND_SECRET_SENTINEL: gp35-server-only-ci-test-only-sentinel
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -63,6 +66,9 @@ jobs:
         run: npm run repo -- validate frontend
       - name: Build frontend
         run: npm run repo -- build frontend
+      - name: Scan browser artifacts for secret leakage
+        run: npm run test:secret-isolation
+        working-directory: apps/web
       - name: Build Storybook
         run: npm run repo -- build storybook
       - name: Test Storybook accessibility and interactions

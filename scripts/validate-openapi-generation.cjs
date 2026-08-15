@@ -4,6 +4,7 @@ const { spawnSync } = require('node:child_process');
 const { mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
+const { scanArtifact } = require('./validate-secret-artifacts.cjs');
 
 const repositoryRoot = join(__dirname, '..');
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'proprium-openapi-'));
@@ -74,6 +75,19 @@ try {
       temporaryDirectory,
     )
   ) {
+    const findings = scanArtifact(openApiDocument, [
+      'synthetic-not-connected',
+      'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
+    ]);
+    if (findings.length) {
+      for (const finding of findings) {
+        console.error(`${finding.path}:${finding.line} [${finding.code}] ${finding.message}`);
+      }
+      console.error(`OpenAPI secret artifact scan: FAIL (${findings.length} finding${findings.length === 1 ? '' : 's'}; candidate values suppressed)`);
+      process.exitCode = 1;
+    } else {
+      console.log('OpenAPI secret artifact scan: PASS');
+    }
     run(process.execPath, [
       join(repositoryRoot, 'scripts', 'validate-openapi.cjs'),
       openApiDocument,

@@ -276,8 +276,10 @@ const commands = new Map([
     {
       description: 'Validate Compose configuration and application image builds.',
       steps: [
+        processStep('Docker secret policy', 'npm', ['run', 'validate:secrets']),
         processStep('Compose configuration', 'docker', [...compose, 'config', '--quiet']),
         processStep('Application image builds', 'docker', [...compose, 'build']),
+        processStep('Docker image secret scan', 'npm', ['run', 'validate:docker-images']),
       ],
     },
   ],
