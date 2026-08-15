@@ -5,7 +5,7 @@ does not add a second component, theme, overlay, shell, or route-state system.
 
 ## Qualification result
 
-`CONDITIONALLY_QUALIFIED` as of 2026-08-14. All repository-owned automated gates
+`BLOCKED` as of 2026-08-14. All repository-owned automated gates
 must pass at the GP-24 revision. The only exit-gate hold is the expired human
 screen-reader, native 200% browser-zoom, and visual contrast attestation recorded
 as `W2-A11Y-002`. Automated results must not be represented as that human review.
@@ -51,9 +51,11 @@ merge record and cannot be claimed before publication.
 
 No named reviewer has recorded a screen reader, browser-native 200% zoom, or
 visual contrast walkthrough for the GP-24 revision. `W2-A11Y-002` expired on
-2026-08-05 and has not been silently renewed. A reviewer must record date,
-platform, browser, assistive technology, tested stories/routes, and outcome in
-`accessibility-evidence.md`; any failure needs a new owned, expiring exception.
+2026-08-05 and has not been silently renewed. The machine-readable
+`accessibility-attestation.json` therefore remains `pending_human_review`. A
+reviewer must record date, platform, browser, assistive technology, tested
+stories/routes, and outcome there and in `accessibility-evidence.md`; any failure
+needs a new owned, expiring exception.
 
 ## Popover
 

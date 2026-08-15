@@ -18,6 +18,13 @@ release when the vulnerable package cannot enter a runtime artifact. A developme
 dependency becomes release-blocking if it executes against untrusted input in CI,
 is copied into an image, or otherwise crosses that boundary.
 
+Development findings are not silently ignored. The Repository Validation job
+compares the full root and web audit reports to
+`dependency-audit-exceptions.json`. Every reported advisory and affected package
+must match an owned exception with a severity ceiling, exposure analysis,
+mitigation, and future expiry. New advisories, expanded package impact, severity
+growth, expired approvals, and stale exceptions fail the gate.
+
 ## Maintenance
 
 Dependabot checks the root npm graph, frontend npm graph, NuGet packages, GitHub

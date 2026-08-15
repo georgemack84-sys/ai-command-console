@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "status": "pending_human_review",
+  "reviewer": null,
+  "reviewDate": null,
+  "platform": null,
+  "browser": null,
+  "assistiveTechnology": null,
+  "testedSurfaces": [],
+  "checks": {
+    "screenReader": "pending",
+    "nativeZoom200Percent": "pending",
+    "visualContrast": "pending"
+  },
+  "notes": "A named human reviewer must complete every field and check before Week 2 can be qualified."
+}

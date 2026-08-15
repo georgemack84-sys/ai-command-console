@@ -53,7 +53,7 @@ GP-24 aggregates and qualifies the complete Week 2 foundation across responsive
 shell, primitives, overlays, route states, Storybook, accessibility, keyboard
 walkthroughs, 320px-or-wider behavior, scaling, cleanup, and CI ownership. The
 automated foundation is ready, while the expired human assistive-technology and
-visual-review exception makes the exit result conditional. See the
+visual-review exception blocks the exit result. See the
 [implementation specification](../engineering/gp-24-ui-foundation-qualification.md)
 and [qualification record](../validation/week-2/gp-24-ui-foundation-qualification.md).
 

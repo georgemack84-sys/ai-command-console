@@ -11,6 +11,7 @@ const requiredFiles = [
   'docs/week-2-qualification.md',
   'docs/accessibility-evidence.md',
   'docs/accessibility-exceptions.md',
+  'docs/accessibility-attestation.json',
   '../../docs/engineering/gp-24-ui-foundation-qualification.md',
   '../../docs/validation/week-2/gp-24-ui-foundation-qualification.md',
 ];
@@ -31,6 +32,7 @@ const errors = [
     qualificationRecord: read(root, 'docs/week-2-qualification.md'),
     accessibilityEvidence: read(root, 'docs/accessibility-evidence.md'),
     accessibilityExceptions: read(root, 'docs/accessibility-exceptions.md'),
+    accessibilityAttestation: read(root, 'docs/accessibility-attestation.json'),
     dependencies: packageJson,
   }),
 ];

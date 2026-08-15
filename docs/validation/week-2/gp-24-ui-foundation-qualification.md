@@ -40,6 +40,6 @@ build set `NODE_ENV=production` and passed.
 
 ## Result
 
-`CONDITIONALLY_QUALIFIED`: automated qualification is required to be green, but
-the expired `W2-A11Y-002` human screen-reader/native-zoom/visual attestation blocks
-an unconditional Week 2 exit claim.
+`BLOCKED`: automated qualification is required to be green, but the expired
+`W2-A11Y-002` human screen-reader/native-zoom/visual attestation prevents the
+Week 2 exit gate from closing.

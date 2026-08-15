@@ -30,6 +30,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Audit production Node dependencies
         run: npm run audit:dependencies:root && npm run audit:dependencies:web
+      - name: Audit development dependency exceptions
+        run: npm run audit:dependencies:development && npm run test:dependency-audit-policy
       - name: Validate repository policy
         run: npm run repo -- validate repo
       - name: Verify canonical command contracts

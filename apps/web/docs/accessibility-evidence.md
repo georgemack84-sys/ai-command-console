@@ -17,6 +17,10 @@ The former temporary exception `W2-A11Y-002` expired on 2026-08-05. It has not
 been renewed, so the Week 2 result remains conditional until a named human review
 records its environment and outcome here.
 
+The authoritative completion state is recorded in
+`accessibility-attestation.json`. Automation may validate that record but must
+not populate a reviewer identity or change its status to `completed`.
+
 ## Keyboard and focus
 
 - The skip link is the first focusable item and moves focus to `#main-workspace`.

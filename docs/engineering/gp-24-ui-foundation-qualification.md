@@ -29,5 +29,5 @@ concrete consumer.
 
 Automated gates may establish code readiness but cannot impersonate a human
 assistive-technology or visual review. Because `W2-A11Y-002` expired before this
-qualification, the correct result is `CONDITIONALLY_QUALIFIED` until a named
-reviewer completes and records that work.
+qualification, the correct exit result is `BLOCKED` until a named reviewer
+completes and records that work.

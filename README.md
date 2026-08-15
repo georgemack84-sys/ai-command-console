@@ -103,8 +103,8 @@ Validate loading, safe route recovery, not-found semantics, shell preservation,
 focus behavior, and controlled failures with
 `npm run repo -- validate route-states`.
 Qualify the complete Week 2 UI foundation and its evidence contract with
-`npm run repo -- validate week-2`. The current qualification is conditional until
-the named human screen-reader, native-zoom, and visual review is recorded.
+`npm run repo -- validate week-2`. The current exit result is blocked until the
+named human screen-reader, native-zoom, and visual review is recorded.
 Validate the Week 3 login, session bootstrap, protected-shell gating, redirect
 safety, and no-flash contract with
 `npm run repo -- validate authentication-ui`.
