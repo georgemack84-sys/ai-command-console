@@ -1,13 +1,12 @@
-import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { runDependencyCruiser } from './run-dependency-cruiser.mjs';
 
 const cases = [
   [
-    'ui-cannot-depend-on-shell',
+    'no-shared-ui-to-higher-layers',
     'tests/architecture/fixtures/failing/ui-to-shell.ts',
   ],
   [
-    'theme-cannot-depend-on-ui-or-shell',
+    'no-theme-to-higher-layers',
     'tests/architecture/fixtures/failing/theme-to-ui.ts',
   ],
   [
@@ -18,20 +17,48 @@ const cases = [
     'no-private-theme-deep-imports',
     'tests/architecture/fixtures/failing/private-theme-import.ts',
   ],
-  ['no-circular', 'tests/architecture/fixtures/failing/circular-a.ts'],
+  [
+    'no-lower-layer-to-app',
+    'tests/architecture/fixtures/failing/component-to-route.ts',
+  ],
+  [
+    'no-shared-ui-to-higher-layers',
+    'tests/architecture/fixtures/failing/shared-ui-to-component.ts',
+  ],
+  [
+    'no-components-to-shell-or-providers',
+    'tests/architecture/fixtures/failing/component-to-provider.ts',
+  ],
+  [
+    'no-lib-to-presentation-or-composition',
+    'tests/architecture/fixtures/failing/lib-to-ui.ts',
+  ],
+  [
+    'no-providers-to-routes-shell-or-components',
+    'tests/architecture/fixtures/failing/provider-to-component.ts',
+  ],
+  [
+    'no-shell-to-routes-or-providers',
+    'tests/architecture/fixtures/failing/shell-to-provider.ts',
+  ],
+  ['config-is-a-leaf', 'tests/architecture/fixtures/failing/config-to-lib.ts'],
+  [
+    'production-cannot-depend-on-stories-or-tooling',
+    'tests/architecture/fixtures/failing/production-to-story.ts',
+  ],
+  [
+    'no-unresolved-dependencies',
+    'tests/architecture/fixtures/failing/unresolved.ts',
+  ],
+  [
+    'no-circular-dependencies',
+    'tests/architecture/fixtures/failing/circular-a.ts',
+  ],
 ];
 
 for (const [rule, fixture] of cases) {
-  const result = spawnSync(
-    process.execPath,
-    [
-      resolve('node_modules/dependency-cruiser/bin/dependency-cruise.mjs'),
-      '--config',
-      '.dependency-cruiser.cjs',
-      '--output-type',
-      'err',
-      fixture,
-    ],
+  const result = runDependencyCruiser(
+    ['--config', '.dependency-cruiser.cjs', '--output-type', 'err', fixture],
     { encoding: 'utf8' },
   );
   const output = `${result.stdout}\n${result.stderr}`;

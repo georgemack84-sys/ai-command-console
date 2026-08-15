@@ -1,17 +1,20 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiError } from '@/lib/api/api-error';
+
 import { registerAuthenticationFailureHandler } from '@/lib/api/api-client';
-import { endSession, getCurrentUser } from './auth-service';
+import { ApiError } from '@/lib/api/api-error';
+
 import {
   AuthenticationContext,
   type AuthenticationContextValue,
 } from './auth-context';
+import { endSession, getCurrentUser } from './auth-service';
+
 import type { AuthenticationState } from './auth-state';
 
 export function AuthenticationProvider({ children }: React.PropsWithChildren) {
   const [state, setState] = useState<AuthenticationState>({
-    status: 'loading',
+    status: 'unknown',
   });
   const generation = useRef(0);
   const active = useRef<AbortController | undefined>(undefined);
@@ -28,7 +31,7 @@ export function AuthenticationProvider({ children }: React.PropsWithChildren) {
     active.current?.abort();
     const controller = new AbortController();
     active.current = controller;
-    setState({ status: 'loading' });
+    setState({ status: 'unknown' });
     try {
       const user = await getCurrentUser(controller.signal);
       if (request === generation.current) {

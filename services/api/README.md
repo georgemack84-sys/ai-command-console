@@ -1,15 +1,44 @@
 # Proprium API
 
-The backend is a .NET 8 layered solution. Run the complete qualification suite with:
+The canonical environment inventory is `services/api/.env.example`; required, optional, sensitive, and conditional settings are documented in the [configuration guide](../../docs/onboarding/configuration.md).
+
+The backend is a .NET 8 layered solution. From the repository root, restore and
+run its canonical infrastructure-independent qualification with:
 
 ```bash
-dotnet test services/api/Proprium.sln
-dotnet build services/api/Proprium.sln
-docker compose build api
-docker compose up api
+npm run repo -- bootstrap
+npm run repo -- validate backend
+npm run repo -- validate authentication-core
+npm run backend:test:unit
 ```
 
+Start the supported local API together with its PostgreSQL, Redis, migration, and
+frontend dependencies through `npm run repo -- dev`; verify it with `npm run repo
+-- health`. The actual Compose service is `platform-api`. See the
+[developer setup](../../docs/onboarding/developer-setup.md) and
+[migration guide](../../docs/operations/migrations.md).
+
+The canonical compiler/analyzer sequence is infrastructure-independent:
+
+```bash
+dotnet restore services/api/Proprium.sln
+dotnet build services/api/Proprium.sln --configuration Release --no-restore --nologo
+npm run validate:backend-compiler
+```
+
+The build must finish with zero warnings and zero errors. The [GP-08 backend compiler specification](../../docs/engineering/gp-08-backend-compiler-standards.md) defines nullable analysis, warnings-as-errors, the fixed .NET 8 analyzer baseline, generated-code handling, and the suppression policy.
+
+After the Release build, run `npm run validate:backend-architecture` to verify the project graph, package isolation, compiled layer and namespace boundaries, and dependency-resolution rules without rebuilding or starting infrastructure. The [GP-10 backend architecture specification](../../docs/engineering/gp-10-backend-architecture.md) records the canonical dependency matrix, controlled negative fixtures, and narrow composition-boundary exceptions.
+
+Run `npm run validate:backend-test-classification` after the build to prove every xUnit test has one valid Unit, Architecture, or Integration category without starting infrastructure. Use `npm run backend:test:unit`, `npm run backend:test:architecture`, and `npm run backend:test:integration` to select each suite; only the Integration execution command requires its external services. The [GP-11 classification specification](../../docs/engineering/gp-11-integration-test-classification.md) defines the marker, approved evidence, filter contract, and negative fixtures.
+
+Apply canonical backend formatting with `npm run backend:format` and verify it without changing files with `npm run backend:format:check`. `npm run backend:format:verify` proves drift detection, correction, non-mutation, and idempotence with a disposable project. The [GP-09 backend formatting specification](../../docs/engineering/gp-09-backend-formatting.md) defines the `.editorconfig` policy, solution target, generated-code ownership, and separation from analyzer auto-fixes.
+
 The platform endpoints are `/api/v1`, `/api/v1/health`, `/api/v1/health/live`, and `/api/v1/health/ready`. OpenAPI is at `/openapi/v1.json`; Swagger UI is available in Development only.
+
+The [GP-26 backend authentication specification](../../docs/engineering/gp-26-backend-authentication-core.md)
+freezes password verification, opaque session issuance and validation, cookie
+policy, authentication events, and the protected OpenAPI contract.
 
 ## Week 3 identity foundation
 

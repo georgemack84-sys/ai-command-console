@@ -1,5 +1,7 @@
 'use client';
 
+import { RouteErrorState } from '@/ui/route-states';
+
 export default function ErrorPage({
   reset,
 }: {
@@ -7,10 +9,8 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   return (
-    <main>
-      <h1>Something went wrong</h1>
-      <p>Please try again. No internal error details are shown.</p>
-      <button onClick={reset}>Try again</button>
+    <main className="route-state-standalone">
+      <RouteErrorState onRetry={reset} />
     </main>
   );
 }

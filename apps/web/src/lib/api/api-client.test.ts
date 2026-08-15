@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from './api-error';
+
 import {
   apiRequest,
   emptyResponse,
   registerAuthenticationFailureHandler,
 } from './api-client';
+import { type ApiError } from './api-error';
 
 afterEach(() => vi.unstubAllGlobals());
 describe('apiRequest', () => {

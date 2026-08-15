@@ -3,7 +3,7 @@ using Proprium.Application.Retry;
 
 namespace Proprium.Application.Authentication;
 
-public enum PasswordVerificationOutcome { Failed, Success, SuccessRehashNeeded }
+public enum PasswordVerificationOutcome { Failed, Success, RehashNeeded }
 
 public interface IUserPasswordHasher
 {
@@ -11,8 +11,14 @@ public interface IUserPasswordHasher
     PasswordVerificationOutcome Verify(User user, string storedHash, string password);
 }
 
-public sealed record RawSessionToken(string Value);
-public sealed record SessionTokenHash(string Value);
+public sealed record RawSessionToken(string Value)
+{
+    public override string ToString() => "[REDACTED]";
+}
+public sealed record SessionTokenHash(string Value)
+{
+    public override string ToString() => "[REDACTED]";
+}
 public sealed record GeneratedSessionToken(RawSessionToken RawToken, SessionTokenHash Hash);
 
 public interface ISessionTokenGenerator
@@ -70,7 +76,10 @@ public interface ISessionService
     Task<int> ExpireStaleSessionsAsync(CancellationToken cancellationToken = default);
 }
 
-public sealed record LoginAttempt(string Username, string Password, string CorrelationId);
+public sealed record LoginAttempt(string Username, string Password, string CorrelationId)
+{
+    public override string ToString() => $"{nameof(LoginAttempt)} {{ Username = [REDACTED], Password = [REDACTED], CorrelationId = {CorrelationId} }}";
+}
 public sealed record LoginResult(bool Succeeded, RawSessionToken? SessionToken = null)
 {
     public static LoginResult Rejected() => new(false);

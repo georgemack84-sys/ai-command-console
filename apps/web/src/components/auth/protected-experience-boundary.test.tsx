@@ -1,10 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
 import { Permission } from '@/generated/permission-catalog';
 import {
   AuthenticationContext,
   type AuthenticationContextValue,
 } from '@/lib/auth/auth-context';
+
 import { ProtectedExperienceBoundary } from './protected-experience-boundary';
 
 const replace = vi.fn();
@@ -35,7 +37,7 @@ function renderBoundary(state: AuthenticationContextValue['state']) {
 
 describe('ProtectedExperienceBoundary', () => {
   it('does not mount protected children while authentication resolves', () => {
-    renderBoundary({ status: 'loading' });
+    renderBoundary({ status: 'unknown' });
     expect(
       screen.queryByText('Protected dashboard content'),
     ).not.toBeInTheDocument();

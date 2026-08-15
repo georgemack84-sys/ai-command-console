@@ -1,8 +1,10 @@
-import type { Metadata } from 'next';
 import Script from 'next/script';
+
 import { application } from '@/config/application';
 import '@/styles/index.css';
 import { AppProviders } from '@/providers/app-providers';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: application.name,

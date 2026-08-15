@@ -1,7 +1,8 @@
 'use client';
 
-import type { Meta, StoryObj } from '@storybook/react';
 import { createPortal } from 'react-dom';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 function OverlaySmoke() {
   const root =

@@ -1,7 +1,7 @@
 'use client';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+
 import { useAuthentication } from '@/lib/auth/auth-context';
 import {
   DropdownMenu,
@@ -31,9 +31,6 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <p>{state.user.username}</p>
-        <DropdownMenuItem asChild>
-          <Link href="/settings">Settings</Link>
-        </DropdownMenuItem>
         <DropdownMenuItem disabled={pending} onSelect={() => void signOut()}>
           {pending ? 'Signing out…' : 'Sign out'}
         </DropdownMenuItem>

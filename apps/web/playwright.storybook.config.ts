@@ -8,5 +8,6 @@ export default defineConfig({
     url: 'http://127.0.0.1:6006/iframe.html',
     timeout: 30_000,
     reuseExistingServer: false,
+    gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
   },
 });

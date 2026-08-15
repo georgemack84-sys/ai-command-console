@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Proprium.ArchitectureTests;
 
+[Trait("Category", "Unit")]
 public sealed class AuthenticationInfrastructureTests
 {
     [Fact]
@@ -22,7 +23,7 @@ public sealed class AuthenticationInfrastructureTests
 
         var outdated = new PasswordHasher<User>(Options.Create(new PasswordHasherOptions { IterationCount = 1_000 }));
         var rehashRequired = new UserPasswordHasher(new PasswordHasher<User>(Options.Create(new PasswordHasherOptions { IterationCount = 10_000 })));
-        Assert.Equal(PasswordVerificationOutcome.SuccessRehashNeeded, rehashRequired.Verify(user, outdated.HashPassword(user, "correct-password"), "correct-password"));
+        Assert.Equal(PasswordVerificationOutcome.RehashNeeded, rehashRequired.Verify(user, outdated.HashPassword(user, "correct-password"), "correct-password"));
     }
 
     [Fact]

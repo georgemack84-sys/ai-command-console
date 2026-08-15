@@ -9,7 +9,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class SecurityVersionIntegrationTests
+public sealed class SecurityVersionIntegrationTests : IIntegrationTest
 {
     private static PropriumDbContext CreateContext(params IInterceptor[] interceptors)
     {

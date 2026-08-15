@@ -19,7 +19,7 @@ The integration suite proves a successful `204` login, zero response body, persi
 
 The failure-path evidence proves that a concurrent password-rehash update prevents both session and success-event persistence, a replayed revoked cookie produces a `SessionRejected` audit event, malformed cookie input produces only safe rejection metadata, and concurrent revocation remains idempotent.
 
-The OpenAPI integration test verifies that login and logout `204` responses have no response-body schema. The architecture suite covers typed password outcomes, token generation and hashing, cookie policy, session factory behavior, and repository boundaries.
+The OpenAPI integration test verifies that login and logout `204` responses have no response-body schema. It also verifies the `PropriumSession` cookie scheme is required by current-user operations but not login or logout. The architecture suite covers typed password outcomes, token generation and hashing, cookie policy, session factory behavior, and repository boundaries.
 
 ## Retention decision
 

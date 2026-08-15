@@ -1,0 +1,9 @@
+<Project>
+  <Target Name="ValidatePropriumCompilerPolicy" BeforeTargets="CoreCompile">
+    <Error Condition="'$(Nullable)' != 'enable'" Text="Proprium compiler policy requires Nullable=enable." />
+    <Error Condition="'$(TreatWarningsAsErrors)' != 'true'" Text="Proprium compiler policy requires TreatWarningsAsErrors=true." />
+    <Error Condition="'$(EnableNETAnalyzers)' != 'true'" Text="Proprium compiler policy requires EnableNETAnalyzers=true." />
+    <Error Condition="'$(AnalysisLevel)' != '8.0'" Text="Proprium compiler policy requires AnalysisLevel=8.0." />
+    <Error Condition="'$(Deterministic)' != 'true'" Text="Proprium compiler policy requires Deterministic=true." />
+  </Target>
+</Project>

@@ -34,7 +34,7 @@ public sealed class PostgresAuthenticationService(PropriumDbContext database, IU
         }
 
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        if (verification == PasswordVerificationOutcome.SuccessRehashNeeded)
+        if (verification == PasswordVerificationOutcome.RehashNeeded)
         {
             user.PasswordHash = passwordHasher.Hash(user, attempt.Password);
             user.SecurityVersion++;

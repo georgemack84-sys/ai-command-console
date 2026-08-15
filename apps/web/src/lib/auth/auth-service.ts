@@ -1,8 +1,9 @@
-import { apiRequest, emptyResponse } from '@/lib/api/api-client';
 import {
   permissionValues,
   type PermissionKey,
 } from '@/generated/permission-catalog';
+import { apiRequest, emptyResponse } from '@/lib/api/api-client';
+
 import type { CurrentUser } from './auth-state';
 
 export function parseCurrentUser(payload: unknown): CurrentUser {

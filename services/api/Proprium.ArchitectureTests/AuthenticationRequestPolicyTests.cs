@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Proprium.ArchitectureTests;
 
+[Trait("Category", "Unit")]
 public sealed class AuthenticationRequestPolicyTests
 {
     [Theory]

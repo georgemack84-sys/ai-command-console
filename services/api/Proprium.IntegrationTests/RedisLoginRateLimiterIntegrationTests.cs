@@ -10,7 +10,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class RedisLoginRateLimiterIntegrationTests
+public sealed class RedisLoginRateLimiterIntegrationTests : IIntegrationTest
 {
     [Fact]
     public async Task Atomic_counter_applies_the_pair_limit_and_a_bounded_expiry()

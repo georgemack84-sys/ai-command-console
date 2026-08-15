@@ -9,7 +9,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class PermissionResolutionIntegrationTests
+public sealed class PermissionResolutionIntegrationTests : IIntegrationTest
 {
     [Fact]
     public async Task Version_keyed_cache_hit_does_not_outlive_a_security_version_change()

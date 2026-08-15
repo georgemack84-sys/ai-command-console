@@ -1,44 +1,67 @@
-node_modules
-.next
-.codex-temp
-.env
-logs
-*.log
-*.zip
+# Dependencies and generated build output
+node_modules/
+.next/
+storybook-static/
+**/bin/
+**/obj/
 *.tsbuildinfo
-*.sqlite
-*.sqlite-shm
-*.sqlite-wal
-backups
-cookies.txt
-inventory.txt
-summary.txt
-journal.txt
-.next-dev.err
-playwright-artifacts
-test-results
-playwright-report
-coverage
-.codex-temp-*.txt
-ai-command-console-report-*.txt
-project-files.txt
-project-report.txt
-.next-dev*.log
 
-# Local secrets and generated operating-system files
+# Test and coverage output
+coverage/
+playwright-artifacts/
+playwright-report/
+test-results/
+
+# Local configuration and secrets. Examples and the two reviewed frontend
+# harness configurations remain tracked intentionally.
 .env
-.env.local
-.env.production
-.env.development
-apps/web/.env.local
-services/platform-api/.env
-services/api/.env
 .env.*
 !.env.example
 !.env.*.example
 !apps/web/.env.docker
 !apps/web/.env.test
+*.jks
+*.key
+*.keystore
+*.p12
+*.pem
+*.pfx
+credentials.json
+service-account*.json
+
+# Runtime state, logs, reports, and local data
+.codex-temp/
+.codex-temp-*.txt
+.next-dev.err
+.next-dev*.log
+logs/
+*.log
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.zip
+backups/
+cookies.txt
+inventory.txt
+summary.txt
+journal.txt
+ai-command-console-report-*.txt
+project-files.txt
+project-report.txt
+
+# IDE and operating-system state. Shared VS Code project files may be added
+# explicitly without committing per-developer editor state.
+.idea/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
 .DS_Store
+Desktop.ini
 Thumbs.db
-**/bin/
-**/obj/

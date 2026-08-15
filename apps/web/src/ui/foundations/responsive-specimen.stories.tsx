@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
 import { breakpoints } from '@/config/breakpoints';
+
+import type { Meta, StoryObj } from '@storybook/react';
 function ResponsiveSpecimen() {
   return (
     <main>

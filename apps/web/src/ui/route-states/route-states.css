@@ -1,0 +1,86 @@
+.route-state {
+  width: min(100%, var(--content-reading-max-width));
+  min-width: 0;
+  margin-inline: auto;
+  outline: none;
+}
+
+.route-state-standalone {
+  display: grid;
+  min-height: 100vh;
+  align-content: start;
+  padding: var(--space-4);
+}
+
+.route-loading-state {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.route-loading-state__header,
+.route-loading-state__blocks,
+.route-loading-state__block {
+  display: grid;
+  min-width: 0;
+}
+
+.route-loading-state__header,
+.route-loading-state__block {
+  gap: var(--space-3);
+}
+
+.route-loading-state__blocks {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-4);
+}
+
+.route-loading-state__block {
+  min-height: 8rem;
+  padding: var(--space-4);
+  background: var(--surface-primary);
+  border: var(--border-width-default) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.route-loading-state__title {
+  max-width: 20rem;
+  min-height: var(--space-5);
+}
+
+.route-loading-state__description {
+  max-width: 34rem;
+}
+
+.route-state .ui-empty-state {
+  justify-items: start;
+  text-align: left;
+}
+
+.route-state .ui-empty-state__actions {
+  justify-content: flex-start;
+}
+
+.route-state__link {
+  text-decoration: none;
+}
+
+@media (max-width: 24rem) {
+  .route-state-standalone {
+    padding: var(--space-3);
+  }
+
+  .route-state .ui-empty-state {
+    padding: var(--space-4);
+  }
+
+  .route-state .ui-empty-state__actions,
+  .route-state .ui-empty-state__actions > * {
+    width: 100%;
+  }
+}
+
+@media (min-width: 64rem) {
+  .route-state-standalone {
+    padding: var(--space-8);
+  }
+}

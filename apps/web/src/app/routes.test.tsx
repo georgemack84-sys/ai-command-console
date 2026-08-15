@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
-import HomePage from './page';
+
 import HealthPage from './health/page';
+import HomePage from './page';
 
 describe('foundation routes', () => {
   it('renders startup information', () => {

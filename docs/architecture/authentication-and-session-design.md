@@ -6,6 +6,11 @@ PostgreSQL is the sole authority for users, sessions, revocation, expiry, securi
 
 Sessions use a 32-byte cryptographically random opaque token, encoded as unpadded base64url. The client receives it only through the session cookie. PostgreSQL stores only an HMAC-SHA-256 digest derived with `SESSION_TOKEN_DIGEST_KEY`; no raw token, password, or password hash is included in events, API responses, or application logging.
 
+Password verification is wrapped behind the application boundary and returns
+only `Failed`, `Success`, or `RehashNeeded`. The last outcome replaces the hash
+before session creation in the same PostgreSQL transaction; framework-specific
+password results do not escape infrastructure.
+
 ## Cookie and request policy
 
 Production uses `__Host-proprium_session`; local development uses `proprium_session`. Both are `HttpOnly`, `SameSite=Lax`, and `Path=/`, with no Domain attribute. Production cookies are Secure; local HTTP development cookies are not. Session lifetime is configured by `SESSION_LIFETIME_MINUTES` and server-side expiry is authoritative.
@@ -23,3 +28,7 @@ Login returns `204 No Content` with the cookie only after successful authenticat
 Expired rows remain retained as evidence. `ExpireStaleSessions` identifies expired, unrevoked records without changing the validity rule or deleting evidence. Physical cleanup requires a later approved retention policy.
 
 The documented HTTP contract is `POST /api/v1/auth/login`, `GET /api/v1/auth/me`, and `POST /api/v1/auth/logout`. Login and logout have `204` responses with no JSON schema or response body; the current-user response is limited to identifier, username, display name, roles, and effective permissions.
+
+OpenAPI declares the cookie credential as the `PropriumSession` API-key security
+scheme. Only operations protected by ASP.NET authorization metadata require that
+scheme; login and idempotent logout remain callable without a valid session.

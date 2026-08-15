@@ -1,6 +1,7 @@
 const { getDigestSchedulerStatus, updateDigestSchedulerStatus } = require("./digestSchedulerState");
 const { loadWorkspaceDocument } = require("./workspaceDocuments");
 const { getWorkspaceDataPath } = require("./runtimePaths");
+const { assertLegacyAutonomyAllowed, legacyAutonomyStatus } = require("./legacyAutonomyPolicy");
 
 let digestSchedulerTimer = null;
 const USERS_PATH = getWorkspaceDataPath("workspace-users.json");
@@ -18,6 +19,7 @@ function uniqueWorkspaceIds(users) {
 }
 
 async function runDigestSchedulerSweep() {
+  assertLegacyAutonomyAllowed("digest scheduler sweep");
   try {
     const { queueLegacyDueDigestSweepIfNeeded } = require("./legacyConsoleCompat");
     const users = readUsersFromStorage();
@@ -68,6 +70,9 @@ function stopDigestScheduler() {
 }
 
 function ensureDigestScheduler(intervalMs = 60_000) {
+  if (!legacyAutonomyStatus().allowed) {
+    return null;
+  }
   if (digestSchedulerTimer) {
     return digestSchedulerTimer;
   }

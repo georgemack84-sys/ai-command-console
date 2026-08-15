@@ -1,5 +1,7 @@
 root = true
 
+# Repository-wide text defaults. Language formatters may add stricter rules in
+# their own configuration files, but they must not contradict these basics.
 [*]
 charset = utf-8
 end_of_line = lf
@@ -13,6 +15,19 @@ trim_trailing_whitespace = false
 
 [*.{cs,csx}]
 indent_size = 4
+tab_width = 4
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_contents = true
+csharp_indent_case_contents_when_block = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = one_less_than_current
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_preserve_single_line_blocks = true
+csharp_preserve_single_line_statements = true
 dotnet_style_namespace_match_folder = true
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
 csharp_style_namespace_declarations = file_scoped:error
@@ -33,6 +48,9 @@ indent_size = 2
 indent_size = 2
 
 [*.ps1]
+end_of_line = crlf
+
+[*.sln]
 end_of_line = crlf
 
 [Makefile]

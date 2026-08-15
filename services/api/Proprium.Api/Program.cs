@@ -6,19 +6,17 @@ using Microsoft.OpenApi.Writers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Proprium.Api.Configuration;
 using Proprium.Api.Endpoints;
 using Proprium.Api.Middleware;
+using Proprium.Api.OpenApi;
 using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Infrastructure;
-using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
 using Proprium.Infrastructure.Health;
 using Proprium.Domain.Identity;
 using Swashbuckle.AspNetCore.Swagger;
-using PropriumSessionOptions = Proprium.Infrastructure.Configuration.SessionOptions;
 
 if (args.Contains("--health-probe", StringComparer.Ordinal))
 {
@@ -68,6 +66,8 @@ if (openApiOutput is not null)
     });
 }
 
+var configuration = ApiConfiguration.Resolve(builder.Configuration, builder.Environment.EnvironmentName);
+
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
 builder.Services.AddProblemDetails();
@@ -77,47 +77,7 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddHealthChecks()
     .AddCheck<PostgresReadinessHealthCheck>("postgres", tags: ["ready"])
     .AddCheck<RedisReadinessHealthCheck>("redis", tags: ["ready"]);
-builder.Services.AddOptions<PostgresOptions>().Configure(options =>
-{
-    options.Host = builder.Configuration["POSTGRES_HOST"] ?? string.Empty;
-    options.Port = int.TryParse(builder.Configuration["POSTGRES_PORT"], out var port) ? port : 0;
-    options.Database = builder.Configuration["POSTGRES_DATABASE"] ?? string.Empty;
-    options.User = builder.Configuration["POSTGRES_USER"] ?? string.Empty;
-    options.Password = builder.Configuration["POSTGRES_PASSWORD"] ?? string.Empty;
-}).ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddOptions<RedisOptions>().Configure(options =>
-{
-    options.Host = builder.Configuration["REDIS_HOST"] ?? string.Empty;
-    options.Port = int.TryParse(builder.Configuration["REDIS_PORT"], out var port) ? port : 0;
-    options.Password = builder.Configuration["REDIS_PASSWORD"];
-}).ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddOptions<PropriumSessionOptions>().Configure(options =>
-{
-    options.TokenDigestKey = builder.Configuration["SESSION_TOKEN_DIGEST_KEY"] ?? string.Empty;
-    options.LifetimeMinutes = int.TryParse(builder.Configuration["SESSION_LIFETIME_MINUTES"], out var lifetime) ? lifetime : 0;
-}).ValidateDataAnnotations().Validate(options =>
-{
-    try { options.GetTokenDigestKey(); return true; }
-    catch { return false; }
-}, "SESSION_TOKEN_DIGEST_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
-builder.Services.AddOptions<LoginRateLimitOptions>().Configure(options =>
-{
-    options.SourceLimit = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_SOURCE"], out var source) ? source : LoginRateLimitOptions.LockedSourceLimit;
-    options.IdentifierSourceLimit = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE"], out var pair) ? pair : LoginRateLimitOptions.LockedPairLimit;
-    options.WindowMinutes = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_WINDOW_MINUTES"], out var window) ? window : LoginRateLimitOptions.LockedWindowMinutes;
-    options.FallbackCapacity = int.TryParse(builder.Configuration["LOGIN_RATE_LIMIT_FALLBACK_CAPACITY"], out var capacity) ? capacity : 10_000;
-    options.PrivacyKeyMaterial = builder.Configuration["LOGIN_RATE_LIMIT_PRIVACY_KEY"] ?? string.Empty;
-}).ValidateDataAnnotations().Validate(options => options.SourceLimit == LoginRateLimitOptions.LockedSourceLimit && options.IdentifierSourceLimit == LoginRateLimitOptions.LockedPairLimit && options.WindowMinutes == LoginRateLimitOptions.LockedWindowMinutes, "Login rate-limit thresholds are locked.").Validate(options =>
-{
-    try { options.GetPrivacyKey(); return true; }
-    catch { return false; }
-}, "LOGIN_RATE_LIMIT_PRIVACY_KEY must be a base64-encoded key with at least 32 bytes.").ValidateOnStart();
-builder.Services.AddOptions<AuthenticationRequestOptions>().Configure(options => options.AllowedOrigin = builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty)
-    .ValidateDataAnnotations().Validate(options =>
-    {
-        try { OriginValidator.Normalize(options.AllowedOrigin); return true; }
-        catch { return false; }
-    }, "AUTH_ALLOWED_ORIGIN must be an absolute HTTP(S) origin without a path, query, fragment, user information, or wildcard.").ValidateOnStart();
+builder.Services.AddPropriumConfiguration(configuration);
 builder.Services.AddPropriumInfrastructure();
 builder.Services.AddSingleton<Proprium.Infrastructure.ISystemClock, Proprium.Infrastructure.SystemClock>();
 builder.Services.AddSingleton(TimeProvider.System);
@@ -127,7 +87,7 @@ builder.Services.AddSingleton<CsrfHeaderValidator>();
 builder.Services.AddSingleton<AuthenticationRequestPolicy>();
 builder.Services.AddSingleton<ILoginSourceResolver, DirectLoginSourceResolver>();
 builder.Services.AddCors(options => options.AddPolicy("PropriumOrigins", policy => policy
-    .WithOrigins(OriginValidator.Normalize(builder.Configuration["AUTH_ALLOWED_ORIGIN"] ?? string.Empty))
+    .WithOrigins(configuration.Authentication.AllowedOrigin)
     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
     .WithHeaders("Content-Type", CsrfHeaderValidator.HeaderName)
     .AllowCredentials()));
@@ -135,9 +95,19 @@ builder.Services.AddAuthentication(PropriumSessionAuthenticationHandler.SchemeNa
     .AddScheme<AuthenticationSchemeOptions, PropriumSessionAuthenticationHandler>(PropriumSessionAuthenticationHandler.SchemeName, _ => { });
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-builder.Services.AddOptions<PlatformOptions>().Bind(builder.Configuration.GetSection(PlatformOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options => options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" }));
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Proprium API", Version = "v1" });
+    options.AddSecurityDefinition(CookieAuthenticationOperationFilter.SchemeName, new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Cookie,
+        Name = AuthenticationCookiePolicy.ProductionCookieName,
+        Description = "Opaque HttpOnly session cookie. Non-production environments use proprium_session."
+    });
+    options.OperationFilter<CookieAuthenticationOperationFilter>();
+});
 
 var app = builder.Build();
 
@@ -174,13 +144,11 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
         await database.SaveChangesAsync();
     }
     await AuthorizationSeeder.SeedAsync(database);
-    var localAdminEnabled = bool.TryParse(builder.Configuration["LOCAL_ADMIN_ENABLED"], out var enabled) && enabled;
-    LocalAdministratorPolicy.EnsurePermitted(localAdminEnabled, app.Environment.IsDevelopment());
-    if (localAdminEnabled)
+    var localAdministrator = configuration.LocalAdministrator;
+    LocalAdministratorPolicy.EnsurePermitted(localAdministrator.Enabled, app.Environment.IsDevelopment());
+    if (localAdministrator.Enabled)
     {
-        var username = builder.Configuration["LOCAL_ADMIN_USERNAME"];
-        var password = builder.Configuration["LOCAL_ADMIN_PASSWORD"];
-        await scope.ServiceProvider.GetRequiredService<LocalAdministratorInitializer>().InitializeAsync(username ?? string.Empty, password ?? string.Empty);
+        await scope.ServiceProvider.GetRequiredService<LocalAdministratorInitializer>().InitializeAsync(localAdministrator.Username!, localAdministrator.Password!);
     }
     return;
 }

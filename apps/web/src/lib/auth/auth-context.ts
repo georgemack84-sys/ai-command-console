@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext } from 'react';
+
 import type { AuthenticationState } from './auth-state';
 
 export interface AuthenticationOperations {

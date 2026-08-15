@@ -7,7 +7,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class RedisPlatformCacheIntegrationTests
+public sealed class RedisPlatformCacheIntegrationTests : IIntegrationTest
 {
     [Fact]
     public async Task Cache_write_read_expiration_miss_and_remove_are_distinct()

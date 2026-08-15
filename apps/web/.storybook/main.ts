@@ -1,7 +1,8 @@
-import type { StorybookConfig } from '@storybook/nextjs-vite';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import type { StorybookConfig } from '@storybook/nextjs-vite';
 
 // Storybook is built outside Next's environment loader. Supply only the
 // committed browser-safe test defaults when callers have not set a value.

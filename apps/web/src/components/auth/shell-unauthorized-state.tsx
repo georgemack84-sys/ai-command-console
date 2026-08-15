@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+
 import { useAuthentication } from '@/lib/auth/auth-context';
 import { Button, EmptyState } from '@/ui/components/primitives';
 
@@ -19,7 +20,7 @@ export function ShellUnauthorizedState() {
       <EmptyState
         title="Access unavailable"
         description="Your account does not have access to this application."
-        primaryAction={
+        action={
           <Button
             loading={pending}
             loadingLabel="Signing out"

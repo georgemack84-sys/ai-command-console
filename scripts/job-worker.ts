@@ -5,6 +5,7 @@ import { assertRuntimeStartupAllowed } from "@/services/startup/startupGovernor"
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
+const { assertLegacyAutonomyAllowed } = require("../services/legacyAutonomyPolicy");
 const { configureJobQueue, runJobWorkerCycle } = require("../services/jobQueue");
 const { initializeExecutionOrchestration } = require("../services/stepController");
 
@@ -13,6 +14,7 @@ function delay(ms: number) {
 }
 
 async function main() {
+  assertLegacyAutonomyAllowed("external job worker");
   await assertRuntimeStartupAllowed(process.env);
   const { env, getJobWorkerPollIntervalMs } = await import("@/src/config/env");
   initializeExecutionOrchestration({ bootstrap: "external_worker" });

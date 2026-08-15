@@ -1,13 +1,15 @@
 'use client';
-import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+import { Permission } from '@/generated/permission-catalog';
 import { useAuthentication } from '@/lib/auth/auth-context';
 import { resolveSafeReturnPath } from '@/lib/auth/return-path';
-import { Permission } from '@/generated/permission-catalog';
-import { AuthenticationResolutionFrame } from './authentication-resolution-frame';
+
 import { AuthenticationErrorState } from './authentication-error-state';
-import { UnauthorizedState } from './unauthorized-state';
+import { AuthenticationResolutionFrame } from './authentication-resolution-frame';
 import { ShellUnauthorizedState } from './shell-unauthorized-state';
+import { UnauthorizedState } from './unauthorized-state';
 
 export function ProtectedExperienceBoundary({
   children,

@@ -1,11 +1,6 @@
-name: Deploy
+name: Legacy Deployment (manual only)
 
 on:
-  workflow_run:
-    workflows:
-      - CI
-    types:
-      - completed
   workflow_dispatch:
     inputs:
       target_environment:
@@ -23,15 +18,6 @@ on:
 
 jobs:
   package:
-    if: >-
-      ${{
-        (github.event_name == 'workflow_dispatch') ||
-        (
-          github.event_name == 'workflow_run' &&
-          github.event.workflow_run.conclusion == 'success' &&
-          github.event.workflow_run.head_branch == 'main'
-        )
-      }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     environment:
@@ -58,25 +44,23 @@ jobs:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
 
     steps:
+      - name: Confirm legacy release boundary
+        shell: bash
+        run: |
+          echo "This manual workflow packages the transitional root application."
+          echo "Proprium releases are published by release-proprium.yml."
+
       - name: Resolve deployment metadata
         id: metadata
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            TARGET_ENVIRONMENT="staging"
-            SOURCE_REF="${{ github.event.workflow_run.head_branch }}"
-            SOURCE_SHA="${{ github.event.workflow_run.head_sha }}"
-            RELEASE_VERSION="${{ github.event.workflow_run.head_sha }}"
-            ROLLBACK_RELEASE=""
-          else
-            TARGET_ENVIRONMENT="${{ inputs.target_environment }}"
-            SOURCE_REF="${GITHUB_REF_NAME}"
-            SOURCE_SHA="${GITHUB_SHA}"
-            RELEASE_VERSION="${GITHUB_SHA}"
-            ROLLBACK_RELEASE="${{ inputs.rollback_release }}"
-            if [ -n "$ROLLBACK_RELEASE" ]; then
-              RELEASE_VERSION="$ROLLBACK_RELEASE"
-            fi
+          TARGET_ENVIRONMENT="${{ inputs.target_environment }}"
+          SOURCE_REF="${GITHUB_REF_NAME}"
+          SOURCE_SHA="${GITHUB_SHA}"
+          RELEASE_VERSION="${GITHUB_SHA}"
+          ROLLBACK_RELEASE="${{ inputs.rollback_release }}"
+          if [ -n "$ROLLBACK_RELEASE" ]; then
+            RELEASE_VERSION="$ROLLBACK_RELEASE"
           fi
 
           if [ -n "$ROLLBACK_RELEASE" ] && [ "$TARGET_ENVIRONMENT" != "production" ]; then

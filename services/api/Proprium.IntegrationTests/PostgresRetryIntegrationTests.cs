@@ -13,7 +13,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class PostgresRetryIntegrationTests
+public sealed class PostgresRetryIntegrationTests : IIntegrationTest
 {
     [Fact]
     public async Task Serialization_failure_retries_with_fresh_context_and_no_stale_tracking()

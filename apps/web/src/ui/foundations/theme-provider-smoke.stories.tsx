@@ -1,7 +1,9 @@
 'use client';
-import type { Meta, StoryObj } from '@storybook/react';
 import { useContext } from 'react';
+
 import { ThemeContext } from '@/providers/theme-provider';
+
+import type { Meta, StoryObj } from '@storybook/react';
 function ThemeProviderSmoke() {
   const theme = useContext(ThemeContext);
   return (

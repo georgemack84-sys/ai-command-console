@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import { Permission } from '@/generated/permission-catalog';
+
 import { parseCurrentUser } from './auth-service';
 
 describe('parseCurrentUser', () => {

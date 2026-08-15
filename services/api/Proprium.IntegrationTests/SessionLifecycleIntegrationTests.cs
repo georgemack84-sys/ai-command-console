@@ -11,7 +11,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class SessionLifecycleIntegrationTests
+public sealed class SessionLifecycleIntegrationTests : IIntegrationTest
 {
     private static PropriumDbContext CreateContext()
     {

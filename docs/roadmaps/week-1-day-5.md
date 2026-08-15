@@ -50,8 +50,40 @@ Part I-B / Part II will define the concrete environment-template keys, configura
 
 ## Part II implementation
 
-Part II is implemented through the repository, frontend, and backend templates plus the fail-closed `npm run validate:configuration` command. See the [configuration guide](../onboarding/configuration.md) for ownership, precedence, secret boundaries, and local setup. Formatting, linting, and broader repository-wide validation remain reserved for Part III.
+Part II is implemented through the repository, frontend, and backend templates plus the fail-closed `npm run validate:configuration` command. See the [configuration guide](../onboarding/configuration.md) for ownership, inventory, secret boundaries, and local setup. Formatting, linting, and broader repository-wide validation remain reserved for Part III.
+
+The GP-02 template inventory and its transitional root boundary are frozen in the [environment-template specification](../engineering/gp-02-environment-templates.md). Configuration precedence remains deferred to GP-03.
+
+GP-03 is implemented through the [configuration precedence specification](../engineering/gp-03-configuration-precedence.md), the strict frontend environment boundary, and the API's typed startup snapshot and deterministic validation tests.
+
+GP-04 is implemented through the [secret-safety specification](../engineering/gp-04-secret-safety.md), focused tracked-content validation, redacted secret-bearing representations, and secret-safe API logging.
+
+GP-05 is implemented through the [frontend-formatting specification](../engineering/gp-05-frontend-formatting.md), the locked Prettier configuration and commands in `apps/web`, explicit generator ownership, and temporary-fixture contract verification.
+
+GP-06 is implemented through the [frontend static-analysis specification](../engineering/gp-06-frontend-static-analysis.md), strict non-emitting TypeScript validation, zero-warning ESLint policy, deterministic import rules, type-aware source checks, and disposable negative fixtures.
+
+GP-07 is implemented through the [frontend architecture specification](../engineering/gp-07-frontend-architecture.md), the locked dependency-cruiser configuration, TypeScript-alias-aware layer rules, circular and upward-dependency failures, and isolated positive and negative fixtures.
+
+GP-08 is implemented through the [backend compiler specification](../engineering/gp-08-backend-compiler-standards.md), centralized nullable and warnings-as-errors policy, a fixed .NET 8 SDK-analyzer level, evaluated-property enforcement, suppression auditing, and isolated compiler/analyzer fixtures.
+
+GP-09 is implemented through the [backend formatting specification](../engineering/gp-09-backend-formatting.md), the SDK-bundled `dotnet format`, explicit C# whitespace policy, bounded write/check commands, stable source-controlled migration handling, and disposable drift/idempotence verification.
+
+GP-10 is implemented through the [backend architecture specification](../engineering/gp-10-backend-architecture.md), an exact project-reference matrix, framework and namespace isolation, compiled dependency and service-location rules, and controlled negative fixtures for both metadata and compiled enforcement.
+
+GP-11 is implemented through the [integration-test classification specification](../engineering/gp-11-integration-test-classification.md), the repository-owned integration marker, xUnit category filters, exact compiled infrastructure evidence, explicit test-project/package policy, and controlled negative classification fixtures.
+
+GP-12 is implemented through the [repository-validation specification](../engineering/gp-12-repository-validation.md), the canonical non-mutating Node.js validator, stable aggregate `RVAL-*` diagnostics, tracked-file and structured-text policy, configuration/package/project consistency checks, composed environment and secret validation, and isolated negative fixtures.
+
+GP-15 is implemented through the [CI merge-gate specification](../engineering/gp-15-ci-merge-gates.md), seven stable GitHub Actions job domains, repository-owned local reproduction commands, deterministic runtime setup, bounded infrastructure workflows, fail-closed cleanup, and a mechanical workflow contract validator.
+
+GP-16 is implemented through the [developer-onboarding specification](../engineering/gp-16-developer-onboarding.md), an authoritative setup entry point, prerequisite doctor, canonical operational guides, semantic documentation validation, and clean-machine certification evidence.
+
+GP-17 is implemented through the [final-qualification specification](../engineering/gp-17-final-qualification.md), a traceable evidence package, mechanical qualification validation, observed CI results, controlled fail-closed evidence, and the Week 2 handoff baseline.
+
+GP-18 is a derived transition control implemented through the [baseline-freeze specification](../engineering/gp-18-baseline-freeze.md), the immutable GP-17 revision identity, a protected-contract inventory, mechanical drift checks, an amendment protocol, and the [Week 2 admission record](../validation/day-5/week-2-admission.md). It preserves the canonical Day 5 scope rather than adding another deliverable category.
 
 ## Part III implementation
 
 Part III is implemented through `.editorconfig`, `.gitattributes`, strict frontend TypeScript and ESLint settings, centralized .NET analyzer policy, `dotnet format` verification, `npm run validate:repository`, and matching CI gates. See the [repository quality standards](../engineering/repository-quality.md) for command ownership and transitional scope.
+
+The GP-01 portion is frozen in the [repository baseline](../engineering/gp-01-repository-baseline.md). It qualifies root file policy and tracked artifacts without expanding into environment schemas, language-tooling changes, renormalization, or CI orchestration.

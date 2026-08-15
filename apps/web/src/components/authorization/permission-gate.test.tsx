@@ -1,11 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+
 import { Permission } from '@/generated/permission-catalog';
 import type { PermissionKey } from '@/generated/permission-catalog';
 import {
   AuthenticationContext,
   type AuthenticationContextValue,
 } from '@/lib/auth/auth-context';
+
 import { PermissionGate } from './permission-gate';
 
 function context(
@@ -70,9 +72,9 @@ describe('PermissionGate', () => {
     expect(screen.getByText('Any granted')).toBeVisible();
     expect(screen.getByText('All granted')).toBeVisible();
   });
-  it('fails closed during loading and when denied', () => {
+  it('fails closed while authentication is unknown and when denied', () => {
     const { rerender } = renderGate(
-      { status: 'loading' },
+      { status: 'unknown' },
       <PermissionGate
         permission={Permission.UserManage}
         fallback={<p>Unavailable</p>}

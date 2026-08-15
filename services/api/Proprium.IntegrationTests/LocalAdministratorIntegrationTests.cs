@@ -7,7 +7,7 @@ using Xunit;
 namespace Proprium.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class LocalAdministratorIntegrationTests
+public sealed class LocalAdministratorIntegrationTests : IIntegrationTest
 {
     private static PropriumDbContext CreateContext()
     {
