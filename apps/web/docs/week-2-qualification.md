@@ -5,10 +5,9 @@ does not add a second component, theme, overlay, shell, or route-state system.
 
 ## Qualification result
 
-`BLOCKED` as of 2026-08-14. All repository-owned automated gates
-must pass at the GP-24 revision. The only exit-gate hold is the expired human
-screen-reader, native 200% browser-zoom, and visual contrast attestation recorded
-as `W2-A11Y-002`. Automated results must not be represented as that human review.
+`QUALIFIED` as of 2026-08-15. All repository-owned automated gates pass, and
+George Mack completed the Windows Narrator, native 200% browser-zoom, and visual
+contrast attestation. The resolved `W2-A11Y-002` exception has been removed.
 
 ## Responsive matrix
 
@@ -49,13 +48,12 @@ merge record and cannot be claimed before publication.
 
 ## Manual attestation
 
-No named reviewer has recorded a screen reader, browser-native 200% zoom, or
-visual contrast walkthrough for the GP-24 revision. `W2-A11Y-002` expired on
-2026-08-05 and has not been silently renewed. The machine-readable
-`accessibility-attestation.json` therefore remains `pending_human_review`. A
-reviewer must record date, platform, browser, assistive technology, tested
-stories/routes, and outcome there and in `accessibility-evidence.md`; any failure
-needs a new owned, expiring exception.
+George Mack completed the review on 2026-08-15 using Windows Narrator and Google
+Chrome. The login, mobile navigation, long-dialog, recoverable-error, and
+API-unavailable boundary surfaces were reviewed across light and dark themes;
+the login flow was traversed at Chrome-native 200% zoom. The machine-readable
+`accessibility-attestation.json` records the environment, tested surfaces, and
+passing outcomes. Any future regression needs a new owned, expiring exception.
 
 ## Popover
 
@@ -72,5 +70,5 @@ Redis, or Docker services. Dependency restoration requires the package registry.
 
 The UI architecture is mechanically coherent and ready for feature work. Week 3
 must consume the existing tokens, primitives, shell, overlays, and route states;
-it must not treat conditional qualification as proof of the outstanding human
+it must not treat automated qualification as proof of the outstanding human
 accessibility review.

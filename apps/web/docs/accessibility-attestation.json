@@ -1,16 +1,22 @@
 {
   "schemaVersion": 1,
-  "status": "pending_human_review",
-  "reviewer": null,
-  "reviewDate": null,
-  "platform": null,
-  "browser": null,
-  "assistiveTechnology": null,
-  "testedSurfaces": [],
+  "status": "completed",
+  "reviewer": "George Mack",
+  "reviewDate": "2026-08-15",
+  "platform": "Windows",
+  "browser": "Google Chrome",
+  "assistiveTechnology": "Windows Narrator",
+  "testedSurfaces": [
+    "authentication-states--login-default (light and dark themes)",
+    "shell-application-shell--mobile (dark theme, navigation drawer open)",
+    "components-overlays--dialog-long-content (light theme)",
+    "patterns-route-states--recoverable-error (dark theme)",
+    "/login (recoverable API-unavailable boundary)"
+  ],
   "checks": {
-    "screenReader": "pending",
-    "nativeZoom200Percent": "pending",
-    "visualContrast": "pending"
+    "screenReader": "passed",
+    "nativeZoom200Percent": "passed",
+    "visualContrast": "passed"
   },
-  "notes": "A named human reviewer must complete every field and check before Week 2 can be qualified."
+  "notes": "George Mack confirmed Narrator announcements and native 200% zoom and visual contrast after the password-visibility control was repaired with a recognizable eye icon."
 }

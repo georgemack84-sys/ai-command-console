@@ -59,8 +59,7 @@ canonical frontend validation, production frontend and Storybook builds,
 Storybook and application browser suites, repository-command tests, and
 repository validation documented in `docs/week-2-qualification.md`.
 
-As of 2026-08-14, the automated foundation is expected to qualify, but the Week 2
-exit result is `BLOCKED`: `W2-A11Y-002` expired without a named human
-screen-reader, native 200% zoom, and visual contrast attestation. The validator
-derives this result from `accessibility-attestation.json` and the dated exception
-register.
+As of 2026-08-15, the Week 2 exit result is `QUALIFIED`: George Mack completed
+the Windows Narrator, native 200% zoom, and visual contrast attestation. The
+validator derives this result from `accessibility-attestation.json` and requires
+the resolved `W2-A11Y-002` exception to be absent.

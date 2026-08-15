@@ -26,6 +26,26 @@ interface LoginFormProps {
   submitting?: boolean;
 }
 
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      focusable="false"
+    >
+      <path d="M2.06 12.35a1 1 0 0 1 0-.7C3.64 7.78 7.37 5 12 5s8.36 2.78 9.94 6.65a1 1 0 0 1 0 .7C20.36 16.22 16.63 19 12 19s-8.36-2.78-9.94-6.65Z" />
+      <circle cx="12" cy="12" r="3" />
+      {visible ? <path d="m4 4 16 16" /> : null}
+    </svg>
+  );
+}
+
 export function LoginForm({
   authenticate = login,
   initialError,
@@ -89,7 +109,7 @@ export function LoginForm({
       <IconButton
         variant="ghost"
         label={visible ? 'Hide password' : 'Show password'}
-        icon={visible ? '○' : '●'}
+        icon={<PasswordVisibilityIcon visible={visible} />}
         aria-pressed={visible}
         onClick={() => setVisible((value) => !value)}
         disabled={busy}
