@@ -28,12 +28,16 @@ jobs:
           cache: npm
       - name: Restore locked validation dependencies
         run: npm ci --ignore-scripts
+      - name: Audit production Node dependencies
+        run: npm run audit:dependencies:root && npm run audit:dependencies:web
       - name: Validate repository policy
         run: npm run repo -- validate repo
       - name: Verify canonical command contracts
         run: npm run test:repository-commands
       - name: Verify CI workflow contract
         run: npm run test:ci-workflow
+      - name: Verify release workflow contract
+        run: npm run test:release-workflows
 
   frontend-validation:
     name: Frontend Validation
@@ -92,6 +96,8 @@ jobs:
           global-json-file: global.json
       - name: Restore backend dependencies
         run: dotnet restore services/api/Proprium.sln
+      - name: Audit backend dependencies
+        run: npm run audit:dependencies:dotnet
       - name: Validate backend source and architecture
         run: npm run repo -- validate backend
       - name: Run backend unit tests

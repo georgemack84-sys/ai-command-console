@@ -5,6 +5,7 @@ const { getSchedule, startSchedule } = require("./scheduler");
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { recordTelemetry } = require("./telemetry");
 const { getAgentsDataPath, getRuntimeLogPath } = require("./runtimePaths");
+const { assertLegacyAutonomyAllowed } = require("./legacyAutonomyPolicy");
 
 const WATCHER_PATH = getAgentsDataPath("watcher.json");
 const AGENT_LOG_DIR = getRuntimeLogPath("agents");
@@ -145,6 +146,7 @@ function shouldStartSchedule(agentName, desiredInterval, desiredMaxCycles) {
 }
 
 function evaluateRules() {
+  assertLegacyAutonomyAllowed("watcher rule evaluation");
   const startedAt = Date.now();
   const state = loadWatcherState();
   const decisions = [];
@@ -289,6 +291,7 @@ function clearWatcherTimer() {
 }
 
 function startWatcher(intervalSeconds = 5) {
+  assertLegacyAutonomyAllowed("watcher start");
   const startedAt = Date.now();
   const state = loadWatcherState();
   state.enabled = true;

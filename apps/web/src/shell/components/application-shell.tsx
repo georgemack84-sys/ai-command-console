@@ -42,14 +42,16 @@ export function ApplicationShell({
 }: ApplicationShellProps) {
   const pathname = usePathname();
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
-  const initialPathnameRef = useRef(pathname);
   const [sidebarState, setSidebarState] =
     useState<DesktopSidebarState>(defaultSidebarState);
-  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(
-    defaultMobileNavigationOpen,
-  );
+  const [mobileNavigation, setMobileNavigation] = useState({
+    open: defaultMobileNavigationOpen,
+    pathname,
+  });
+  const mobileNavigationOpen =
+    mobileNavigation.pathname === pathname && mobileNavigation.open;
   const closeMobileNavigation = useCallback(
-    () => setMobileNavigationOpen(false),
+    () => setMobileNavigation((value) => ({ ...value, open: false })),
     [],
   );
 
@@ -65,10 +67,6 @@ export function ApplicationShell({
     return () => desktopQuery.removeEventListener('change', closeAtDesktop);
   }, [closeMobileNavigation]);
 
-  useEffect(() => {
-    if (pathname !== initialPathnameRef.current) closeMobileNavigation();
-  }, [closeMobileNavigation, pathname]);
-
   return (
     <div className="shell" data-sidebar={sidebarState}>
       <a className="skip-link" href="#main-workspace">
@@ -80,7 +78,9 @@ export function ApplicationShell({
         actions={headerActions}
         account={accountSlot}
         mobileNavigationOpen={mobileNavigationOpen}
-        onOpenMobileNavigation={() => setMobileNavigationOpen(true)}
+        onOpenMobileNavigation={() =>
+          setMobileNavigation({ open: true, pathname })
+        }
       />
       <DesktopSidebar
         state={sidebarState}

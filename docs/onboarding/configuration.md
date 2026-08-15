@@ -41,6 +41,13 @@ Later sources win.
 
 The API does not load `.env` files. Supply its values through the shell, IDE launch configuration, container environment, or CI environment. ASP.NET hierarchical overrides use double underscores, so `PLATFORM__NAME` overrides `Platform:Name`. API configuration is resolved once at startup and does not dynamically reload.
 
+The transitional root application keeps legacy autonomous execution available in
+development and test environments, but production fails closed. Both
+`LEGACY_AUTONOMOUS_EXECUTION_ENABLED` and
+`LEGACY_AUTONOMOUS_EXECUTION_RISK_ACCEPTED` must be `true` to override that
+quarantine after an explicit risk review. These legacy settings are not part of
+the Proprium web or API configuration inventories.
+
 The internal OpenAPI export command adds deterministic in-memory values after normal providers. Those values are tool-specific and are not a general developer override layer. Never pass secrets through command-line configuration.
 
 The API supports `Development`, `Test`, `Staging`, and `Production` environment names case-insensitively. The web schema accepts their lowercase equivalents. Unknown names fail validation.

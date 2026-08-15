@@ -5,6 +5,7 @@ const { loadAgentState, saveAgentState, appendAgentHistory } = require("./agentM
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { recordTelemetry } = require("./telemetry");
 const { getAgentsDataPath, getRuntimeLogPath } = require("./runtimePaths");
+const { assertLegacyAutonomyAllowed } = require("./legacyAutonomyPolicy");
 
 const SCHEDULER_PATH = getAgentsDataPath("scheduler.json");
 const AGENT_LOG_DIR = getRuntimeLogPath("agents");
@@ -202,6 +203,7 @@ function stopSchedule(agentName, reason = "stopped_by_user") {
 }
 
 async function runScheduledTick(agentName) {
+  assertLegacyAutonomyAllowed("scheduled agent tick");
   const startedAt = Date.now();
   const state = loadSchedulerState();
   const schedule = state.schedules[agentName];
@@ -377,6 +379,7 @@ function attachInterval(agentName) {
 }
 
 function startSchedule(agentName, intervalSeconds = 5, maxCycles = 5) {
+  assertLegacyAutonomyAllowed("schedule start");
   const startedAt = Date.now();
   const schedule = setSchedule(agentName, {
     enabled: true,

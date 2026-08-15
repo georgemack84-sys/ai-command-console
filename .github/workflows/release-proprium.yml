@@ -1,0 +1,98 @@
+name: Release Proprium
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Environment encoded into the frontend image
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      public_api_base_url:
+        description: Public absolute URL of the Proprium API
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: proprium-release-${{ inputs.target_environment }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish Proprium Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: ${{ inputs.target_environment }}
+    steps:
+      - name: Guard production branch
+        if: ${{ inputs.target_environment == 'production' }}
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "Production images may only be published from main."
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and publish API image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: services/api/Proprium.Api/Dockerfile
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/proprium-api:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/proprium-api:${{ inputs.target_environment }}
+
+      - name: Build and publish web image
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/web
+          file: apps/web/Dockerfile
+          push: true
+          provenance: mode=max
+          sbom: true
+          build-args: |
+            NEXT_PUBLIC_APP_NAME=Proprium
+            NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
+            NEXT_PUBLIC_API_BASE_URL=${{ inputs.public_api_base_url }}
+            NEXT_PUBLIC_ENVIRONMENT=${{ inputs.target_environment }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/proprium-web:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/proprium-web:${{ inputs.target_environment }}
+
+      - name: Record deployment order
+        shell: bash
+        run: |
+          {
+            echo "## Proprium release"
+            echo ""
+            echo "1. Run the API image with \`--migrate\` as a one-time release task."
+            echo "2. Roll out the API image and wait for \`/health/ready\`."
+            echo "3. Roll out the web image."
+            echo "4. Verify authentication and readiness before promoting traffic."
+            echo ""
+            echo "Immutable tag: \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
