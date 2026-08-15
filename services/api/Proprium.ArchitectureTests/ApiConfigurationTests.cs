@@ -1,5 +1,8 @@
+using System.Net;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using Proprium.Api.Configuration;
+using Proprium.Infrastructure.Configuration;
 using Xunit;
 
 namespace Proprium.ArchitectureTests;
@@ -7,10 +10,32 @@ namespace Proprium.ArchitectureTests;
 [Trait("Category", "Unit")]
 public sealed class ApiConfigurationTests
 {
+    [Fact]
+    public void Canonical_values_resolve_to_typed_configuration()
+    {
+        var resolved = Resolve(ValidValues());
+
+        Assert.Equal("Proprium", resolved.Platform.Name);
+        Assert.Equal("test", resolved.Platform.Version);
+        Assert.Equal("localhost", resolved.Postgres.Host);
+        Assert.Equal(55432, resolved.Postgres.Port);
+        Assert.Equal("proprium", resolved.Postgres.Database);
+        Assert.Equal("proprium", resolved.Postgres.User);
+        Assert.Equal("sensitive-database-value", resolved.Postgres.Password);
+        Assert.Equal("localhost", resolved.Redis.Host);
+        Assert.Equal(6379, resolved.Redis.Port);
+        Assert.Null(resolved.Redis.Password);
+    }
+
     [Theory]
     [InlineData("POSTGRES_HOST", null)]
     [InlineData("POSTGRES_HOST", "")]
     [InlineData("POSTGRES_HOST", "   ")]
+    [InlineData("POSTGRES_DATABASE", "   ")]
+    [InlineData("POSTGRES_USER", "")]
+    [InlineData("POSTGRES_PASSWORD", null)]
+    [InlineData("REDIS_HOST", "   ")]
+    [InlineData("Platform:Name", "   ")]
     public void Required_values_reject_missing_empty_and_whitespace(string key, string? value)
     {
         var values = ValidValues();
@@ -24,6 +49,9 @@ public sealed class ApiConfigurationTests
     [InlineData("POSTGRES_PORT", "not-an-integer")]
     [InlineData("POSTGRES_PORT", "0")]
     [InlineData("POSTGRES_PORT", "65536")]
+    [InlineData("REDIS_PORT", "not-an-integer")]
+    [InlineData("REDIS_PORT", "0")]
+    [InlineData("REDIS_PORT", "65536")]
     [InlineData("SESSION_LIFETIME_MINUTES", "4")]
     [InlineData("LOGIN_RATE_LIMIT_FALLBACK_CAPACITY", "99")]
     public void Malformed_or_out_of_range_numbers_fail_with_the_setting_name(string key, string value)
@@ -101,6 +129,42 @@ public sealed class ApiConfigurationTests
         Assert.Equal("SESSION_TOKEN_DIGEST_KEY", error.Setting);
         Assert.Contains("SESSION_TOKEN_DIGEST_KEY", error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(secretValue, error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Provider_builders_preserve_special_characters_without_manual_concatenation()
+    {
+        const string postgresSecret = "fake;password='with spaces'";
+        var postgres = new PostgresOptions
+        {
+            Host = "database.example.test",
+            Port = 5432,
+            Database = "proprium",
+            User = "service-user",
+            Password = postgresSecret,
+        };
+        var postgresConnection = new NpgsqlConnectionStringBuilder(postgres.BuildConnectionString());
+
+        Assert.Equal(postgres.Host, postgresConnection.Host);
+        Assert.Equal(postgres.Port, postgresConnection.Port);
+        Assert.Equal(postgres.Database, postgresConnection.Database);
+        Assert.Equal(postgres.User, postgresConnection.Username);
+        Assert.Equal(postgresSecret, postgresConnection.Password);
+
+        const string redisSecret = "fake,password=still-a-value";
+        var redis = new RedisOptions
+        {
+            Host = "cache.example.test",
+            Port = 6380,
+            Password = redisSecret,
+        };
+        var redisConfiguration = redis.BuildConfiguration();
+        var redisEndpoint = Assert.IsType<DnsEndPoint>(Assert.Single(redisConfiguration.EndPoints));
+
+        Assert.Equal(redisSecret, redisConfiguration.Password);
+        Assert.Equal(redis.Host, redisEndpoint.Host);
+        Assert.Equal(redis.Port, redisEndpoint.Port);
+        Assert.False(redisConfiguration.AbortOnConnectFail);
     }
 
     [Fact]

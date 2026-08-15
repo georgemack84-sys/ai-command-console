@@ -14,6 +14,8 @@ public sealed class LayeringTests
         ArchitectureDefinitions.ApiNamespace,
         ArchitectureDefinitions.ContractsNamespace,
         "Microsoft.AspNetCore",
+        "Microsoft.Extensions.Configuration",
+        "Microsoft.Extensions.Options",
         "Microsoft.EntityFrameworkCore",
         "Npgsql",
         "StackExchange.Redis");
@@ -24,6 +26,8 @@ public sealed class LayeringTests
         ArchitectureDefinitions.ApiNamespace,
         ArchitectureDefinitions.InfrastructureNamespace,
         "Microsoft.AspNetCore",
+        "Microsoft.Extensions.Configuration",
+        "Microsoft.Extensions.Options",
         "Microsoft.EntityFrameworkCore",
         "Npgsql",
         "StackExchange.Redis");
