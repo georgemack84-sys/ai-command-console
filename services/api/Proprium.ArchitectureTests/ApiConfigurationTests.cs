@@ -43,25 +43,54 @@ public sealed class ApiConfigurationTests
 
         var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
         Assert.Equal(key, error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Missing, error.Category);
     }
 
     [Theory]
     [InlineData("POSTGRES_PORT", "not-an-integer")]
-    [InlineData("POSTGRES_PORT", "0")]
-    [InlineData("POSTGRES_PORT", "65536")]
     [InlineData("REDIS_PORT", "not-an-integer")]
-    [InlineData("REDIS_PORT", "0")]
-    [InlineData("REDIS_PORT", "65536")]
-    [InlineData("SESSION_LIFETIME_MINUTES", "4")]
-    [InlineData("LOGIN_RATE_LIMIT_FALLBACK_CAPACITY", "99")]
-    public void Malformed_or_out_of_range_numbers_fail_with_the_setting_name(string key, string value)
+    public void Malformed_numbers_fail_with_a_stable_category(string key, string value)
     {
         var values = ValidValues();
         values[key] = value;
 
         var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
         Assert.Equal(key, error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Malformed, error.Category);
         Assert.Contains("must be an integer", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("POSTGRES_PORT", "0")]
+    [InlineData("POSTGRES_PORT", "65536")]
+    [InlineData("REDIS_PORT", "0")]
+    [InlineData("REDIS_PORT", "65536")]
+    [InlineData("SESSION_LIFETIME_MINUTES", "4")]
+    [InlineData("LOGIN_RATE_LIMIT_FALLBACK_CAPACITY", "99")]
+    public void Out_of_range_numbers_fail_with_a_stable_category(string key, string value)
+    {
+        var values = ValidValues();
+        values[key] = value;
+
+        var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
+        Assert.Equal(key, error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.OutOfRange, error.Category);
+        Assert.Contains("[OUT_OF_RANGE]", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("65535")]
+    public void Port_boundaries_are_valid(string value)
+    {
+        var values = ValidValues();
+        values["POSTGRES_PORT"] = value;
+        values["REDIS_PORT"] = value;
+
+        var resolved = Resolve(values);
+
+        Assert.Equal(int.Parse(value, System.Globalization.CultureInfo.InvariantCulture), resolved.Postgres.Port);
+        Assert.Equal(resolved.Postgres.Port, resolved.Redis.Port);
     }
 
     [Fact]
@@ -72,6 +101,7 @@ public sealed class ApiConfigurationTests
 
         var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
         Assert.Equal("AUTH_ALLOWED_ORIGIN", error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Malformed, error.Category);
         Assert.DoesNotContain("not-a-url", error.Message, StringComparison.Ordinal);
     }
 
@@ -121,14 +151,40 @@ public sealed class ApiConfigurationTests
     [Fact]
     public void Secret_validation_reports_the_name_without_the_value()
     {
-        const string secretValue = "actual-sensitive-value-for-test";
+        const string secretValue = "GP33-DO-NOT-LOG-SECRET";
         var values = ValidValues();
         values["SESSION_TOKEN_DIGEST_KEY"] = secretValue;
 
         var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
         Assert.Equal("SESSION_TOKEN_DIGEST_KEY", error.Setting);
+        Assert.True(Assert.Single(error.Errors).IsSecret);
         Assert.Contains("SESSION_TOKEN_DIGEST_KEY", error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(secretValue, error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Independent_failures_are_aggregated_in_deterministic_model_order()
+    {
+        const string secretSentinel = "GP33-DO-NOT-LOG-SECRET";
+        var values = ValidValues();
+        values["Platform:Name"] = "   ";
+        values["POSTGRES_PORT"] = "not-an-integer";
+        values["REDIS_PORT"] = "65536";
+        values["SESSION_TOKEN_DIGEST_KEY"] = secretSentinel;
+
+        var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
+
+        Assert.Collection(
+            error.Errors,
+            item => Assert.Equal(("Platform:Name", ConfigurationFailureCategory.Missing), (item.Setting, item.Category)),
+            item => Assert.Equal(("POSTGRES_PORT", ConfigurationFailureCategory.Malformed), (item.Setting, item.Category)),
+            item => Assert.Equal(("REDIS_PORT", ConfigurationFailureCategory.OutOfRange), (item.Setting, item.Category)),
+            item =>
+            {
+                Assert.Equal(("SESSION_TOKEN_DIGEST_KEY", ConfigurationFailureCategory.Malformed), (item.Setting, item.Category));
+                Assert.True(item.IsSecret);
+            });
+        Assert.DoesNotContain(secretSentinel, error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -178,12 +234,31 @@ public sealed class ApiConfigurationTests
         production["LOCAL_ADMIN_ENABLED"] = "true";
         production["LOCAL_ADMIN_USERNAME"] = "operator";
         production["LOCAL_ADMIN_PASSWORD"] = "sensitive-test-value";
-        Assert.Equal("LOCAL_ADMIN_ENABLED", Assert.Throws<ApiConfigurationException>(() => Resolve(production, "Production")).Setting);
+        var productionError = Assert.Throws<ApiConfigurationException>(() => Resolve(production, "Production"));
+        Assert.Equal("LOCAL_ADMIN_ENABLED", productionError.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Incompatible, productionError.Category);
     }
 
     [Fact]
-    public void Unknown_environment_names_fail_deterministically() =>
-        Assert.Equal("ASPNETCORE_ENVIRONMENT", Assert.Throws<ApiConfigurationException>(() => Resolve(ValidValues(), "DeveloperLaptop")).Setting);
+    public void Locked_rate_limit_policy_is_a_compatibility_failure()
+    {
+        var values = ValidValues();
+        values["LOGIN_RATE_LIMIT_SOURCE"] = "11";
+
+        var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
+
+        Assert.Equal("LOGIN_RATE_LIMIT_SOURCE", error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Incompatible, error.Category);
+    }
+
+    [Fact]
+    public void Unknown_environment_names_fail_deterministically()
+    {
+        var error = Assert.Throws<ApiConfigurationException>(() => Resolve(ValidValues(), "DeveloperLaptop"));
+
+        Assert.Equal("ASPNETCORE_ENVIRONMENT", error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Malformed, error.Category);
+    }
 
     private static ApiConfigurationSnapshot Resolve(Dictionary<string, string?> values, string environment = "Test") =>
         ApiConfiguration.Resolve(new ConfigurationBuilder().AddInMemoryCollection(values).Build(), environment);

@@ -4,10 +4,65 @@ using Proprium.Infrastructure.Configuration;
 
 namespace Proprium.Api.Configuration;
 
-public sealed class ApiConfigurationException(string setting, string expectation)
-    : InvalidOperationException($"{setting} {expectation}")
+public enum ConfigurationFailureCategory
 {
-    public string Setting { get; } = setting;
+    Missing,
+    Malformed,
+    OutOfRange,
+    Incompatible,
+}
+
+public sealed record ConfigurationValidationError(
+    string Setting,
+    ConfigurationFailureCategory Category,
+    string Message,
+    bool IsSecret = false)
+{
+    public override string ToString() => $"{Setting} [{CategoryLabel(Category)}] {Message}";
+
+    private static string CategoryLabel(ConfigurationFailureCategory category) => category switch
+    {
+        ConfigurationFailureCategory.Missing => "MISSING",
+        ConfigurationFailureCategory.Malformed => "MALFORMED",
+        ConfigurationFailureCategory.OutOfRange => "OUT_OF_RANGE",
+        ConfigurationFailureCategory.Incompatible => "INCOMPATIBLE",
+        _ => throw new ArgumentOutOfRangeException(nameof(category), category, "Unknown configuration failure category."),
+    };
+}
+
+public sealed class ApiConfigurationException : InvalidOperationException
+{
+    public ApiConfigurationException(string setting, string expectation)
+        : this(setting, ConfigurationFailureCategory.Malformed, expectation)
+    {
+    }
+
+    public ApiConfigurationException(
+        string setting,
+        ConfigurationFailureCategory category,
+        string expectation,
+        bool isSecret = false)
+        : this([new ConfigurationValidationError(setting, category, expectation, isSecret)])
+    {
+    }
+
+    public ApiConfigurationException(IReadOnlyList<ConfigurationValidationError> errors)
+        : base(CreateMessage(errors))
+    {
+        if (errors.Count == 0)
+            throw new ArgumentException("At least one configuration validation error is required.", nameof(errors));
+
+        Errors = errors.ToArray();
+    }
+
+    public IReadOnlyList<ConfigurationValidationError> Errors { get; }
+    public string Setting => Errors[0].Setting;
+    public ConfigurationFailureCategory Category => Errors[0].Category;
+
+    private static string CreateMessage(IReadOnlyList<ConfigurationValidationError> errors) =>
+        errors.Count == 1
+            ? errors[0].ToString()
+            : $"Configuration validation failed:{Environment.NewLine}{string.Join(Environment.NewLine, errors.Select(error => $"- {error}"))}";
 }
 
 public sealed class LocalAdministratorOptions(bool enabled, string? username, string? password)
@@ -43,58 +98,42 @@ public static class ApiConfiguration
 
     public static ApiConfigurationSnapshot Resolve(IConfiguration configuration, string environmentName)
     {
+        var validation = new StartupConfigurationValidation(configuration);
         if (!SupportedEnvironments.Contains(environmentName, StringComparer.OrdinalIgnoreCase))
-            throw new ApiConfigurationException("ASPNETCORE_ENVIRONMENT", "must be Development, Test, Staging, or Production.");
+            validation.Malformed("ASPNETCORE_ENVIRONMENT", "must be Development, Test, Staging, or Production.");
 
-        var authentication = new AuthenticationRequestOptions
+        var platform = new PlatformOptions
         {
-            AllowedOrigin = Required(configuration, "AUTH_ALLOWED_ORIGIN"),
+            Name = validation.Required("Platform:Name"),
+            Version = validation.Required("Platform:Version"),
         };
-        try
+        var postgres = new PostgresOptions
         {
-            authentication.AllowedOrigin = OriginValidator.Normalize(authentication.AllowedOrigin);
-        }
-        catch (ArgumentException)
+            Host = validation.Required("POSTGRES_HOST"),
+            Port = validation.RequiredInteger("POSTGRES_PORT", 1, 65_535),
+            Database = validation.Required("POSTGRES_DATABASE"),
+            User = validation.Required("POSTGRES_USER"),
+            Password = validation.Required("POSTGRES_PASSWORD", isSecret: true),
+        };
+        var redis = new RedisOptions
         {
-            throw new ApiConfigurationException("AUTH_ALLOWED_ORIGIN", "must be one absolute HTTP(S) origin without a path, query, fragment, user information, or wildcard.");
-        }
+            Host = validation.Required("REDIS_HOST"),
+            Port = validation.RequiredInteger("REDIS_PORT", 1, 65_535),
+            Password = validation.Optional("REDIS_PASSWORD"),
+        };
+        var session = ResolveSession(validation);
+        var authentication = ResolveAuthentication(validation);
+        var loginRateLimit = ResolveLoginRateLimit(validation);
+        var localAdministrator = ResolveLocalAdministrator(validation, environmentName);
 
-        var localAdministrator = new LocalAdministratorOptions(
-            OptionalBoolean(configuration, "LOCAL_ADMIN_ENABLED", false),
-            Optional(configuration, "LOCAL_ADMIN_USERNAME"),
-            Optional(configuration, "LOCAL_ADMIN_PASSWORD"));
-        if (localAdministrator.Enabled)
-        {
-            if (!environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase))
-                throw new ApiConfigurationException("LOCAL_ADMIN_ENABLED", "may be true only in Development.");
-            if (string.IsNullOrWhiteSpace(localAdministrator.Username))
-                throw new ApiConfigurationException("LOCAL_ADMIN_USERNAME", "is required when LOCAL_ADMIN_ENABLED is true.");
-            if (string.IsNullOrWhiteSpace(localAdministrator.Password))
-                throw new ApiConfigurationException("LOCAL_ADMIN_PASSWORD", "is required when LOCAL_ADMIN_ENABLED is true.");
-        }
+        validation.ThrowIfInvalid();
 
         return new ApiConfigurationSnapshot(
-            new PlatformOptions
-            {
-                Name = Required(configuration, "Platform:Name"),
-                Version = Required(configuration, "Platform:Version"),
-            },
-            new PostgresOptions
-            {
-                Host = Required(configuration, "POSTGRES_HOST"),
-                Port = RequiredInteger(configuration, "POSTGRES_PORT", 1, 65_535),
-                Database = Required(configuration, "POSTGRES_DATABASE"),
-                User = Required(configuration, "POSTGRES_USER"),
-                Password = Required(configuration, "POSTGRES_PASSWORD"),
-            },
-            new RedisOptions
-            {
-                Host = Required(configuration, "REDIS_HOST"),
-                Port = RequiredInteger(configuration, "REDIS_PORT", 1, 65_535),
-                Password = Optional(configuration, "REDIS_PASSWORD"),
-            },
-            ResolveSession(configuration),
-            ResolveLoginRateLimit(configuration),
+            platform,
+            postgres,
+            redis,
+            session,
+            loginRateLimit,
             authentication,
             localAdministrator);
     }
@@ -111,83 +150,174 @@ public static class ApiConfiguration
         return services;
     }
 
-    private static LoginRateLimitOptions ResolveLoginRateLimit(IConfiguration configuration)
+    private static AuthenticationRequestOptions ResolveAuthentication(StartupConfigurationValidation validation)
+    {
+        const string key = "AUTH_ALLOWED_ORIGIN";
+        var origin = validation.Required(key);
+        if (validation.IsValid(key))
+        {
+            try
+            {
+                origin = OriginValidator.Normalize(origin);
+            }
+            catch (ArgumentException)
+            {
+                validation.Malformed(key, "must be one absolute HTTP(S) origin without a path, query, fragment, user information, or wildcard.");
+            }
+        }
+
+        return new AuthenticationRequestOptions { AllowedOrigin = origin };
+    }
+
+    private static LocalAdministratorOptions ResolveLocalAdministrator(
+        StartupConfigurationValidation validation,
+        string environmentName)
+    {
+        var enabled = validation.OptionalBoolean("LOCAL_ADMIN_ENABLED", false);
+        var username = validation.Optional("LOCAL_ADMIN_USERNAME");
+        var password = validation.Optional("LOCAL_ADMIN_PASSWORD");
+        if (enabled)
+        {
+            if (!environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase))
+                validation.Incompatible("LOCAL_ADMIN_ENABLED", "may be true only in Development.");
+            if (string.IsNullOrWhiteSpace(username))
+                validation.Missing("LOCAL_ADMIN_USERNAME", "is required when LOCAL_ADMIN_ENABLED is true.");
+            if (string.IsNullOrWhiteSpace(password))
+                validation.Missing("LOCAL_ADMIN_PASSWORD", "is required when LOCAL_ADMIN_ENABLED is true.", isSecret: true);
+        }
+
+        return new LocalAdministratorOptions(enabled, username, password);
+    }
+
+    private static LoginRateLimitOptions ResolveLoginRateLimit(StartupConfigurationValidation validation)
     {
         var options = new LoginRateLimitOptions
         {
-            SourceLimit = OptionalInteger(configuration, "LOGIN_RATE_LIMIT_SOURCE", LoginRateLimitOptions.LockedSourceLimit, 1, LoginRateLimitOptions.LockedSourceLimit),
-            IdentifierSourceLimit = OptionalInteger(configuration, "LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE", LoginRateLimitOptions.LockedPairLimit, 1, LoginRateLimitOptions.LockedPairLimit),
-            WindowMinutes = OptionalInteger(configuration, "LOGIN_RATE_LIMIT_WINDOW_MINUTES", LoginRateLimitOptions.LockedWindowMinutes, 1, LoginRateLimitOptions.LockedWindowMinutes),
-            FallbackCapacity = OptionalInteger(configuration, "LOGIN_RATE_LIMIT_FALLBACK_CAPACITY", 10_000, 100, 100_000),
-            PrivacyKeyMaterial = Required(configuration, "LOGIN_RATE_LIMIT_PRIVACY_KEY"),
+            SourceLimit = validation.OptionalInteger("LOGIN_RATE_LIMIT_SOURCE", LoginRateLimitOptions.LockedSourceLimit, 1, int.MaxValue),
+            IdentifierSourceLimit = validation.OptionalInteger("LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE", LoginRateLimitOptions.LockedPairLimit, 1, int.MaxValue),
+            WindowMinutes = validation.OptionalInteger("LOGIN_RATE_LIMIT_WINDOW_MINUTES", LoginRateLimitOptions.LockedWindowMinutes, 1, int.MaxValue),
+            FallbackCapacity = validation.OptionalInteger("LOGIN_RATE_LIMIT_FALLBACK_CAPACITY", 10_000, 100, 100_000),
+            PrivacyKeyMaterial = validation.Required("LOGIN_RATE_LIMIT_PRIVACY_KEY", isSecret: true),
         };
-        if (options.SourceLimit != LoginRateLimitOptions.LockedSourceLimit)
-            throw new ApiConfigurationException("LOGIN_RATE_LIMIT_SOURCE", $"must equal the locked value {LoginRateLimitOptions.LockedSourceLimit}.");
-        if (options.IdentifierSourceLimit != LoginRateLimitOptions.LockedPairLimit)
-            throw new ApiConfigurationException("LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE", $"must equal the locked value {LoginRateLimitOptions.LockedPairLimit}.");
-        if (options.WindowMinutes != LoginRateLimitOptions.LockedWindowMinutes)
-            throw new ApiConfigurationException("LOGIN_RATE_LIMIT_WINDOW_MINUTES", $"must equal the locked value {LoginRateLimitOptions.LockedWindowMinutes}.");
-        ValidateBase64Key(options.PrivacyKeyMaterial, "LOGIN_RATE_LIMIT_PRIVACY_KEY");
+        validation.ValidateLockedValue("LOGIN_RATE_LIMIT_SOURCE", options.SourceLimit, LoginRateLimitOptions.LockedSourceLimit);
+        validation.ValidateLockedValue("LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE", options.IdentifierSourceLimit, LoginRateLimitOptions.LockedPairLimit);
+        validation.ValidateLockedValue("LOGIN_RATE_LIMIT_WINDOW_MINUTES", options.WindowMinutes, LoginRateLimitOptions.LockedWindowMinutes);
+        validation.ValidateBase64Key(options.PrivacyKeyMaterial, "LOGIN_RATE_LIMIT_PRIVACY_KEY");
         return options;
     }
 
-    private static Proprium.Infrastructure.Configuration.SessionOptions ResolveSession(IConfiguration configuration)
+    private static Proprium.Infrastructure.Configuration.SessionOptions ResolveSession(StartupConfigurationValidation validation)
     {
         var options = new Proprium.Infrastructure.Configuration.SessionOptions
         {
-            TokenDigestKey = Required(configuration, "SESSION_TOKEN_DIGEST_KEY"),
-            LifetimeMinutes = RequiredInteger(configuration, "SESSION_LIFETIME_MINUTES", 5, 43_200),
+            TokenDigestKey = validation.Required("SESSION_TOKEN_DIGEST_KEY", isSecret: true),
+            LifetimeMinutes = validation.RequiredInteger("SESSION_LIFETIME_MINUTES", 5, 43_200),
         };
-        ValidateBase64Key(options.TokenDigestKey, "SESSION_TOKEN_DIGEST_KEY");
+        validation.ValidateBase64Key(options.TokenDigestKey, "SESSION_TOKEN_DIGEST_KEY");
         return options;
     }
 
-    private static string Required(IConfiguration configuration, string key)
+    private sealed class StartupConfigurationValidation(IConfiguration configuration)
     {
-        var value = configuration[key];
-        if (string.IsNullOrWhiteSpace(value)) throw new ApiConfigurationException(key, "is required and may not be empty.");
-        return value;
-    }
+        private readonly List<ConfigurationValidationError> errors = [];
+        private readonly HashSet<string> invalidSettings = new(StringComparer.OrdinalIgnoreCase);
 
-    private static string? Optional(IConfiguration configuration, string key)
-    {
-        var value = configuration[key];
-        return string.IsNullOrEmpty(value) ? null : value;
-    }
-
-    private static int RequiredInteger(IConfiguration configuration, string key, int minimum, int maximum) =>
-        ParseInteger(Required(configuration, key), key, minimum, maximum);
-
-    private static int OptionalInteger(IConfiguration configuration, string key, int defaultValue, int minimum, int maximum)
-    {
-        var value = configuration[key];
-        return string.IsNullOrWhiteSpace(value) ? defaultValue : ParseInteger(value, key, minimum, maximum);
-    }
-
-    private static int ParseInteger(string value, string key, int minimum, int maximum)
-    {
-        if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) || parsed < minimum || parsed > maximum)
-            throw new ApiConfigurationException(key, $"must be an integer from {minimum} through {maximum}.");
-        return parsed;
-    }
-
-    private static bool OptionalBoolean(IConfiguration configuration, string key, bool defaultValue)
-    {
-        var value = configuration[key];
-        if (string.IsNullOrWhiteSpace(value)) return defaultValue;
-        if (!bool.TryParse(value, out var parsed)) throw new ApiConfigurationException(key, "must be true or false.");
-        return parsed;
-    }
-
-    private static void ValidateBase64Key(string value, string key)
-    {
-        try
+        public string Required(string key, bool isSecret = false)
         {
-            if (Convert.FromBase64String(value).Length < 32) throw new FormatException();
+            var value = configuration[key];
+            if (!string.IsNullOrWhiteSpace(value)) return value;
+
+            Missing(key, "is required and may not be empty.", isSecret);
+            return string.Empty;
         }
-        catch (FormatException)
+
+        public string? Optional(string key)
         {
-            throw new ApiConfigurationException(key, "must be a base64-encoded key with at least 32 bytes.");
+            var value = configuration[key];
+            return string.IsNullOrEmpty(value) ? null : value;
+        }
+
+        public int RequiredInteger(string key, int minimum, int maximum)
+        {
+            var value = Required(key);
+            return IsValid(key) ? ParseInteger(value, key, minimum, maximum, minimum) : minimum;
+        }
+
+        public int OptionalInteger(string key, int defaultValue, int minimum, int maximum)
+        {
+            var value = configuration[key];
+            return string.IsNullOrWhiteSpace(value)
+                ? defaultValue
+                : ParseInteger(value, key, minimum, maximum, defaultValue);
+        }
+
+        public bool OptionalBoolean(string key, bool defaultValue)
+        {
+            var value = configuration[key];
+            if (string.IsNullOrWhiteSpace(value)) return defaultValue;
+            if (bool.TryParse(value, out var parsed)) return parsed;
+
+            Malformed(key, "must be true or false.");
+            return defaultValue;
+        }
+
+        public void ValidateBase64Key(string value, string key)
+        {
+            if (!IsValid(key)) return;
+
+            try
+            {
+                if (Convert.FromBase64String(value).Length < 32) throw new FormatException();
+            }
+            catch (FormatException)
+            {
+                Malformed(key, "must be a base64-encoded key with at least 32 bytes.", isSecret: true);
+            }
+        }
+
+        public void ValidateLockedValue(string key, int actual, int expected)
+        {
+            if (IsValid(key) && actual != expected)
+                Incompatible(key, $"must equal the locked value {expected}.");
+        }
+
+        public bool IsValid(string key) => !invalidSettings.Contains(key);
+
+        public void Missing(string key, string message, bool isSecret = false) =>
+            Add(key, ConfigurationFailureCategory.Missing, message, isSecret);
+
+        public void Malformed(string key, string message, bool isSecret = false) =>
+            Add(key, ConfigurationFailureCategory.Malformed, message, isSecret);
+
+        public void Incompatible(string key, string message) =>
+            Add(key, ConfigurationFailureCategory.Incompatible, message, isSecret: false);
+
+        public void ThrowIfInvalid()
+        {
+            if (errors.Count > 0) throw new ApiConfigurationException(errors);
+        }
+
+        private int ParseInteger(string value, string key, int minimum, int maximum, int fallback)
+        {
+            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            {
+                Malformed(key, "must be an integer.");
+                return fallback;
+            }
+
+            if (parsed < minimum || parsed > maximum)
+            {
+                Add(key, ConfigurationFailureCategory.OutOfRange, $"must be from {minimum} through {maximum}.", isSecret: false);
+                return fallback;
+            }
+
+            return parsed;
+        }
+
+        private void Add(string key, ConfigurationFailureCategory category, string message, bool isSecret)
+        {
+            errors.Add(new ConfigurationValidationError(key, category, message, isSecret));
+            invalidSettings.Add(key);
         }
     }
 }

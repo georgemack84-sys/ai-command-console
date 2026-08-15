@@ -106,7 +106,48 @@ public sealed class ConfigurationSourceTests
             ApiConfiguration.Resolve(configuration, "Test"));
 
         Assert.Equal("POSTGRES_PORT", error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Malformed, error.Category);
         Assert.Equal("invalid", configuration["POSTGRES_PORT"]);
+    }
+
+    [Fact]
+    public void Fully_valid_effective_configuration_passes_the_startup_validation_phase()
+    {
+        using var files = SettingsFiles.Create("Test");
+        var configuration = new ConfigurationManager();
+        ApiConfigurationSources.Configure(
+            configuration,
+            files.Path,
+            "Test",
+            [],
+            environmentVariablePrefix: $"PROPRIUM_GP33_{Guid.NewGuid():N}_");
+
+        var resolved = ApiConfiguration.Resolve(configuration, "Test");
+
+        Assert.Equal(1000, resolved.Postgres.Port);
+    }
+
+    [Fact]
+    public void Invalid_required_stronger_provider_prevents_the_startup_validation_phase()
+    {
+        using var files = SettingsFiles.Create("Test");
+        var configuration = new ConfigurationManager();
+        ApiConfigurationSources.Configure(
+            configuration,
+            files.Path,
+            "Test",
+            [],
+            secrets => secrets.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["POSTGRES_HOST"] = "   ",
+            }),
+            $"PROPRIUM_GP33_{Guid.NewGuid():N}_");
+
+        var error = Assert.Throws<ApiConfigurationException>(() =>
+            ApiConfiguration.Resolve(configuration, "Test"));
+
+        Assert.Equal("POSTGRES_HOST", error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Missing, error.Category);
     }
 
     [Theory]
@@ -118,6 +159,7 @@ public sealed class ConfigurationSourceTests
         var error = Assert.Throws<ApiConfigurationException>(() =>
             ApiConfigurationSources.ApprovedConfigurationArguments([argument]));
 
+        Assert.Equal(ConfigurationFailureCategory.Incompatible, error.Category);
         Assert.DoesNotContain("synthetic-secret", error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic-key", error.Message, StringComparison.Ordinal);
     }
