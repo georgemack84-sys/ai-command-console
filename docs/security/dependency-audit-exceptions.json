@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "exceptions": [
+    {
+      "id": "DEV-TOOL-001",
+      "graphs": ["root", "web"],
+      "affectedPackages": ["esbuild"],
+      "advisoryUrls": ["https://github.com/advisories/GHSA-g7r4-m6w7-qqqr"],
+      "maximumSeverity": "low",
+      "owner": "Repository platform",
+      "expiresOn": "2026-09-30",
+      "exposure": "The vulnerable esbuild development-server capability is not exposed by Proprium runtime images or CI and is reached only through the locked tsx development toolchain.",
+      "mitigation": "Do not expose local development servers to untrusted networks or input. Remove this exception when tsx accepts a fixed esbuild release."
+    },
+    {
+      "id": "DEV-TOOL-002",
+      "graphs": ["web"],
+      "affectedPackages": [
+        "image-size",
+        "vite-plugin-storybook-nextjs",
+        "@storybook/nextjs-vite"
+      ],
+      "advisoryUrls": [
+        "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
+        "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq"
+      ],
+      "maximumSeverity": "high",
+      "owner": "Frontend platform",
+      "expiresOn": "2026-09-30",
+      "exposure": "The affected parser is present only in the Storybook development graph and processes repository-owned story assets during trusted builds.",
+      "mitigation": "Do not process untrusted ICNS, JXL, or HEIF assets through Storybook. Upgrade or replace the Next.js Storybook adapter when a fixed image-size path is available."
+    }
+  ]
+}

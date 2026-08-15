@@ -16,18 +16,18 @@ responsive shell, GP-22 overlays, and GP-23 route states as one Week 2 foundatio
 
 ## Executed evidence
 
-| Gate                                | Result                                                                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Clean restore                       | Root `npm ci` installed 788 packages; frontend `npm ci` installed 610 packages from their lockfiles                      |
-| `npm run repo -- validate week-2`   | Passed the aggregate policy and five controlled failures                                                                 |
-| `npm run repo -- validate frontend` | Passed GP-19 through GP-24, lint, typecheck, architecture, 19 theme tests, and 78 covered tests                           |
-| `npm run repo -- build frontend`    | Passed with explicit public configuration; five static pages and three dynamic routes were emitted                       |
-| `npm run repo -- build storybook`   | Passed with 29 static stories; vendor Axe chunk warning remains registered as `W2-SB-001`                                |
-| `npm run test:storybook`            | 25/25 keyboard, responsive, theme, Axe, cleanup, and console scenarios passed                                            |
-| `npm run test:browser`              | Passed 21 application-shell, authentication, responsive, and Axe assertions                                              |
-| `npm run test:config-build-failure` | Invalid public configuration failed closed as required                                                                   |
-| `npm run test:repository-commands`  | 22/22 canonical command and PowerShell adapter tests passed                                                              |
-| `npm run repo -- validate repo`     | Repository, documentation, frozen baseline, CI contract, and secret policies passed                                      |
+| Gate                                | Result                                                                                              |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Clean restore                       | Root `npm ci` installed 788 packages; frontend `npm ci` installed 610 packages from their lockfiles |
+| `npm run repo -- validate week-2`   | Passed the aggregate policy and five controlled failures                                            |
+| `npm run repo -- validate frontend` | Passed GP-19 through GP-24, lint, typecheck, architecture, 19 theme tests, and 78 covered tests     |
+| `npm run repo -- build frontend`    | Passed with explicit public configuration; five static pages and three dynamic routes were emitted  |
+| `npm run repo -- build storybook`   | Passed with 29 static stories; vendor Axe chunk warning remains registered as `W2-SB-001`           |
+| `npm run test:storybook`            | 25/25 keyboard, responsive, theme, Axe, cleanup, and console scenarios passed                       |
+| `npm run test:browser`              | Passed 21 application-shell, authentication, responsive, and Axe assertions                         |
+| `npm run test:config-build-failure` | Invalid public configuration failed closed as required                                              |
+| `npm run test:repository-commands`  | 22/22 canonical command and PowerShell adapter tests passed                                         |
+| `npm run repo -- validate repo`     | Repository, documentation, frozen baseline, CI contract, and secret policies passed                 |
 
 Command results are recorded in the GP-24 completion report. GitHub Actions on
 the published commit remains the authoritative remote evidence.
@@ -40,6 +40,6 @@ build set `NODE_ENV=production` and passed.
 
 ## Result
 
-`CONDITIONALLY_QUALIFIED`: automated qualification is required to be green, but
-the expired `W2-A11Y-002` human screen-reader/native-zoom/visual attestation blocks
-an unconditional Week 2 exit claim.
+`QUALIFIED`: automated qualification is green, and George Mack completed the
+Windows Narrator, Chrome-native 200% zoom, and visual contrast attestation on
+2026-08-15. `W2-A11Y-002` is resolved and removed from the active register.

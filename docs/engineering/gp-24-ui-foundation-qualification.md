@@ -28,6 +28,5 @@ concrete consumer.
 ## Exit rule
 
 Automated gates may establish code readiness but cannot impersonate a human
-assistive-technology or visual review. Because `W2-A11Y-002` expired before this
-qualification, the correct result is `CONDITIONALLY_QUALIFIED` until a named
-reviewer completes and records that work.
+assistive-technology or visual review. George Mack completed and recorded that
+review on 2026-08-15, resolving `W2-A11Y-002`; the exit result is `QUALIFIED`.

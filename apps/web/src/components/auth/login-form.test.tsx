@@ -48,6 +48,22 @@ describe('LoginForm', () => {
       'password',
     );
   });
+  it('uses a recognizable visibility icon and exposes its pressed state', () => {
+    renderForm();
+    const password = screen.getByLabelText('Password *');
+    const showPassword = screen.getByRole('button', {
+      name: 'Show password',
+    });
+    expect(showPassword).toHaveAttribute('aria-pressed', 'false');
+    expect(showPassword.querySelector('svg')).not.toBeNull();
+
+    fireEvent.click(showPassword);
+
+    expect(password).toHaveAttribute('type', 'text');
+    expect(
+      screen.getByRole('button', { name: 'Hide password' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
   it('submits credentials once while pending and revalidates the session', async () => {
     let release!: () => void;
     const authenticate = vi.fn(

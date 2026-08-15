@@ -48,5 +48,5 @@ assumption. The fixed frontend mirrors the backend's production/non-production
 cookie selection while retaining authoritative `/me` resolution. No GP-25
 environment limitation remains.
 
-Week 2 remains conditionally qualified for its separately recorded human
-accessibility attestation; GP-25 does not silently resolve that exception.
+The Week 2 exit gate is qualified following George Mack's separately recorded
+2026-08-15 human accessibility attestation; GP-25 did not silently resolve it.

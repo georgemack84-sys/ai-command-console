@@ -11,11 +11,24 @@ Use this checklist during a manual browser and assistive-technology review. Reco
 | Automated accessibility       | Axe on the shell rejects every serious and critical violation.                                                                                                           | Passed |
 | Public component interactions | Built Storybook tests 320 px layouts, 200% root text scaling, themes, reduced motion, portal cleanup, browser errors, and overlay interaction.                           | Passed |
 
-This automated evidence does not substitute for manual zoom, screen-reader, and visual contrast review. Those items remain un-attested until a named reviewer records the browser, assistive technology, and outcome.
+This automated evidence does not substitute for manual zoom, screen-reader, and visual contrast review. The named human evidence below completes those checks.
 
-The former temporary exception `W2-A11Y-002` expired on 2026-08-05. It has not
-been renewed, so the Week 2 result remains conditional until a named human review
-records its environment and outcome here.
+## Human evidence — 2026-08-15
+
+| Check              | Evidence                                                                                                                                                                | Result |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Screen reader      | George Mack reviewed the login specimen with Windows Narrator in Google Chrome and confirmed the username, password, visibility-toggle state, and submit announcements. | Passed |
+| Native 200% zoom   | Chrome reported 200%; every login control remained reachable by keyboard, focus remained visible, and vertically scrolled content remained available.                   | Passed |
+| Visual contrast    | Light and dark login, mobile navigation, long-dialog, and recoverable-error specimens retained readable text, controls, feedback, and focus indicators.                 | Passed |
+| Defect remediation | The ambiguous password-visibility dot found during review was replaced by a recognizable eye/eye-off icon and rechecked at 200%.                                        | Passed |
+
+The former temporary exception `W2-A11Y-002` expired on 2026-08-05 and was
+resolved by this review rather than renewed. It has been removed from the active
+exception register.
+
+The authoritative completion state is recorded in
+`accessibility-attestation.json`. Automation validates that record; only the
+named reviewer confirmation authorizes its completed status.
 
 ## Keyboard and focus
 
