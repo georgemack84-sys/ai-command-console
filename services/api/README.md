@@ -11,6 +11,13 @@ read `IConfiguration` or process environment values. Provider-native builders
 construct PostgreSQL and Redis client configuration without logging credentials.
 See the [GP-31 backend configuration contract](../../docs/engineering/gp-31-backend-typed-configuration.md).
 
+Provider composition is explicit and static: `appsettings.json`, optional
+environment-specific JSON, process environment, the reserved deployment-secret
+slot, and allowlisted non-secret command-line overrides. Lower sources win.
+Development User Secrets and backend `.env` files are not loaded automatically,
+and secret-shaped CLI configuration is rejected. See the
+[GP-32 precedence contract](../../docs/engineering/gp-32-configuration-sources-and-precedence.md).
+
 The backend is a .NET 8 layered solution. From the repository root, restore and
 run its canonical infrastructure-independent qualification with:
 
