@@ -10,3 +10,17 @@ logs
 test-results
 playwright-report
 .codex-temp
+
+# Local configuration and credential containers never enter build contexts.
+.env
+.env.*
+**/.env
+**/.env.*
+*.jks
+*.key
+*.keystore
+*.p12
+*.pem
+*.pfx
+credentials.json
+service-account*.json

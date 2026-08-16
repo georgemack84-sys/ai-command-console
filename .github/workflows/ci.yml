@@ -32,6 +32,10 @@ jobs:
         run: npm run audit:dependencies:root && npm run audit:dependencies:web
       - name: Audit development dependency exceptions
         run: npm run audit:dependencies:development && npm run test:dependency-audit-policy
+      - name: Scan tracked tree for secret leakage
+        run: npm run validate:secrets
+      - name: Qualify Part II configuration
+        run: npm run repo -- validate configuration
       - name: Validate repository policy
         run: npm run repo -- validate repo
       - name: Verify canonical command contracts
@@ -50,6 +54,7 @@ jobs:
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_API_BASE_URL: https://api.ci.example
       NEXT_PUBLIC_ENVIRONMENT: test
+      GP35_FRONTEND_SECRET_SENTINEL: gp35-server-only-ci-test-only-sentinel
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -69,6 +74,9 @@ jobs:
         run: npm run repo -- validate frontend
       - name: Build frontend
         run: npm run repo -- build frontend
+      - name: Scan browser artifacts for secret leakage
+        run: npm run test:secret-isolation
+        working-directory: apps/web
       - name: Build Storybook
         run: npm run repo -- build storybook
       - name: Test Storybook accessibility and interactions
@@ -92,6 +100,9 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
+          cache: npm
+      - name: Restore locked validation dependencies
+        run: npm ci --ignore-scripts
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v5
         with:
@@ -111,12 +122,10 @@ jobs:
 
   integration-validation:
     name: Integration Validation
+    needs: backend-validation
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      APP_NAME: Proprium
-      APP_ENVIRONMENT: Test
-      APP_VERSION: ci
       ASPNETCORE_ENVIRONMENT: Test
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 55432

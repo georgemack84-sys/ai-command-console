@@ -20,11 +20,10 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPropriumInfrastructure(this IServiceCollection services)
     {
-        services.AddDbContext<PropriumDbContext>((provider, options) => options.UseNpgsql(provider.GetRequiredService<IOptions<PostgresOptions>>().Value.ConnectionString));
+        services.AddDbContext<PropriumDbContext>((provider, options) => options.UseNpgsql(provider.GetRequiredService<IOptions<PostgresOptions>>().Value.BuildConnectionString()));
         services.AddSingleton<IConnectionMultiplexer>(provider =>
         {
-            var configuration = ConfigurationOptions.Parse(provider.GetRequiredService<IOptions<RedisOptions>>().Value.ConnectionString);
-            configuration.AbortOnConnectFail = false;
+            var configuration = provider.GetRequiredService<IOptions<RedisOptions>>().Value.BuildConfiguration();
             return ConnectionMultiplexer.Connect(configuration);
         });
         services.AddSingleton<IPlatformCache, RedisPlatformCache>();

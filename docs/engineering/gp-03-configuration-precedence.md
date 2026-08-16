@@ -9,7 +9,7 @@ GP-03 freezes how each Proprium component resolves configuration, validates the 
 ## Review findings
 
 - The frontend already had one explicit `process.env` boundary, a strict schema, build-time validation, and an ESLint restriction. GP-03 qualifies and tests that design rather than creating speculative server/public modules.
-- The API already used ASP.NET Core's default providers and typed options, but parsing, defaults, and registration were embedded in `Program.cs`. GP-03 moves them into one resolvable and testable composition boundary.
+- The API initially used ASP.NET Core's default providers and typed options, but parsing, defaults, and registration were embedded in `Program.cs`. GP-03 moved parsing into one resolvable boundary; GP-32 later made provider composition explicit and allowlisted command-line configuration.
 - The API had no backend `.env` loader. Adding one would create a new source and premature precedence behavior, so local API values remain process/IDE/container inputs.
 - Integration tests intentionally read process environment at their infrastructure boundary. Unit and architecture tests use explicit in-memory inputs and do not consume developer `.env` files.
 
@@ -36,10 +36,12 @@ Process values are never overwritten by `.env.local`. `.env.example`, `.env.dock
 2. tracked `appsettings.json`;
 3. optional tracked `appsettings.{Environment}.json`;
 4. process environment variables, using `__` for hierarchical keys;
-5. ASP.NET Core command-line configuration in `--Key=value` form;
-6. internal in-memory overrides used only by the OpenAPI export mode.
+5. an optional deployment-owned secret provider;
+6. allowlisted non-secret command-line configuration.
 
-The API resolves these providers once into an immutable startup snapshot before service registration. Runtime reload is not supported. Command-line secrets are prohibited even though the provider can technically accept them.
+Normal startup has no configured secret provider. The OpenAPI export harness uses a deterministic in-memory test provider in the reserved fifth position. Development User Secrets and backend `.env` files are not loaded. Command-line configuration is restricted to documented operational keys; secret-shaped or unapproved keys fail policy validation before builder creation.
+
+The API resolves these providers once into an immutable startup snapshot before service registration. Runtime reload is not supported. Lower sources override higher sources, and an invalid stronger value fails rather than falling back.
 
 ## Supported environments
 

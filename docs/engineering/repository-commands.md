@@ -45,6 +45,7 @@ They fail non-zero at the first required child failure.
 | Capability | npm / Unix-like shell | PowerShell 7+ | Infrastructure |
 | --- | --- | --- | --- |
 | Full source gate | `npm run repo -- validate` | `.\scripts\proprium.ps1 validate` | None |
+| Part II configuration qualification | `npm run repo -- validate configuration` | `.\scripts\proprium.ps1 validate configuration` | None |
 | Repository and documentation | `npm run repo -- validate repo` | `.\scripts\proprium.ps1 validate repo` | None |
 | Developer documentation only | `npm run repo -- validate documentation` | `.\scripts\proprium.ps1 validate documentation` | None |
 | Day 5 qualification evidence | `npm run repo -- validate qualification` | `.\scripts\proprium.ps1 validate qualification` | None |

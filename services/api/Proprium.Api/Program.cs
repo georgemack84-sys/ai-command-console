@@ -46,25 +46,14 @@ if (permissionExport is not null)
 }
 
 var openApiOutput = args.SkipWhile(argument => argument != "--write-openapi").Skip(1).FirstOrDefault();
+var approvedConfigurationArguments = ApiConfigurationSources.ApprovedConfigurationArguments(args);
 var builder = WebApplication.CreateBuilder(args);
-if (openApiOutput is not null)
-{
-    builder.WebHost.UseUrls("http://127.0.0.1:0");
-    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-    {
-        ["POSTGRES_HOST"] = "openapi",
-        ["POSTGRES_PORT"] = "5432",
-        ["POSTGRES_DATABASE"] = "openapi",
-        ["POSTGRES_USER"] = "openapi",
-        ["POSTGRES_PASSWORD"] = "change-me",
-        ["REDIS_HOST"] = "openapi",
-        ["REDIS_PORT"] = "6379",
-        ["SESSION_TOKEN_DIGEST_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
-        ["SESSION_LIFETIME_MINUTES"] = "480",
-        ["AUTH_ALLOWED_ORIGIN"] = "http://localhost",
-        ["LOGIN_RATE_LIMIT_PRIVACY_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
-    });
-}
+ApiConfigurationSources.Configure(
+    builder.Configuration,
+    builder.Environment.ContentRootPath,
+    builder.Environment.EnvironmentName,
+    approvedConfigurationArguments,
+    openApiOutput is null ? null : OpenApiToolingConfiguration.AddSyntheticProvider);
 
 var configuration = ApiConfiguration.Resolve(builder.Configuration, builder.Environment.EnvironmentName);
 
@@ -108,27 +97,21 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.OperationFilter<CookieAuthenticationOperationFilter>();
 });
+if (openApiOutput is not null) OpenApiToolingConfiguration.AddMetadataServices(builder.Services);
 
 var app = builder.Build();
 
 if (openApiOutput is not null)
 {
     app.MapPlatformEndpoints();
-    await app.StartAsync();
-    try
-    {
-        var directory = Path.GetDirectoryName(Path.GetFullPath(openApiOutput));
-        if (directory is not null) Directory.CreateDirectory(directory);
-        await using var stream = File.Create(openApiOutput);
-        await using var textWriter = new StreamWriter(stream);
-        var writer = new OpenApiJsonWriter(textWriter);
-        app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1").SerializeAsV3(writer);
-        await textWriter.FlushAsync();
-    }
-    finally
-    {
-        await app.StopAsync();
-    }
+    app.Services.GetRequiredService<OpenApiToolingEndpointDataSource>().Capture(app);
+    var directory = Path.GetDirectoryName(Path.GetFullPath(openApiOutput));
+    if (directory is not null) Directory.CreateDirectory(directory);
+    await using var stream = File.Create(openApiOutput);
+    await using var textWriter = new StreamWriter(stream);
+    var writer = new OpenApiJsonWriter(textWriter);
+    app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1").SerializeAsV3(writer);
+    await textWriter.FlushAsync();
 
     return;
 }

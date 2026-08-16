@@ -1,66 +1,32 @@
 const { readFileSync } = require('node:fs');
 const { basename } = require('node:path');
 const { spawnSync } = require('node:child_process');
+const {
+  canonicalTemplates,
+  validateEnvironmentTemplateOwnership,
+} = require('./environment-template-ownership-policy.cjs');
+const {
+  canonicalRootKeys,
+  validateRootComposeAlignment,
+  validateRootEnvironmentTemplate,
+} = require('./root-environment-template-policy.cjs');
+const { parseEnvironmentTemplate } = require('./environment-template-parser.cjs');
+const {
+  apiKeys,
+  approvedSensitiveExamples,
+  intentionallySharedKeys,
+  sensitiveKeys,
+  webKeys,
+} = require('./configuration-contract-policy.cjs');
 
 const templates = {
-  root: '.env.example',
-  web: 'apps/web/.env.example',
-  api: 'services/api/.env.example',
+  root: canonicalTemplates[0].path,
+  web: canonicalTemplates[1].path,
+  api: canonicalTemplates[2].path,
 };
 
-const rootKeys = [
-  'COMPOSE_PROJECT_NAME',
-  'POSTGRES_DATABASE',
-  'POSTGRES_USER',
-  'POSTGRES_PASSWORD',
-  'POSTGRES_HOST_PORT',
-  'REDIS_HOST_PORT',
-];
-const webKeys = [
-  'NEXT_PUBLIC_APP_NAME',
-  'NEXT_PUBLIC_APP_VERSION',
-  'NEXT_PUBLIC_API_BASE_URL',
-  'NEXT_PUBLIC_ENVIRONMENT',
-];
-const apiKeys = [
-  'ASPNETCORE_ENVIRONMENT',
-  'ASPNETCORE_URLS',
-  'PLATFORM__NAME',
-  'PLATFORM__VERSION',
-  'POSTGRES_HOST',
-  'POSTGRES_PORT',
-  'POSTGRES_DATABASE',
-  'POSTGRES_USER',
-  'POSTGRES_PASSWORD',
-  'REDIS_HOST',
-  'REDIS_PORT',
-  'REDIS_PASSWORD',
-  'SESSION_TOKEN_DIGEST_KEY',
-  'SESSION_LIFETIME_MINUTES',
-  'AUTH_ALLOWED_ORIGIN',
-  'LOGIN_RATE_LIMIT_PRIVACY_KEY',
-  'LOGIN_RATE_LIMIT_SOURCE',
-  'LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE',
-  'LOGIN_RATE_LIMIT_WINDOW_MINUTES',
-  'LOGIN_RATE_LIMIT_FALLBACK_CAPACITY',
-  'LOCAL_ADMIN_ENABLED',
-  'LOCAL_ADMIN_USERNAME',
-  'LOCAL_ADMIN_PASSWORD',
-];
+const rootKeys = canonicalRootKeys;
 const approvedTrackedLocalProfiles = new Set(['apps/web/.env.docker', 'apps/web/.env.test']);
-const approvedSensitiveExamples = new Set([
-  '',
-  'local-development-only',
-  'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
-]);
-const sensitiveKeys = new Set([
-  'POSTGRES_PASSWORD',
-  'REDIS_PASSWORD',
-  'SESSION_TOKEN_DIGEST_KEY',
-  'LOGIN_RATE_LIMIT_PRIVACY_KEY',
-  'LOCAL_ADMIN_PASSWORD',
-]);
-const intentionallySharedKeys = new Set(['POSTGRES_DATABASE', 'POSTGRES_USER', 'POSTGRES_PASSWORD']);
 
 function fail(message) {
   throw new Error(message);
@@ -73,16 +39,13 @@ function runGit(args, options = {}) {
 }
 
 function parseTemplate(name, path, content = readFileSync(path, 'utf8')) {
-  const values = new Map();
-  for (const [index, line] of content.split(/\r?\n/).entries()) {
-    if (!line.trim() || line.trimStart().startsWith('#')) continue;
-    const match = line.match(/^([A-Z][A-Z0-9_]*(?:__[A-Z][A-Z0-9_]*)*)=(.*)$/);
-    if (!match) fail(`${path}:${index + 1} is malformed.`);
-    if (values.has(match[1])) fail(`${path}:${index + 1} duplicates ${match[1]}.`);
-    values.set(match[1], match[2]);
+  const parsed = parseEnvironmentTemplate(content, path);
+  if (parsed.errors.length) {
+    const error = parsed.errors[0];
+    fail(`[${error.id}] ${path}:${error.line} ${error.message}.`);
   }
-  if (!values.size) fail(`${name} template is empty.`);
-  return values;
+  if (!parsed.values.size) fail(`${name} template is empty.`);
+  return parsed.values;
 }
 
 function requireExactKeys(name, values, expected) {
@@ -139,6 +102,19 @@ function trackedFiles() {
   return result.stdout.toString('utf8').split('\0').filter(Boolean);
 }
 
+const tracked = trackedFiles();
+const topologyErrors = validateEnvironmentTemplateOwnership({
+  trackedPaths: tracked,
+  ignoredPaths: [
+    ...canonicalTemplates.map(({ path }) => path),
+    ...canonicalTemplates.map(({ local }) => local),
+  ].filter(ignoreStatus),
+  contentsByPath: new Map(
+    canonicalTemplates.map(({ path }) => [path, readFileSync(path, 'utf8')]),
+  ),
+});
+if (topologyErrors.length) fail(topologyErrors.join('\n'));
+
 for (const path of Object.values(templates)) {
   requireTracked(path);
   requireTrackable(path);
@@ -147,7 +123,12 @@ for (const path of Object.values(templates)) {
 const rootContent = readFileSync(templates.root, 'utf8');
 const boundary = '# Transitional root application contract.';
 if (!rootContent.includes(boundary)) fail(`${templates.root} is missing the transitional ownership boundary.`);
-const root = parseTemplate('root Proprium section', templates.root, rootContent.split(boundary, 1)[0]);
+const rootSection = rootContent.split(boundary, 1)[0];
+const rootErrors = validateRootEnvironmentTemplate(rootSection);
+if (rootErrors.length) fail(rootErrors.join('\n'));
+const composeErrors = validateRootComposeAlignment(readFileSync('docker-compose.proprium.yml', 'utf8'));
+if (composeErrors.length) fail(composeErrors.join('\n'));
+const root = parseTemplate('root Proprium section', templates.root, rootSection);
 const rootComplete = parseTemplate('root', templates.root, rootContent);
 const web = parseTemplate('frontend', templates.web);
 const api = parseTemplate('backend', templates.api);
@@ -196,7 +177,7 @@ for (const [key, owners] of ownersByKey) {
   }
 }
 
-for (const path of trackedFiles()) {
+for (const path of tracked) {
   if (approvedTrackedLocalProfiles.has(path)) continue;
   const name = basename(path);
   if (name === '.env' || (name.startsWith('.env.') && !name.endsWith('.example'))) {
@@ -208,6 +189,7 @@ for (const path of trackedFiles()) {
   '.env',
   '.env.local',
   '.env.production',
+  '.env.development',
   '.env.development.local',
   'apps/web/.env.local',
   'services/api/.env',

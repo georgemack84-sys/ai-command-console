@@ -96,6 +96,13 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 Success means exit code `0`. Do not delete or regenerate lockfiles to repair a
 restore; diagnose the runtime, network, registry, or lockfile mismatch instead.
 
+The backend build compiles the API, application, domain, infrastructure, unit,
+architecture, and integration-test projects without executing tests or resolving
+runtime clients. OpenAPI export is also metadata-only: it does not bind a port,
+run health checks, or contact PostgreSQL or Redis. See the
+[GP-34 build/runtime boundary](../engineering/gp-34-build-time-infrastructure-independence.md)
+for the audited command matrix and mechanical enforcement.
+
 ## Apply migrations and start the applications
 
 Docker Compose owns local PostgreSQL, Redis, the one-shot migration runner, the

@@ -52,12 +52,17 @@ assert.match(commands('repository-validation'), /npm run audit:dependencies:web/
 assert.match(commands('repository-validation'), /npm run audit:dependencies:development/);
 assert.match(commands('repository-validation'), /npm run test:dependency-audit-policy/);
 assert.match(commands('repository-validation'), /npm run test:release-workflows/);
+assert.match(commands('repository-validation'), /npm run validate:secrets/);
+assert.match(commands('repository-validation'), /npm run repo -- validate configuration/);
 assert.match(commands('frontend-validation'), /npm run repo -- validate frontend/);
 assert.match(commands('frontend-validation'), /npm run repo -- build frontend/);
+assert.match(commands('frontend-validation'), /npm run test:secret-isolation/);
 assert.match(commands('frontend-validation'), /npm run repo -- build storybook/);
 assert.match(commands('backend-validation'), /npm run repo -- validate backend/);
+assert.match(commands('backend-validation'), /npm ci --ignore-scripts/);
 assert.match(commands('backend-validation'), /npm run audit:dependencies:dotnet/);
 assert.match(commands('backend-validation'), /npm run backend:test:unit/);
+assert.equal(workflow.jobs['integration-validation'].needs, 'backend-validation');
 assert.match(commands('integration-validation'), /npm run repo -- migrate/);
 assert.match(commands('integration-validation'), /npm run backend:test:integration/);
 assert.match(commands('docker-validation'), /npm run repo -- validate docker/);
@@ -79,5 +84,20 @@ assert.doesNotMatch(source, /continue-on-error/);
 assert.doesNotMatch(source, /\|\|\s*true/);
 assert.doesNotMatch(source, /permissions:\s*[\s\S]*?write:/);
 assert.doesNotMatch(source, /secrets\./);
+
+const repositoryCommands = commands('repository-validation');
+assert.ok(
+  repositoryCommands.indexOf('npm run validate:secrets') <
+    repositoryCommands.indexOf('npm run repo -- validate configuration') &&
+    repositoryCommands.indexOf('npm run repo -- validate configuration') <
+    repositoryCommands.indexOf('npm run repo -- validate repo'),
+  'secret scanning and Part II configuration qualification must precede broader repository validation',
+);
+const frontendCommands = commands('frontend-validation');
+assert.ok(
+  frontendCommands.indexOf('npm run repo -- build frontend') <
+    frontendCommands.indexOf('npm run test:secret-isolation'),
+  'frontend artifact scanning must run immediately after the production build',
+);
 
 console.log('CI workflow contract: PASS (7 stable merge gates)');

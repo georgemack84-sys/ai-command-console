@@ -34,6 +34,7 @@ test('canonical command surface contains the GP-13 contract', () => {
     [...commands.keys()],
     [
       'validate repo',
+      'validate configuration',
       'validate documentation',
       'validate qualification',
       'validate baseline',
@@ -66,11 +67,18 @@ test('canonical command surface contains the GP-13 contract', () => {
   );
 });
 
+test('Part II configuration qualification delegates to one stable package gate', () => {
+  const recorded = recorder();
+  execute('validate configuration', { spawn: recorded.spawn, log() {} });
+  assert.equal(recorded.calls.length, 1);
+  assert.deepEqual(npmArguments(recorded.calls[0]), ['run', 'validate:configuration']);
+});
+
 test('root validation dispatches repository, frontend, then backend', () => {
   const recorded = recorder();
   execute('validate', { spawn: recorded.spawn, log() {} });
 
-  assert.equal(recorded.calls.length, 10);
+  assert.equal(recorded.calls.length, 11);
   assert.deepEqual(npmArguments(recorded.calls[0]), [
     'run',
     'validate:repository',
@@ -91,6 +99,12 @@ test('root validation dispatches repository, frontend, then backend', () => {
     'run',
     'backend:format:check',
   ]);
+  assert.ok(
+    recorded.calls.some(
+      (call) =>
+        npmArguments(call).join(' ') === 'run validate:build-time-independence',
+    ),
+  );
   assert.deepEqual(npmArguments(recorded.calls.at(-1)), [
     'run',
     'validate:backend-test-classification',
@@ -104,7 +118,7 @@ test('the single-word validate command is accepted by the CLI', async () => {
     await main(['validate'], { spawn: recorded.spawn, log() {} }),
     0,
   );
-  assert.equal(recorded.calls.length, 10);
+  assert.equal(recorded.calls.length, 11);
 });
 
 test('a child failure propagates and stops grouped validation', () => {
@@ -189,10 +203,16 @@ test('Docker and OpenAPI validation remain focused canonical domains', () => {
   const docker = recorder();
   execute('validate docker', { spawn: docker.spawn, log() {} });
   assert.deepEqual(
-    docker.calls.map((call) => call.args),
     [
+      npmArguments(docker.calls[0]),
+      ...docker.calls.slice(1, 3).map((call) => call.args),
+      npmArguments(docker.calls[3]),
+    ],
+    [
+      ['run', 'validate:secrets'],
       ['compose', '-f', 'docker-compose.proprium.yml', 'config', '--quiet'],
       ['compose', '-f', 'docker-compose.proprium.yml', 'build'],
+      ['run', 'validate:docker-images'],
     ],
   );
 

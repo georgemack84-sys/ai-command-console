@@ -58,7 +58,8 @@
     "test:browser:live-auth": "node scripts/test-browser-live-auth.mjs",
     "test:theme": "vitest run src/theme tests/unit/theme-provider.test.tsx",
     "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
-    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run validate:ui-foundation && npm run validate:components && npm run validate:shell && npm run validate:overlays && npm run validate:route-states && npm run validate:week-2 && npm run validate:authentication-ui && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:coverage",
+    "test:secret-isolation": "node ../../scripts/validate-secret-artifacts.cjs --scope frontend --root .next/static --sentinel-env GP35_FRONTEND_SECRET_SENTINEL",
+    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run validate:ui-foundation && npm run validate:components && npm run validate:shell && npm run validate:overlays && npm run validate:route-states && npm run validate:week-2 && npm run validate:authentication-ui && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:config-build-failure && npm run test:coverage",
     "validate": "npm run validate:frontend"
   },
   "dependencies": {

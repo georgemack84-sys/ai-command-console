@@ -60,6 +60,18 @@ const commands = new Map([
     },
   ],
   [
+    'validate configuration',
+    {
+      description: 'Run the complete infrastructure-independent Part II configuration gate.',
+      steps: [
+        processStep('Part II configuration qualification', 'npm', [
+          'run',
+          'validate:configuration',
+        ]),
+      ],
+    },
+  ],
+  [
     'validate documentation',
     {
       description: 'Validate the developer documentation contract.',
@@ -256,6 +268,10 @@ const commands = new Map([
           'run',
           'validate:backend-architecture',
         ]),
+        processStep('Build-time infrastructure independence', 'npm', [
+          'run',
+          'validate:build-time-independence',
+        ]),
         commandStep(
           'Backend authentication core',
           'validate authentication-core',
@@ -272,8 +288,10 @@ const commands = new Map([
     {
       description: 'Validate Compose configuration and application image builds.',
       steps: [
+        processStep('Docker secret policy', 'npm', ['run', 'validate:secrets']),
         processStep('Compose configuration', 'docker', [...compose, 'config', '--quiet']),
         processStep('Application image builds', 'docker', [...compose, 'build']),
+        processStep('Docker image secret scan', 'npm', ['run', 'validate:docker-images']),
       ],
     },
   ],

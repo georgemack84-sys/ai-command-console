@@ -31,7 +31,7 @@ services:
     build:
       context: .
       dockerfile: services/api/Proprium.Api/Dockerfile
-    command: ["dotnet", "Proprium.Api.dll", "--migrate"]
+    command: ["--migrate"]
     environment: &platform_environment
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
@@ -45,7 +45,7 @@ services:
       REDIS_PASSWORD: ""
       SESSION_TOKEN_DIGEST_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       SESSION_LIFETIME_MINUTES: 480
-      AUTH_ALLOWED_ORIGIN: http://localhost:3000
+      AUTH_ALLOWED_ORIGIN: http://localhost:${WEB_PORT:-3000}
       LOGIN_RATE_LIMIT_PRIVACY_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       LOGIN_RATE_LIMIT_SOURCE: 10
       LOGIN_RATE_LIMIT_IDENTIFIER_SOURCE: 5
@@ -62,7 +62,7 @@ services:
       dockerfile: services/api/Proprium.Api/Dockerfile
     restart: unless-stopped
     environment: *platform_environment
-    ports: ["8080:8080"]
+    ports: ["${API_PORT:-8080}:8080"]
     depends_on:
       database-migrations: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
@@ -78,10 +78,10 @@ services:
       args:
         NEXT_PUBLIC_APP_NAME: Proprium
         NEXT_PUBLIC_APP_VERSION: 0.1.0
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:${API_PORT:-8080}
         NEXT_PUBLIC_ENVIRONMENT: development
     restart: unless-stopped
-    ports: ["3000:3000"]
+    ports: ["${WEB_PORT:-3000}:3000"]
     depends_on:
       platform-api: { condition: service_healthy }
 
