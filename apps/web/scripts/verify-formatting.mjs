@@ -42,43 +42,90 @@ try {
   mkdirSync(join(fixtureRoot, 'src'));
   mkdirSync(join(fixtureRoot, '.next'));
 
-  const formattedPath = join(fixtureRoot, 'src', 'formatted.ts');
   const ignoredPath = join(fixtureRoot, '.next', 'generated.js');
-  writeFileSync(formattedPath, 'export const answer = { value: 42 };\n');
   writeFileSync(ignoredPath, 'export const ignored={value:1}\n');
 
-  const cleanCheck = runPrettier('--check', '.');
-  assert.equal(cleanCheck.status, 0, diagnostic(cleanCheck));
+  const driftFixtures = new Map([
+    [
+      'typescript.ts',
+      [
+        'export const typescript={value:1}\r\n',
+        'export const typescript = { value: 1 };\n',
+      ],
+    ],
+    [
+      'javascript.js',
+      [
+        'export const javascript={value:1}\n',
+        'export const javascript = { value: 1 };\n',
+      ],
+    ],
+    [
+      'module.mjs',
+      [
+        'export const module={value:1}\n',
+        'export const module = { value: 1 };\n',
+      ],
+    ],
+    [
+      'commonjs.cjs',
+      ['module.exports={value:1}\n', 'module.exports = { value: 1 };\n'],
+    ],
+    [
+      'component.jsx',
+      [
+        'export const Component=()=> <div>ready</div>\n',
+        'export const Component = () => <div>ready</div>;\n',
+      ],
+    ],
+    [
+      'typed-component.tsx',
+      [
+        'export const Typed=({value}:{value:string})=> <div>{value}</div>\n',
+        'export const Typed = ({ value }: { value: string }) => <div>{value}</div>;\n',
+      ],
+    ],
+    ['configuration.json', ['{"enabled":true}\n', '{ "enabled": true }\n']],
+    ['guide.md', ['# Fixture\n\n-   ready\n', '# Fixture\n\n- ready\n']],
+    ['workflow.yml', ['enabled:    true\n', 'enabled: true\n']],
+    ['settings.yaml', ['mode:    strict\n', 'mode: strict\n']],
+  ]);
 
-  const driftPath = join(fixtureRoot, 'src', 'drift.ts');
-  const drift = 'export const drift={value:1}\r\n';
-  writeFileSync(driftPath, drift);
+  for (const [name, [drift]] of driftFixtures) {
+    writeFileSync(join(fixtureRoot, 'src', name), drift);
+  }
+
   const failingCheck = runPrettier('--check', '.');
   assert.notEqual(
     failingCheck.status,
     0,
     'format:check accepted deliberately misformatted source',
   );
-  assert.match(
-    diagnostic(failingCheck).replaceAll('\\', '/'),
-    /src\/drift\.ts/,
-    'format:check did not identify the drifting file',
-  );
-  assert.equal(
-    readFileSync(driftPath, 'utf8'),
-    drift,
-    'format:check modified source',
-  );
+  const failingDiagnostic = diagnostic(failingCheck).replaceAll('\\', '/');
+  for (const [name, [drift]] of driftFixtures) {
+    assert.match(
+      failingDiagnostic,
+      new RegExp(`src/${name.replace('.', '\\.')}`),
+      `format:check did not identify ${name}`,
+    );
+    assert.equal(
+      readFileSync(join(fixtureRoot, 'src', name), 'utf8'),
+      drift,
+      `format:check modified ${name}`,
+    );
+  }
 
   const writeResult = runPrettier('--write', '.');
   assert.equal(writeResult.status, 0, diagnostic(writeResult));
-  const corrected = readFileSync(driftPath, 'utf8');
-  assert.equal(corrected, 'export const drift = { value: 1 };\n');
-  assert.equal(
-    corrected.includes('\r\n'),
-    false,
-    'Prettier did not normalize source to LF',
-  );
+  for (const [name, [, expected]] of driftFixtures) {
+    const corrected = readFileSync(join(fixtureRoot, 'src', name), 'utf8');
+    assert.equal(corrected, expected, `Prettier did not correct ${name}`);
+    assert.equal(
+      corrected.includes('\r\n'),
+      false,
+      `Prettier did not normalize ${name} to LF`,
+    );
+  }
 
   const correctedCheck = runPrettier('--check', '.');
   assert.equal(correctedCheck.status, 0, diagnostic(correctedCheck));
