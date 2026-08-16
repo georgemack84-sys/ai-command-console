@@ -118,7 +118,12 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         Assert.Equal(HttpStatusCode.Unauthorized, (await replay.GetAsync("/api/v1/auth/me")).StatusCode);
 
         await using var evidence = CreateContext();
-        var eventTypes = await evidence.AuthenticationEvents.Where(item => item.NormalizedUsername == username.ToUpperInvariant() || item.User!.NormalizedUsername == username.ToUpperInvariant()).Select(item => item.EventType).ToArrayAsync();
+        var normalizedUsername = username.ToUpperInvariant();
+        var eventTypes = await evidence.AuthenticationEvents
+            .Where(item => item.NormalizedUsername == normalizedUsername ||
+                (item.User != null && item.User.NormalizedUsername == normalizedUsername))
+            .Select(item => item.EventType)
+            .ToArrayAsync();
         Assert.Contains(AuthenticationEventType.LoginSucceeded, eventTypes);
         Assert.Contains(AuthenticationEventType.SessionCreated, eventTypes);
         Assert.Contains(AuthenticationEventType.Logout, eventTypes);

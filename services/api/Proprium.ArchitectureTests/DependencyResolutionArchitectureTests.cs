@@ -14,7 +14,9 @@ public sealed class DependencyResolutionArchitectureTests
     private static readonly IReadOnlyDictionary<short, OpCode> OpCodesByValue = typeof(OpCodes)
         .GetFields(BindingFlags.Public | BindingFlags.Static)
         .Where(field => field.FieldType == typeof(OpCode))
-        .Select(field => (OpCode)field.GetValue(null)!)
+        .Select(field => field.GetValue(null) is OpCode opCode
+            ? opCode
+            : throw new InvalidOperationException($"Unable to read {field.Name}."))
         .ToDictionary(opCode => opCode.Value);
 
     [Fact]

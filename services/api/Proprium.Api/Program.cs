@@ -131,7 +131,9 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
     LocalAdministratorPolicy.EnsurePermitted(localAdministrator.Enabled, app.Environment.IsDevelopment());
     if (localAdministrator.Enabled)
     {
-        await scope.ServiceProvider.GetRequiredService<LocalAdministratorInitializer>().InitializeAsync(localAdministrator.Username!, localAdministrator.Password!);
+        if (string.IsNullOrWhiteSpace(localAdministrator.Username) || string.IsNullOrWhiteSpace(localAdministrator.Password))
+            throw new InvalidOperationException("Enabled local-administrator initialization requires validated credentials.");
+        await scope.ServiceProvider.GetRequiredService<LocalAdministratorInitializer>().InitializeAsync(localAdministrator.Username, localAdministrator.Password);
     }
     return;
 }

@@ -162,8 +162,9 @@ public sealed class PostgresRetryIntegrationTests : IIntegrationTest
 
         public async Task CommitTransactionAsync(CancellationToken cancellationToken)
         {
-            await _transaction!.CommitAsync(cancellationToken);
-            await _transaction.DisposeAsync();
+            var transaction = _transaction ?? throw new InvalidOperationException("A transaction must begin before it can be committed.");
+            await transaction.CommitAsync(cancellationToken);
+            await transaction.DisposeAsync();
             _transaction = null;
         }
 

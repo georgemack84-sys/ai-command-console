@@ -75,7 +75,8 @@ public sealed class PermissionResolutionIntegrationTests : IIntegrationTest
 
         public Task<CacheWriteResult> SetAsync<T>(string key, T value, TimeSpan expiry, CancellationToken cancellationToken = default)
         {
-            entries[key] = value!;
+            ArgumentNullException.ThrowIfNull(value);
+            entries[key] = value;
             ReadStatus = CacheOperationStatus.Success;
             return Task.FromResult(new CacheWriteResult(CacheOperationStatus.Success));
         }

@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
+const { mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
 
 const repositoryRoot = join(__dirname, '..');
@@ -11,6 +12,7 @@ const fixtureRoot = join(
   'compiler-fixtures',
 );
 const cases = [
+  ['null-assignment', 'NullAssignment.csproj', 'CS8600'],
   ['nullable-dereference', 'NullableDereference.csproj', 'CS8602'],
   ['compiler-warning', 'CompilerWarning.csproj', 'CS1998'],
   ['analyzer-warning', 'AnalyzerWarning.csproj', 'CA2200'],
@@ -81,5 +83,37 @@ assert.match(
   /Proprium compiler policy requires Nullable=enable\./,
   'The evaluated policy target did not reject Nullable=disable.',
 );
+
+const nullableDisableFixture = mkdtempSync(
+  join(fixtureRoot, 'nullable-disable-'),
+);
+const nullableDisableSource = join(nullableDisableFixture, 'Program.cs');
+const nullableDisableContent =
+  '#nullable disable\nstring value = null;\nConsole.WriteLine(value);\n';
+try {
+  writeFileSync(nullableDisableSource, nullableDisableContent);
+  const nullableDisable = spawnSync(
+    process.execPath,
+    [join(repositoryRoot, 'scripts', 'validate-backend-compiler.cjs')],
+    { cwd: repositoryRoot, encoding: 'utf8' },
+  );
+  assert.notEqual(
+    nullableDisable.status,
+    0,
+    'The compiler policy accepted a handwritten #nullable disable directive.',
+  );
+  assert.match(
+    output(nullableDisable),
+    /disables nullable analysis/,
+    'The compiler policy did not identify #nullable disable.',
+  );
+  assert.equal(
+    readFileSync(nullableDisableSource, 'utf8'),
+    nullableDisableContent,
+    'Nullable policy verification mutated its fixture.',
+  );
+} finally {
+  rmSync(nullableDisableFixture, { recursive: true, force: true });
+}
 
 console.log('Expected backend compiler and analyzer violations were detected.');

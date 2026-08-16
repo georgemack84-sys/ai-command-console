@@ -15,7 +15,7 @@ public sealed class RedisPlatformCache(IConnectionMultiplexer connection) : IPla
             if (!value.HasValue) return CacheReadResult<T>.Failure(CacheOperationStatus.Miss);
             try
             {
-                var deserialized = JsonSerializer.Deserialize<T>(value!);
+                var deserialized = JsonSerializer.Deserialize<T>(value.ToString());
                 return deserialized is null ? CacheReadResult<T>.Failure(CacheOperationStatus.SerializationFailure) : CacheReadResult<T>.Success(deserialized);
             }
             catch (JsonException) { return CacheReadResult<T>.Failure(CacheOperationStatus.SerializationFailure); }
@@ -25,6 +25,7 @@ public sealed class RedisPlatformCache(IConnectionMultiplexer connection) : IPla
     }
     public async Task<CacheWriteResult> SetAsync<T>(string key, T value, TimeSpan expiry, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(value);
         try { await _database.StringSetAsync(key, JsonSerializer.Serialize(value), expiry).WaitAsync(cancellationToken); return new(CacheOperationStatus.Success); }
         catch (JsonException) { return new(CacheOperationStatus.SerializationFailure); }
         catch (OperationCanceledException) { return new(CacheOperationStatus.Cancelled); }

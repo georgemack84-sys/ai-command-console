@@ -30,8 +30,8 @@ public sealed class RedisLoginRateLimiterIntegrationTests : IIntegrationTest
         Assert.True((await limiter.IncrementAsync(new LoginRateLimitRequest(source, identifier))).IsExceeded);
         var key = $"authz:login:pair:{Hash(privacyKey, $"{source}:{identifier.ToUpperInvariant()}")}";
         var remaining = await redis.GetDatabase().KeyTimeToLiveAsync(key);
-        Assert.NotNull(remaining);
-        Assert.InRange(remaining!.Value, TimeSpan.Zero, options.Value.Window);
+        var remainingTime = remaining ?? throw new InvalidOperationException("The rate-limit key must have an expiry.");
+        Assert.InRange(remainingTime, TimeSpan.Zero, options.Value.Window);
     }
 
     [Fact]

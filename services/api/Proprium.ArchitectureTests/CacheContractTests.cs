@@ -9,7 +9,7 @@ public sealed class CacheContractTests
     [Fact]
     public void Successful_read_requires_a_value()
     {
-        Assert.Throws<ArgumentNullException>(() => CacheReadResult<string>.Success(null!));
+        Assert.Throws<ArgumentNullException>(() => CacheReadResult<string>.Success(null));
         Assert.Equal("value", CacheReadResult<string>.Success("value").Value);
     }
 
