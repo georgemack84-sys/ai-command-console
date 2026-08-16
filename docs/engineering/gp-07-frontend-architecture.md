@@ -5,9 +5,15 @@
 
 ## Purpose and ownership
 
-GP-07 turns the frontend dependency graph into fail-closed repository policy. Prettier owns formatting, ESLint owns source-level static analysis, TypeScript owns type correctness, and dependency-cruiser owns relationships between modules. The architecture check is static, non-mutating, and requires no running application, database, cache, Docker daemon, environment file, or secret.
+GP-07 turns the frontend dependency graph into fail-closed repository policy. Prettier owns formatting, ESLint owns source-level static analysis, TypeScript owns type correctness, dependency-cruiser owns relationships between modules, and Knip owns unused-file and unused-export detection. The checks are static, non-mutating, and require no running application, database, cache, Docker daemon, environment file, or secret.
 
 The canonical configuration is `apps/web/.dependency-cruiser.cjs`. The locally installed and lockfile-controlled dependency-cruiser version is `16.10.4`. `apps/web/scripts/run-dependency-cruiser.mjs` resolves that exact local CLI and normalizes its working environment, so no global installation is required. Resolution consumes the canonical frontend `tsconfig.json`, including the `@/*` alias, rather than maintaining a second alias map.
+
+The canonical dead-code configuration is `apps/web/knip.json`, backed by the
+lockfile-controlled Knip version. Its source project is production TypeScript;
+framework configuration, repository scripts, type-contract checks, and
+architecture fixtures are explicit executable entry points. This preserves
+negative-test targets without hiding production files from analysis.
 
 ## Audited layer model
 
@@ -45,7 +51,7 @@ Dependencies flow from composition toward foundations. The enforced matrix is:
 | Tests and stories | Production source | Not applicable; these are consumers |
 | Production source | Production source allowed by the rows above | Tests, stories, Storybook configuration, or tooling scripts |
 
-All layers are also subject to unresolved-import and circular-dependency failures. Type-only imports count because they still express architectural coupling.
+All layers are also subject to unresolved-import and circular-dependency failures. Type-only imports count because they still express architectural coupling. Boundary rules operate on resolved modules, so the same prohibited edge fails when written with the `@/*` alias, a relative path, or a dynamic `import()`.
 
 Story modules are development consumers, so they may compose providers and configuration around the component under test. This exception applies to story files as consumers; production modules remain unable to import stories or Storybook tooling.
 
@@ -75,12 +81,22 @@ This canonical command analyzes production source, verifies the allowed-dependen
 npm run architecture:check
 npm run architecture:fixtures:passing
 npm run architecture:fixtures:failing
+npm run deadcode
+npm run deadcode:verify
 ```
 
-`npm run validate` includes formatting verification, zero-warning linting, strict type checking, architecture validation, and frontend tests. Invalid fixtures live under `tests/architecture/fixtures/failing`, outside normal source validation, and each fixture must fail for its expected named rule. The passing fixtures prove representative legal directions.
+`npm run validate` includes formatting verification, zero-warning linting, strict type checking, dead-code enforcement, architecture validation, and frontend tests. Invalid fixtures live under `tests/architecture/fixtures/failing`, outside normal source validation, and each fixture must fail for its expected named rule. The passing fixtures prove representative legal directions. The disposable dead-code verifier proves that an unreachable file and an unconsumed export both fail without modifying source.
 
 ## Exceptions and changes
 
-There are no architecture exceptions in the GP-07 baseline. A future exception must identify an exact source pattern, exact target pattern, reason, owner, and removal condition. Broad ignores of a layer, all feature-to-feature imports, and advisory-only warnings are prohibited.
+There are no dependency-direction exceptions in the GP-07 baseline. A future exception must identify an exact source pattern, exact target pattern, reason, owner, and removal condition. Broad ignores of a layer, all feature-to-feature imports, and advisory-only warnings are prohibited.
+
+Unused function parameters and caught errors may be prefixed with `_` when their
+signature or callback contract requires them. Ordinary variables, imports, and
+destructured values receive no underscore exemption. Unused exports are removed
+unless they are stable consumer-facing contracts; such contracts require a
+focused `@public` annotation and supporting API documentation. Generated code,
+framework discovery, and executable repository fixtures are modeled explicitly
+rather than covered by blanket source-tree ignores.
 
 The enablement audit found no production violation requiring remediation. GP-07 changes enforcement, fixtures, commands, and documentation only; it does not redesign routes, authentication, state ownership, API clients, or user-visible behavior. Any future violation that requires those changes is an architecture decision and must not be hidden inside an allow list.

@@ -28,7 +28,7 @@ module.exports = {
       name: 'no-shared-ui-to-higher-layers',
       severity: 'error',
       from: {
-        path: '^(src/ui|tests/architecture/fixtures/failing/(ui-to-shell|shared-ui-to-component)\\.ts)',
+        path: '^(src/ui|tests/architecture/fixtures/failing/(ui-to-shell(?:-(?:relative|dynamic))?|shared-ui-to-component)\\.ts)',
         pathNot: '\\.stories\\.[tj]sx?$',
       },
       to: {

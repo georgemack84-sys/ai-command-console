@@ -1,1 +1,3 @@
-import '@/testing/render';
+import { render } from '@/testing/render';
+
+void render;

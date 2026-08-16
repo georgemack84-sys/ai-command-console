@@ -8,6 +8,14 @@ const cases = [
     'tests/architecture/fixtures/failing/ui-to-shell.ts',
   ],
   [
+    'no-shared-ui-to-higher-layers',
+    'tests/architecture/fixtures/failing/ui-to-shell-relative.ts',
+  ],
+  [
+    'no-shared-ui-to-higher-layers',
+    'tests/architecture/fixtures/failing/ui-to-shell-dynamic.ts',
+  ],
+  [
     'no-theme-to-higher-layers',
     'tests/architecture/fixtures/failing/theme-to-ui.ts',
   ],

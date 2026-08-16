@@ -164,6 +164,10 @@ export function InvalidHook({ enabled }: { enabled: boolean }) {
   return null;
 }
 
+export function unusedParameter(unusedParameter: string): void {
+  console.error('unused parameter fixture');
+}
+
 export function unreachable(): number {
   return 1;
   console.error('never');
@@ -212,8 +216,8 @@ export function unreachable(): number {
     ({ ruleId }) => ruleId === '@typescript-eslint/no-unused-vars',
   ).length;
   assert.ok(
-    unusedCount >= 2,
-    'Expected unused import and variable violations.',
+    unusedCount >= 3,
+    'Expected unused import, variable, and ordinary parameter violations.',
   );
 
   const warningPath = join(fixtureSourceRoot, 'next-warning.tsx');

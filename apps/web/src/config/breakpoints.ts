@@ -6,5 +6,3 @@ export const breakpoints = {
   wide: 1280,
   ultraWide: 1536,
 } as const;
-
-export type BreakpointName = keyof typeof breakpoints;
