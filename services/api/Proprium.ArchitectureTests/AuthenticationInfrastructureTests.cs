@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Authentication;
 using Proprium.Infrastructure.Configuration;
-using Proprium.Api.Security;
 using Xunit;
 
 namespace Proprium.ArchitectureTests;

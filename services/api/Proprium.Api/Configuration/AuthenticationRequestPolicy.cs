@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
 namespace Proprium.Api.Configuration;
 

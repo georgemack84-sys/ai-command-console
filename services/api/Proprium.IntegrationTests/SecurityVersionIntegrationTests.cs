@@ -1,9 +1,9 @@
+using System.Data.Common;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Persistence;
-using System.Data.Common;
 using Xunit;
 
 namespace Proprium.IntegrationTests;

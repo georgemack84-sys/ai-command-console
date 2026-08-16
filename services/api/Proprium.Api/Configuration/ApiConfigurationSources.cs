@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace Proprium.Api.Configuration;
 
 public static class ApiConfigurationSources

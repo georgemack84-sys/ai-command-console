@@ -42,7 +42,10 @@ for (const [property, value] of [
   ['Nullable', 'enable'],
   ['TreatWarningsAsErrors', 'true'],
   ['AnalysisLevel', '8.0'],
+  ['AnalysisMode', 'Default'],
   ['EnableNETAnalyzers', 'true'],
+  ['EnforceCodeStyleInBuild', 'true'],
+  ['GenerateDocumentationFile', 'true'],
   ['Deterministic', 'true'],
 ]) {
   assertSharedProperty(sharedProps, property, value);
@@ -64,7 +67,7 @@ assert.deepEqual(
 );
 
 const weakeningProperty =
-  /<(Nullable|TreatWarningsAsErrors|AnalysisLevel|EnableNETAnalyzers|Deterministic|NoWarn|WarningsNotAsErrors)>/;
+  /<(Nullable|TreatWarningsAsErrors|AnalysisLevel|AnalysisMode|EnableNETAnalyzers|EnforceCodeStyleInBuild|GenerateDocumentationFile|Deterministic|WarningsAsErrors|NoWarn|WarningsNotAsErrors)>/;
 for (const project of walk(backendRoot, (path) => path.endsWith('.csproj'))) {
   assert.doesNotMatch(
     readFileSync(project, 'utf8'),
@@ -72,6 +75,63 @@ for (const project of walk(backendRoot, (path) => path.endsWith('.csproj'))) {
     `${repositoryPath(project)} must not override or suppress the shared compiler policy.`,
   );
 }
+
+const editorConfig = readFileSync(
+  join(repositoryRoot, '.editorconfig'),
+  'utf8',
+);
+for (const requiredPolicy of [
+  'dotnet_style_namespace_match_folder = true:error',
+  'dotnet_style_require_accessibility_modifiers = for_non_interface_members:error',
+  'csharp_style_namespace_declarations = file_scoped:error',
+  'csharp_using_directive_placement = outside_namespace:error',
+  'dotnet_diagnostic.IDE0005.severity = error',
+  'dotnet_diagnostic.IDE0044.severity = error',
+  'dotnet_diagnostic.CS1591.severity = silent',
+  'dotnet_naming_rule.member_constants_are_pascal_case.severity = error',
+  'dotnet_naming_rule.local_constants_are_camel_case.severity = error',
+  'dotnet_naming_rule.interfaces_begin_with_i.severity = error',
+  'dotnet_naming_rule.async_methods_end_in_async.severity = error',
+]) {
+  assert.match(
+    editorConfig,
+    new RegExp(`^${requiredPolicy.replaceAll('.', '\\.')}\\s*$`, 'm'),
+    `.editorconfig must retain: ${requiredPolicy}`,
+  );
+}
+assert.doesNotMatch(
+  editorConfig,
+  /^\s*(?:dotnet_diagnostic\.[^.]+|dotnet_analyzer_diagnostic(?:\.category-[^.]+)?)\.severity\s*=\s*none\s*(?:#.*)?$/im,
+  '.editorconfig must not hide compiler or analyzer diagnostics with severity=none.',
+);
+const nonErrorDiagnosticOverrides = [
+  ...editorConfig.matchAll(
+    /^\s*dotnet_diagnostic\.([^.]+)\.severity\s*=\s*(silent|suggestion|none)\s*$/gim,
+  ),
+].map((match) => `${match[1].toUpperCase()}=${match[2].toLowerCase()}`);
+assert.deepEqual(
+  nonErrorDiagnosticOverrides,
+  ['CS1591=silent'],
+  'CS1591 is the only approved non-error diagnostic override; it exists solely to enable IDE0005 without introducing XML-documentation policy.',
+);
+assert.equal(
+  (
+    editorConfig.match(
+      /dotnet_naming_rule\.async_methods_end_in_async\.severity = suggestion/g,
+    ) || []
+  ).length,
+  2,
+  'Only the two xUnit project sections may relax async naming to suggestion severity.',
+);
+assert.equal(
+  (
+    editorConfig.match(
+      /dotnet_style_namespace_match_folder = true:suggestion/g,
+    ) || []
+  ).length,
+  2,
+  'Only the two architecture-fixture files may relax namespace-folder matching.',
+);
 
 const invalidSuppressions = [];
 const approvedNullForgivingInvariants = new Set([
@@ -110,6 +170,14 @@ for (const source of walk(backendRoot, (path) => path.endsWith('.cs'))) {
       /^\s*#pragma\s+warning\s+disable\s+([^/]+?)(?:\s*\/\/|\s*$)/,
     );
     if (disabled) {
+      if (
+        !generated &&
+        !/\/\/.*\b(?:remove|permanent)\b/i.test(line)
+      ) {
+        invalidSuppressions.push(
+          `${path}:${index + 1} lacks a removal condition or permanent-contract rationale`,
+        );
+      }
       const diagnostics = disabled[1]
         .split(',')
         .map((diagnostic) => diagnostic.trim())
@@ -146,9 +214,16 @@ for (const source of walk(backendRoot, (path) => path.endsWith('.cs'))) {
   for (const suppression of content.matchAll(
     /\[\s*(?:assembly:\s*)?SuppressMessage\s*\([\s\S]*?\)\s*\]/g,
   )) {
-    if (/Justification\s*=/.test(suppression[0])) continue;
+    if (
+      /Justification\s*=\s*"[^"]*(?:remove|permanent)[^"]*"/i.test(
+        suppression[0],
+      )
+    )
+      continue;
     const line = content.slice(0, suppression.index).split(/\r?\n/).length;
-    invalidSuppressions.push(`${path}:${line} lacks a justification`);
+    invalidSuppressions.push(
+      `${path}:${line} lacks a meaningful justification and removal/permanent-contract rationale`,
+    );
   }
 }
 
