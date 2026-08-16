@@ -105,17 +105,17 @@ No encoding, BOM, line-ending, trailing-whitespace, indentation, tab, or generat
 
 GP-37 audited the Git index so local artifacts, ignored output, and unrelated uncommitted work could not distort the committed baseline. The audit inspected 6,664 tracked files: 6,663 UTF-8 text files and one file classified as binary because it contains NUL bytes.
 
-| Check | Baseline result |
-| --- | ---: |
-| Invalid UTF-8 text files | 0 |
-| UTF-8 BOMs | 0 |
-| Files containing CRLF | 0 |
-| Files containing bare CR | 0 |
-| Non-empty text files missing a final newline | 51 |
-| Text files containing trailing whitespace | 1 |
-| Text files containing tab characters | 0 |
+| Check | GP-37 baseline | After remediation |
+| --- | ---: | ---: |
+| Invalid UTF-8 text files | 0 | 0 |
+| UTF-8 BOMs | 0 | 0 |
+| Files containing CRLF | 0 | 0 |
+| Files containing bare CR | 0 | 0 |
+| Non-empty text files missing a final newline | 51 | 0 |
+| Text files containing trailing whitespace | 1 | 0 |
+| Text files containing tab characters | 0 | 0 |
 
-The trailing-whitespace finding is in `docs/audit/phase-3.3A-runtime-audit.md`. The missing-final-newline findings are concentrated in legacy JavaScript, JSON state/configuration, SVG, and text files. GP-37 intentionally records these findings without creating a repository-wide normalization diff.
+The trailing-whitespace finding was in `docs/audit/phase-3.3A-runtime-audit.md`. The missing-final-newline findings were concentrated in legacy JavaScript, JSON state/configuration, SVG, and text files. GP-37 initially recorded these findings without creating a repository-wide normalization diff; a subsequent, separately scoped remediation normalized only the 52 identified files.
 
 The policy audit found no existing `.editorconfig` or `.gitattributes` and no competing canonical engineering-standards document. Existing repository documentation does not define conflicting encoding, line-ending, whitespace, indentation, generated-file, or exception rules.
 
@@ -146,4 +146,4 @@ this canonical policy
     -> CI enforcement
 ```
 
-GP-37 does not add or change `.editorconfig`, `.gitattributes`, `.gitignore`, formatter or linter configuration, analyzers, architecture tests, validation scripts, repository commands, or CI workflows. It also defers normalization of the recorded legacy violations. Those mechanisms and migration changes belong to GP-38 and later plans.
+GP-37 does not add or change `.editorconfig`, `.gitattributes`, `.gitignore`, formatter or linter configuration, analyzers, architecture tests, validation scripts, repository commands, or CI workflows. Those enforcement mechanisms belong to GP-38 and later plans.

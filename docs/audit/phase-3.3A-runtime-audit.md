@@ -151,41 +151,41 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 
 ### Top 5 High-Risk Paths
 
-1. Operations action path  
+1. Operations action path
    High mutation scope, user-facing, no control/review.
-2. External worker processor path  
+2. External worker processor path
    Autonomous execution of queued work with direct service calls.
-3. Watcher -> scheduler -> agent tick path  
+3. Watcher -> scheduler -> agent tick path
    Multi-step autonomous coordination with process-wide effects.
-4. Source refresh path  
+4. Source refresh path
    Network mutation through queued worker path without runtime governance.
-5. Admin privileged mutation path  
+5. Admin privileged mutation path
    Broad authority with direct service mutation path.
 
 ### Top 5 Highest-Frequency Risky Paths
 
-1. Console stream digest sweep path  
+1. Console stream digest sweep path
    High-frequency SSE loop; side-effecting queue request on a timer.
-2. Console interactive path  
+2. Console interactive path
    Main user-facing action path; partially governed but still hybrid.
-3. Operations action path  
+3. Operations action path
    Directly wired into terminal and operations UI flows.
-4. Jobs queue management path  
+4. Jobs queue management path
    Central control-center and platform UI integration.
-5. Dashboard action path  
+5. Dashboard action path
    User-facing dashboard mutation path.
 
 ### Top 5 Easiest Migration Candidates
 
-1. Research action path  
+1. Research action path
    Structured discriminated action schema already exists.
-2. Dashboard action path  
+2. Dashboard action path
    Small action surface and limited action classes.
-3. Source refresh path  
+3. Source refresh path
    Single queued mutation type with clear contract.
-4. Jobs queue management path  
+4. Jobs queue management path
    Shared queue boundary already exists and can host reviewed job contracts.
-5. Legacy console compatibility path  
+5. Legacy console compatibility path
    Similar request vocabulary to the console path, but still exits through legacy direct handlers.
 
 ### Most Inconsistent Runtime Behaviors
