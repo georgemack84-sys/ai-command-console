@@ -11,6 +11,7 @@ indent_style = space
 indent_size = 2
 
 [*.md]
+# ADR and roadmap metadata intentionally uses Markdown's two-space hard breaks.
 trim_trailing_whitespace = false
 
 [*.{cs,csx}]
@@ -47,11 +48,16 @@ indent_size = 2
 [*.{sh,ps1}]
 indent_size = 2
 
+# Retained for the repository-owned Windows PowerShell command path. Remove only
+# after that workflow is qualified with LF working copies.
 [*.ps1]
 end_of_line = crlf
 
+# Retained for the supported Visual Studio solution tool path. Git still stores
+# solution text canonically.
 [*.sln]
 end_of_line = crlf
 
+# Make recipe syntax requires tabs.
 [Makefile]
 indent_style = tab
