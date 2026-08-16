@@ -22,7 +22,10 @@ export const defaultShellNavigation: readonly ShellNavigationItem[] = [
   },
 ];
 
-export function isActiveRoute(pathname: string, item: ShellNavigationItem) {
+export function isActiveRoute(
+  pathname: string,
+  item: ShellNavigationItem,
+): boolean {
   const normalized =
     (pathname.split(/[?#]/)[0] ?? '/').replace(/\/$/, '') || '/';
   return item.exact

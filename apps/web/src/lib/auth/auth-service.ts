@@ -40,14 +40,14 @@ function isPermissionKey(value: string): value is PermissionKey {
   return permissionValues.has(value);
 }
 
-export function getCurrentUser(signal?: AbortSignal) {
+export function getCurrentUser(signal?: AbortSignal): Promise<CurrentUser> {
   return apiRequest({
     path: '/api/v1/auth/me',
     signal,
     parse: parseCurrentUser,
   });
 }
-export async function login(username: string, password: string) {
+export async function login(username: string, password: string): Promise<void> {
   const result = await apiRequest({
     path: '/api/v1/auth/login',
     method: 'POST',
@@ -56,7 +56,7 @@ export async function login(username: string, password: string) {
   });
   if (result !== emptyResponse) throw new Error('Login response must be empty');
 }
-export async function endSession() {
+export async function endSession(): Promise<void> {
   const result = await apiRequest({
     path: '/api/v1/auth/logout',
     method: 'POST',

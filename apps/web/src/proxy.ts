@@ -8,7 +8,7 @@ import {
 } from '@/lib/auth/session-cookie-contract';
 
 /** Admission only: opaque cookie presence and bounded length, never authentication. */
-export function proxy(request: NextRequest) {
+export function proxy(request: NextRequest): NextResponse {
   const value = request.cookies.get(
     sessionCookieName(environment.NEXT_PUBLIC_ENVIRONMENT),
   )?.value;
