@@ -15,8 +15,8 @@ public sealed class PostgresPermissionResolver(PropriumDbContext database, IPlat
         if (securityVersion <= 0) throw new ArgumentOutOfRangeException(nameof(securityVersion));
         var cacheKey = $"authz:permissions:{userId:D}:{securityVersion}";
         var cached = await cache.GetAsync<PermissionCacheEntry>(cacheKey, cancellationToken);
-        if (cached.Status == CacheOperationStatus.Success && IsCanonical(cached.Value.Permissions))
-            return CreateContext(cached.Value.Permissions);
+        if (cached is { Status: CacheOperationStatus.Success, Value: { } value } && IsCanonical(value.Permissions))
+            return CreateContext(value.Permissions);
 
         var permissions = await database.UserRoles.AsNoTracking().Where(assignment => assignment.UserId == userId)
             .SelectMany(assignment => assignment.Role.Permissions.Select(mapping => mapping.Permission.Key))

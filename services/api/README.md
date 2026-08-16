@@ -50,6 +50,16 @@ Run `npm run validate:backend-test-classification` after the build to prove ever
 
 Apply canonical backend formatting with `npm run backend:format` and verify it without changing files with `npm run backend:format:check`. `npm run backend:format:verify` proves drift detection, correction, non-mutation, and idempotence with a disposable project. The [GP-09 backend formatting specification](../../docs/engineering/gp-09-backend-formatting.md) defines the `.editorconfig` policy, solution target, generated-code ownership, and separation from analyzer auto-fixes.
 
+Nullable reference analysis is centrally enabled for every production and test
+project by `Directory.Build.props`; evaluated project overrides are rejected by
+`Directory.Build.targets`. Run `npm run validate:backend-compiler` to audit the
+policy and prove direct null assignment, unsafe dereference, and handwritten
+`#nullable disable` failures. Handwritten null-forgiving operators are prohibited
+unless the exact invariant is documented and approved by the compiler-policy
+validator. The only current exceptions are five EF Core required-navigation
+initializers in `IdentityEntities.cs`; generated migration directives remain
+generator-owned. See the [GP-08 compiler standards](../../docs/engineering/gp-08-backend-compiler-standards.md).
+
 The platform endpoints are `/api/v1`, `/api/v1/health`, `/api/v1/health/live`, and `/api/v1/health/ready`. OpenAPI is at `/openapi/v1.json`; Swagger UI is available in Development only.
 
 The [GP-26 backend authentication specification](../../docs/engineering/gp-26-backend-authentication-core.md)

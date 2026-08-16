@@ -39,8 +39,27 @@ public sealed class Permission
     public ICollection<RolePermission> Roles { get; } = new List<RolePermission>();
 }
 
-public sealed class UserRole { public Guid UserId { get; init; } public Guid RoleId { get; init; } public DateTimeOffset AssignedAtUtc { get; init; } = DateTimeOffset.UtcNow; public User User { get; init; } = null!; public Role Role { get; init; } = null!; }
-public sealed class RolePermission { public Guid RoleId { get; init; } public Guid PermissionId { get; init; } public DateTimeOffset AssignedAtUtc { get; init; } = DateTimeOffset.UtcNow; public Role Role { get; init; } = null!; public Permission Permission { get; init; } = null!; }
+public sealed class UserRole
+{
+    public Guid UserId { get; init; }
+    public Guid RoleId { get; init; }
+    public DateTimeOffset AssignedAtUtc { get; init; } = DateTimeOffset.UtcNow;
+    // EF Core required-navigation materialization guarantees UserRole.User before navigation access.
+    public User User { get; init; } = null!;
+    // EF Core required-navigation materialization guarantees UserRole.Role before navigation access.
+    public Role Role { get; init; } = null!;
+}
+
+public sealed class RolePermission
+{
+    public Guid RoleId { get; init; }
+    public Guid PermissionId { get; init; }
+    public DateTimeOffset AssignedAtUtc { get; init; } = DateTimeOffset.UtcNow;
+    // EF Core required-navigation materialization guarantees RolePermission.Role before navigation access.
+    public Role Role { get; init; } = null!;
+    // EF Core required-navigation materialization guarantees RolePermission.Permission before navigation access.
+    public Permission Permission { get; init; } = null!;
+}
 
 public sealed class Session
 {
@@ -53,6 +72,7 @@ public sealed class Session
     public DateTimeOffset? RevokedAtUtc { get; set; }
     public DateTimeOffset? LastUsedAtUtc { get; set; }
     public string? RevocationReason { get; set; }
+    // EF Core required-navigation materialization guarantees Session.User before navigation access.
     public User User { get; init; } = null!;
 }
 
