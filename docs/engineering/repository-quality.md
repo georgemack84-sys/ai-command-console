@@ -19,7 +19,78 @@
 
 ## File rules
 
-Text is UTF-8 without BOM, uses LF, ends with one newline, and has no trailing whitespace unless Markdown rendering requires it. `.gitattributes` owns normalization and defines the documented PowerShell and Visual Studio solution CRLF exceptions. `.editorconfig` owns indentation and editor behavior. The [GP-01 repository baseline](gp-01-repository-baseline.md) records the exact decisions, validation boundary, and deferred work.
+Repository policy, rather than a contributor's operating system, editor, IDE, or
+Git installation, determines the canonical representation of committed text.
+The policy applies to frontend and backend source, infrastructure, automation,
+documentation, configuration, CI workflows, and committed generated text.
+
+| Concern | Canonical rule |
+| --- | --- |
+| Encoding | UTF-8 without BOM |
+| Repository line ending | LF by default |
+| Final newline | Required for every non-empty text file |
+| Trailing whitespace | Prohibited unless semantically required in Markdown |
+| Default indentation | Spaces, with explicit language-specific widths |
+| Tabs | Prohibited except for formats such as Makefiles that require them |
+| Exceptions | Explicit, narrow, justified, documented, and mechanically encoded |
+
+`.gitattributes` owns normalization and binary classification. `.editorconfig`
+owns editor behavior and language-specific indentation. Formatters may impose
+stricter rules, but they must not silently contradict the repository defaults.
+The [GP-01 repository baseline](gp-01-repository-baseline.md) records the
+configuration decisions and validation boundary.
+
+### Encoding and line endings
+
+All governed text is valid UTF-8. A BOM is prohibited unless a named tool
+demonstrably requires it and the exception records its scope and removal
+condition. Ordinary committed text uses LF on Windows, macOS, Linux, developer
+workstations, and CI runners; local Git configuration is not an exception.
+
+The repository retains two explicit CRLF working-tree exceptions established by
+GP-01: PowerShell scripts for the supported Windows-native command path and Visual
+Studio solution files for the supported .NET/Visual Studio tool path. Git still
+stores their text canonically, while `.gitattributes` and `.editorconfig` produce
+CRLF working copies for those patterns. These exceptions may be removed only
+after the affected Windows workflows are qualified with LF.
+
+### Whitespace and indentation
+
+The last content line in every non-empty text file is followed by one newline.
+Accidental blank lines and spaces or tabs at end of file are removed. Markdown
+may retain trailing spaces only when they intentionally produce required rendered
+output; Markdown's general support for hard breaks is not sufficient reason to
+add them. Prefer an explicit Markdown construct when one expresses the same
+result.
+
+Spaces are the default indentation style. Web, configuration, XML, project, and
+infrastructure formats use the explicit widths in `.editorconfig`; C# uses four
+spaces. Makefiles retain tabs because their recipe syntax requires them. Editor
+preference or operating-system convention never justifies a tab exception.
+
+### Generated files and exceptions
+
+Generation does not automatically exempt committed output. An exception for a
+generated file identifies whether it is committed or human-edited, the owning
+generator, why normalization is unsafe or creates unavoidable churn, whether the
+validator inspects it, and the removal condition. Prefer configuring the
+generator to emit compliant output.
+
+Every file-policy exception records the overridden rule, exact path or narrow
+pattern, technical reason, required tool or runtime, mechanical enforcement, and
+removal condition where practical. Editor preference, local Git configuration,
+convenience, or the fact that a file is generated or documentation is not a
+technical justification. New exceptions are added to this document and encoded
+in repository configuration and validation in the same change.
+
+### Migration audit
+
+The GP-37 audit separated tracked Git content from ignored output and unrelated
+working-tree changes. It found 51 legacy text files without a final newline and
+one Markdown file with trailing whitespace. The isolated follow-up normalization
+repaired only those 52 files; repository validation is the continuing source of
+truth for compliance. No encoding, BOM, or stored line-ending migration was
+required, and no new exception was introduced.
 
 ## Commands
 

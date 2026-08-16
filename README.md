@@ -53,7 +53,7 @@ $env:NEXT_PUBLIC_ENVIRONMENT = 'development'
 
 - [Developer setup](docs/onboarding/developer-setup.md)
 - [Configuration and secret boundaries](docs/onboarding/configuration.md)
-- [Repository engineering and file standards](docs/engineering/repository-standards.md)
+- [Repository quality standards](docs/engineering/repository-quality.md)
 - [Repository command reference](docs/engineering/repository-commands.md)
 - [Local infrastructure](docs/operations/local-infrastructure.md)
 - [Database migrations](docs/operations/migrations.md)
