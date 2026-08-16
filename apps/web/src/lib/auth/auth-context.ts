@@ -3,7 +3,7 @@ import { createContext, useContext } from 'react';
 
 import type { AuthenticationState } from './auth-state';
 
-export interface AuthenticationOperations {
+interface AuthenticationOperations {
   refreshAuthentication(): Promise<void>;
   completeLogin(): Promise<void>;
   logout(): Promise<void>;

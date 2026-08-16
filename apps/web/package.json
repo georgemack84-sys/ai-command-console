@@ -43,6 +43,8 @@
     "permissions:fixtures": "node scripts/verify-permission-fixtures.mjs",
     "transport:validate": "node scripts/validate-transport-boundary.mjs",
     "transport:fixtures": "node scripts/verify-transport-fixtures.mjs",
+    "deadcode": "knip --include files,exports,types --no-progress",
+    "deadcode:verify": "node scripts/verify-dead-code.mjs",
     "architecture": "npm run architecture:check && npm run architecture:fixtures:passing && npm run architecture:fixtures:failing",
     "architecture:check": "node scripts/run-dependency-cruiser.mjs --config .dependency-cruiser.cjs --output-type err src/app src/components src/config src/lib src/providers src/shell src/state src/theme src/types src/ui",
     "architecture:fixtures:passing": "node scripts/run-dependency-cruiser.mjs --config .dependency-cruiser.cjs --output-type err tests/architecture/fixtures/passing",
@@ -60,7 +62,7 @@
     "test:theme": "vitest run src/theme tests/unit/theme-provider.test.tsx",
     "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
     "test:secret-isolation": "node ../../scripts/validate-secret-artifacts.cjs --scope frontend --root .next/static --sentinel-env GP35_FRONTEND_SECRET_SENTINEL",
-    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run typescript:verify && npm run validate:ui-foundation && npm run validate:components && npm run validate:shell && npm run validate:overlays && npm run validate:route-states && npm run validate:week-2 && npm run validate:authentication-ui && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:config-build-failure && npm run test:coverage",
+    "validate:frontend": "npm run format:check && npm run format:verify && npm run permissions:check && npm run permissions:validate && npm run permissions:fixtures && npm run transport:validate && npm run transport:fixtures && npm run static-analysis:verify && npm run typescript:verify && npm run deadcode && npm run deadcode:verify && npm run validate:ui-foundation && npm run validate:components && npm run validate:shell && npm run validate:overlays && npm run validate:route-states && npm run validate:week-2 && npm run validate:authentication-ui && npm run typecheck && npm run lint && npm run architecture && npm run test:theme && npm run test:config-build-failure && npm run test:coverage",
     "validate": "npm run validate:frontend"
   },
   "dependencies": {
@@ -88,6 +90,7 @@
     "eslint-config-next": "16.3.1",
     "eslint-plugin-import": "2.32.0",
     "jsdom": "29.0.1",
+    "knip": "6.32.2",
     "prettier": "3.8.2",
     "storybook": "^10.5.3",
     "tsx": "4.21.0",

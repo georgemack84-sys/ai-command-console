@@ -41,7 +41,7 @@ const apiBaseUrlSchema = z
   })
   .transform((value) => value.replace(/\/$/, ''));
 
-export const publicEnvironmentSchema = z
+const publicEnvironmentSchema = z
   .object({
     NEXT_PUBLIC_APP_NAME: z
       .string()

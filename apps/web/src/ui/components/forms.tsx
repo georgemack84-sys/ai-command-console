@@ -11,6 +11,7 @@ import {
 
 import { classNames } from './class-names';
 
+/** @public Low-level label primitive for documented specialized compositions. */
 export const Label = forwardRef<
   HTMLLabelElement,
   LabelHTMLAttributes<HTMLLabelElement>
@@ -39,6 +40,7 @@ export const Textarea = forwardRef<
 ));
 Textarea.displayName = 'Textarea';
 
+/** @public Help-text primitive for documented specialized compositions. */
 export const FieldDescription = forwardRef<
   HTMLParagraphElement,
   HTMLAttributes<HTMLParagraphElement>

@@ -25,4 +25,13 @@ Run `npm run format` to apply the repository-owned frontend formatting policy an
 
 Run `npm run lint` for zero-warning ESLint validation and `npm run typecheck` for strict, non-emitting TypeScript validation. `npm run static-analysis:verify` proves representative unused-code, import-order, hook, debugger, explicit-`any`, floating-promise, and type-error failures with disposable fixtures. `npm run lint:fix` is an optional local remediation command; canonical validation never modifies source.
 
+Run `npm run deadcode` for non-mutating unused-file and unused-export
+validation. `npm run deadcode:verify` proves both failure modes with disposable
+fixtures. A leading underscore exempts only an intentionally unused function
+parameter or caught error from ESLint; it does not exempt ordinary variables.
+Stable, intentionally unconsumed TypeScript API exports require a focused
+`@public` annotation and documentation. The [GP-07 architecture
+specification](../../docs/engineering/gp-07-frontend-architecture.md) owns the
+entry-point and exception policy.
+
 Run `npm run architecture` for the complete frontend dependency contract: production graph validation, allowed-direction fixtures, and isolated prohibited-direction fixtures. The [GP-07 architecture specification](../../docs/engineering/gp-07-frontend-architecture.md) documents the actual layers, dependency matrix, feature public API policy, configuration boundary, and exception policy. The command uses the locked local dependency-cruiser installation and requires no running infrastructure or secrets.

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    ".storybook/**/*.{ts,tsx}",
+    "scripts/**/*.{js,mjs,cjs}",
+    "tests/architecture/fixtures/**/*.{ts,tsx}",
+    "tests/types/**/*.{ts,tsx}",
+    "playwright*.config.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "tags": ["-public"]
+}

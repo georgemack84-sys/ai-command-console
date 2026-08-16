@@ -8,9 +8,8 @@ import {
   isStateChangingMethod,
 } from './request-policy';
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export const emptyResponse = Symbol('empty-response');
-export type EmptyResponse = typeof emptyResponse;
 type AuthenticationFailureHandler = () => void;
 const authenticationFailureHandlers = new Set<AuthenticationFailureHandler>();
 
