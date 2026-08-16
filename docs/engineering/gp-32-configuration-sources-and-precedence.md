@@ -75,7 +75,10 @@ Approved application/host configuration keys are:
 
 The application commands `--health-probe`, `--export-permissions`,
 `--write-openapi`, and `--migrate` are parsed by their owning command paths and
-are not promoted into configuration. Any other configuration key is rejected.
+are not promoted into configuration. The ASP.NET host's `--environment`,
+`--contentRoot`, and `--applicationName` bootstrap arguments are likewise
+consumed by the host without becoming final application configuration. Any
+other configuration key is rejected.
 Names containing password, secret, token, private, signing, certificate,
 credential, or connection-string terms are rejected with key-only diagnostics.
 Command line is an exceptional operational surface, not the normal deployment

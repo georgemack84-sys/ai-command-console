@@ -173,6 +173,32 @@ public sealed class ConfigurationSourceTests
         Assert.Equal(["--POSTGRES_PORT", "6000"], approved);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Framework_host_arguments_are_not_promoted_to_configuration(bool equalsForm)
+    {
+        string[] arguments = equalsForm
+            ?
+            [
+                "--ENVIRONMENT=Test",
+                "--contentRoot=C:/repo/services/api/Proprium.Api",
+                "--applicationName=Proprium.Api",
+                "--POSTGRES_PORT=6000",
+            ]
+            :
+            [
+                "--ENVIRONMENT", "Test",
+                "--contentRoot", "C:/repo/services/api/Proprium.Api",
+                "--applicationName", "Proprium.Api",
+                "--POSTGRES_PORT=6000",
+            ];
+
+        var approved = ApiConfigurationSources.ApprovedConfigurationArguments(arguments);
+
+        Assert.Equal(["--POSTGRES_PORT=6000"], approved);
+    }
+
     private sealed class SettingsFiles : IDisposable
     {
         private SettingsFiles(string path) => Path = path;

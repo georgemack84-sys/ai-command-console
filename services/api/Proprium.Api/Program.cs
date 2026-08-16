@@ -47,7 +47,7 @@ if (permissionExport is not null)
 
 var openApiOutput = args.SkipWhile(argument => argument != "--write-openapi").Skip(1).FirstOrDefault();
 var approvedConfigurationArguments = ApiConfigurationSources.ApprovedConfigurationArguments(args);
-var builder = WebApplication.CreateBuilder(approvedConfigurationArguments);
+var builder = WebApplication.CreateBuilder(args);
 ApiConfigurationSources.Configure(
     builder.Configuration,
     builder.Environment.ContentRootPath,

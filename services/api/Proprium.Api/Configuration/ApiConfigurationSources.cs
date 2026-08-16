@@ -21,6 +21,13 @@ public static class ApiConfigurationSources
             ["migrate"] = false,
         };
 
+    private static readonly HashSet<string> FrameworkHostArguments = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "applicationName",
+        "contentRoot",
+        "environment",
+    };
+
     private static readonly string[] SecretKeyTerms =
     [
         "PASSWORD",
@@ -44,6 +51,13 @@ public static class ApiConfigurationSources
 
             var separator = argument.IndexOf('=');
             var key = argument[2..(separator < 0 ? argument.Length : separator)];
+            if (FrameworkHostArguments.Contains(key))
+            {
+                if (separator < 0 && index + 1 < arguments.Count &&
+                    !arguments[index + 1].StartsWith("--", StringComparison.Ordinal))
+                    index++;
+                continue;
+            }
             if (OperationalArguments.TryGetValue(key, out var consumesValue))
             {
                 if (consumesValue && separator < 0 && index + 1 < arguments.Count &&

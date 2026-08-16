@@ -68,7 +68,7 @@ the Proprium web or API configuration inventories.
 
 The reserved provider position after environment variables is currently empty in normal startup. The internal OpenAPI export command uses an in-memory test-only provider in that position; it is not a general developer override layer. A future deployment secret provider must use the same position and requires no consumer changes.
 
-Command-line configuration is limited to `urls`, `POSTGRES_PORT`, `REDIS_PORT`, and `Logging:LogLevel:Default`. Operational commands such as `--migrate` and `--write-openapi` are parsed separately and never become configuration. Secret-shaped and unapproved configuration keys are rejected without logging their values. A stronger malformed override fails typed validation; the API never falls back to a weaker valid value.
+Command-line configuration is limited to `urls`, `POSTGRES_PORT`, `REDIS_PORT`, and `Logging:LogLevel:Default`. Operational commands such as `--migrate` and `--write-openapi` are parsed separately and never become configuration. The ASP.NET host's `--environment`, `--contentRoot`, and `--applicationName` bootstrap arguments are consumed by the host without entering final application configuration. Secret-shaped and unapproved configuration keys are rejected before host construction and without logging their values. A stronger malformed override fails typed validation; the API never falls back to a weaker valid value.
 
 The API supports `Development`, `Test`, `Staging`, and `Production` environment names case-insensitively. The web schema accepts their lowercase equivalents. Unknown names fail validation.
 

@@ -12,6 +12,7 @@ using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Authentication;
+using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
 using Xunit;
 
@@ -522,9 +523,15 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             await database.SaveChangesAsync();
         }
 
-        await using var unavailableRedisFactory = factory.WithWebHostBuilder(builder => builder
-            .UseSetting("REDIS_HOST", "redis-unavailable.invalid")
-            .UseSetting("REDIS_PORT", "6379"));
+        await using var unavailableRedisFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IOptions<RedisOptions>>();
+            services.AddSingleton<IOptions<RedisOptions>>(Options.Create(new RedisOptions
+            {
+                Host = "redis-unavailable.invalid",
+                Port = 6379,
+            }));
+        }));
         var client = unavailableRedisFactory.CreateClient();
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
         client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
