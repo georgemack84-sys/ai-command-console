@@ -27,7 +27,7 @@ ESLint does not enforce quotes, indentation, wrapping, semicolons, or other Pret
 - built-in, external, repository-alias, relative, and type-only import groups with blank lines and case-insensitive alphabetical ordering;
 - duplicate-import rejection and type-only import syntax;
 - React hook location and dependency correctness plus the installed Next.js correctness preset;
-- debugger, loose equality, casual source-console usage, explicit `any`, non-null assertions, and shadowing restrictions; and
+- debugger, unreachable code, loose equality, casual source-console usage, explicit `any`, non-null assertions, and shadowing restrictions; and
 - type-aware floating/misused-promise and discriminated-switch exhaustiveness checks for compiler-owned `src` files.
 
 Intentional fire-and-forget promises must use `void`. Environment access remains prohibited in source except the validated configuration adapter and controlled test bootstrap. Source console calls may use `warn` or `error` only; scripts retain console diagnostics without introducing a logging framework.
@@ -51,7 +51,7 @@ npm run typecheck
 npm run static-analysis:verify
 ```
 
-`static-analysis:verify` uses disposable fixtures to prove that clean and intentionally unused source passes while unused imports/variables, duplicate or misordered imports, non-type imports, hook misuse, `debugger`, explicit `any`, floating promises, and TypeScript assignment errors fail with file/rule/compiler diagnostics. It also proves lint does not mutate source.
+`static-analysis:verify` uses disposable, normally ignored fixtures to prove that clean and intentionally unused source passes while unused imports/variables, duplicate or misordered imports, non-type imports, hook-order and hook-dependency defects, `debugger`, unreachable code, explicit `any`, floating promises, and TypeScript assignment errors fail with file/rule/compiler diagnostics. A separate Next.js image-rule fixture proves that framework warnings are active and that the canonical zero-warning command exits non-zero. The verifier also proves lint does not mutate source and cannot interfere with concurrent canonical formatting or lint checks.
 
 `npm run lint:fix` is optional local cleanup. After automatic fixes, developers run Prettier and the non-mutating checks. CI and `npm run validate` use only canonical validation commands.
 

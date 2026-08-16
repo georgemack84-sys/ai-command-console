@@ -25,6 +25,7 @@ export default defineConfig([
     plugins: { import: importPlugin },
     rules: {
       'no-debugger': 'error',
+      'no-unreachable': 'error',
       eqeqeq: ['error', 'always'],
       'import/no-duplicates': 'error',
       'import/order': [

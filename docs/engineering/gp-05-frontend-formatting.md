@@ -36,7 +36,7 @@ npm run format:check
 npm run format:verify
 ```
 
-`format` applies Prettier to the package root. `format:check` checks the same ownership boundary, never writes source, identifies drift, and exits non-zero when drift exists. `format:verify` creates disposable fixtures and proves that formatted source passes, misformatted source fails without mutation, write mode corrects it, CRLF becomes LF, and ignored generated output remains untouched. None of these commands loads `.env` files or requires Docker, PostgreSQL, Redis, or another service.
+`format` applies Prettier to the package root. `format:check` checks the same ownership boundary, never writes source, identifies drift, and exits non-zero when drift exists. `format:verify` creates disposable fixtures and proves that TypeScript, JavaScript, module variants, JSX, TSX, JSON, Markdown, and both YAML extensions are formatter-owned; misformatted source fails without mutation, write mode corrects it, CRLF becomes LF, and ignored generated output remains untouched. None of these commands loads `.env` files or requires Docker, PostgreSQL, Redis, or another service.
 
 `npm run validate` includes both the ordinary check and the formatter-contract verifier, giving later CI the same entry point used by developers.
 
