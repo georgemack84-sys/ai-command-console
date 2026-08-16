@@ -1,6 +1,9 @@
 # Dependencies and generated build output
 node_modules/
+/.pnpm-store/
 .next/
+dist/
+artifacts/
 storybook-static/
 **/bin/
 **/obj/
@@ -11,6 +14,7 @@ coverage/
 playwright-artifacts/
 playwright-report/
 test-results/
+TestResults/
 
 # Local configuration and secrets. Canonical examples, deployment examples,
 # and the two reviewed frontend harness configurations remain tracked.
@@ -50,6 +54,18 @@ journal.txt
 ai-command-console-report-*.txt
 project-files.txt
 project-report.txt
+
+# Repository-local automation and diagnostic state
+/.codex-worktrees/
+/.codex-*.png
+/.codex-*.txt
+/.codex-*.status
+/.codex-*.exit
+/.codex-*.result
+/.codex-*.pid
+/.codex-*.ps1
+/.codex-*.sh
+/.codex-*.yml
 
 # IDE and operating-system state. Shared VS Code project files may be added
 # explicitly without committing per-developer editor state.

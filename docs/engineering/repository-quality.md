@@ -76,6 +76,12 @@ generator, why normalization is unsafe or creates unavoidable churn, whether the
 validator inspects it, and the removal condition. Prefer configuring the
 generator to emit compliant output.
 
+The only committed generated source currently marked for review tooling is
+`apps/web/src/generated/permission-catalog.ts`. The permission-catalog generator
+owns it, the generated header prohibits manual edits, and the repository's
+freshness check verifies it. The marker affects GitHub presentation only; the
+normal text policy still applies.
+
 Every file-policy exception records the overridden rule, exact path or narrow
 pattern, technical reason, required tool or runtime, mechanical enforcement, and
 removal condition where practical. Editor preference, local Git configuration,
@@ -91,6 +97,16 @@ one Markdown file with trailing whitespace. The isolated follow-up normalization
 repaired only those 52 files; repository validation is the continuing source of
 truth for compliance. No encoding, BOM, or stored line-ending migration was
 required, and no new exception was introduced.
+
+### Source-control hygiene
+
+The root `.gitignore` centrally excludes dependency stores, frontend and .NET
+build output, test and coverage results, runtime state, local secrets, IDE and OS
+state, repository-local worktrees, and diagnostic automation output. Environment
+examples and the reviewed frontend Docker/test environment files are explicitly
+trackable. Lockfiles, source, canonical configuration, and shared VS Code files
+remain trackable. Ignore rules never replace secret scanning or generated-file
+freshness validation.
 
 ## Commands
 
