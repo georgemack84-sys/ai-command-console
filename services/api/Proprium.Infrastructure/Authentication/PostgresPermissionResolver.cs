@@ -1,6 +1,6 @@
-using Proprium.Application.Caching;
 using Microsoft.EntityFrameworkCore;
 using Proprium.Application.Authentication;
+using Proprium.Application.Caching;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Persistence;
 

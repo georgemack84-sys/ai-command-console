@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Proprium.Application.Authentication;
-using Proprium.Infrastructure.Configuration;
 using PropriumSessionOptions = Proprium.Infrastructure.Configuration.SessionOptions;
 
 namespace Proprium.Api.Configuration;

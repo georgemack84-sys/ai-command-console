@@ -29,9 +29,78 @@ csharp_new_line_before_catch = true
 csharp_new_line_before_finally = true
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = true
-dotnet_style_namespace_match_folder = true
+dotnet_style_namespace_match_folder = true:error
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
 csharp_style_namespace_declarations = file_scoped:error
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:error
+dotnet_diagnostic.IDE0005.severity = error
+dotnet_diagnostic.IDE0044.severity = error
+# XML documentation coverage is outside GP-43. Remove this exception when
+# public XML documentation becomes a repository requirement; documentation
+# file generation remains enabled because Roslyn requires it for IDE0005.
+dotnet_diagnostic.CS1591.severity = silent
+
+# Public and member constants use the established .NET PascalCase convention.
+dotnet_naming_rule.member_constants_are_pascal_case.severity = error
+dotnet_naming_rule.member_constants_are_pascal_case.symbols = member_constants
+dotnet_naming_rule.member_constants_are_pascal_case.style = pascal_case
+dotnet_naming_symbols.member_constants.applicable_kinds = field
+dotnet_naming_symbols.member_constants.required_modifiers = const
+
+# Local constants remain camelCase so local code reads like the surrounding variables.
+dotnet_naming_rule.local_constants_are_camel_case.severity = error
+dotnet_naming_rule.local_constants_are_camel_case.symbols = local_constants
+dotnet_naming_rule.local_constants_are_camel_case.style = camel_case
+dotnet_naming_symbols.local_constants.applicable_kinds = local
+dotnet_naming_symbols.local_constants.required_modifiers = const
+
+dotnet_naming_rule.interfaces_begin_with_i.severity = error
+dotnet_naming_rule.interfaces_begin_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_begin_with_i.style = interface_name
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+dotnet_naming_rule.async_methods_end_in_async.severity = error
+dotnet_naming_rule.async_methods_end_in_async.symbols = async_methods
+dotnet_naming_rule.async_methods_end_in_async.style = async_method_name
+dotnet_naming_symbols.async_methods.applicable_kinds = method
+dotnet_naming_symbols.async_methods.required_modifiers = async
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.camel_case.capitalization = camel_case
+dotnet_naming_style.interface_name.required_prefix = I
+dotnet_naming_style.interface_name.capitalization = pascal_case
+dotnet_naming_style.async_method_name.required_suffix = Async
+dotnet_naming_style.async_method_name.capitalization = pascal_case
+
+# Expression bodies stay concise for simple value members but are not forced on
+# methods, constructors, or local functions where blocks are generally clearer.
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+csharp_style_expression_bodied_indexers = when_on_single_line:suggestion
+csharp_style_expression_bodied_accessors = when_on_single_line:suggestion
+csharp_style_expression_bodied_operators = when_on_single_line:suggestion
+csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_local_functions = false:suggestion
+
+# xUnit discovers these framework entry points by attribute, and their established
+# behavior-sentence names are the test contract. Remove these two overrides if the
+# repository adopts Async-suffixed test names; all other test rules remain active.
+[services/api/Proprium.ArchitectureTests/*.cs]
+dotnet_naming_rule.async_methods_end_in_async.severity = suggestion
+
+[services/api/Proprium.IntegrationTests/*.cs]
+dotnet_naming_rule.async_methods_end_in_async.severity = suggestion
+
+# These two permanent architecture fixtures intentionally encode a dependency
+# layer in their namespace. Remove an exception only when that fixture is retired
+# or moved into a matching subfolder.
+[services/api/Proprium.ArchitectureTests/Fixtures/DomainDependencyViolation.cs]
+dotnet_style_namespace_match_folder = true:suggestion
+
+[services/api/Proprium.ArchitectureTests/Fixtures/InfrastructureDependency.cs]
+dotnet_style_namespace_match_folder = true:suggestion
 
 [*.{ts,tsx,js,jsx,mjs,cjs}]
 indent_size = 2

@@ -1,7 +1,7 @@
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Proprium.Api.Configuration;
 using Proprium.Contracts.V1;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Proprium.Api.Endpoints;
 

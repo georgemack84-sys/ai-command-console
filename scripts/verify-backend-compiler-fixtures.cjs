@@ -70,19 +70,32 @@ assert.doesNotMatch(
   'Scoped suppression did not suppress only CS1998.',
 );
 
-const policyOverride = build('policy-enforcement', 'PolicyEnforcement.csproj', [
-  '-p:Nullable=disable',
-]);
-assert.notEqual(
-  policyOverride.status,
-  0,
-  'A compiler-policy override unexpectedly compiled successfully.',
-);
-assert.match(
-  output(policyOverride),
-  /Proprium compiler policy requires Nullable=enable\./,
-  'The evaluated policy target did not reject Nullable=disable.',
-);
+for (const [property, value, message] of [
+  ['Nullable', 'disable', 'Nullable=enable'],
+  ['TreatWarningsAsErrors', 'false', 'TreatWarningsAsErrors=true'],
+  ['EnableNETAnalyzers', 'false', 'EnableNETAnalyzers=true'],
+  ['AnalysisLevel', 'none', 'AnalysisLevel=8.0'],
+  ['AnalysisMode', 'All', 'AnalysisMode=Default'],
+  ['EnforceCodeStyleInBuild', 'false', 'EnforceCodeStyleInBuild=true'],
+  ['GenerateDocumentationFile', 'false', 'GenerateDocumentationFile=true'],
+  ['Deterministic', 'false', 'Deterministic=true'],
+]) {
+  const policyOverride = build(
+    'policy-enforcement',
+    'PolicyEnforcement.csproj',
+    [`-p:${property}=${value}`],
+  );
+  assert.notEqual(
+    policyOverride.status,
+    0,
+    `${property}=${value} unexpectedly compiled successfully.`,
+  );
+  assert.match(
+    output(policyOverride),
+    new RegExp(`Proprium compiler policy requires ${message.replace('.', '\\.')}`),
+    `The evaluated policy target did not reject ${property}=${value}.`,
+  );
+}
 
 const nullableDisableFixture = mkdtempSync(
   join(fixtureRoot, 'nullable-disable-'),

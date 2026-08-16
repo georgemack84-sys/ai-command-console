@@ -1,5 +1,4 @@
 using System.Reflection;
-using Proprium.Api;
 using Proprium.Application;
 using Proprium.Contracts.V1;
 using Proprium.Domain;
