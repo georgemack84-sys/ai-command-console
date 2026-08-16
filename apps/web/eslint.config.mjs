@@ -26,6 +26,21 @@ export default defineConfig([
     rules: {
       'no-debugger': 'error',
       'no-unreachable': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'ImportDeclaration[specifiers.length=0] ~ ImportDeclaration[specifiers.length>0]',
+          message:
+            'Assigned imports must precede order-sensitive side-effect imports.',
+        },
+        {
+          selector:
+            'ImportDeclaration[specifiers.length=0]:not([source.value=/\\.(css|scss|sass|less)$/]) ~ ImportDeclaration[specifiers.length=0][source.value=/\\.(css|scss|sass|less)$/]',
+          message:
+            'Stylesheet side effects must precede runtime side-effect imports.',
+        },
+      ],
       eqeqeq: ['error', 'always'],
       'import/no-duplicates': 'error',
       'import/order': [
@@ -65,6 +80,15 @@ export default defineConfig([
       '@typescript-eslint/consistent-type-imports': [
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-check': false,
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': true,
+        },
       ],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',

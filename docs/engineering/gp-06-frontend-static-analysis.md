@@ -32,11 +32,15 @@ ESLint does not enforce quotes, indentation, wrapping, semicolons, or other Pret
 
 Intentional fire-and-forget promises must use `void`. Environment access remains prohibited in source except the validated configuration adapter and controlled test bootstrap. Source console calls may use `warn` or `error` only; scripts retain console diagnostics without introducing a logging framework.
 
+Unassigned stylesheet and runtime side-effect imports remain in their authored order because changing that order can alter behavior, but they must follow assigned value imports. CSS modules imported as values follow their source-path group. Pure type imports occupy the final type group; when a module supplies both values and types, the canonical form uses inline `type` specifiers so duplicate imports are unnecessary. The `@/*` alias is always classified as repository-internal rather than external.
+
 Generated permission output, copied theme bootstrap output, Next/build/test reports, and deliberately invalid GP-07 architecture fixtures are exact exclusions. Ordinary unit, browser, source, configuration, script, and Storybook files remain linted. Exclusions do not hide active source.
 
 ## TypeScript contract
 
 `tsconfig.json` retains strict mode, strict null checks, no implicit `any`, no implicit returns, and unchecked-index access. `npm run typecheck` invokes `tsc --noEmit --incremental false`, so validation cannot create JavaScript, declarations, or incremental build metadata. It requires no application build, service, database, container, environment file, or credential.
+
+The effective frontend compiler configuration must keep `strict`, `strictNullChecks`, `noImplicitAny`, `noImplicitReturns`, and `noUncheckedIndexedAccess` enabled. No child configuration may set one of those options to `false`. An exception requires an approved architectural decision naming the scope, blocker, impact, remediation plan, and removal condition. Application code may not use `@ts-nocheck` or `@ts-ignore`; a local `@ts-expect-error` must explain the intentional compiler error. Public boundaries favor explicit contracts while implementation-local inference remains encouraged.
 
 Type-aware ESLint is intentionally scoped to compiler-owned `src`. Configurations and external test suites still receive ordinary TypeScript, React, Next.js, unused-code, and import checks without pretending they belong to the application compiler project.
 
@@ -48,10 +52,13 @@ Run from `apps/web`:
 npm run format:check
 npm run lint
 npm run typecheck
+npm run typescript:verify
 npm run static-analysis:verify
 ```
 
 `static-analysis:verify` uses disposable, normally ignored fixtures to prove that clean and intentionally unused source passes while unused imports/variables, duplicate or misordered imports, non-type imports, hook-order and hook-dependency defects, `debugger`, unreachable code, explicit `any`, floating promises, and TypeScript assignment errors fail with file/rule/compiler diagnostics. A separate Next.js image-rule fixture proves that framework warnings are active and that the canonical zero-warning command exits non-zero. The verifier also proves lint does not mutate source and cannot interfere with concurrent canonical formatting or lint checks.
+
+`typescript:verify` checks the compiler's resolved configuration, rejects child-config weakening and broad TypeScript directives, and exercises isolated negative fixtures for implicit `any`, missing returns, unsafe indexed access, nullability, import grouping, alias placement, alphabetization, and side-effect placement. It also proves that safe import autofixes converge to the documented order without moving side-effect imports.
 
 `npm run lint:fix` is optional local cleanup. After automatic fixes, developers run Prettier and the non-mutating checks. CI and `npm run validate` use only canonical validation commands.
 
