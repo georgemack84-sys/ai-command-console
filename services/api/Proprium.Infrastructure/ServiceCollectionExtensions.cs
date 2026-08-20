@@ -1,17 +1,17 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Identity;
-using Proprium.Domain.Identity;
+using Proprium.Application.Authentication;
 using Proprium.Application.Caching;
+using Proprium.Application.Identity;
 using Proprium.Application.Retry;
+using Proprium.Domain.Identity;
+using Proprium.Infrastructure.Authentication;
 using Proprium.Infrastructure.Caching;
 using Proprium.Infrastructure.Configuration;
 using Proprium.Infrastructure.Persistence;
 using Proprium.Infrastructure.Retry;
-using Proprium.Application.Identity;
-using Proprium.Application.Authentication;
-using Proprium.Infrastructure.Authentication;
 using StackExchange.Redis;
 
 namespace Proprium.Infrastructure;

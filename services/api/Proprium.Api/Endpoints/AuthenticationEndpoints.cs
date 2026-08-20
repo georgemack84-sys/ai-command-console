@@ -1,13 +1,12 @@
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Proprium.Api.Configuration;
-using Proprium.Api.Middleware;
 using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Persistence;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Proprium.Api.Endpoints;
 

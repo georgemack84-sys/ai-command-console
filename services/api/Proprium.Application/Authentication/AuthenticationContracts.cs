@@ -1,5 +1,5 @@
-using Proprium.Domain.Identity;
 using Proprium.Application.Retry;
+using Proprium.Domain.Identity;
 
 namespace Proprium.Application.Authentication;
 

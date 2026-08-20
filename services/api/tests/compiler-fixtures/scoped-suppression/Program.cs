@@ -1,4 +1,4 @@
-#pragma warning disable CS1998 // The fixture proves one justified diagnostic can be suppressed narrowly.
+#pragma warning disable CS1998 // Permanent negative fixture; remove only with the scoped-suppression contract.
 await WorkAsync();
 
 static async Task WorkAsync()
