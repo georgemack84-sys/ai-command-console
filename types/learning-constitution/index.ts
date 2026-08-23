@@ -6,6 +6,7 @@ export * from "./conflictComparison";
 export * from "./conflictResolution";
 export * from "./conflictAdmission";
 export * from "./conflictIntegrity";
+export * from "./conflictMetrics";
 export * from "./durableKnowledge";
 export * from "./informationClassification";
 export * from "./knowledgeScope";
