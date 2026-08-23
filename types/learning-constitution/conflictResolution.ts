@@ -100,6 +100,21 @@ export type ConflictEscalation = Readonly<{
   immutable: true;
 }>;
 
+/** New evidence is recorded as a trigger; it never silently rewrites a past decision. */
+export const CONFLICT_REASSESSMENT_TRIGGER_TYPES = ["NEW_EVIDENCE", "NEW_HUMAN_CORRECTION", "AUTHORITY_CHANGE", "SCOPE_CHANGE", "POLICY_CHANGE", "RELATED_KNOWLEDGE_SUPERSEDED", "TIME_THRESHOLD_REACHED"] as const;
+export type ConflictReassessmentTriggerType = (typeof CONFLICT_REASSESSMENT_TRIGGER_TYPES)[number];
+export type ConflictReassessmentTrigger = Readonly<{
+  id: string;
+  recordType: "CONFLICT_REASSESSMENT_TRIGGER";
+  conflictId: string;
+  triggerType: ConflictReassessmentTriggerType;
+  evidenceRef?: string;
+  rationale: string;
+  triggeredBy: ProvenanceActor;
+  createdAt: string;
+  immutable: true;
+}>;
+
 /** A human decision is separate from the proposal that recommended it. */
 export type ConflictResolutionDecision = Readonly<{
   id: string;
