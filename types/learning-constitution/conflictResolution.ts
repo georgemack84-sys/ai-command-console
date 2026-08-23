@@ -111,6 +111,7 @@ export type ConflictResolutionDecision = Readonly<{
   decisionAuthority: string;
   decisionReason: string;
   approvalRef?: string;
+  executionPlan?: Readonly<{ exceptionApplicabilityCondition?: string; narrowedScope?: KnowledgeScopeReference }>;
   decidedAt: string;
   immutable: true;
 }>;
