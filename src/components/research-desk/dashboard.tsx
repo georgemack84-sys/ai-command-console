@@ -205,6 +205,7 @@ export function ResearchDeskDashboard() {
   const [runningScheduleId, setRunningScheduleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const autoRunAttempted = useRef(false);
+  const runScheduleRef = useRef<(schedule: SummarySchedule) => Promise<void>>(async () => {});
 
   async function persistResearchDeskPreferences(nextViews: SavedTriageView[], nextSchedules: SummarySchedule[]) {
     try {
@@ -679,6 +680,10 @@ export function ResearchDeskDashboard() {
     }
   }
 
+  useEffect(() => {
+    runScheduleRef.current = runSchedule;
+  }, [runSchedule]);
+
   function addSchedule() {
     const targetName = scheduleViewName || savedViews[0]?.name || "";
     if (!targetName) {
@@ -730,7 +735,7 @@ export function ResearchDeskDashboard() {
 
     void (async () => {
       for (const schedule of dueAutoSchedules) {
-        await runSchedule(schedule);
+        await runScheduleRef.current(schedule);
       }
     })();
   }, [loading, savedViews, schedules]);

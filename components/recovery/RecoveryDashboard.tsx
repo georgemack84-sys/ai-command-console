@@ -84,7 +84,13 @@ export function RecoveryDashboard({ initialExecutionId }: { initialExecutionId: 
   }
 
   useEffect(() => {
-    void load();
+    const loadTimer = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(loadTimer);
+    };
     // The loader is intentionally tied to executionId changes only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executionId]);
