@@ -75,3 +75,27 @@ export type ConflictAuditEvent = Readonly<{
   occurredAt: string;
   immutable: true;
 }>;
+
+export type ConflictClarificationRequest = Readonly<{
+  id: string;
+  recordType: "CONFLICT_CLARIFICATION_REQUEST";
+  conflictId: string;
+  question: string;
+  candidateOutcomes: readonly ConflictResolutionOutcome[];
+  requiredAuthority: string;
+  requestedBy: ProvenanceActor;
+  createdAt: string;
+  immutable: true;
+}>;
+
+export type ConflictEscalation = Readonly<{
+  id: string;
+  recordType: "CONFLICT_ESCALATION";
+  conflictId: string;
+  proposalId?: string;
+  reason: string;
+  targetAuthority: string;
+  escalatedBy: ProvenanceActor;
+  createdAt: string;
+  immutable: true;
+}>;
