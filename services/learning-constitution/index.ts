@@ -108,3 +108,4 @@ export * from "./conflictSetService";
 export * from "./conflictImpactAnalyzer";
 export * from "./conflictWorkflowService";
 export * from "./conflictQueryService";
+export * from "./conflictAdmissionGate";
