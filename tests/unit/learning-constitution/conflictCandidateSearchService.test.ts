@@ -17,4 +17,13 @@ describe("ConflictCandidateSearchService", () => {
     expect(result.analyses).toHaveLength(2);
     expect(result.analyses[0]).toMatchObject({ relationship: "UNCERTAIN", requiresClarification: true });
   });
+
+  it("excludes quarantined durable knowledge from conflict influence", async () => {
+    const ledger = new InMemoryProvenanceLedger();
+    await ledger.append({ ...durable("P-quarantined", "Use a retired setting."), status: "QUARANTINED" });
+    const candidate = { id: "CP-quarantine", recordType: "CANDIDATE_KNOWLEDGE" as const, statement: "Use a current setting.", classification: "PRINCIPLE" as const, scope, authority: "HUMAN", extractionRefs: [], evidenceRefs: [], status: "VALIDATING" as const, createdAt: "2026-08-23T00:00:00.000Z", immutable: true as const };
+    await ledger.append(candidate);
+    const result = await new ConflictCandidateSearchService(ledger).analyze({ candidate });
+    expect(result).toMatchObject({ searchedKnowledgeIds: [], analyses: [], persistenceEffect: "NONE" });
+  });
 });
