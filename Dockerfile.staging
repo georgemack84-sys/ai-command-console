@@ -1,0 +1,28 @@
+FROM node:24-bookworm-slim AS dependencies
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+FROM dependencies AS builder
+COPY . .
+RUN npm run build
+
+FROM node:24-bookworm-slim AS web
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+EXPOSE 3000
+CMD ["node", "server.js"]
+
+# The worker deliberately retains the checked-in TypeScript source and its
+# development runtime. It is isolated from the web image so a web release is
+# never coupled to an untraced `tsx` dependency.
+FROM dependencies AS worker
+WORKDIR /app
+COPY . .
+CMD ["npx", "tsx", "scripts/job-worker.ts"]
+
+FROM worker AS migrate
+CMD ["npx", "prisma", "migrate", "deploy"]

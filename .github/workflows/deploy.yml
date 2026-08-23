@@ -131,15 +131,20 @@ jobs:
         run: |
           rm -rf release
           mkdir -p release
-          cp -R .next/standalone/. release/
-          mkdir -p release/.next
-          cp -R .next/static release/.next/static
-          if [ -d public ]; then cp -R public release/public; fi
-          if [ -d data ]; then cp -R data release/data; fi
-          if [ -d logs ]; then cp -R logs release/logs; fi
-          cp package.json release/package.json
-          cp README.md release/README.md
-          cp .env.example release/.env.example
+          # Ship the Compose build context. The previous standalone-only bundle
+          # could start the web server but omitted Prisma migrations and the
+          # external job worker, producing an unhealthy deployment.
+          tar \
+            --exclude=.git \
+            --exclude=node_modules \
+            --exclude=.next \
+            --exclude=.next-production \
+            --exclude=data \
+            --exclude=logs \
+            --exclude=.env \
+            --exclude='.env.*' \
+            --exclude=release \
+            -cf - . | tar -xf - -C release
           cat <<EOF > release/RELEASE.txt
           release_version=${{ steps.metadata.outputs.release_version }}
           source_ref=${{ steps.metadata.outputs.source_ref }}
