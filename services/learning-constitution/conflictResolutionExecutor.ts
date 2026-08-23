@@ -30,7 +30,8 @@ export class ConflictResolutionExecutor {
       return this.finalize(decision, conflict.id, "CREATE_EXCEPTION", [conflict.existingKnowledgeId], [successor.id], { fromId: successor.id, toId: conflict.existingKnowledgeId, type: "EXCEPTION_OF" });
     }
     if (decision.acceptedOutcome === "NARROW_SCOPE") {
-      if (!decision.executionPlan?.narrowedScope || JSON.stringify(successor.scope) !== JSON.stringify(decision.executionPlan.narrowedScope) || JSON.stringify(successor.scope) === JSON.stringify(conflict.scope)) return this.fail("NARROWED_SCOPE_REQUIRED");
+      const existing = await this.ledger.get(conflict.existingKnowledgeId);
+      if (!existing || existing.recordType !== "DURABLE_KNOWLEDGE" || !decision.executionPlan?.narrowedScope || JSON.stringify(successor.scope) !== JSON.stringify(decision.executionPlan.narrowedScope) || JSON.stringify(successor.scope) === JSON.stringify(existing.scope)) return this.fail("NARROWED_SCOPE_REQUIRED");
       return this.finalize(decision, conflict.id, "NARROW_SCOPE", [conflict.existingKnowledgeId], [successor.id], { fromId: successor.id, toId: conflict.existingKnowledgeId, type: "NARROWS_SCOPE_OF" });
     }
     return this.fail("OUTCOME_UNSUPPORTED");
