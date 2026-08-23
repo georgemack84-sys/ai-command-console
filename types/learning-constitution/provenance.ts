@@ -1,5 +1,5 @@
 import type { KnowledgeClassification } from "./constitutionalVocabulary";
-import type { ConflictRecord } from "./conflictEngine";
+import type { ConflictRecord, ConflictSetRecord } from "./conflictEngine";
 import type { ConflictAuditEvent, ConflictResolutionProposal, ResolutionEvidencePackage } from "./conflictResolution";
 import type { KnowledgeScopeReference } from "./knowledgeScope";
 
@@ -33,6 +33,7 @@ export const PROVENANCE_RELATIONSHIP_TYPES = [
   "REFINES", "MERGED_FROM", "SPLIT_FROM", "REFERENCES", "INVALIDATED_BY",
   "CONFLICTS_EXISTING", "CONFLICTS_CANDIDATE",
   "PROPOSED_FOR_CONFLICT", "EVIDENCE_SNAPSHOT_FOR", "AUDITS_CONFLICT_PROPOSAL",
+  "CONFLICT_SET_MEMBER",
 ] as const;
 export type ProvenanceRelationshipType = (typeof PROVENANCE_RELATIONSHIP_TYPES)[number];
 
@@ -222,7 +223,7 @@ export type DurableProvenancedKnowledge = Readonly<{
   immutable: true;
 }>;
 
-export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord | ConflictResolutionProposal | ResolutionEvidencePackage | ConflictAuditEvent;
+export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord | ConflictSetRecord | ConflictResolutionProposal | ResolutionEvidencePackage | ConflictAuditEvent;
 
 export type ProvenanceRelationship = Readonly<{
   id: string;
@@ -333,7 +334,7 @@ export type ProvenanceEnvelope = Readonly<{
   successorRefs: readonly string[];
   relationships: readonly ProvenanceRelationship[];
   createdAt: string;
-  currentStatus?: DurableProvenancedKnowledge["status"] | CandidateKnowledgeState | ConflictRecord["status"];
+  currentStatus?: DurableProvenancedKnowledge["status"] | CandidateKnowledgeState | ConflictRecord["status"] | ConflictSetRecord["status"];
 }>;
 
 export interface ProvenanceLedger {
