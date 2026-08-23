@@ -40,7 +40,7 @@ function removeStoreFiles() {
   const databasePath = getDatabasePath();
   for (const filePath of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
     try {
-      if (fs.existsSync(filePath)) {
+      if (fs.existsSync(/* turbopackIgnore: true */ filePath)) {
         fs.unlinkSync(filePath);
       }
     } catch {}

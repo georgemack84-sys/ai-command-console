@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "types/learning-constitution/**/*.ts",
+    "services/learning-constitution/**/*.ts",
+    "tests/unit/learning-constitution/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

@@ -14,6 +14,8 @@ const primaryNavItems = [
   { href: "/console", label: "Console", protected: true },
   { href: "/operations", label: "Operations", protected: true },
   { href: "/briefs", label: "Briefs" },
+  { href: "/knowledge", label: "Knowledge", protected: true },
+  { href: "/tasks", label: "Tasks", protected: true },
   { href: "/reports", label: "Reports" },
   { href: "/platform", label: "Platform", protected: true },
   { href: "/auth", label: "Account" },
@@ -66,6 +68,20 @@ const pageMeta: Array<{
     title: "Track briefs as structured operational work.",
     description:
       "The research desk is part of the core product, with routing, reporting, and collaboration tied to the same console runtime.",
+  },
+  {
+    match: (pathname) => pathname.startsWith("/tasks"),
+    eyebrow: "Agent Tasks",
+    title: "Inspect every task and the scoped knowledge it received.",
+    description:
+      "Task execution retains the chosen scope and an immutable knowledge snapshot for clear, auditable runtime context.",
+  },
+  {
+    match: (pathname) => pathname.startsWith("/knowledge"),
+    eyebrow: "Scope Architecture",
+    title: "Use knowledge precisely, at the scope where it belongs.",
+    description:
+      "Knowledge inherits only downward when permitted. Promotions are deliberate, traceable actions.",
   },
   {
     match: (pathname) => pathname.startsWith("/reports"),
@@ -174,7 +190,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <HeaderMetric label="Surface" value={isHome ? "Landing" : pathname.replace("/", "") || "Home"} tone="sky" />
               <HeaderMetric label="Workflow" value="Research" tone="emerald" />
               <HeaderMetric label="State" value="Production" tone="amber" />
-              <HeaderMetric label="User" value={authLoading ? "..." : user ? user.name : "Guest"} tone="slate" />
+              <HeaderMetric label="User" value={authLoading ? "..." : user ? user.email : "Guest"} tone="slate" />
             </div>
           </div>
         </div>

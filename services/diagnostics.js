@@ -16,7 +16,8 @@ function getProjectRoot() {
 
 function diagnosePath(target = "") {
   const projectRoot = getProjectRoot();
-  const resolved = target ? path.resolve(projectRoot, target) : projectRoot;
+  // Operator-supplied diagnostic targets are intentionally resolved at runtime.
+  const resolved = target ? path.resolve(/* turbopackIgnore: true */ projectRoot, target) : projectRoot;
 
   const exists = safeExists(resolved);
   let type = "missing";

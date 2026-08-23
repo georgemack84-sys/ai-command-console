@@ -10,7 +10,8 @@ function getDataRoot() {
 }
 
 function getWorkspaceDataPath(...segments) {
-  return path.join(getDataRoot(), ...segments);
+  // Workspace storage may be configured outside the application bundle.
+  return path.join(/* turbopackIgnore: true */ getDataRoot(), ...segments);
 }
 
 function getAgentsDataPath(...segments) {
