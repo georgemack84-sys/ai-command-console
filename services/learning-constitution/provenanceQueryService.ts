@@ -20,10 +20,7 @@ export class ProvenanceQueryService {
       authority: "authority" in subject ? subject.authority : undefined, confidence: "confidence" in subject ? subject.confidence : undefined,
       evidenceRefs: "evidenceRefs" in subject ? subject.evidenceRefs : [], approvalRefs: approvals.map((item) => item.id),
       predecessorRefs: targetIds("SUPERSEDES"), successorRefs: targetIds("SUPERSEDED_BY"), relationships: links,
-      createdAt: "createdAt" in subject
-        ? subject.createdAt
-        : subject.recordType === "TEACHING_EVENT" ? subject.receivedAt
-          : subject.recordType === "HUMAN_APPROVAL" ? subject.decidedAt : subject.occurredAt,
+      createdAt: timestampOf(subject),
       currentStatus: "status" in subject ? subject.status : undefined,
     };
   }
@@ -65,11 +62,7 @@ export class ProvenanceQueryService {
     return { knowledgeId: recordId, current: successorIds.length === 0, historicalStatus: successorIds.length ? "SUPERSEDED" : "ACTIVE", predecessorIds, successorIds };
   }
   async getHistory(recordId: string) {
-    const timeOf = (record: ProvenanceRecord) => "createdAt" in record
-      ? record.createdAt
-      : record.recordType === "TEACHING_EVENT" ? record.receivedAt
-        : record.recordType === "HUMAN_APPROVAL" ? record.decidedAt : record.occurredAt;
-    return [...await this.getLineage(recordId)].sort((left, right) => timeOf(left).localeCompare(timeOf(right)) || left.id.localeCompare(right.id));
+    return [...await this.getLineage(recordId)].sort((left, right) => timestampOf(left).localeCompare(timestampOf(right)) || left.id.localeCompare(right.id));
   }
   async explainKnowledge(recordId: string): Promise<{ envelope?: ProvenanceEnvelope; lineage: readonly ProvenanceRecord[]; integrity: ProvenanceIntegrityResult }> {
     return { envelope: await this.getProvenance(recordId), lineage: await this.getLineage(recordId), integrity: await validateProvenance(this.ledger, recordId) };
@@ -81,3 +74,11 @@ export class ProvenanceQueryService {
     return { knowledgeId: recordId, currentState, originalSources, interpretations, approvals, evidence, predecessors, successors, history, integrity };
   }
 }
+
+const timestampOf = (record: ProvenanceRecord): string => {
+  if ("createdAt" in record) return record.createdAt;
+  if ("receivedAt" in record) return record.receivedAt;
+  if ("decidedAt" in record) return record.decidedAt;
+  if ("occurredAt" in record) return record.occurredAt;
+  return record.executedAt;
+};
