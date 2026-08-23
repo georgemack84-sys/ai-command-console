@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
-import { CandidateKnowledgeService, EvidenceSetService, ExtractionService, HumanApprovalService, PrismaProvenanceLedger, ProvenanceSupersessionService } from "@/services/learning-constitution";
+import { CandidateKnowledgeService, ConflictResolutionDecisionService, ConflictResolutionExecutor, EvidenceSetService, ExtractionService, HumanApprovalService, PrismaProvenanceLedger, ProvenanceSupersessionService } from "@/services/learning-constitution";
 
 const scope = z.union([
   z.object({ type: z.enum(["CONVERSATION", "SESSION", "USER", "AGENT", "PROJECT", "WORKSPACE", "ORGANIZATION", "DOMAIN", "COMPONENT", "TASK"]), id: z.string().min(1).max(256), displayName: z.string().min(1).max(256).optional() }).strict(),
@@ -16,6 +16,8 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("create-evidence-set"), evidenceRefs: z.array(z.string().min(1)).min(1).max(100) }).strict(),
   z.object({ action: z.literal("decide-candidate"), candidateId: z.string().min(1), decision: z.enum(["APPROVED", "REJECTED"]), approvedStatement: z.string().min(1).max(100_000) }).strict(),
   z.object({ action: z.literal("supersede-knowledge"), priorKnowledgeId: z.string().min(1), successorKnowledgeId: z.string().min(1), reason: z.string().min(1).max(10_000) }).strict(),
+  z.object({ action: z.literal("decide-conflict-resolution"), conflictId: z.string().min(1), proposalId: z.string().min(1), acceptedOutcome: z.enum(["NO_CONFLICT", "MERGE", "SUPERSEDE", "NARROW_SCOPE", "CREATE_EXCEPTION", "REQUEST_CLARIFICATION", "ESCALATE", "REJECT"]), decisionAuthority: z.string().min(1).max(256), decisionReason: z.string().min(1).max(10_000), approvalRef: z.string().min(1).max(256).optional(), executionPlan: z.object({ exceptionApplicabilityCondition: z.string().min(1).max(10_000).optional(), narrowedScope: scope.optional() }).strict().optional() }).strict(),
+  z.object({ action: z.literal("execute-conflict-resolution"), decisionId: z.string().min(1) }).strict(),
 ]);
 
 const requireWorkspace = (user: { workspaceId?: string | null }) => {
@@ -59,6 +61,16 @@ export async function POST(request: Request) {
       const result = await new HumanApprovalService({ ledger }).decide({ ...input, actor: human });
       if (result.status !== "RECORDED") reject(result);
       return apiSuccess({ approval: result.approval, relationship: result.relationship }, { status: 201 });
+    }
+    if (input.action === "decide-conflict-resolution") {
+      const decision = await new ConflictResolutionDecisionService(ledger).decide({ ...input, decisionMaker: human });
+      if (!decision) throw new AppError(400, "conflict_decision_rejected", "The conflict decision does not match an existing proposal or lacks required human authority.");
+      return apiSuccess({ decision }, { status: 201 });
+    }
+    if (input.action === "execute-conflict-resolution") {
+      const result = await new ConflictResolutionExecutor(ledger).execute(input.decisionId);
+      if (result.status !== "EXECUTED") reject(result);
+      return apiSuccess({ resolution: result.resolution, relationships: result.relationships }, { status: 201 });
     }
     const result = await new ProvenanceSupersessionService({ ledger }).supersede({ ...input, actor: human });
     if (result.status !== "SUPERSEDED") reject(result);
