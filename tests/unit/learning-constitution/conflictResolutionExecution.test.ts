@@ -16,4 +16,17 @@ describe("ConflictResolutionExecutor", () => {
     expect(decision?.recordType).toBe("CONFLICT_RESOLUTION_DECISION");
     expect(await new ConflictResolutionExecutor(ledger).execute("CRD-1")).toMatchObject({ status: "REJECTED", reasonCode: "DURABLE_SUCCESSOR_REQUIRED", persistenceEffect: "NONE" });
   });
+
+  it("records a human rejection without deleting the conflicting candidate", async () => {
+    const ledger = new InMemoryProvenanceLedger();
+    const rejectionConflict = { ...conflict, id: "CF-reject", candidateKnowledgeId: "CP-reject" };
+    const rejectionProposal = { ...proposal, id: "RP-reject", conflictId: rejectionConflict.id, proposedOutcome: "REJECT" as const };
+    const candidate = { id: "CP-reject", recordType: "CANDIDATE_KNOWLEDGE" as const, statement: "Use SQLite.", classification: "PRINCIPLE" as const, scope, authority: "AGENT_INFERRED", extractionRefs: [], evidenceRefs: [], status: "CONFLICTED" as const, createdAt: "2026-08-23T00:00:00.000Z", immutable: true as const };
+    await ledger.append(rejectionConflict); await ledger.append(rejectionProposal); await ledger.append(candidate);
+    const decision = await new ConflictResolutionDecisionService(ledger, () => "CRD-reject", (suffix) => `relationship:${suffix}`, () => "2026-08-23T01:00:00.000Z").decide({ conflictId: rejectionConflict.id, proposalId: rejectionProposal.id, acceptedOutcome: "REJECT", decisionMaker: { actorId: "user:owner", actorType: "HUMAN" }, decisionAuthority: "HUMAN_DECISION", decisionReason: "The established rule remains authoritative." });
+    const result = await new ConflictResolutionExecutor(ledger, () => "CR-reject", () => "relationship:execution", () => "2026-08-23T01:00:00.000Z").execute(decision!.id);
+    expect(result).toMatchObject({ status: "EXECUTED", resolution: { resolutionType: "REJECT", affectedKnowledgeIds: ["CP-reject"] } });
+    expect((await ledger.get("CP-reject"))?.recordType).toBe("CANDIDATE_KNOWLEDGE");
+    expect((await ledger.getAll()).some((record) => record.recordType === "HUMAN_APPROVAL" && record.candidateId === "CP-reject" && record.decision === "REJECTED")).toBe(true);
+  });
 });
