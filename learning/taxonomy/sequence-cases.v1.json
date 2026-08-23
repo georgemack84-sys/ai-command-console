@@ -1,0 +1,25 @@
+{
+  "taxonomyVersion": "1.0.0",
+  "cases": [
+    { "caseId": "idea-then-decision", "mustNotReclassifyEarlierTurns": true, "turns": [
+      { "turnId": "idea", "input": "A queue could help.", "expectedStatus": "CLASSIFIED", "expectedCategory": "IDEA" },
+      { "turnId": "decision", "input": "We decided to add a queue.", "expectedStatus": "CLASSIFIED", "expectedCategory": "DECISION" }
+    ] },
+    { "caseId": "suggestion-then-decision", "mustNotReclassifyEarlierTurns": true, "turns": [
+      { "turnId": "suggestion", "input": "I suggest we use Redis.", "expectedStatus": "CLASSIFIED", "expectedCategory": "SUGGESTION" },
+      { "turnId": "decision", "input": "We decided to use Redis.", "expectedStatus": "CLASSIFIED", "expectedCategory": "DECISION" }
+    ] },
+    { "caseId": "fact-then-correction", "mustNotReclassifyEarlierTurns": true, "turns": [
+      { "turnId": "fact", "input": "PostgreSQL supports transactions.", "expectedStatus": "CLASSIFIED", "expectedCategory": "FACT" },
+      { "turnId": "correction", "input": "Correction: PostgreSQL supports transactions and savepoints.", "expectedStatus": "CLASSIFIED", "expectedCategory": "CORRECTION" }
+    ] },
+    { "caseId": "rule-then-exception", "mustNotReclassifyEarlierTurns": true, "turns": [
+      { "turnId": "rule", "input": "Production deploys require approval.", "expectedStatus": "CLASSIFIED", "expectedCategory": "RULE" },
+      { "turnId": "exception", "input": "Only during incidents, one approval is enough.", "expectedStatus": "CLASSIFIED", "expectedCategory": "EXCEPTION" }
+    ] },
+    { "caseId": "ambiguous-then-decision", "mustNotReclassifyEarlierTurns": true, "turns": [
+      { "turnId": "ambiguous", "input": "Let's do PostgreSQL.", "expectedStatus": "AMBIGUOUS" },
+      { "turnId": "decision", "input": "We decided to use PostgreSQL.", "expectedStatus": "CLASSIFIED", "expectedCategory": "DECISION" }
+    ] }
+  ]
+}
