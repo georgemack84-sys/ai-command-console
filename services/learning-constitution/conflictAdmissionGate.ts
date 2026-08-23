@@ -7,8 +7,10 @@ const unresolved = new Set(["DETECTED", "UNDER_ANALYSIS", "RESOLUTION_PROPOSED",
 export class ConflictAdmissionGate {
   constructor(private readonly ledger: ProvenanceLedger) {}
   async evaluate(candidateId: string): Promise<ConflictAdmissionGateResult> {
-    const blockingConflictIds = (await this.ledger.getAll())
-      .filter((record) => record.recordType === "CONFLICT" && record.candidateKnowledgeId === candidateId && unresolved.has(record.status))
+    const records = await this.ledger.getAll();
+    const resolvedConflictIds = new Set(records.filter((record) => record.recordType === "CONFLICT_RESOLUTION").map((record) => record.conflictId));
+    const blockingConflictIds = records
+      .filter((record) => record.recordType === "CONFLICT" && record.candidateKnowledgeId === candidateId && unresolved.has(record.status) && !resolvedConflictIds.has(record.id))
       .map((record) => record.id);
     return blockingConflictIds.length
       ? { decision: "BLOCK", blockingConflictIds, reasonCode: "UNRESOLVED_MATERIAL_CONFLICT", persistenceEffect: "NONE", authorityEffect: "UNCHANGED", executionPermissionGranted: false }

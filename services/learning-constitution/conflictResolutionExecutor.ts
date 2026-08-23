@@ -1,5 +1,6 @@
 import { ProvenanceSupersessionService } from "./provenanceSupersessionService";
 import { HumanApprovalService } from "./humanApprovalService";
+import { ConflictImpactAnalyzer } from "./conflictImpactAnalyzer";
 import type { ConflictResolution, ConflictResolutionDecision } from "../../types/learning-constitution/conflictResolution";
 import type { ProvenanceLedger, ProvenanceRelationship } from "../../types/learning-constitution/provenance";
 
@@ -11,11 +12,14 @@ import type { ProvenanceLedger, ProvenanceRelationship } from "../../types/learn
 export class ConflictResolutionExecutor {
   constructor(private readonly ledger: ProvenanceLedger, private readonly createId = () => `CR-${crypto.randomUUID()}`, private readonly createRelationshipId = () => `conflict-execution:${crypto.randomUUID()}`, private readonly now = () => new Date().toISOString()) {}
 
-  async execute(decisionId: string): Promise<Readonly<{ status: "EXECUTED" | "REJECTED" | "PERSISTENCE_FAILED"; reasonCode: "DECISION_MISSING" | "OUTCOME_UNSUPPORTED" | "DURABLE_SUCCESSOR_REQUIRED" | "DURABLE_EXCEPTION_REQUIRED" | "EXCEPTION_CONDITION_REQUIRED" | "NARROWED_SCOPE_REQUIRED" | "SUPERSESSION_REJECTED" | "CANDIDATE_REJECTION_FAILED" | "RESOLUTION_EXECUTED" | "PERSISTENCE_FAILED"; resolution?: ConflictResolution; relationships: readonly ProvenanceRelationship[]; persistenceEffect: "CREATED" | "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>> {
+  async execute(decisionId: string): Promise<Readonly<{ status: "EXECUTED" | "REJECTED" | "PERSISTENCE_FAILED"; reasonCode: "DECISION_MISSING" | "OUTCOME_UNSUPPORTED" | "DURABLE_SUCCESSOR_REQUIRED" | "DURABLE_EXCEPTION_REQUIRED" | "EXCEPTION_CONDITION_REQUIRED" | "NARROWED_SCOPE_REQUIRED" | "IMPACT_ANALYSIS_FAILED" | "RELATED_CONFLICT_UNRESOLVED" | "SUPERSESSION_REJECTED" | "CANDIDATE_REJECTION_FAILED" | "RESOLUTION_EXECUTED" | "PERSISTENCE_FAILED"; resolution?: ConflictResolution; relationships: readonly ProvenanceRelationship[]; persistenceEffect: "CREATED" | "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>> {
     const decision = await this.ledger.get(decisionId);
     if (!decision || decision.recordType !== "CONFLICT_RESOLUTION_DECISION") return this.fail("DECISION_MISSING");
     const conflict = await this.ledger.get(decision.conflictId);
     if (!conflict || conflict.recordType !== "CONFLICT") return this.fail("DECISION_MISSING");
+    const impact = await new ConflictImpactAnalyzer(this.ledger).analyze(conflict.id, decision.acceptedOutcome);
+    if (!impact) return this.fail("IMPACT_ANALYSIS_FAILED");
+    if (impact.blockingConflictIds.length) return this.fail("RELATED_CONFLICT_UNRESOLVED");
     if (decision.acceptedOutcome === "REJECT") return this.rejectCandidate(decision, conflict);
     const successor = await this.ledger.get(conflict.candidateKnowledgeId);
     if (!successor || successor.recordType !== "DURABLE_KNOWLEDGE") return this.fail("DURABLE_SUCCESSOR_REQUIRED");
@@ -50,5 +54,5 @@ export class ConflictResolutionExecutor {
     try { await this.ledger.append(resolution); for (const relationship of relationships) await this.ledger.relate(relationship); return { status: "EXECUTED" as const, reasonCode: "RESOLUTION_EXECUTED" as const, resolution, relationships, persistenceEffect: "CREATED" as const, authorityEffect: "UNCHANGED" as const, executionPermissionGranted: false as const }; }
     catch { return this.fail("PERSISTENCE_FAILED", "PERSISTENCE_FAILED"); }
   }
-  private fail(reasonCode: "DECISION_MISSING" | "OUTCOME_UNSUPPORTED" | "DURABLE_SUCCESSOR_REQUIRED" | "DURABLE_EXCEPTION_REQUIRED" | "EXCEPTION_CONDITION_REQUIRED" | "NARROWED_SCOPE_REQUIRED" | "SUPERSESSION_REJECTED" | "CANDIDATE_REJECTION_FAILED" | "PERSISTENCE_FAILED", status: "REJECTED" | "PERSISTENCE_FAILED" = "REJECTED") { return { status, reasonCode, relationships: [] as readonly ProvenanceRelationship[], persistenceEffect: "NONE" as const, authorityEffect: "UNCHANGED" as const, executionPermissionGranted: false as const }; }
+  private fail(reasonCode: "DECISION_MISSING" | "OUTCOME_UNSUPPORTED" | "DURABLE_SUCCESSOR_REQUIRED" | "DURABLE_EXCEPTION_REQUIRED" | "EXCEPTION_CONDITION_REQUIRED" | "NARROWED_SCOPE_REQUIRED" | "IMPACT_ANALYSIS_FAILED" | "RELATED_CONFLICT_UNRESOLVED" | "SUPERSESSION_REJECTED" | "CANDIDATE_REJECTION_FAILED" | "PERSISTENCE_FAILED", status: "REJECTED" | "PERSISTENCE_FAILED" = "REJECTED") { return { status, reasonCode, relationships: [] as readonly ProvenanceRelationship[], persistenceEffect: "NONE" as const, authorityEffect: "UNCHANGED" as const, executionPermissionGranted: false as const }; }
 }
