@@ -44,4 +44,18 @@ describe("ConflictResolutionExecutor", () => {
     expect(result).toMatchObject({ status: "EXECUTED", resolution: { resolutionType: "NARROW_SCOPE" } });
     expect((await ledger.getRelationships(successor.id)).some((link) => link.type === "NARROWS_SCOPE_OF" && link.toId === existing.id)).toBe(true);
   });
+
+  it("requires a separately durable merged record and preserves both source links", async () => {
+    const ledger = new InMemoryProvenanceLedger();
+    const existing = { id: "P-merge", recordType: "DURABLE_KNOWLEDGE" as const, statement: "Use monitored storage.", classification: "PRINCIPLE" as const, scope, authority: "HUMAN", candidateId: "CP-source", approvalId: "HA-source", evidenceRefs: [], status: "ACTIVE" as const, createdAt: "2026-08-23T00:00:00.000Z", immutable: true as const };
+    const candidate = { id: "CP-merge", recordType: "CANDIDATE_KNOWLEDGE" as const, statement: "Encrypt monitored storage.", classification: "PRINCIPLE" as const, scope, authority: "HUMAN", extractionRefs: [], evidenceRefs: [], status: "CONFLICTED" as const, createdAt: "2026-08-23T00:00:00.000Z", immutable: true as const };
+    const merged = { ...existing, id: "P-merged", statement: "Use monitored, encrypted storage.", candidateId: candidate.id, approvalId: "HA-merged" };
+    const mergeConflict = { ...conflict, id: "CF-merge", existingKnowledgeId: existing.id, candidateKnowledgeId: candidate.id, type: "DUPLICATE_OR_OVERLAP" as const };
+    const mergeProposal = { ...proposal, id: "RP-merge", conflictId: mergeConflict.id, proposedOutcome: "MERGE" as const };
+    await ledger.append(existing); await ledger.append(candidate); await ledger.append(merged); await ledger.append(mergeConflict); await ledger.append(mergeProposal);
+    const decision = await new ConflictResolutionDecisionService(ledger, () => "CRD-merge", (suffix) => `relationship:${suffix}`, () => "2026-08-23T01:00:00.000Z").decide({ conflictId: mergeConflict.id, proposalId: mergeProposal.id, acceptedOutcome: "MERGE", decisionMaker: { actorId: "user:owner", actorType: "HUMAN" }, decisionAuthority: "HUMAN_DECISION", decisionReason: "Preserve both compatible details.", executionPlan: { mergedKnowledgeId: merged.id } });
+    const result = await new ConflictResolutionExecutor(ledger, () => "CR-merge", () => "relationship:merge", () => "2026-08-23T01:00:00.000Z").execute(decision!.id);
+    expect(result).toMatchObject({ status: "EXECUTED", resolution: { resolutionType: "MERGE", resultingKnowledgeIds: [merged.id] } });
+    expect((await ledger.getRelationships(merged.id)).filter((link) => link.type === "MERGED_FROM").map((link) => link.toId).sort()).toEqual([candidate.id, existing.id].sort());
+  });
 });
