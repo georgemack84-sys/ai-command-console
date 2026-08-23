@@ -21,5 +21,5 @@ Run TypeScript compilation and the listed test files in an environment where Vit
 
 ## Exit blockers still requiring implementation proof
 
-- Automatic candidate analysis must be integrated into every durable-promotion entry point, not only enforced where a durable conflict already exists.
+- Automated semantic conflict detection must be integrated into every durable-promotion entry point; promotion is currently fail-closed when a linked Noesis candidate already has an unresolved conflict.
 - The final full-suite test execution result must be captured in a non-hanging runner environment.
