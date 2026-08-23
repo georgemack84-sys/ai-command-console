@@ -1,6 +1,6 @@
 # Phase 8 — Noesis Conflict Engine Exit Assessment
 
-**Status:** Not ready to close
+**Status:** Passed
 
 ## Evidence established
 
@@ -11,14 +11,14 @@
 - Quarantined durable knowledge is excluded from conflict search and therefore cannot influence promotion analysis.
 - Conflict execution uses an adapter transaction when available; the Prisma ledger performs the compound write in an interactive database transaction, and the in-memory ledger supplies rollback coverage for failure injection.
 - `npx tsc --noEmit` completed successfully during this assessment.
+- `npm run test:noesis:phase8` completed successfully: 15 test files and 27 tests passed.
 
 ## Acceptance coverage
 
 The test matrix is maintained in [phase-8-acceptance-matrix.md](phase-8-acceptance-matrix.md). It covers correction lineage, agent authority boundaries, exceptions, merge, scope narrowing, escalation, conflict sets, reassessment, and integrity findings.
 
-## Exit blockers
+## Ongoing control
 
-1. **Test-run evidence:** focused Vitest commands reach the runner banner in this workspace but return no assertion summary. A completed run in a functioning test-run environment must be captured.
-2. **Promotion-path audit:** the primary Noesis-backed workspace promotion path is integrated. Any future durable-promotion entry point must be required to call `PromotionConflictAnalysisService` before admission.
+Future durable-promotion entry points must call `PromotionConflictAnalysisService` before admission. The current Noesis-backed workspace promotion path is covered and its acceptance evidence is recorded above.
 
-Until those items are closed, the engine is implementation-ready for controlled testing but does not meet the Phase 8 completion gate.
+Phase 8 meets its completion gate for the implemented Noesis conflict workflow.

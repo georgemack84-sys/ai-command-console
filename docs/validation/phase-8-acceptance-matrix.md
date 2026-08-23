@@ -17,9 +17,8 @@ This matrix defines the executable evidence required before Phase 8 can exit. It
 
 ## Required execution evidence
 
-Run TypeScript compilation and the listed test files in an environment where Vitest completes normally. The current workspace's Vitest invocation reaches the runner banner but does not return assertion output, so compilation is recorded separately and test-run completion must be captured before declaring the phase complete.
+Run `npm run test:noesis:phase8` and `npx tsc --noEmit`. The dedicated command uses Vitest's Node environment and a single fork, avoiding the non-terminating JSDOM/thread combination observed in this workspace. On 2026-08-23, the Phase 8 command completed with **15 test files and 27 tests passing**.
 
 ## Exit blockers still requiring implementation proof
 
-- Every durable-promotion entry point must be audited to ensure it calls the promotion analysis service; the primary workspace promotion path does so before its fail-closed admission check.
-- The final full-suite test execution result must be captured in a non-hanging runner environment.
+- Future durable-promotion entry points must be required to call `PromotionConflictAnalysisService` before admission. The current Noesis-backed workspace promotion path is covered.
