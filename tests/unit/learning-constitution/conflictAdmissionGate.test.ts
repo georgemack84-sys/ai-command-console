@@ -13,4 +13,10 @@ describe("ConflictAdmissionGate", () => {
     const approval = await new HumanApprovalService({ ledger }).decide({ candidateId: "CP-1", decision: "APPROVED", approvedStatement: candidate.statement, actor: { actorId: "user:owner", actorType: "HUMAN" } });
     expect(approval).toMatchObject({ status: "REJECTED", reasonCode: "BLOCKING_CONFLICT_UNRESOLVED", persistenceEffect: "NONE" });
   });
+
+  it("does not keep blocking a candidate after an immutable final resolution exists", async () => {
+    const ledger = new InMemoryProvenanceLedger(); await ledger.append(candidate); await ledger.append(conflict);
+    await ledger.append({ id: "CR-1", recordType: "CONFLICT_RESOLUTION", conflictId: conflict.id, decisionId: "CRD-1", resolutionType: "REJECT", affectedKnowledgeIds: [candidate.id], resultingKnowledgeIds: [], executedBy: { actorId: "user:owner", actorType: "HUMAN" }, executedAt: "2026-08-23T01:00:00.000Z", immutable: true });
+    expect(await new ConflictAdmissionGate(ledger).evaluate(candidate.id)).toMatchObject({ decision: "ALLOW", blockingConflictIds: [] });
+  });
 });
