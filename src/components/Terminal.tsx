@@ -1305,20 +1305,28 @@ export default function Terminal({
   });
 
   useEffect(() => {
-    setHistory(readStore(HISTORY_KEY, [] as HistoryEntry[]));
-    setMacros(readStore(MACRO_KEY, DEFAULT_MACROS));
-    setSessions(readStore(SESSION_KEY, DEFAULT_SESSIONS));
-    setSavedViews(readStore(SAVED_VIEWS_KEY, [] as SavedTerminalView[]));
-    setLayoutMode(readStore(LAYOUT_MODE_KEY, "expanded" as LayoutMode));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setHistory(readStore(HISTORY_KEY, [] as HistoryEntry[]));
+      setMacros(readStore(MACRO_KEY, DEFAULT_MACROS));
+      setSessions(readStore(SESSION_KEY, DEFAULT_SESSIONS));
+      setSavedViews(readStore(SAVED_VIEWS_KEY, [] as SavedTerminalView[]));
+      setLayoutMode(readStore(LAYOUT_MODE_KEY, "expanded" as LayoutMode));
+    });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
-    setAlertThresholdDraft({
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setAlertThresholdDraft({
       queuedTasksHigh: String(overview.automation.alertThresholds.queuedTasksHigh),
       pendingReviewsHigh: String(overview.automation.alertThresholds.pendingReviewsHigh),
       inactiveAgentsHigh: String(overview.automation.alertThresholds.inactiveAgentsHigh),
     });
-    setAutomationPolicyDraft({
+      setAutomationPolicyDraft({
       autoRunWatcherOnPolicySave: overview.automation.policy.escalation.autoRunWatcherOnPolicySave,
       autoRunAlertsOnPolicySave: overview.automation.policy.escalation.autoRunAlertsOnPolicySave,
       autoAcknowledgeWatcherStopped: overview.automation.policy.escalation.autoAcknowledgeWatcherStopped,
@@ -1327,12 +1335,12 @@ export default function Terminal({
       allowAlertResolutionRecommendations: overview.automation.policy.remediation.allowAlertResolutionRecommendations,
       allowReviewFollowupRecommendations: overview.automation.policy.remediation.allowReviewFollowupRecommendations,
     });
-    setWatcherRuleDrafts(
+      setWatcherRuleDrafts(
       Object.fromEntries(
         overview.watcher.rules.map((rule) => [rule.name, rule])
       )
     );
-    setDigestDraft({
+      setDigestDraft({
       enabled: overview.collaboration.digestPreferences.enabled,
       cadence: overview.collaboration.digestPreferences.cadence,
       preferredChannel: overview.collaboration.digestPreferences.preferredChannel,
@@ -1340,7 +1348,9 @@ export default function Terminal({
       trustAudience: overview.collaboration.digestPreferences.trustAudience || "self",
       trustEnvironment: overview.collaboration.digestPreferences.trustEnvironment || "all",
       immediateOnTrustDrop: Boolean(overview.collaboration.digestPreferences.immediateOnTrustDrop),
+      });
     });
+    return () => { active = false; };
   }, [overview.automation, overview.watcher.rules, overview.collaboration.digestPreferences]);
 
   useEffect(() => {
@@ -1353,15 +1363,20 @@ export default function Terminal({
       return;
     }
 
-    setActiveTab("console");
-    setOperatorRecoveryPlanId((current) => (current.trim() ? current : normalizedPlanId));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setActiveTab("console");
+      setOperatorRecoveryPlanId((current) => (current.trim() ? current : normalizedPlanId));
 
-    if (recoveryBootstrapRef.current === normalizedPlanId || operatorRecoveryRunning) {
-      return;
-    }
+      if (recoveryBootstrapRef.current === normalizedPlanId || operatorRecoveryRunning) {
+        return;
+      }
 
-    recoveryBootstrapRef.current = normalizedPlanId;
-    void loadOperatorRecoverySurface(normalizedPlanId);
+      recoveryBootstrapRef.current = normalizedPlanId;
+      void loadOperatorRecoverySurface(normalizedPlanId);
+    });
+    return () => { active = false; };
     // Bootstrap should only respond to the initial recovery plan signal.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOperatorRecoveryPlanId, operatorRecoveryRunning]);
@@ -1939,13 +1954,20 @@ export default function Terminal({
   }
 
   useEffect(() => {
+    let active = true;
     if (!selectedJobId) {
-      setSelectedJobDetail(null);
-      setJobLogFilter("");
-      return;
+      queueMicrotask(() => {
+        if (!active) return;
+        setSelectedJobDetail(null);
+        setJobLogFilter("");
+      });
+      return () => { active = false; };
     }
 
-    void loadJobDetail(selectedJobId);
+    queueMicrotask(() => {
+      if (active) void loadJobDetail(selectedJobId);
+    });
+    return () => { active = false; };
   }, [selectedJobId, lastSyncAt]);
 
   function updateAgentDraft(agentName: string, patch: Partial<AgentDetail["profile"]>) {
