@@ -205,7 +205,6 @@ export function ResearchDeskDashboard() {
   const [runningScheduleId, setRunningScheduleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const autoRunAttempted = useRef(false);
-  const runScheduleRef = useRef<(schedule: SummarySchedule) => Promise<void>>(async () => {});
 
   async function persistResearchDeskPreferences(nextViews: SavedTriageView[], nextSchedules: SummarySchedule[]) {
     try {
@@ -227,60 +226,64 @@ export function ResearchDeskDashboard() {
       return;
     }
 
-    const saved = window.localStorage.getItem(TRIAGE_FILTER_KEY);
-    if (saved === "all" || saved === "blocked" || saved === "review" || saved === "publish" || saved === "complete") {
-      setTriageFilter(saved);
-    }
-    const savedSort = window.localStorage.getItem(TRIAGE_SORT_KEY);
-    if (savedSort === "urgency" || savedSort === "priority" || savedSort === "recent") {
-      setTriageSort(savedSort);
-    }
-    const savedThreshold = Number(window.localStorage.getItem(TRIAGE_THRESHOLD_KEY));
-    if (Number.isFinite(savedThreshold) && savedThreshold > 0) {
-      setFreshnessHours(savedThreshold);
-    }
-
-    try {
-      const rawViews = window.localStorage.getItem(TRIAGE_VIEWS_KEY);
-      if (rawViews) {
-        const parsed = JSON.parse(rawViews) as SavedTriageView[];
-        const valid = parsed.filter((item) => {
-          return (
-            item &&
-            typeof item.name === "string" &&
-            (item.filter === "all" ||
-              item.filter === "blocked" ||
-              item.filter === "review" ||
-              item.filter === "publish" ||
-              item.filter === "complete") &&
-            (item.sort === "urgency" || item.sort === "priority" || item.sort === "recent") &&
-            Number.isFinite(item.freshnessHours)
-          );
-        });
-        if (valid.length) {
-          setSavedViews(valid.slice(0, 6));
-        }
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      const saved = window.localStorage.getItem(TRIAGE_FILTER_KEY);
+      if (saved === "all" || saved === "blocked" || saved === "review" || saved === "publish" || saved === "complete") {
+        setTriageFilter(saved);
       }
-    } catch {}
-
-    try {
-      const rawSchedules = window.localStorage.getItem(TRIAGE_SCHEDULES_KEY);
-      if (rawSchedules) {
-        const parsed = JSON.parse(rawSchedules) as SummarySchedule[];
-        const valid = parsed.filter((item) => {
-          return (
-            item &&
-            typeof item.id === "string" &&
-            typeof item.viewName === "string" &&
-            (item.cadence === "weekday-morning" || item.cadence === "daily-brief" || item.cadence === "weekly-review") &&
-            (item.destination === "report-draft" || item.destination === "clipboard-memo")
-          );
-        });
-        if (valid.length) {
-          setSchedules(valid.slice(0, 6));
-        }
+      const savedSort = window.localStorage.getItem(TRIAGE_SORT_KEY);
+      if (savedSort === "urgency" || savedSort === "priority" || savedSort === "recent") {
+        setTriageSort(savedSort);
       }
-    } catch {}
+      const savedThreshold = Number(window.localStorage.getItem(TRIAGE_THRESHOLD_KEY));
+      if (Number.isFinite(savedThreshold) && savedThreshold > 0) {
+        setFreshnessHours(savedThreshold);
+      }
+
+      try {
+        const rawViews = window.localStorage.getItem(TRIAGE_VIEWS_KEY);
+        if (rawViews) {
+          const parsed = JSON.parse(rawViews) as SavedTriageView[];
+          const valid = parsed.filter((item) => {
+            return (
+              item &&
+              typeof item.name === "string" &&
+              (item.filter === "all" ||
+                item.filter === "blocked" ||
+                item.filter === "review" ||
+                item.filter === "publish" ||
+                item.filter === "complete") &&
+              (item.sort === "urgency" || item.sort === "priority" || item.sort === "recent") &&
+              Number.isFinite(item.freshnessHours)
+            );
+          });
+          if (valid.length) setSavedViews(valid.slice(0, 6));
+        }
+      } catch {}
+
+      try {
+        const rawSchedules = window.localStorage.getItem(TRIAGE_SCHEDULES_KEY);
+        if (rawSchedules) {
+          const parsed = JSON.parse(rawSchedules) as SummarySchedule[];
+          const valid = parsed.filter((item) => {
+            return (
+              item &&
+              typeof item.id === "string" &&
+              typeof item.viewName === "string" &&
+              (item.cadence === "weekday-morning" || item.cadence === "daily-brief" || item.cadence === "weekly-review") &&
+              (item.destination === "report-draft" || item.destination === "clipboard-memo")
+            );
+          });
+          if (valid.length) setSchedules(valid.slice(0, 6));
+        }
+      } catch {}
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -632,7 +635,7 @@ export function ResearchDeskDashboard() {
     setReports(Array.isArray(reportPayload.data?.reports) ? reportPayload.data?.reports : []);
   }
 
-  runScheduleRef.current = async (schedule: SummarySchedule) => {
+  async function runSchedule(schedule: SummarySchedule) {
     setRunningScheduleId(schedule.id);
     try {
       const response = await fetch("/api/research/summaries/run-due", {
@@ -674,7 +677,7 @@ export function ResearchDeskDashboard() {
     } finally {
       setRunningScheduleId(null);
     }
-  };
+  }
 
   function addSchedule() {
     const targetName = scheduleViewName || savedViews[0]?.name || "";
@@ -727,7 +730,7 @@ export function ResearchDeskDashboard() {
 
     void (async () => {
       for (const schedule of dueAutoSchedules) {
-        await runScheduleRef.current(schedule);
+        await runSchedule(schedule);
       }
     })();
   }, [loading, savedViews, schedules]);
@@ -1003,7 +1006,7 @@ export function ResearchDeskDashboard() {
                       <button
                         type="button"
                         disabled={runningScheduleId === schedule.id}
-                        onClick={() => void runScheduleRef.current(schedule)}
+                        onClick={() => void runSchedule(schedule)}
                         className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs text-cyan-100 transition hover:bg-cyan-300/20 disabled:opacity-50"
                       >
                         {runningScheduleId === schedule.id ? "Running..." : "Run Now"}
