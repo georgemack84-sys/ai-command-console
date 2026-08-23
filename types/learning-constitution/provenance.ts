@@ -1,6 +1,6 @@
 import type { KnowledgeClassification } from "./constitutionalVocabulary";
 import type { ConflictRecord, ConflictSetRecord } from "./conflictEngine";
-import type { ConflictAuditEvent, ConflictClarificationRequest, ConflictEscalation, ConflictResolution, ConflictResolutionDecision, ConflictResolutionProposal, ResolutionEvidencePackage } from "./conflictResolution";
+import type { ConflictAuditEvent, ConflictClarificationRequest, ConflictEscalation, ConflictReassessmentTrigger, ConflictResolution, ConflictResolutionDecision, ConflictResolutionProposal, ResolutionEvidencePackage } from "./conflictResolution";
 import type { KnowledgeScopeReference } from "./knowledgeScope";
 
 /** Canonical identity introduced by Phase 7. "Learning Agent" is its role, not its name. */
@@ -35,6 +35,7 @@ export const PROVENANCE_RELATIONSHIP_TYPES = [
   "PROPOSED_FOR_CONFLICT", "EVIDENCE_SNAPSHOT_FOR", "AUDITS_CONFLICT_PROPOSAL",
   "CONFLICT_SET_MEMBER",
   "CLARIFICATION_REQUEST_FOR", "ESCALATED_FROM_CONFLICT",
+  "REASSESSMENT_TRIGGER_FOR", "REASSESSMENT_EVIDENCE",
   "DECIDES_PROPOSAL", "DECIDES_CONFLICT", "EXECUTES_CONFLICT_DECISION",
   "EXCEPTION_OF", "NARROWS_SCOPE_OF",
 ] as const;
@@ -226,7 +227,7 @@ export type DurableProvenancedKnowledge = Readonly<{
   immutable: true;
 }>;
 
-export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord | ConflictSetRecord | ConflictResolutionProposal | ResolutionEvidencePackage | ConflictAuditEvent | ConflictClarificationRequest | ConflictEscalation | ConflictResolutionDecision | ConflictResolution;
+export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord | ConflictSetRecord | ConflictResolutionProposal | ResolutionEvidencePackage | ConflictAuditEvent | ConflictClarificationRequest | ConflictEscalation | ConflictReassessmentTrigger | ConflictResolutionDecision | ConflictResolution;
 
 export type ProvenanceRelationship = Readonly<{
   id: string;
