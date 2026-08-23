@@ -99,3 +99,32 @@ export type ConflictEscalation = Readonly<{
   createdAt: string;
   immutable: true;
 }>;
+
+/** A human decision is separate from the proposal that recommended it. */
+export type ConflictResolutionDecision = Readonly<{
+  id: string;
+  recordType: "CONFLICT_RESOLUTION_DECISION";
+  conflictId: string;
+  proposalId: string;
+  acceptedOutcome: ConflictResolutionOutcome;
+  decisionMaker: ProvenanceActor;
+  decisionAuthority: string;
+  decisionReason: string;
+  approvalRef?: string;
+  decidedAt: string;
+  immutable: true;
+}>;
+
+/** Records what the constrained executor actually did after an authorized decision. */
+export type ConflictResolution = Readonly<{
+  id: string;
+  recordType: "CONFLICT_RESOLUTION";
+  conflictId: string;
+  decisionId: string;
+  resolutionType: ConflictResolutionOutcome;
+  affectedKnowledgeIds: readonly string[];
+  resultingKnowledgeIds: readonly string[];
+  executedBy: ProvenanceActor;
+  executedAt: string;
+  immutable: true;
+}>;
