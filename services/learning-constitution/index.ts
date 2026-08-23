@@ -101,3 +101,5 @@ export * from "./prismaProvenanceLedger";
 export * from "./conflictRecordService";
 export * from "./conflictCandidateSearchService";
 export * from "./conflictComparisonService";
+export * from "./conflictResolutionPlanner";
+export * from "./conflictResolutionAuthorityGate";
