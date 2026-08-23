@@ -22,7 +22,8 @@ export class ProvenanceQueryService {
       predecessorRefs: targetIds("SUPERSEDES"), successorRefs: targetIds("SUPERSEDED_BY"), relationships: links,
       createdAt: "createdAt" in subject
         ? subject.createdAt
-        : subject.recordType === "TEACHING_EVENT" ? subject.receivedAt : subject.decidedAt,
+        : subject.recordType === "TEACHING_EVENT" ? subject.receivedAt
+          : subject.recordType === "HUMAN_APPROVAL" ? subject.decidedAt : subject.occurredAt,
       currentStatus: "status" in subject ? subject.status : undefined,
     };
   }
@@ -64,7 +65,10 @@ export class ProvenanceQueryService {
     return { knowledgeId: recordId, current: successorIds.length === 0, historicalStatus: successorIds.length ? "SUPERSEDED" : "ACTIVE", predecessorIds, successorIds };
   }
   async getHistory(recordId: string) {
-    const timeOf = (record: ProvenanceRecord) => "createdAt" in record ? record.createdAt : record.recordType === "TEACHING_EVENT" ? record.receivedAt : record.decidedAt;
+    const timeOf = (record: ProvenanceRecord) => "createdAt" in record
+      ? record.createdAt
+      : record.recordType === "TEACHING_EVENT" ? record.receivedAt
+        : record.recordType === "HUMAN_APPROVAL" ? record.decidedAt : record.occurredAt;
     return [...await this.getLineage(recordId)].sort((left, right) => timeOf(left).localeCompare(timeOf(right)) || left.id.localeCompare(right.id));
   }
   async explainKnowledge(recordId: string): Promise<{ envelope?: ProvenanceEnvelope; lineage: readonly ProvenanceRecord[]; integrity: ProvenanceIntegrityResult }> {

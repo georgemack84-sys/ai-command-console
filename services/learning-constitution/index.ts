@@ -103,3 +103,4 @@ export * from "./conflictCandidateSearchService";
 export * from "./conflictComparisonService";
 export * from "./conflictResolutionPlanner";
 export * from "./conflictResolutionAuthorityGate";
+export * from "./conflictResolutionProposalService";

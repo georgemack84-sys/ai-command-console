@@ -1,5 +1,6 @@
 import type { KnowledgeClassification } from "./constitutionalVocabulary";
 import type { ConflictRecord } from "./conflictEngine";
+import type { ConflictAuditEvent, ConflictResolutionProposal, ResolutionEvidencePackage } from "./conflictResolution";
 import type { KnowledgeScopeReference } from "./knowledgeScope";
 
 /** Canonical identity introduced by Phase 7. "Learning Agent" is its role, not its name. */
@@ -31,6 +32,7 @@ export const PROVENANCE_RELATIONSHIP_TYPES = [
   "APPROVED_BY", "REJECTED_BY", "CORRECTS", "CORRECTED_BY", "SUPERSEDES", "SUPERSEDED_BY",
   "REFINES", "MERGED_FROM", "SPLIT_FROM", "REFERENCES", "INVALIDATED_BY",
   "CONFLICTS_EXISTING", "CONFLICTS_CANDIDATE",
+  "PROPOSED_FOR_CONFLICT", "EVIDENCE_SNAPSHOT_FOR", "AUDITS_CONFLICT_PROPOSAL",
 ] as const;
 export type ProvenanceRelationshipType = (typeof PROVENANCE_RELATIONSHIP_TYPES)[number];
 
@@ -220,7 +222,7 @@ export type DurableProvenancedKnowledge = Readonly<{
   immutable: true;
 }>;
 
-export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord;
+export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord | ConflictResolutionProposal | ResolutionEvidencePackage | ConflictAuditEvent;
 
 export type ProvenanceRelationship = Readonly<{
   id: string;
