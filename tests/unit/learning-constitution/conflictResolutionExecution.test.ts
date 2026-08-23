@@ -3,6 +3,17 @@ import { describe, expect, it } from "vitest";
 import { ConflictResolutionDecisionService, ConflictResolutionExecutor, InMemoryProvenanceLedger } from "@/services/learning-constitution";
 import type { ConflictDimensionComparisons, ConflictRecord, ConflictResolutionProposal } from "@/types/learning-constitution";
 
+class FailingRelationshipLedger extends InMemoryProvenanceLedger {
+  failAfter = Number.POSITIVE_INFINITY;
+  private relationshipWrites = 0;
+  override async relate(relationship: Parameters<InMemoryProvenanceLedger["relate"]>[0]) {
+    this.relationshipWrites += 1;
+    if (this.relationshipWrites > this.failAfter) throw new Error("injected relationship persistence failure");
+    return super.relate(relationship);
+  }
+  resetFailure(after: number) { this.relationshipWrites = 0; this.failAfter = after; }
+}
+
 const scope = { type: "PROJECT", id: "noesis" } as const;
 const axis = { existing: "", candidate: "", outcome: "UNKNOWN" as const, rationaleCode: "test" };
 const comparisons: ConflictDimensionComparisons = { scope: axis, authority: axis, evidence: axis, confidence: axis, temporal: axis, persistenceEffect: "NONE", authorityEffect: "UNCHANGED", executionPermissionGranted: false };
@@ -57,5 +68,19 @@ describe("ConflictResolutionExecutor", () => {
     const result = await new ConflictResolutionExecutor(ledger, () => "CR-merge", () => "relationship:merge", () => "2026-08-23T01:00:00.000Z").execute(decision!.id);
     expect(result).toMatchObject({ status: "EXECUTED", resolution: { resolutionType: "MERGE", resultingKnowledgeIds: [merged.id] } });
     expect((await ledger.getRelationships(merged.id)).filter((link) => link.type === "MERGED_FROM").map((link) => link.toId).sort()).toEqual([candidate.id, existing.id].sort());
+  });
+
+  it("rolls back all execution writes when a resolution relationship cannot be persisted", async () => {
+    const ledger = new FailingRelationshipLedger();
+    const existing = { id: "P-atomic-old", recordType: "DURABLE_KNOWLEDGE" as const, statement: "Use port 8000.", classification: "PRINCIPLE" as const, scope, authority: "HUMAN", candidateId: "CP-old", approvalId: "HA-old", evidenceRefs: [], status: "ACTIVE" as const, createdAt: "2026-08-23T00:00:00.000Z", immutable: true as const };
+    const successor = { ...existing, id: "P-atomic-new", statement: "Use port 8080.", candidateId: "CP-new", approvalId: "HA-new" };
+    const atomicConflict = { ...conflict, id: "CF-atomic", existingKnowledgeId: existing.id, candidateKnowledgeId: successor.id };
+    const atomicProposal = { ...proposal, id: "RP-atomic", conflictId: atomicConflict.id };
+    await ledger.append(existing); await ledger.append(successor); await ledger.append(atomicConflict); await ledger.append(atomicProposal);
+    const decision = await new ConflictResolutionDecisionService(ledger, () => "CRD-atomic", (suffix) => `relationship:${suffix}`, () => "2026-08-23T01:00:00.000Z").decide({ conflictId: atomicConflict.id, proposalId: atomicProposal.id, acceptedOutcome: "SUPERSEDE", decisionMaker: { actorId: "user:owner", actorType: "HUMAN" }, decisionAuthority: "HUMAN_CORRECTION", decisionReason: "Correct port." });
+    ledger.resetFailure(1);
+    expect(await new ConflictResolutionExecutor(ledger, () => "CR-atomic", () => "relationship:execution", () => "2026-08-23T01:00:00.000Z").execute(decision!.id)).toMatchObject({ status: "PERSISTENCE_FAILED", persistenceEffect: "NONE" });
+    expect((await ledger.getRelationships(existing.id)).filter((link) => link.type === "SUPERSEDED_BY")).toHaveLength(0);
+    expect((await ledger.getAll()).some((record) => record.recordType === "CONFLICT_RESOLUTION" && record.conflictId === atomicConflict.id)).toBe(false);
   });
 });

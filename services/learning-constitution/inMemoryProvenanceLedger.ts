@@ -1,7 +1,7 @@
-import type { ProvenanceLedger, ProvenanceRecord, ProvenanceRelationship } from "../../types/learning-constitution/provenance";
+import type { ProvenanceLedger, ProvenanceRecord, ProvenanceRelationship, TransactionalProvenanceLedger } from "../../types/learning-constitution/provenance";
 
 /** Append-only in-memory implementation; production adapters must preserve the same semantics. */
-export class InMemoryProvenanceLedger implements ProvenanceLedger {
+export class InMemoryProvenanceLedger implements TransactionalProvenanceLedger {
   private readonly records = new Map<string, ProvenanceRecord>();
   private readonly relationships: ProvenanceRelationship[] = [];
 
@@ -33,4 +33,9 @@ export class InMemoryProvenanceLedger implements ProvenanceLedger {
     return this.relationships.filter((item) => item.fromId === recordId || item.toId === recordId);
   }
   async getAll(): Promise<readonly ProvenanceRecord[]> { return [...this.records.values()]; }
+  async withTransaction<T>(operation: (ledger: ProvenanceLedger) => Promise<T>): Promise<T> {
+    const records = new Map(this.records); const relationships = [...this.relationships];
+    try { return await operation(this); }
+    catch (error) { this.records.clear(); for (const [id, record] of records) this.records.set(id, record); this.relationships.splice(0, this.relationships.length, ...relationships); throw error; }
+  }
 }
