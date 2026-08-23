@@ -1,6 +1,7 @@
 export * from "./constitutionalAdmission";
 export * from "./constitutionalVocabulary";
 export * from "./conflictDetection";
+export * from "./conflictEngine";
 export * from "./durableKnowledge";
 export * from "./informationClassification";
 export * from "./knowledgeScope";
