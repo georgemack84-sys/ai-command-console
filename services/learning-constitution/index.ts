@@ -114,3 +114,4 @@ export * from "./conflictResolutionExecutor";
 export * from "./conflictIntegrityScanner";
 export * from "./conflictReassessmentService";
 export * from "./promotionConflictAnalysisService";
+export * from "./conflictMetricsService";
