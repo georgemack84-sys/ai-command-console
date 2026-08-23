@@ -13,6 +13,7 @@ type ConflictExecutionResult = Readonly<{ status: "EXECUTED" | "REJECTED" | "PER
  * unsupported outcome rather than approximating a mutation.
  */
 export class ConflictResolutionExecutor {
+  private relationshipSequence = 0;
   constructor(private readonly ledger: ProvenanceLedger, private readonly createId = () => `CR-${crypto.randomUUID()}`, private readonly createRelationshipId = () => `conflict-execution:${crypto.randomUUID()}`, private readonly now = () => new Date().toISOString()) {}
 
   async execute(decisionId: string): Promise<ConflictExecutionResult> {
@@ -67,10 +68,11 @@ export class ConflictResolutionExecutor {
   }
   private async finalize(decision: ConflictResolutionDecision, conflictId: string, resolutionType: ConflictResolution["resolutionType"], affectedKnowledgeIds: readonly string[], resultingKnowledgeIds: readonly string[], extraRelationships: readonly Pick<ProvenanceRelationship, "fromId" | "toId" | "type">[] = []) {
     const resolution: ConflictResolution = { id: this.createId(), recordType: "CONFLICT_RESOLUTION", conflictId, decisionId: decision.id, resolutionType, affectedKnowledgeIds, resultingKnowledgeIds, executedBy: decision.decisionMaker, executedAt: this.now(), immutable: true };
-    const relationships: ProvenanceRelationship[] = [{ id: this.createRelationshipId(), fromId: resolution.id, toId: decision.id, type: "EXECUTES_CONFLICT_DECISION", actor: decision.decisionMaker, createdAt: resolution.executedAt, immutable: true }];
-    for (const relationship of extraRelationships) relationships.push({ id: this.createRelationshipId(), ...relationship, actor: decision.decisionMaker, createdAt: resolution.executedAt, immutable: true });
+    const relationships: ProvenanceRelationship[] = [{ id: this.nextRelationshipId(), fromId: resolution.id, toId: decision.id, type: "EXECUTES_CONFLICT_DECISION", actor: decision.decisionMaker, createdAt: resolution.executedAt, immutable: true }];
+    for (const relationship of extraRelationships) relationships.push({ id: this.nextRelationshipId(), ...relationship, actor: decision.decisionMaker, createdAt: resolution.executedAt, immutable: true });
     await this.ledger.append(resolution); for (const relationship of relationships) await this.ledger.relate(relationship);
     return { status: "EXECUTED" as const, reasonCode: "RESOLUTION_EXECUTED" as const, resolution, relationships, persistenceEffect: "CREATED" as const, authorityEffect: "UNCHANGED" as const, executionPermissionGranted: false as const };
   }
+  private nextRelationshipId() { return `${this.createRelationshipId()}:${this.relationshipSequence++}`; }
   private fail(reasonCode: "DECISION_MISSING" | "OUTCOME_UNSUPPORTED" | "DURABLE_SUCCESSOR_REQUIRED" | "MERGED_KNOWLEDGE_REQUIRED" | "DURABLE_EXCEPTION_REQUIRED" | "EXCEPTION_CONDITION_REQUIRED" | "NARROWED_SCOPE_REQUIRED" | "IMPACT_ANALYSIS_FAILED" | "RELATED_CONFLICT_UNRESOLVED" | "SUPERSESSION_REJECTED" | "CANDIDATE_REJECTION_FAILED" | "PERSISTENCE_FAILED", status: "REJECTED" | "PERSISTENCE_FAILED" = "REJECTED") { return { status, reasonCode, relationships: [] as readonly ProvenanceRelationship[], persistenceEffect: "NONE" as const, authorityEffect: "UNCHANGED" as const, executionPermissionGranted: false as const }; }
 }
