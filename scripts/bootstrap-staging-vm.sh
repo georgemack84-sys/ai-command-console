@@ -14,7 +14,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y docker.io docker-compose-v2 nginx openssl
+apt-get install -y docker.io docker-compose nginx openssl
 systemctl enable --now docker nginx
 
 if id deploy >/dev/null 2>&1; then

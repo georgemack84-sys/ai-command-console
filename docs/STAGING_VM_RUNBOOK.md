@@ -26,13 +26,13 @@ the shared environment into the active release and run:
 ```bash
 cd /srv/ai-command-console/staging/current
 ln -sfn ../../shared/staging.env staging.env
-docker compose --env-file staging.env -f docker-compose.staging.yml up --build -d
+docker-compose --env-file staging.env -f docker-compose.staging.yml up --build -d
 ```
 
 Run migrations again after every release with:
 
 ```bash
-docker compose --env-file staging.env -f docker-compose.staging.yml run --rm migrate
+docker-compose --env-file staging.env -f docker-compose.staging.yml run --rm migrate
 ```
 
 The web service is ready for Nginx at `http://127.0.0.1:3000`.
@@ -40,7 +40,7 @@ The web service is ready for Nginx at `http://127.0.0.1:3000`.
 ## Safety checks
 
 ```bash
-docker compose --env-file staging.env -f docker-compose.staging.yml ps
+docker-compose --env-file staging.env -f docker-compose.staging.yml ps
 curl -fsS http://127.0.0.1:3000/api/health
 curl -fsS http://127.0.0.1:3000/api/ready
 ```
