@@ -12,10 +12,20 @@ with an owned subdomain before treating staging as a long-lived environment.
 
 ## First boot
 
-On the VM, clone or upload the release source, copy `staging.env.example` to
-`staging.env`, set the two secrets, and run:
+Install the host prerequisites by copying and running the tracked bootstrap
+script as root. It generates `shared/staging.env` once with restricted
+permissions; never copy its generated contents into GitHub or a terminal log.
 
 ```bash
+sudo bash scripts/bootstrap-staging-vm.sh
+```
+
+For a release unpacked under `/srv/ai-command-console/staging/releases`, link
+the shared environment into the active release and run:
+
+```bash
+cd /srv/ai-command-console/staging/current
+ln -sfn ../../shared/staging.env staging.env
 docker compose --env-file staging.env -f docker-compose.staging.yml up --build -d
 ```
 
