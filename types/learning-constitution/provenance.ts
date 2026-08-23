@@ -1,4 +1,5 @@
 import type { KnowledgeClassification } from "./constitutionalVocabulary";
+import type { ConflictRecord } from "./conflictEngine";
 import type { KnowledgeScopeReference } from "./knowledgeScope";
 
 /** Canonical identity introduced by Phase 7. "Learning Agent" is its role, not its name. */
@@ -29,6 +30,7 @@ export const PROVENANCE_RELATIONSHIP_TYPES = [
   "DERIVED_FROM", "EXTRACTED_FROM", "INTERPRETED_AS", "SUPPORTED_BY", "CONTRADICTED_BY",
   "APPROVED_BY", "REJECTED_BY", "CORRECTS", "CORRECTED_BY", "SUPERSEDES", "SUPERSEDED_BY",
   "REFINES", "MERGED_FROM", "SPLIT_FROM", "REFERENCES", "INVALIDATED_BY",
+  "CONFLICTS_EXISTING", "CONFLICTS_CANDIDATE",
 ] as const;
 export type ProvenanceRelationshipType = (typeof PROVENANCE_RELATIONSHIP_TYPES)[number];
 
@@ -218,7 +220,7 @@ export type DurableProvenancedKnowledge = Readonly<{
   immutable: true;
 }>;
 
-export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge;
+export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord;
 
 export type ProvenanceRelationship = Readonly<{
   id: string;
@@ -329,7 +331,7 @@ export type ProvenanceEnvelope = Readonly<{
   successorRefs: readonly string[];
   relationships: readonly ProvenanceRelationship[];
   createdAt: string;
-  currentStatus?: DurableProvenancedKnowledge["status"] | CandidateKnowledgeState;
+  currentStatus?: DurableProvenancedKnowledge["status"] | CandidateKnowledgeState | ConflictRecord["status"];
 }>;
 
 export interface ProvenanceLedger {
