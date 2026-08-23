@@ -348,3 +348,10 @@ export interface ProvenanceLedger {
   getRelationships(recordId: string): Promise<readonly ProvenanceRelationship[]>;
   getAll(): Promise<readonly ProvenanceRecord[]>;
 }
+
+/** Optional capability for compound provenance writes that must be atomic. */
+export interface TransactionalProvenanceLedger extends ProvenanceLedger {
+  withTransaction<T>(operation: (ledger: ProvenanceLedger) => Promise<T>): Promise<T>;
+}
+
+export const supportsProvenanceTransactions = (ledger: ProvenanceLedger): ledger is TransactionalProvenanceLedger => "withTransaction" in ledger && typeof (ledger as Partial<TransactionalProvenanceLedger>).withTransaction === "function";
