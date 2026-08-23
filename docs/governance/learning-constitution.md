@@ -29,7 +29,7 @@ The constitution governs admission to and modification of knowledge. It does not
 - **Classification:** The canonical semantic category assigned to a candidate so that applicable validation and authorization rules can be determined.
 - **Scope:** The explicit context in which knowledge is valid, applicable, owned, and retrievable.
 - **Validation:** The independent determination that a candidate satisfies the structural, evidentiary, provenance, and authorization requirements applicable to its classification and scope.
-- **Conflict:** A relationship between a candidate and existing knowledge that requires explicit treatment before admission.
+- **Conflict:** A durable, auditable object created when a candidate and existing knowledge cannot both be accepted unchanged in the same applicable scope, or when accepting the candidate would materially alter the existing item's interpretation, authority, applicability, or validity.
 - **Learning Decision:** The explicit disposition produced after the required pipeline stages complete.
 - **Authority:** Permission for an actor to execute, modify, approve, access, disclose, delegate, or authorize within a defined scope. Authority is separate from knowledge and competence.
 - **Provenance:** The traceable chain connecting durable knowledge to its source observation, actors, classification, scope, validation, decision, time, and version.
@@ -42,7 +42,7 @@ The constitution governs admission to and modification of knowledge. It does not
 4. Every durable admission passes through classification, scope determination, conflict detection, validation, and an explicit learning decision.
 5. Classification proposes semantic meaning; it does not establish truth, durability, or authority.
 6. Scope is mandatory. Unknown scope never defaults to global scope.
-7. Conflicting knowledge is never silently overwritten.
+7. No durable knowledge may silently replace, contradict, weaken, broaden, or override existing durable knowledge. A detected conflict receives explicit, auditable treatment before admission or modification.
 8. Repetition, plausibility, usefulness, model confidence, prompt inclusion, or agent generation cannot independently establish durable knowledge.
 9. Durable knowledge has traceable provenance. Any information promoted into durable knowledge retains sufficient provenance to reconstruct its origin, interpretation, validation, authority, approval, evidence, and subsequent changes.
 10. Provenance is historical evidence, not editable current-state metadata. A correction creates a successor and a relationship; it never changes the earlier source or interpretation.
