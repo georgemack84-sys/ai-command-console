@@ -75,3 +75,26 @@ export type ConflictRecord = Readonly<{
 export type ConflictRecordDraft = Readonly<Omit<ConflictRecord, "id" | "recordType" | "createdAt" | "immutable" | "status"> & {
   status?: Extract<ConflictStatus, "DETECTED" | "UNDER_ANALYSIS" | "RESOLUTION_PROPOSED" | "AWAITING_CLARIFICATION" | "AWAITING_APPROVAL" | "ESCALATED" | "DEFERRED">;
 }>;
+
+/** A durable grouping when resolving one conflict affects the others. */
+export type ConflictSetRecord = Readonly<{
+  id: string;
+  recordType: "CONFLICT_SET";
+  conflictIds: readonly string[];
+  rationale: string;
+  status: "OPEN" | "RESOLVED" | "CANCELLED";
+  createdAt: string;
+  immutable: true;
+}>;
+
+export type ConflictImpactAnalysis = Readonly<{
+  conflictId: string;
+  proposedOutcome: ConflictResolutionOutcome;
+  affectedKnowledgeIds: readonly string[];
+  relatedConflictIds: readonly string[];
+  blockingConflictIds: readonly string[];
+  requiresHumanReview: boolean;
+  persistenceEffect: "NONE";
+  authorityEffect: "UNCHANGED";
+  executionPermissionGranted: false;
+}>;
