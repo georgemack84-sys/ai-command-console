@@ -29,4 +29,19 @@ describe("ConflictResolutionExecutor", () => {
     expect((await ledger.get("CP-reject"))?.recordType).toBe("CANDIDATE_KNOWLEDGE");
     expect((await ledger.getAll()).some((record) => record.recordType === "HUMAN_APPROVAL" && record.candidateId === "CP-reject" && record.decision === "REJECTED")).toBe(true);
   });
+
+  it("only accepts a narrowing that is narrower than the established durable knowledge", async () => {
+    const ledger = new InMemoryProvenanceLedger();
+    const broadScope = { type: "ORGANIZATION", id: "noesis" } as const;
+    const narrowScope = { type: "PROJECT", id: "noesis" } as const;
+    const existing = { id: "P-broad", recordType: "DURABLE_KNOWLEDGE" as const, statement: "Use managed storage.", classification: "PRINCIPLE" as const, scope: broadScope, authority: "HUMAN", candidateId: "CP-broad", approvalId: "HA-broad", evidenceRefs: [], status: "ACTIVE" as const, createdAt: "2026-08-23T00:00:00.000Z", immutable: true as const };
+    const successor = { ...existing, id: "P-narrow", scope: narrowScope, candidateId: "CP-narrow", approvalId: "HA-narrow" };
+    const narrowConflict = { ...conflict, id: "CF-narrow", existingKnowledgeId: existing.id, candidateKnowledgeId: successor.id, scope: narrowScope };
+    const narrowProposal = { ...proposal, id: "RP-narrow", conflictId: narrowConflict.id, proposedOutcome: "NARROW_SCOPE" as const };
+    await ledger.append(existing); await ledger.append(successor); await ledger.append(narrowConflict); await ledger.append(narrowProposal);
+    const decision = await new ConflictResolutionDecisionService(ledger, () => "CRD-narrow", (suffix) => `relationship:${suffix}`, () => "2026-08-23T01:00:00.000Z").decide({ conflictId: narrowConflict.id, proposalId: narrowProposal.id, acceptedOutcome: "NARROW_SCOPE", decisionMaker: { actorId: "user:owner", actorType: "HUMAN" }, decisionAuthority: "HUMAN_DECISION", decisionReason: "This only applies to the project.", executionPlan: { narrowedScope: narrowScope } });
+    const result = await new ConflictResolutionExecutor(ledger, () => "CR-narrow", () => "relationship:narrow", () => "2026-08-23T01:00:00.000Z").execute(decision!.id);
+    expect(result).toMatchObject({ status: "EXECUTED", resolution: { resolutionType: "NARROW_SCOPE" } });
+    expect((await ledger.getRelationships(successor.id)).some((link) => link.type === "NARROWS_SCOPE_OF" && link.toId === existing.id)).toBe(true);
+  });
 });
