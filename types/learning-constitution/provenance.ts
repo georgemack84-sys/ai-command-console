@@ -188,7 +188,7 @@ export type HumanApprovalRequest = Readonly<{
 }>;
 export type HumanApprovalResult = Readonly<{
   status: "RECORDED" | "REJECTED" | "PERSISTENCE_FAILED";
-  reasonCode: "HUMAN_APPROVAL_RECORDED" | "CANDIDATE_MISSING" | "ACTOR_NOT_HUMAN" | "APPROVED_STATEMENT_MISSING" | "PERSISTENCE_FAILED";
+  reasonCode: "HUMAN_APPROVAL_RECORDED" | "CANDIDATE_MISSING" | "ACTOR_NOT_HUMAN" | "APPROVED_STATEMENT_MISSING" | "BLOCKING_CONFLICT_UNRESOLVED" | "PERSISTENCE_FAILED";
   approval?: HumanApproval;
   relationship?: ProvenanceRelationship;
   created: boolean;

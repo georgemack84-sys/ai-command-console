@@ -1,4 +1,5 @@
 import type { HumanApproval, HumanApprovalRequest, HumanApprovalResult, ProvenanceLedger, ProvenanceRelationship } from "../../types/learning-constitution/provenance";
+import { ConflictAdmissionGate } from "./conflictAdmissionGate";
 
 type Dependencies = Readonly<{ ledger: ProvenanceLedger; now?: () => string; createId?: () => string; createRelationshipId?: () => string }>;
 const result = (values: Omit<HumanApprovalResult, "authorityEffect" | "executionPermissionGranted">): HumanApprovalResult => ({ ...values, authorityEffect: "UNCHANGED", executionPermissionGranted: false });
@@ -15,6 +16,7 @@ export class HumanApprovalService {
     if (!candidate || candidate.recordType !== "CANDIDATE_KNOWLEDGE") return result({ status: "REJECTED", reasonCode: "CANDIDATE_MISSING", created: false, persistenceEffect: "NONE" });
     if (request.actor.actorType !== "HUMAN" || !request.actor.actorId.trim()) return result({ status: "REJECTED", reasonCode: "ACTOR_NOT_HUMAN", created: false, persistenceEffect: "NONE" });
     if (!request.approvedStatement.trim()) return result({ status: "REJECTED", reasonCode: "APPROVED_STATEMENT_MISSING", created: false, persistenceEffect: "NONE" });
+    if (request.decision === "APPROVED" && (await new ConflictAdmissionGate(this.dependencies.ledger).evaluate(request.candidateId)).decision === "BLOCK") return result({ status: "REJECTED", reasonCode: "BLOCKING_CONFLICT_UNRESOLVED", created: false, persistenceEffect: "NONE" });
     const approval: HumanApproval = { id: this.createId(), recordType: "HUMAN_APPROVAL", candidateId: request.candidateId, decision: request.decision, actor: request.actor, approvedStatement: request.approvedStatement, decidedAt: request.decidedAt ?? this.now(), immutable: true };
     const relationship: ProvenanceRelationship = { id: this.createRelationshipId(), fromId: request.candidateId, toId: approval.id, type: request.decision === "APPROVED" ? "APPROVED_BY" : "REJECTED_BY", createdAt: approval.decidedAt, actor: request.actor, immutable: true };
     try { await this.dependencies.ledger.append(approval); await this.dependencies.ledger.relate(relationship); return result({ status: "RECORDED", reasonCode: "HUMAN_APPROVAL_RECORDED", approval, relationship, created: true, persistenceEffect: "CREATED" }); }

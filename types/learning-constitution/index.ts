@@ -4,6 +4,7 @@ export * from "./conflictDetection";
 export * from "./conflictEngine";
 export * from "./conflictComparison";
 export * from "./conflictResolution";
+export * from "./conflictAdmission";
 export * from "./durableKnowledge";
 export * from "./informationClassification";
 export * from "./knowledgeScope";
