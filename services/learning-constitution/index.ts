@@ -99,3 +99,4 @@ export * from "./provenanceSupersessionService";
 export * from "./provenancePhaseExitService";
 export * from "./prismaProvenanceLedger";
 export * from "./conflictRecordService";
+export * from "./conflictCandidateSearchService";
