@@ -51,6 +51,7 @@ export class ConflictCandidateSearchService {
     const records = await this.ledger.getAll();
     const matching = records.filter((record): record is DurableProvenancedKnowledge =>
       record.recordType === "DURABLE_KNOWLEDGE"
+      && record.status === "ACTIVE"
       && record.classification === request.candidate.classification
       && JSON.stringify(record.scope) === JSON.stringify(request.candidate.scope),
     );
