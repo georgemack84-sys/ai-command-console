@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Health briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fb7185"/><stop offset=".55" stop-color="#047857"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <path d="M600 615C430 488 310 394 310 285c0-85 64-145 144-145 62 0 116 36 146 88 30-52 84-88 146-88 80 0 144 60 144 145 0 109-120 203-290 330z" fill="#ffe4e6" opacity=".32"/>
+  <path d="M225 405h230l54-110 92 225 80-160h294" fill="none" stroke="#ecfeff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/>
+</svg>

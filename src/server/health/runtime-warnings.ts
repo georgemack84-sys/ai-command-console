@@ -54,7 +54,7 @@ export function buildRuntimeWarnings(runtime: RuntimePosture, queueHealth?: Queu
   ) {
     warnings.push({
       code: "jobs_external_worker_missing",
-      severity: "critical",
+      severity: runtime.environment === "production" ? "critical" : "warning",
       message: "Background jobs are queued but no external worker is currently active.",
     });
   }

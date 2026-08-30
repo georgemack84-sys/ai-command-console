@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Science briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#14b8a6"/><stop offset=".5" stop-color="#4338ca"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <g fill="none" stroke="#ccfbf1" stroke-width="8" opacity=".44"><ellipse cx="600" cy="380" rx="330" ry="105"/><ellipse cx="600" cy="380" rx="330" ry="105" transform="rotate(60 600 380)"/><ellipse cx="600" cy="380" rx="330" ry="105" transform="rotate(120 600 380)"/></g>
+  <circle cx="600" cy="380" r="40" fill="#ccfbf1" opacity=".55"/>
+  <circle cx="380" cy="300" r="22" fill="#ccfbf1" opacity=".55"/>
+  <circle cx="810" cy="485" r="22" fill="#ccfbf1" opacity=".55"/>
+</svg>

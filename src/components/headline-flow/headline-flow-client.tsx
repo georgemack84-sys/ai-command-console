@@ -287,39 +287,39 @@ const topicAccents: Record<HeadlineFlowTopic, string> = {
 
 const topicVisuals: Record<HeadlineFlowTopic, { image: string; alt: string }> = {
   world: {
-    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-world.svg",
     alt: "Earth seen from orbit",
   },
   politics: {
-    image: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-politics.svg",
     alt: "Government building columns",
   },
   business: {
-    image: "https://images.unsplash.com/photo-1642543492481-44e81e3914a7?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-business.svg",
     alt: "Financial market chart",
   },
   technology: {
-    image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-technology.svg",
     alt: "Electronic circuit board",
   },
   science: {
-    image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-science.svg",
     alt: "Laboratory glassware",
   },
   health: {
-    image: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-health.svg",
     alt: "Medical heart monitor",
   },
   sports: {
-    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-sports.svg",
     alt: "Athletes running on a track",
   },
   entertainment: {
-    image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-entertainment.svg",
     alt: "Movie theater seats and screen",
   },
   general: {
-    image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80",
+    image: "/headline-flow/topic-general.svg",
     alt: "Newspapers stacked on a desk",
   },
 };
@@ -637,7 +637,7 @@ export function HeadlineFlowClient() {
   const [feed, setFeed] = useState<HeadlineFlowFeed>(fallbackFeed);
   const [providerDiagnostics, setProviderDiagnostics] = useState<ProviderDiagnostics>(fallbackProviderDiagnostics);
   const [topic, setTopic] = useState<HeadlineFlowTopic | "all">("all");
-  const [providerMode, setProviderMode] = useState<ProviderMode>("rss");
+  const [providerMode, setProviderMode] = useState<ProviderMode>("auto");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
   const [message, setMessage] = useState("");
   const [now, setNow] = useState(() => new Date());

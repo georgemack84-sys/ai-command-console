@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Sports briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f97316"/><stop offset=".55" stop-color="#92400e"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <circle cx="600" cy="380" r="210" fill="#fed7aa" opacity=".24" stroke="#fff7ed" stroke-width="8"/>
+  <path d="M420 235c100 82 170 179 210 290M770 235c-100 82-170 179-210 290M398 380h404M600 170v420" fill="none" stroke="#fff7ed" stroke-width="8" opacity=".46"/>
+  <path d="M180 620c245-58 520-58 840 0" fill="none" stroke="#fff7ed" stroke-width="10" opacity=".28"/>
+</svg>

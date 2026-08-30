@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Politics briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#2563eb"/><stop offset=".6" stop-color="#334155"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <path d="M600 155 260 320h680z" fill="#dbeafe" opacity=".25"/>
+  <rect x="300" y="340" width="600" height="46" rx="10" fill="#e0f2fe" opacity=".28"/>
+  <g fill="#e0f2fe" opacity=".36"><rect x="350" y="405" width="72" height="210"/><rect x="480" y="405" width="72" height="210"/><rect x="610" y="405" width="72" height="210"/><rect x="740" y="405" width="72" height="210"/></g>
+  <rect x="270" y="640" width="660" height="44" rx="12" fill="#e0f2fe" opacity=".22"/>
+</svg>

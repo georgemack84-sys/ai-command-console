@@ -100,7 +100,7 @@ export async function GET() {
   if (externalWorkerMissing && !warnings.some((warning) => warning.code === "jobs_external_worker_missing")) {
     warnings.push({
       code: "jobs_external_worker_missing",
-      severity: "critical",
+      severity: runtime.environment === "production" ? "critical" : "warning",
       message: "Background jobs are queued but no external worker is currently active.",
     });
   }

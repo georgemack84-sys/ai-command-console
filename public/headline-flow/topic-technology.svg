@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Technology briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7c3aed"/><stop offset=".52" stop-color="#0891b2"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <rect x="410" y="190" width="380" height="380" rx="48" fill="#e0f2fe" opacity=".22"/>
+  <rect x="475" y="255" width="250" height="250" rx="28" fill="#020617" opacity=".42" stroke="#cffafe" stroke-width="6"/>
+  <g stroke="#cffafe" stroke-width="8" opacity=".42"><path d="M300 260h110M300 380h110M300 500h110M790 260h110M790 380h110M790 500h110M480 80v110M600 80v110M720 80v110M480 570v110M600 570v110M720 570v110"/></g>
+</svg>

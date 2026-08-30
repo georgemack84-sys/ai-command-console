@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Entertainment briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#d946ef"/><stop offset=".52" stop-color="#be123c"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <rect x="260" y="210" width="680" height="410" rx="36" fill="#fdf2f8" opacity=".18" stroke="#fce7f3" stroke-width="6"/>
+  <path d="M260 315h680" stroke="#fce7f3" stroke-width="8" opacity=".45"/>
+  <g fill="#fce7f3" opacity=".45"><circle cx="350" cy="265" r="24"/><circle cx="450" cy="265" r="24"/><circle cx="550" cy="265" r="24"/></g>
+  <path d="M550 390v135l125-68z" fill="#fce7f3" opacity=".56"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="World briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#0ea5e9"/><stop offset=".55" stop-color="#155e75"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <circle cx="585" cy="370" r="210" fill="#bae6fd" opacity=".18"/>
+  <circle cx="585" cy="370" r="160" fill="none" stroke="#e0f2fe" stroke-width="6" opacity=".42"/>
+  <path d="M365 370h440M585 160c-72 72-108 142-108 210s36 138 108 210M585 160c72 72 108 142 108 210s-36 138-108 210" fill="none" stroke="#e0f2fe" stroke-width="6" opacity=".5"/>
+  <path d="M255 580c165-74 349-94 552-61 71 12 134 35 188 68v173H255z" fill="#020617" opacity=".48"/>
+</svg>

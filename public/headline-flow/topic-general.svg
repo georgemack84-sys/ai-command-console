@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="General news briefing visual">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#64748b"/><stop offset=".55" stop-color="#164e63"/><stop offset="1" stop-color="#020617"/></linearGradient></defs>
+  <rect width="1200" height="760" fill="url(#g)"/>
+  <rect x="290" y="175" width="620" height="430" rx="28" fill="#e2e8f0" opacity=".22"/>
+  <rect x="345" y="245" width="250" height="46" rx="10" fill="#f8fafc" opacity=".5"/>
+  <rect x="345" y="330" width="500" height="22" rx="8" fill="#f8fafc" opacity=".36"/>
+  <rect x="345" y="382" width="430" height="22" rx="8" fill="#f8fafc" opacity=".3"/>
+  <rect x="345" y="434" width="470" height="22" rx="8" fill="#f8fafc" opacity=".28"/>
+</svg>
