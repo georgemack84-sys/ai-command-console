@@ -134,7 +134,9 @@ function eventData(event: HeadlineFlowEventRecord) {
 }
 
 function eventUpdateData(event: HeadlineFlowEventRecord) {
-  const { id: _id, workspaceId: _workspaceId, ...data } = eventData(event);
+  const { id, workspaceId, ...data } = eventData(event);
+  void id;
+  void workspaceId;
   return data;
 }
 

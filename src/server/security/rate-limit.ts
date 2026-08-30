@@ -71,6 +71,10 @@ export function rateLimit(key: string, options: RateLimitOptions) {
   return { allowed: true, remaining: options.limit - current.count, resetAt: current.resetAt };
 }
 
+export function clearRateLimitsForTests() {
+  store.clear();
+}
+
 export function enforceRateLimit(key: string, options: RateLimitOptions) {
   if (!rateLimitingEnabled()) {
     return;
