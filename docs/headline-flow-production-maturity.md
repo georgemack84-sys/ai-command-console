@@ -1,8 +1,8 @@
-# Headline Flow Production Maturity
+# Headline Flow 2.0-A Production Maturity
 
 ## Status
 
-Headline Flow 1.1 is hardened for production preparation. The application can serve live news packages, report feed quality through readiness checks, protect production deployments from accidental fixture data, and keep a recent successful feed available during transient provider failures.
+Headline Flow 2.0-A is hardened for production preparation. The application can serve live news packages, report feed quality through readiness checks, protect production deployments from accidental fixture data, preserve durable event identity, capture operator interactions, and keep the branded Headline Flow entry separate from the broader AI Command Console shell.
 
 ## Production Controls
 
@@ -22,6 +22,17 @@ Headline Flow 1.1 is hardened for production preparation. The application can se
 - Recent expired feeds can return `cache.status = stale` when the provider fails or produces no stories.
 - Stale fallback preserves the previous successful feed and annotates diagnostics with `provider_error_stale_cache` or `provider_empty_stale_cache`.
 - Feed builds emit structured logs with provider, story count, article count, duplicate count, rejection count, and fallback reason.
+- Unauthenticated `/headline-flow` visits redirect through `/auth?next=%2Fheadline-flow` and return to Headline Flow after login or demo entry.
+- Local demo entry uses fixture-backed stories intentionally; production fixture use remains blocked unless `HEADLINE_FLOW_ALLOW_FIXTURE_PROVIDER=true`.
+
+## 2.0-A Capabilities
+
+- Durable event identity and versioning for repeated coverage of the same story.
+- Article evidence trails and event history surfaces.
+- Event controls for save, mute, archive, and priority handling.
+- Event library filtering and replay-friendly source inspection.
+- Preference-aware ranking from saved-event state and recent interactions.
+- Live-provider readiness visibility for RSS, web search, topic breadth, and feed freshness.
 
 ## Readiness Behavior
 
@@ -42,11 +53,16 @@ In production, Headline Flow feed-health failures are critical readiness warning
 Required release gates:
 
 - `npm run typecheck`
-- `npm run lint`
+- `npm run lint` or scoped eslint for changed Headline Flow files
 - `npm run build`
 - `npx vitest run --config vitest.config.mjs tests/unit/headline-flow tests/unit/health-routes.test.ts tests/unit/env.test.ts`
 - `npx playwright test playwright/headline-flow.spec.ts --project=desktop-chromium --project=mobile-chromium --reporter=line --workers=2`
+- `npx playwright test playwright/public-routes.spec.ts --project=desktop-chromium --grep "headline flow auth gate|auth page shows"`
 
-## Remaining 2.0 Work
+## Current Release Candidate
 
-This hardening pass does not add durable event memory. Production maturity for Headline Flow 1.x is separate from the 2.0 Event Registry. The next architectural step is persistent event identity, event versions, and user-specific "what changed" state.
+The active release candidate line is `headline-flow-2.0-a-rc4`, with post-RC4 commits stabilizing the branded auth entry and demo startup path. The next release checkpoint should be cut as `headline-flow-2.0-a-rc5` after the browser-test configuration and this maturity record are committed.
+
+## Remaining Production Caveat
+
+The GitHub staging workflow currently runs in artifact-only mode. This is acceptable for package validation, but production maturity is not complete until the staging environment has SSH deployment variables, `DEPLOY_SSH_KEY`, deployment validation paths, and artifact-only mode disabled for a real post-deploy smoke.
