@@ -1,32 +1,14 @@
 import { prisma } from "@/src/server/db/prisma";
 import { AppError } from "@/src/server/api/errors";
-import { isProduction } from "@/src/config/env";
 import { trackEvent } from "@/src/server/observability/analytics";
 import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
 import type { SourceType } from "@prisma/client";
 import { assertConnectorSupportsRefresh } from "@/src/server/ingestion/connector-registry";
 import { requireWorkspaceManager } from "@/src/server/auth/permissions";
-
-function isLocalHost(hostname: string) {
-  const normalized = hostname.toLowerCase();
-  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
-}
+import { assertSafeSourceUrl } from "@/src/server/security/server-url-policy";
 
 export function assertValidSourceUrl(url: string) {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new AppError(400, "invalid_source_url", "Source URL must be a valid URL.");
-  }
-
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    throw new AppError(400, "invalid_source_url", "Source URL must use http or https.");
-  }
-
-  if (isProduction() && isLocalHost(parsed.hostname)) {
-    throw new AppError(400, "invalid_source_url", "Localhost URLs are not allowed in production.");
-  }
+  assertSafeSourceUrl(url);
 }
 
 export async function createSource(input: {

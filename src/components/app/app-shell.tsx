@@ -10,6 +10,7 @@ import { cn } from "@/src/lib/utils";
 const primaryNavItems = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/headline-flow", label: "Headline Flow", protected: true },
   { href: "/settings", label: "Settings", protected: true },
   { href: "/console", label: "Console", protected: true },
   { href: "/operations", label: "Operations", protected: true },
@@ -47,6 +48,13 @@ const pageMeta: Array<{
     title: "A polished operational dashboard with responsive density and card rhythm.",
     description:
       "Filters, activity, metrics, and workspace cards all share the same visual system as the landing experience.",
+  },
+  {
+    match: (pathname) => pathname.startsWith("/headline-flow"),
+    eyebrow: "Headline Flow",
+    title: "Scan live-story packages with article trails, topic focus, and feed diagnostics.",
+    description:
+      "Headline Flow now has a dedicated surface connected to its authenticated feed endpoint, ready for provider-backed news integration.",
   },
   {
     match: (pathname) => pathname.startsWith("/console"),

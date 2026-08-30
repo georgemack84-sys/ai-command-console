@@ -9,8 +9,10 @@ import { getRssIngestMaxContentBytes, getRssIngestMaxItems, getRssIngestTimeoutM
 import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
 import { isFeatureEnabled } from "@/src/server/feature-flags/feature-flag-service";
 import { createAlert } from "@/src/server/alerts/alert-service";
+import { assertSafeSourceUrl, resolveSafeRedirectUrl } from "@/src/server/security/server-url-policy";
 
 const parser = new Parser();
+const MAX_RSS_REDIRECTS = 3;
 
 type RssItemInput = {
   title?: string;
@@ -85,35 +87,51 @@ export function normalizeRssItem(item: RssItemInput, feedTitle: string | null): 
 }
 
 async function fetchRssXml(url: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), getRssIngestTimeoutMs());
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": getRssUserAgent(),
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
-      },
-      signal: controller.signal,
-    });
+  let currentUrl = assertSafeSourceUrl(url).toString();
 
-    if (!response.ok) {
-      throw new AppError(502, "rss_fetch_failed", `RSS fetch failed with status ${response.status}.`);
-    }
+  for (let redirectCount = 0; redirectCount <= MAX_RSS_REDIRECTS; redirectCount += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), getRssIngestTimeoutMs());
+    try {
+      const response = await fetch(currentUrl, {
+        headers: {
+          "User-Agent": getRssUserAgent(),
+          Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        },
+        redirect: "manual",
+        signal: controller.signal,
+      });
 
-    const maxBytes = getRssIngestMaxContentBytes();
-    const contentLength = Number(response.headers.get("content-length") || 0);
-    if (contentLength && contentLength > maxBytes) {
-      throw new AppError(413, "rss_payload_too_large", "RSS payload exceeds the configured size limit.");
-    }
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location) {
+          throw new AppError(502, "rss_fetch_failed", "RSS fetch redirect did not include a location.");
+        }
+        currentUrl = resolveSafeRedirectUrl(location, currentUrl);
+        continue;
+      }
 
-    const buffer = await response.arrayBuffer();
-    if (buffer.byteLength > maxBytes) {
-      throw new AppError(413, "rss_payload_too_large", "RSS payload exceeds the configured size limit.");
+      if (!response.ok) {
+        throw new AppError(502, "rss_fetch_failed", `RSS fetch failed with status ${response.status}.`);
+      }
+
+      const maxBytes = getRssIngestMaxContentBytes();
+      const contentLength = Number(response.headers.get("content-length") || 0);
+      if (contentLength && contentLength > maxBytes) {
+        throw new AppError(413, "rss_payload_too_large", "RSS payload exceeds the configured size limit.");
+      }
+
+      const buffer = await response.arrayBuffer();
+      if (buffer.byteLength > maxBytes) {
+        throw new AppError(413, "rss_payload_too_large", "RSS payload exceeds the configured size limit.");
+      }
+      return Buffer.from(buffer).toString("utf-8");
+    } finally {
+      clearTimeout(timeout);
     }
-    return Buffer.from(buffer).toString("utf-8");
-  } finally {
-    clearTimeout(timeout);
   }
+
+  throw new AppError(502, "rss_fetch_failed", "RSS fetch exceeded the redirect limit.");
 }
 
 async function parseRssXml(xml: string) {

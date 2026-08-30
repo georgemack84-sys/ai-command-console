@@ -8,6 +8,19 @@ const envSchema = z.object({
   AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS: z.string().optional(),
   AI_COMMAND_CONSOLE_WRITE_LEGACY_JSON_MIRRORS: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  HEADLINE_FLOW_PROVIDER: z.enum(["auto", "fixture", "rss", "web_search"]).default("rss"),
+  HEADLINE_FLOW_RSS_TIMEOUT_MS: z.string().optional(),
+  HEADLINE_FLOW_LINK_RESOLUTION_TIMEOUT_MS: z.string().optional(),
+  HEADLINE_FLOW_LINK_RESOLUTION_MAX_ATTEMPTS: z.string().optional(),
+  HEADLINE_FLOW_FEED_CACHE_TTL_MS: z.string().optional(),
+  HEADLINE_FLOW_STALE_CACHE_MAX_AGE_MS: z.string().optional(),
+  HEADLINE_FLOW_MIN_READY_STORIES: z.string().optional(),
+  HEADLINE_FLOW_MIN_READY_TOPICS: z.string().optional(),
+  HEADLINE_FLOW_ALLOW_FIXTURE_PROVIDER: z.string().optional(),
+  HEADLINE_FLOW_WEB_SEARCH_MODEL: z.string().default("gpt-4.1-mini"),
+  HEADLINE_FLOW_WEB_SEARCH_TIMEOUT_MS: z.string().optional(),
+  HEADLINE_FLOW_AUTO_FALLBACK_TIMEOUT_MS: z.string().optional(),
+  HEADLINE_FLOW_INTERACTION_RETENTION_DAYS: z.string().optional(),
   AI_SUMMARY_PROVIDER_MODE: z.enum(["auto", "openai", "mock"]).default("auto"),
   AI_SUMMARY_MODEL: z.string().default("gpt-4.1-mini"),
   AI_SUMMARY_TIMEOUT_MS: z.string().optional(),
@@ -20,12 +33,18 @@ const envSchema = z.object({
   RSS_INGEST_MAX_ITEMS: z.string().optional(),
   RSS_INGEST_MAX_CONTENT_BYTES: z.string().optional(),
   RSS_USER_AGENT: z.string().optional(),
+  SOURCE_ALLOW_PRIVATE_URLS: z.string().optional(),
   JOB_QUEUE_EXECUTION_MODE: z.enum(["in_process", "external"]).default("in_process"),
   JOB_WORKER_POLL_INTERVAL_MS: z.string().optional(),
   JOB_QUEUE_MAX_PENDING: z.string().optional(),
   JOB_QUEUE_MAX_RUNNING: z.string().optional(),
+  SCOPE_ALERT_SCAN_ENABLED: z.string().optional(),
+  SCOPE_ALERT_SCAN_INTERVAL_MS: z.string().optional(),
+  SCOPE_ALERT_SCAN_CONCURRENCY: z.string().optional(),
+  SCOPE_ALERT_RENOTIFY_AFTER_MS: z.string().optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:5050"),
+  LEARNING_AGENT_ORIGIN: z.string().url().optional(),
   SENTRY_DSN: z.string().optional(),
   SENTRY_ENVIRONMENT: z.string().optional(),
   SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),
@@ -191,6 +210,76 @@ export function getRssUserAgent() {
   return configured || "AI-Command-Console/1.0 (+https://example.com)";
 }
 
+export function sourceAllowsPrivateUrls() {
+  const configured = env.SOURCE_ALLOW_PRIVATE_URLS?.toLowerCase();
+  return configured === "true" || configured === "1" || configured === "yes";
+}
+
+export function getHeadlineFlowWebSearchTimeoutMs() {
+  const configured = Number(env.HEADLINE_FLOW_WEB_SEARCH_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 2_000 ? Math.floor(configured) : 30_000;
+}
+
+export function getHeadlineFlowRssTimeoutMs() {
+  const configured = Number(env.HEADLINE_FLOW_RSS_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 1_000 ? Math.floor(configured) : 5_000;
+}
+
+export function getHeadlineFlowLinkResolutionTimeoutMs() {
+  const configured = Number(env.HEADLINE_FLOW_LINK_RESOLUTION_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 250 ? Math.floor(configured) : 800;
+}
+
+export function getHeadlineFlowLinkResolutionMaxAttempts() {
+  const configured = Number(env.HEADLINE_FLOW_LINK_RESOLUTION_MAX_ATTEMPTS);
+  return Number.isFinite(configured) && configured >= 0 ? Math.min(25, Math.floor(configured)) : 6;
+}
+
+export function getHeadlineFlowFeedCacheTtlMs() {
+  const configured = Number(env.HEADLINE_FLOW_FEED_CACHE_TTL_MS);
+  return Number.isFinite(configured) && configured >= 0 ? Math.min(15 * 60_000, Math.floor(configured)) : 2 * 60_000;
+}
+
+export function getHeadlineFlowStaleCacheMaxAgeMs() {
+  const configured = Number(env.HEADLINE_FLOW_STALE_CACHE_MAX_AGE_MS);
+  return Number.isFinite(configured) && configured >= 0 ? Math.min(60 * 60_000, Math.floor(configured)) : 10 * 60_000;
+}
+
+export function getHeadlineFlowMinReadyStories() {
+  const configured = Number(env.HEADLINE_FLOW_MIN_READY_STORIES);
+  return Number.isFinite(configured) && configured >= 1 ? Math.min(25, Math.floor(configured)) : 6;
+}
+
+export function getHeadlineFlowMinReadyTopics() {
+  const configured = Number(env.HEADLINE_FLOW_MIN_READY_TOPICS);
+  return Number.isFinite(configured) && configured >= 1 ? Math.min(9, Math.floor(configured)) : 4;
+}
+
+export function headlineFlowFixtureProviderEnabled() {
+  const configured = env.HEADLINE_FLOW_ALLOW_FIXTURE_PROVIDER?.toLowerCase();
+  if (configured === "true" || configured === "1" || configured === "yes") {
+    return true;
+  }
+  if (configured === "false" || configured === "0" || configured === "no") {
+    return false;
+  }
+  return !isProduction();
+}
+
+export function getHeadlineFlowAutoFallbackTimeoutMs() {
+  const configured = Number(env.HEADLINE_FLOW_AUTO_FALLBACK_TIMEOUT_MS);
+  const minimumLiveSearchWindowMs = getHeadlineFlowWebSearchTimeoutMs() + 5_000;
+  if (Number.isFinite(configured) && configured >= 1_000) {
+    return Math.max(Math.floor(configured), minimumLiveSearchWindowMs);
+  }
+  return minimumLiveSearchWindowMs;
+}
+
+export function getHeadlineFlowInteractionRetentionDays() {
+  const configured = Number(env.HEADLINE_FLOW_INTERACTION_RETENTION_DAYS);
+  return Number.isFinite(configured) && configured >= 1 ? Math.min(365, Math.floor(configured)) : 90;
+}
+
 export function getJobWorkerPollIntervalMs() {
   const configured = Number(env.JOB_WORKER_POLL_INTERVAL_MS);
   return Number.isFinite(configured) && configured >= 250 ? Math.floor(configured) : 2_000;
@@ -204,6 +293,26 @@ export function getJobQueueMaxPending() {
 export function getJobQueueMaxRunning() {
   const configured = Number(env.JOB_QUEUE_MAX_RUNNING);
   return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 12;
+}
+
+export function scopeAlertScanningEnabled() {
+  const configured = env.SCOPE_ALERT_SCAN_ENABLED?.toLowerCase();
+  return configured !== "false" && configured !== "0" && configured !== "no";
+}
+
+export function getScopeAlertScanIntervalMs() {
+  const configured = Number(env.SCOPE_ALERT_SCAN_INTERVAL_MS);
+  return Number.isFinite(configured) && configured >= 60_000 ? Math.floor(configured) : 5 * 60_000;
+}
+
+export function getScopeAlertScanConcurrency() {
+  const configured = Number(env.SCOPE_ALERT_SCAN_CONCURRENCY);
+  return Number.isFinite(configured) && configured >= 1 ? Math.min(32, Math.floor(configured)) : 8;
+}
+
+export function getScopeAlertRenotifyAfterMs() {
+  const configured = Number(env.SCOPE_ALERT_RENOTIFY_AFTER_MS);
+  return Number.isFinite(configured) && configured >= 60_000 ? Math.floor(configured) : 24 * 60 * 60 * 1000;
 }
 
 export function sentryEnabled() {

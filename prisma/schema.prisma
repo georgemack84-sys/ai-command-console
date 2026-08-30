@@ -167,6 +167,8 @@ model User {
   knowledgeEntries          KnowledgeEntry[]           @relation("KnowledgeCreatedBy")
   requestedKnowledgePromotions KnowledgePromotion[]    @relation("KnowledgePromotionRequestedBy")
   approvedKnowledgePromotions  KnowledgePromotion[]    @relation("KnowledgePromotionApprovedBy")
+  headlineFlowEventPreferences HeadlineFlowEventPreference[]
+  headlineFlowInteractionEvents HeadlineFlowInteractionEvent[]
 }
 
 model SkillNode {
@@ -468,6 +470,115 @@ model Workspace {
   knowledgeEntries          KnowledgeEntry[]
   knowledgePromotions       KnowledgePromotion[]
   knowledgeSemanticKeys     KnowledgeSemanticKeyRecord[]
+  headlineFlowEvents        HeadlineFlowEvent[]
+  headlineFlowEventPreferences HeadlineFlowEventPreference[]
+  headlineFlowInteractionEvents HeadlineFlowInteractionEvent[]
+}
+
+model HeadlineFlowEvent {
+  id                      String                     @id
+  workspaceId             String
+  title                   String
+  summary                 String
+  topic                   String
+  status                  String
+  importance              String
+  confidence              String
+  firstDetectedAt         DateTime
+  lastUpdatedAt           DateTime
+  lastMeaningfulUpdateAt  DateTime
+  version                 Int                        @default(1)
+  matchKey                String
+  updateSummary           String                     @default("Event continuity updated.")
+  updateReasons           String[]                   @default([])
+  sourceCount             Int                        @default(0)
+  articleCount            Int                        @default(0)
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  workspace               Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  evidence                HeadlineFlowEventEvidence[]
+  preferences             HeadlineFlowEventPreference[]
+
+  @@unique([workspaceId, matchKey])
+  @@index([workspaceId, topic, lastUpdatedAt])
+  @@index([workspaceId, status, lastMeaningfulUpdateAt])
+  @@map("headline_flow_events")
+}
+
+model HeadlineFlowEventPreference {
+  id           String            @id @default(cuid())
+  workspaceId  String
+  userId       String
+  eventId      String
+  savedAt      DateTime?
+  mutedAt      DateTime?
+  resolvedAt   DateTime?
+  restoredAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event        HeadlineFlowEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId, eventId])
+  @@index([workspaceId, userId, mutedAt])
+  @@index([workspaceId, userId, resolvedAt])
+  @@index([workspaceId, userId, savedAt])
+  @@map("headline_flow_event_preferences")
+}
+
+model HeadlineFlowInteractionEvent {
+  id           String            @id @default(cuid())
+  workspaceId  String
+  userId       String
+  eventId      String?
+  storyId      String?
+  topic        String?
+  action       String
+  providerId   String?
+  sourceName   String?
+  metadata     Json?
+  occurredAt   DateTime          @default(now())
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, userId, occurredAt])
+  @@index([workspaceId, action, occurredAt])
+  @@index([workspaceId, topic, occurredAt])
+  @@index([workspaceId, eventId, occurredAt])
+  @@map("headline_flow_interaction_events")
+}
+
+model HeadlineFlowEventEvidence {
+  id             String            @id
+  eventId        String
+  workspaceId    String
+  storyPackageId String
+  articleId      String?
+  providerId     String?
+  providerArticleId String?
+  sourceId       String
+  sourceName     String
+  articleUrl     String?
+  articleFingerprint String?
+  author         String?
+  imageUrl       String?
+  headline       String
+  summary        String
+  topic          String
+  publishedAt    DateTime
+  retrievedAt    DateTime?
+  observedAt     DateTime
+  updateReason   String            @default("new_evidence")
+  createdAt      DateTime          @default(now())
+  event          HeadlineFlowEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, eventId, articleUrl])
+  @@index([workspaceId, topic, observedAt])
+  @@index([providerId, providerArticleId])
+  @@index([articleFingerprint])
+  @@index([eventId, observedAt])
+  @@map("headline_flow_event_evidence")
 }
 
 model KnowledgeScope {

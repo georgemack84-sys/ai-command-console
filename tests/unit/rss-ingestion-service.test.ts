@@ -36,6 +36,15 @@ vi.mock("@/src/server/jobs/background-jobs", () => ({
   queueBackgroundJob: vi.fn(),
 }));
 
+vi.mock("@/src/config/env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/src/config/env")>()),
+  getRssIngestMaxContentBytes: () => 2_000_000,
+  getRssIngestMaxItems: () => 30,
+  getRssIngestTimeoutMs: () => 10_000,
+  getRssUserAgent: () => "AI-Command-Console/1.0 (+https://example.com)",
+  sourceAllowsPrivateUrls: () => false,
+}));
+
 import { prisma } from "@/src/server/db/prisma";
 import { normalizeRssItem, refreshRssSource } from "@/src/server/services/rss-ingestion-service";
 
@@ -67,6 +76,24 @@ function mockFetchWithBody(body: string) {
     headers: new Headers({ "content-length": String(body.length) }),
     arrayBuffer: async () => Buffer.from(body, "utf-8"),
   })) as never);
+}
+
+function mockFetchSequence(responses: Array<{ status: number; body?: string; headers?: HeadersInit }>) {
+  const fetchMock = vi.fn();
+  for (const response of responses) {
+    const body = response.body ?? "";
+    fetchMock.mockResolvedValueOnce({
+      ok: response.status >= 200 && response.status < 300,
+      status: response.status,
+      headers: new Headers({
+        "content-length": String(body.length),
+        ...(response.headers || {}),
+      }),
+      arrayBuffer: async () => Buffer.from(body, "utf-8"),
+    });
+  }
+  vi.stubGlobal("fetch", fetchMock as never);
+  return fetchMock;
 }
 
 describe("rss ingestion service", () => {
@@ -175,6 +202,59 @@ describe("rss ingestion service", () => {
     expect(prisma.source.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "source_3" },
+        data: { status: "degraded" },
+      }),
+    );
+  });
+
+  it("follows a safe RSS redirect manually", async () => {
+    const fetchMock = mockFetchSequence([
+      { status: 302, headers: { location: "https://feeds.example.com/feed.xml" } },
+      { status: 200, body: FEED_XML },
+    ]);
+    vi.mocked(prisma.source.findFirst).mockResolvedValue({
+      id: "source_4",
+      workspaceId: "workspace_1",
+      name: "Redirect Feed",
+      type: "feed",
+      url: "https://example.com/redirect.xml",
+    } as never);
+    vi.mocked(prisma.monitoredUpdate.findFirst).mockResolvedValue(null as never);
+
+    await refreshRssSource({
+      sourceId: "source_4",
+      workspaceId: "workspace_1",
+      requestedById: "user_1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://example.com/redirect.xml");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://feeds.example.com/feed.xml");
+  });
+
+  it("rejects RSS redirects to private network targets", async () => {
+    mockFetchSequence([
+      { status: 302, headers: { location: "http://127.0.0.1/feed.xml" } },
+    ]);
+    vi.mocked(prisma.source.findFirst).mockResolvedValue({
+      id: "source_5",
+      workspaceId: "workspace_1",
+      name: "Unsafe Redirect Feed",
+      type: "feed",
+      url: "https://example.com/redirect.xml",
+    } as never);
+
+    await expect(
+      refreshRssSource({
+        sourceId: "source_5",
+        workspaceId: "workspace_1",
+        requestedById: "user_1",
+      }),
+    ).rejects.toMatchObject({ code: "invalid_source_url" });
+
+    expect(prisma.source.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "source_5" },
         data: { status: "degraded" },
       }),
     );

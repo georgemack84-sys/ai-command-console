@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS "headline_flow_event_evidence_eventId_storyPackageId_sourceId_key";
