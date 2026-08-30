@@ -25,6 +25,7 @@ The following checks passed on 2026-08-30:
 - `npx playwright test playwright/public-routes.spec.ts --project=desktop-chromium --grep "headline flow auth gate|auth page shows"`
 - `npx playwright test playwright/headline-flow.spec.ts --project=desktop-chromium --project=mobile-chromium`
 - `npx eslint playwright.config.ts`
+- `npm run test:release-workflows`
 - `npm run build`
 
 ## Required Remote Verification
@@ -33,4 +34,4 @@ The following checks passed on 2026-08-30:
 
 ## Release Caveat
 
-RC5 can validate packaging in artifact-only staging. A full production-maturity signoff still requires a real staging host deployment with `DEPLOY_ARTIFACT_ONLY` disabled, SSH credentials configured, and post-deploy smoke checks enabled.
+RC5 can validate packaging in artifact-only staging. A full production-maturity signoff still requires a real staging host deployment with `DEPLOY_ARTIFACT_ONLY` disabled, real SSH target variables configured, and post-deploy smoke checks enabled. The deploy-config validator now rejects placeholder values before a real remote deploy can start.

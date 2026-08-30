@@ -6,7 +6,7 @@
     "repo": "node scripts/proprium-command.cjs",
     "test:repository-commands": "node --test scripts/proprium-command.test.cjs scripts/proprium-powershell.test.cjs",
     "test:ci-workflow": "node scripts/verify-ci-workflow.cjs",
-    "test:release-workflows": "node scripts/verify-release-workflows.cjs",
+    "test:release-workflows": "node scripts/verify-release-workflows.cjs && node --test scripts/validate-deploy-config.test.cjs",
     "validate:documentation": "node scripts/validate-developer-documentation.cjs",
     "validate:qualification": "node scripts/validate-day-5-qualification.cjs",
     "validate:baseline": "npm run validate:qualification && npm run test:ci-workflow && node scripts/validate-baseline-freeze.cjs",

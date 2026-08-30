@@ -10,6 +10,17 @@ function isTruthy(value) {
   return normalized === "1" || normalized === "true" || normalized === "yes";
 }
 
+const placeholderValues = new Set([
+  "your-host",
+  "your-path",
+  "your-restart-command",
+  "your-user",
+]);
+
+function isPlaceholderValue(value) {
+  return placeholderValues.has(String(value || "").trim().toLowerCase());
+}
+
 function validateDeployConfig() {
   const targetEnvironment = readEnv("DEPLOY_TARGET_ENVIRONMENT") || "staging";
   const artifactOnly = isTruthy(readEnv("DEPLOY_ARTIFACT_ONLY"));
@@ -33,6 +44,8 @@ function validateDeployConfig() {
     for (const setting of requiredRemoteSettings) {
       if (!readEnv(setting)) {
         missingRequired.push(setting);
+      } else if (isPlaceholderValue(readEnv(setting))) {
+        missingRequired.push(`${setting} cannot use placeholder value '${readEnv(setting)}'.`);
       }
     }
   }
@@ -40,6 +53,8 @@ function validateDeployConfig() {
   for (const setting of optionalRecommendedSettings) {
     if (!readEnv(setting)) {
       warnings.push(`${setting} is not configured.`);
+    } else if (!artifactOnly && isPlaceholderValue(readEnv(setting))) {
+      warnings.push(`${setting} still uses placeholder value '${readEnv(setting)}'.`);
     }
   }
 
@@ -65,18 +80,23 @@ function validateDeployConfig() {
     warnings,
     problems: missingRequired.map((item) =>
       item.startsWith("DEPLOY_ARTIFACT_ONLY")
+        || item.includes(" cannot use placeholder value ")
         ? item
         : `${item} must be configured for ${targetEnvironment} deployment.`,
     ),
   };
 }
 
-const report = validateDeployConfig();
-const output = JSON.stringify(report, null, 2);
+module.exports = { validateDeployConfig };
 
-if (!report.ok) {
-  console.error(output);
-  process.exit(1);
+if (require.main === module) {
+  const report = validateDeployConfig();
+  const output = JSON.stringify(report, null, 2);
+
+  if (!report.ok) {
+    console.error(output);
+    process.exit(1);
+  }
+
+  console.log(output);
 }
-
-console.log(output);
