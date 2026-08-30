@@ -16,6 +16,13 @@ assert.ok(legacy.on.workflow_dispatch !== undefined);
 assert.equal(legacy.on.workflow_run, undefined);
 assert.doesNotMatch(legacySource, /head_branch == 'main'/);
 
+const legacyCommands = legacy.jobs.package.steps
+  .map((step) => step.run ?? '')
+  .filter(Boolean)
+  .join('\n');
+assert.match(legacyCommands, /npm run test:headline-flow/);
+assert.doesNotMatch(legacyCommands, /npm run test:release/);
+
 assert.equal(release.name, 'Release Proprium');
 assert.deepEqual(Object.keys(release.on), ['workflow_dispatch']);
 assert.deepEqual(release.permissions, { contents: 'read', packages: 'write' });

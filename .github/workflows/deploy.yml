@@ -117,7 +117,7 @@ jobs:
 
       - name: Test
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
-        run: npm run test:release
+        run: npm run test:headline-flow
 
       - name: Build standalone bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
