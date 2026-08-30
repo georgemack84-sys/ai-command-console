@@ -25,11 +25,16 @@ install -d -m 0750 -o deploy -g deploy "$APP_ROOT" "$SHARED_ROOT"
 
 if [[ ! -f "$SHARED_ROOT/staging.env" ]]; then
   auth_secret="$(openssl rand -base64 48 | tr -d '\n')"
+  admin_secret="$(openssl rand -base64 48 | tr -d '\n')"
   postgres_password="$(openssl rand -hex 32)"
+  database_url="postgresql://ai_command_console:"
+  database_url+="$postgres_password"
+  database_url+="@postgres:5432/ai_command_console?schema=public"
   cat >"$SHARED_ROOT/staging.env" <<EOF
 NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://$HOSTNAME
 AI_COMMAND_CONSOLE_AUTH_SECRET=$auth_secret
+ADMIN_SECRET=$admin_secret
 AI_COMMAND_CONSOLE_SECURE_COOKIES=true
 AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS=1209600
 AI_COMMAND_CONSOLE_STORAGE_DRIVER=sqlite
@@ -38,12 +43,16 @@ AI_COMMAND_CONSOLE_DATABASE_PATH=/var/lib/ai-command-console/workspace.sqlite
 AI_COMMAND_CONSOLE_AGENTS_DATABASE_PATH=/var/lib/ai-command-console/agents/console.sqlite
 AI_COMMAND_CONSOLE_WRITE_LEGACY_JSON_MIRRORS=false
 OBSERVABILITY_MODE=full
+SECURITY_MODE=enforced
 CONTINUITY_VERIFICATION_ENABLED=true
 INTEGRITY_VALIDATION_ENABLED=true
 RESTORE_SIMULATION_ENABLED=true
+FAIL_FAST_ENABLED=true
+DEBUG_MODE=false
 POSTGRES_DB=ai_command_console
 POSTGRES_USER=ai_command_console
 POSTGRES_PASSWORD=$postgres_password
+DATABASE_URL=$database_url
 EOF
   chown deploy:deploy "$SHARED_ROOT/staging.env"
   chmod 0600 "$SHARED_ROOT/staging.env"

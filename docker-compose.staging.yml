@@ -22,7 +22,7 @@ services:
       target: migrate
     env_file: staging.env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ai_command_console}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ai_command_console}?schema=public
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
     environment:
       HOSTNAME: 0.0.0.0
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ai_command_console}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ai_command_console}?schema=public
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
@@ -53,7 +53,7 @@ services:
       target: worker
     env_file: staging.env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ai_command_console}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ai_command_console}?schema=public
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
       JOB_QUEUE_EXECUTION_MODE: external
     volumes:
       - app-data:/var/lib/ai-command-console
