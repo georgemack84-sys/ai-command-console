@@ -8,10 +8,31 @@ import { SectionCard } from "@/src/components/shared/section-card";
 type Mode = "login" | "signup";
 const devLoginEnabled = process.env.NODE_ENV !== "production";
 
+const destinationProfiles = {
+  default: {
+    eyebrow: "Account",
+    title: "Sign in to access the AI Command Console",
+    description:
+      "Authentication is environment-aware: the production posture expects a managed secret, secure cookies, and SQLite-backed account storage.",
+    demoLabel: "Use local demo account",
+  },
+  headlineFlow: {
+    eyebrow: "Headline Flow",
+    title: "Sign in to open Headline Flow",
+    description:
+      "Use your workspace account to load the live briefing surface with current-event story packages, source trails, and feed diagnostics.",
+    demoLabel: "Open Headline Flow demo",
+  },
+} as const;
+
 export function AuthClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite") || "";
+  const nextPath = searchParams.get("next") || "/dashboard";
+  const destinationProfile = nextPath.startsWith("/headline-flow")
+    ? destinationProfiles.headlineFlow
+    : destinationProfiles.default;
   const [mode, setMode] = useState<Mode>("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +110,7 @@ export function AuthClient() {
         return;
       }
 
-      router.push(searchParams.get("next") || "/dashboard");
+      router.push(nextPath);
       router.refresh();
     } finally {
       setLoading(false);
@@ -125,7 +146,7 @@ export function AuthClient() {
         return;
       }
 
-      router.push(searchParams.get("next") || "/dashboard");
+      router.push(nextPath);
       router.refresh();
     } finally {
       setLoading(false);
@@ -135,9 +156,9 @@ export function AuthClient() {
   return (
     <div className="mx-auto max-w-xl">
       <SectionCard
-        eyebrow="Account"
-        title="Sign in to access the AI Command Console"
-        description="Authentication is environment-aware: the production posture expects a managed secret, secure cookies, and SQLite-backed account storage."
+        eyebrow={destinationProfile.eyebrow}
+        title={destinationProfile.title}
+        description={destinationProfile.description}
       >
         <div className="mb-5 flex gap-2 rounded-full border border-white/10 bg-white/5 p-1">
           {(["login", "signup"] as Mode[]).map((value) => (
@@ -194,7 +215,7 @@ export function AuthClient() {
               disabled={loading || !databaseState.ready}
               className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Working..." : "Use local demo account"}
+              {loading ? "Working..." : destinationProfile.demoLabel}
             </button>
           ) : null}
         </form>

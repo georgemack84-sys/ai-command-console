@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { HeadlineFlowClient } from "@/src/components/headline-flow/headline-flow-client";
-import { requireSessionUser } from "@/src/lib/auth";
+import { getSessionUser } from "@/src/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function HeadlineFlowPage() {
-  await requireSessionUser();
+  const user = await getSessionUser();
+  if (!user) {
+    redirect("/auth?next=%2Fheadline-flow");
+  }
 
   return (
     <main className="min-h-screen bg-black p-3 text-white sm:p-6">

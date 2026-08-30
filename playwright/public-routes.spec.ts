@@ -7,6 +7,13 @@ test("auth page shows the account entry flow", async ({ page }) => {
   await expect(page.getByRole("button", { name: /log in/i }).first()).toBeVisible();
 });
 
+test("headline flow auth gate preserves the product identity", async ({ page }) => {
+  await page.goto("/headline-flow", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/auth\?next=%2Fheadline-flow/);
+  await expect(page.getByText(/sign in to open headline flow/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /open headline flow demo/i })).toBeVisible();
+});
+
 test("console page shows the live command workspace", async ({ page }) => {
   const databaseReady = await hasDatabaseAccess(page);
   if (databaseReady) {
