@@ -24,7 +24,7 @@ set +a
 export DATABASE_URL
 export STAGING_ENV_FILE="$staging_env_file"
 
-if ! docker-compose --env-file "$staging_env_file" -f docker-compose.staging.yml up --build -d; then
+if ! docker-compose --env-file "$staging_env_file" -f docker-compose.staging.yml up --build -d --remove-orphans; then
   # Compose does not include the dependent container's output in its failure
   # message. Emit only service state and PostgreSQL's own logs; neither exposes
   # the environment file nor its credentials.

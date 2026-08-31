@@ -50,6 +50,11 @@ services:
     restart: unless-stopped
 
   worker:
+    # The web process owns the in-process queue used by the default staging
+    # configuration. Running this separate worker requires an explicit,
+    # reviewed opt-in because its legacy autonomous execution path is
+    # quarantined in production.
+    profiles: ["external-worker"]
     build:
       context: .
       dockerfile: Dockerfile.staging
