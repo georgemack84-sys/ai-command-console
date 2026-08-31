@@ -15,6 +15,11 @@ on:
         description: Existing release version to reactivate instead of building a new one
         required: false
         type: string
+      reset_staging_database:
+        description: Recreate the staging PostgreSQL volume before deploying (destructive; staging only)
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   package:
@@ -188,6 +193,18 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+          if [ "${{ inputs.reset_staging_database }}" = "true" ]; then
+            # This is intentionally opt-in per workflow run. It removes the
+            # incomplete staging database only; app and log volumes remain.
+            ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
+              docker rm -f \
+                ai-command-console-staging-postgres-1 \
+                ai-command-console-staging-migrate-1 \
+                ai-command-console-staging-web-1 \
+                ai-command-console-staging-worker-1 2>/dev/null || true; \
+              docker volume rm ai-command-console-staging_postgres-data"
+          fi
 
           # Release directories from failed attempts and Docker build caches can
           # accumulate before the normal post-deploy retention step runs. Free
