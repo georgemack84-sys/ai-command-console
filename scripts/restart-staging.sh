@@ -24,4 +24,12 @@ set +a
 export DATABASE_URL
 export STAGING_ENV_FILE="$staging_env_file"
 
-docker-compose --env-file "$staging_env_file" -f docker-compose.staging.yml up --build -d
+if ! docker-compose --env-file "$staging_env_file" -f docker-compose.staging.yml up --build -d; then
+  # Compose does not include the dependent container's output in its failure
+  # message. Emit only service state and PostgreSQL's own logs; neither exposes
+  # the environment file nor its credentials.
+  echo "Staging Compose startup failed; collecting PostgreSQL diagnostics." >&2
+  docker-compose --env-file "$staging_env_file" -f docker-compose.staging.yml ps >&2 || true
+  docker-compose --env-file "$staging_env_file" -f docker-compose.staging.yml logs --no-color postgres >&2 || true
+  exit 1
+fi
