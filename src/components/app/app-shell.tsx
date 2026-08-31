@@ -185,8 +185,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_auto] xl:items-end">
-            <div className="max-w-3xl">
+          <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] xl:items-end">
+            <div className="min-w-0 max-w-3xl">
               <p className="font-display text-xs uppercase tracking-[0.32em] text-sky-200/90">{meta.eyebrow}</p>
               <h1 className={cn("mt-2 font-display font-semibold tracking-tight text-white", isHome ? "text-xl sm:text-2xl" : "text-2xl sm:text-4xl")}>
                 {meta.title}
@@ -194,7 +194,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="mt-2 text-sm leading-6 text-slate-300">{meta.description}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
               <HeaderMetric label="Surface" value={isHome ? "Landing" : pathname.replace("/", "") || "Home"} tone="sky" />
               <HeaderMetric label="Workflow" value="Research" tone="emerald" />
               <HeaderMetric label="State" value="Production" tone="amber" />
@@ -263,9 +263,9 @@ function HeaderMetric({
   } as const;
 
   return (
-    <div className={`rounded-3xl border px-4 py-3 ${tones[tone]}`}>
+    <div className={`min-w-0 rounded-3xl border px-4 py-3 ${tones[tone]}`}>
       <p className="text-xs uppercase tracking-[0.22em] opacity-75">{label}</p>
-      <p className="mt-2 text-lg font-semibold">{value}</p>
+      <p className="mt-2 break-words text-lg font-semibold">{value}</p>
     </div>
   );
 }
