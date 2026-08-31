@@ -46,7 +46,7 @@ Headline Flow is production-ready only when:
 - the topic count meets `HEADLINE_FLOW_MIN_READY_TOPICS`,
 - the feed is not fixture-backed in production.
 
-In production, Headline Flow feed-health failures are critical readiness warnings. In development, they remain warnings so local startup is not blocked before the first feed build.
+In production, a degraded feed after a successful build is a critical readiness warning. A `not_started` feed is a non-blocking cold-start warning because feed health is process-local and an authenticated request is required to create the first feed. In development, both remain warnings.
 
 ## Verification
 

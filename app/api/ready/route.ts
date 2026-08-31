@@ -107,7 +107,10 @@ export async function GET() {
   if (headlineFlow.status !== "healthy") {
     warnings.push({
       code: `headline_flow_${headlineFlow.status}`,
-      severity: runtime.environment === "production" ? "critical" : "warning",
+      // Feed health is process-local and the feed endpoint requires a session.
+      // A clean deployment therefore has no feed history until its first
+      // authenticated request; that must not make the platform unavailable.
+      severity: headlineFlow.status === "not_started" || runtime.environment !== "production" ? "warning" : "critical",
       message: headlineFlow.status === "not_started"
         ? "Headline Flow has not completed a successful feed build yet."
         : "Headline Flow feed quality is below the configured production threshold.",

@@ -284,6 +284,60 @@ describe("health and readiness routes", () => {
     expect(payload.data.warnings[0].code).toBe("jobs_external_worker_recommended");
   });
 
+  it("keeps a fresh production deployment ready while Headline Flow awaits its first authenticated feed", async () => {
+    vi.mocked(getRuntimePosture).mockReturnValue({
+      environment: "production",
+      storageDriver: "sqlite",
+      authSecretConfigured: true,
+      secureCookies: true,
+      sessionMaxAgeSeconds: 120,
+      databaseUrlConfigured: true,
+      aiSummary: {
+        providerMode: "auto",
+        model: "gpt-4.1-mini",
+        timeoutMs: 8000,
+        maxAttempts: 2,
+        allowMockFallback: true,
+        openAiConfigured: false,
+        dailyBudgetUsd: 1,
+        estimatedCostPerRunUsd: 0.02,
+        evaluationsEnabled: true,
+      },
+      jobs: {
+        executionMode: "in_process",
+        workerPollIntervalMs: 2000,
+        maxPendingJobs: 100,
+        maxRunningJobs: 12,
+        externalWorkerRecommended: true,
+      },
+      process: {
+        pid: 1234,
+        uptimeSeconds: 120,
+        memory: {
+          rssMb: 128,
+          heapUsedMb: 64,
+          heapTotalMb: 96,
+          externalMb: 12,
+        },
+      },
+    });
+    vi.mocked(checkDatabaseHealth).mockResolvedValue({
+      ok: true,
+      status: "ok",
+      details: null,
+    });
+
+    const response = await getReady();
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.status).toBe("ready_with_warnings");
+    expect(payload.data.warnings).toContainEqual(expect.objectContaining({
+      code: "headline_flow_not_started",
+      severity: "warning",
+    }));
+  });
+
   it("does not fail local development readiness when scope monitoring is stale", async () => {
     seedHealthyHeadlineFlowFeed();
     vi.mocked(getRuntimePosture).mockReturnValue({
