@@ -1,6 +1,10 @@
 FROM node:24-bookworm-slim AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
+# `npm ci` runs the Prisma postinstall generator, which needs the schema before
+# dependencies are installed. Keep this explicit so the staging image remains
+# reproducible from a clean Docker cache.
+COPY prisma ./prisma
 RUN npm ci
 
 FROM dependencies AS builder
