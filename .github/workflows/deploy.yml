@@ -188,6 +188,22 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+          # Release directories from failed attempts and Docker build caches can
+          # accumulate before the normal post-deploy retention step runs. Free
+          # that recoverable space before uploading the next bundle. Preserve
+          # the active release and every named Docker volume (application data
+          # and PostgreSQL data).
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
+            RELEASE_ROOT='$RELEASE_ROOT'; \
+            CURRENT_TARGET=\$(readlink -f '$CURRENT_PATH' 2>/dev/null || true); \
+            if [ -d \"\$RELEASE_ROOT\" ]; then \
+              find \"\$RELEASE_ROOT\" -mindepth 1 -maxdepth 1 -type d ! -path \"\$CURRENT_TARGET\" -exec rm -rf {} +; \
+            fi; \
+            docker builder prune -af || true; \
+            docker image prune -af || true; \
+            docker container prune -f || true"
+
           if [ -z "${{ steps.metadata.outputs.rollback_release }}" ]; then
             scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz"
             ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
