@@ -19,6 +19,7 @@ services:
   migrate:
     build:
       context: .
+      dockerfile: Dockerfile.staging
       target: migrate
     env_file: staging.env
     environment:
@@ -31,6 +32,7 @@ services:
   web:
     build:
       context: .
+      dockerfile: Dockerfile.staging
       target: web
     env_file: staging.env
     environment:
@@ -50,6 +52,7 @@ services:
   worker:
     build:
       context: .
+      dockerfile: Dockerfile.staging
       target: worker
     env_file: staging.env
     environment:
