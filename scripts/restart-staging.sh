@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This script runs from the checked-out release directory on the staging VM.
-# Keep the host-only environment file outside the Docker build context so that
-# neither Next's output tracer nor Docker can follow a dangling release symlink.
-staging_env_file="${STAGING_ENV_FILE:-../shared/staging.env}"
+# This script runs through the `current` release symlink on the staging VM.
+# Use the bootstrap-managed absolute path: relative paths are resolved after
+# that symlink and therefore point into a release directory rather than the
+# staging root. Keeping the file outside a release also prevents it leaking
+# into the Docker build context.
+staging_env_file="${STAGING_ENV_FILE:-/srv/ai-command-console/staging/shared/staging.env}"
 
 if [[ ! -f "$staging_env_file" ]]; then
   echo "Staging environment file is missing: $staging_env_file" >&2
