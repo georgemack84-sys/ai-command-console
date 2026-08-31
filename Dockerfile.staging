@@ -1,5 +1,8 @@
 FROM node:24-bookworm-slim AS dependencies
 WORKDIR /app
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 # `npm ci` runs the Prisma postinstall generator, which needs the schema before
 # dependencies are installed. Keep this explicit so the staging image remains
@@ -14,8 +17,11 @@ RUN npm run build
 FROM node:24-bookworm-slim AS web
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/.next-production/standalone ./
+COPY --from=builder /app/.next-production/static ./.next-production/static
 COPY --from=builder /app/public ./public
 EXPOSE 3000
 CMD ["node", "server.js"]
