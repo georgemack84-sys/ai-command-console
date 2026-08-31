@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: Dockerfile.staging
       target: migrate
-    env_file: staging.env
+    env_file: ${STAGING_ENV_FILE:-staging.env}
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
     depends_on:
@@ -34,7 +34,7 @@ services:
       context: .
       dockerfile: Dockerfile.staging
       target: web
-    env_file: staging.env
+    env_file: ${STAGING_ENV_FILE:-staging.env}
     environment:
       HOSTNAME: 0.0.0.0
       PORT: 3000
@@ -54,7 +54,7 @@ services:
       context: .
       dockerfile: Dockerfile.staging
       target: worker
-    env_file: staging.env
+    env_file: ${STAGING_ENV_FILE:-staging.env}
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
       JOB_QUEUE_EXECUTION_MODE: external
