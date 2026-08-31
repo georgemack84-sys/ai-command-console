@@ -134,12 +134,15 @@ jobs:
           # Ship the Compose build context. The previous standalone-only bundle
           # could start the web server but omitted Prisma migrations and the
           # external job worker, producing an unhealthy deployment.
+          # Exclude only the repository's runtime data directory. A bare
+          # `data` pattern also excludes tracked source directories such as
+          # `src/data`, which are required by the production build.
           tar \
             --exclude=.git \
             --exclude=node_modules \
             --exclude=.next \
             --exclude=.next-production \
-            --exclude=data \
+            --exclude=./data \
             --exclude=logs \
             --exclude=.env \
             --exclude='.env.*' \
