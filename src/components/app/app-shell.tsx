@@ -126,8 +126,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.12),transparent_24%),radial-gradient(circle_at_85%_14%,rgba(251,191,36,0.08),transparent_18%),linear-gradient(180deg,#020617_0%,#08101d_38%,#0a1322_100%)] pb-24 md:pb-0">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(2,6,23,0.72)] backdrop-blur-2xl">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-5 lg:px-8">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
+          <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center xl:gap-6">
+            <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:gap-6 xl:contents">
               <Link href="/" className="flex items-center gap-3">
                 <div className="rounded-2xl border border-white/10 bg-white/6 p-3 text-white shadow-[0_14px_30px_rgba(15,23,42,0.28)]">
                   <Command className="h-5 w-5" />
@@ -138,7 +138,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               </Link>
 
-              <nav className="hidden flex-nowrap gap-2 overflow-x-auto pb-1 md:flex">
+              <nav className="hidden min-w-0 flex-nowrap gap-2 overflow-x-auto pb-1 md:flex">
                 {visiblePrimaryNavItems.map((item) => {
                   const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
                   return (
@@ -159,14 +159,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </nav>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-3 xl:flex-nowrap xl:justify-end">
               <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 lg:flex">
                 <Sparkles className="h-4 w-4 text-sky-200" />
                 Premium SaaS shell
               </div>
               {user ? (
                 <>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
+                  <span className="max-w-56 truncate rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
                     {user.email}
                   </span>
                   <button
