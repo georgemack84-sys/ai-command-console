@@ -1,0 +1,116 @@
+name: Deploy Proprium Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Immutable main commit SHA whose published Proprium images will be deployed
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proprium-staging-rollout
+  cancel-in-progress: false
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      RELEASE_SHA: ${{ inputs.release_sha }}
+    steps:
+      - name: Check out deployment manifest
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Validate rollout inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY; do
+            test -n "${!value}"
+          done
+
+      - name: Install staging deployment manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH/proprium/releases'"
+          scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" deploy/proprium/staging.compose.yml "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/proprium/compose.yml"
+
+      - name: Apply migration and roll out immutable images
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$DEPLOY_PATH/proprium' '$RELEASE_SHA' '${{ github.repository_owner }}'" <<'REMOTE'
+          set -euo pipefail
+          runtime_dir="$1"
+          release_sha="$2"
+          repository_owner="$3"
+          compose_file="$runtime_dir/compose.yml"
+          host_compose_env="$runtime_dir/compose.env"
+          release_env="$runtime_dir/releases/$release_sha.env"
+
+          command -v docker >/dev/null
+          docker compose version >/dev/null
+          test -f "$compose_file"
+          test -f "$host_compose_env"
+
+          umask 077
+          printf '%s\n' \
+            "PROPRIUM_API_IMAGE=ghcr.io/$repository_owner/proprium-api:$release_sha" \
+            "PROPRIUM_WEB_IMAGE=ghcr.io/$repository_owner/proprium-web:$release_sha" > "$release_env"
+
+          compose() {
+            docker compose --env-file "$host_compose_env" --env-file "$release_env" -f "$compose_file" "$@"
+          }
+
+          compose pull database-migrations platform-api web
+          compose run --rm --no-deps database-migrations
+          compose up -d --no-deps platform-api
+
+          api_container="$(compose ps -q platform-api)"
+          test -n "$api_container"
+          for attempt in $(seq 1 30); do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$api_container")"
+            if [ "$status" = healthy ]; then
+              break
+            fi
+            if [ "$attempt" = 30 ]; then
+              docker logs --tail 100 "$api_container"
+              exit 1
+            fi
+            sleep 2
+          done
+
+          compose up -d --no-deps web
+          ln -sfn "releases/$release_sha.env" "$runtime_dir/current-release.env"
+          REMOTE
+
+      - name: Summarize staging rollout
+        shell: bash
+        run: |
+          {
+            echo "## Proprium staging rollout"
+            echo ""
+            echo "- Immutable release: \`$RELEASE_SHA\`"
+            echo "- API migration: completed exactly once before API rollout"
+            echo "- API readiness: Docker health check passed"
+            echo "- Web rollout: completed"
+            echo "- Required operator follow-up: verify browser sign-in, refresh, logout, and revoked-session behavior."
+          } >> "$GITHUB_STEP_SUMMARY"
