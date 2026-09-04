@@ -1,0 +1,8 @@
+import { getSessionUser } from "@/src/lib/auth";
+import { AppError } from "@/src/server/api/errors";
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { requireWorkspaceManager } from "@/src/server/auth/permissions";
+import { PracticeRegressionScheduler, PrismaPracticeArtifactRepository, PrismaSkillArtifactRepository, SkillRegistryProjectionService } from "@/services/learning-constitution";
+import type { PracticeEvidence } from "@/types/learning-constitution";
+export const dynamic = "force-dynamic";
+export async function GET() { try { const user = await getSessionUser(); if (!user) throw new AppError(401, "unauthorized", "Authentication required."); if (!user.workspaceId || user.workspaceId === "default") throw new AppError(403, "workspace_required", "Workspace membership is required."); await requireWorkspaceManager({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId }); const skills = new PrismaSkillArtifactRepository(user.workspaceId); const [skillArtifacts, practiceArtifacts] = await Promise.all([skills.listWorkspaceArtifacts(), new PrismaPracticeArtifactRepository(user.workspaceId).listWorkspaceArtifacts()]); const entries = await new SkillRegistryProjectionService(skills).list(skillArtifacts.filter((artifact) => artifact.artifactType === "CANDIDATE").map((artifact) => artifact.subjectId)); return apiSuccess({ due: new PracticeRegressionScheduler().due({ registryEntries: entries, evidence: practiceArtifacts.filter((artifact) => artifact.artifactType === "EVIDENCE").map((artifact) => artifact.payload as PracticeEvidence), now: new Date().toISOString() }) }); } catch (error) { return apiError(error, "Unable to load regression schedule."); } }

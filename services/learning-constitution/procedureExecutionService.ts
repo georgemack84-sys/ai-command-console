@@ -1,0 +1,27 @@
+import type { DurableProcedure, ProcedureArtifactStore, ProcedureExecutionAuthorization, ProcedureExecutionEvent, ProcedureExecutionLedger, ProcedureExecutionStartResult, ProcedureSimulationResult } from "../../types/learning-constitution/procedureLearning";
+import type { LearningAuditLedger } from "../../types/learning-constitution/learningAuditLedger";
+import { canonicalizeAuditValue } from "./auditIntegrityHash";
+
+export class InMemoryProcedureExecutionLedger implements ProcedureExecutionLedger {
+  private readonly events = new Map<string, ProcedureExecutionEvent[]>();
+  async append(event: ProcedureExecutionEvent): Promise<ProcedureExecutionEvent> { const existing = this.events.get(event.executionId) ?? []; const replay = existing.find((item) => item.eventId === event.eventId); if (replay && canonicalizeAuditValue(replay) !== canonicalizeAuditValue(event)) throw new Error("procedure execution event id collision"); if (!replay) this.events.set(event.executionId, [...existing, event]); return replay ?? event; }
+  async list(executionId: string) { return [...(this.events.get(executionId) ?? [])]; }
+}
+
+/** Records an authorized procedure lifecycle. It does not run commands or call external systems. */
+export class ProcedureExecutionLifecycleService {
+  constructor(private readonly ledger: ProcedureExecutionLedger, private readonly audit?: LearningAuditLedger, private readonly artifacts?: ProcedureArtifactStore) {}
+  async start(input: Readonly<{ executionId: string; procedure: DurableProcedure; simulation: ProcedureSimulationResult; authorization: ProcedureExecutionAuthorization; workspaceId: string; correlationId: string; now: string }>): Promise<ProcedureExecutionStartResult> {
+    if (!input.authorization.granted || input.authorization.procedureId !== input.procedure.durableProcedureId) return { status: "BLOCKED", reason: "EXECUTION_AUTHORIZATION_REQUIRED", persistenceEffect: "NONE", authorityEffect: "UNCHANGED", executionPermissionGranted: false };
+    if (input.simulation.status !== "READY_FOR_AUTHORIZED_EXECUTION" || input.simulation.durableProcedureId !== input.procedure.durableProcedureId) return { status: "BLOCKED", reason: "SIMULATION_NOT_READY", persistenceEffect: "NONE", authorityEffect: "UNCHANGED", executionPermissionGranted: false };
+    await this.append({ eventId: `procedure-execution:${input.executionId}:started`, executionId: input.executionId, type: "STARTED", detail: input.procedure.durableProcedureId, occurredAt: input.now, immutable: true }, input.workspaceId, input.authorization.actor, input.correlationId);
+    return { executionId: input.executionId, status: "STARTED", reason: "EXECUTION_STARTED", persistenceEffect: "CREATED", authorityEffect: "UNCHANGED", executionPermissionGranted: false };
+  }
+  async completeStep(executionId: string, stepId: string, now: string, workspaceId: string, actor: ProcedureExecutionAuthorization["actor"], correlationId: string) { return this.append({ eventId: `procedure-execution:${executionId}:step:${stepId}`, executionId, type: "STEP_COMPLETED", detail: stepId, occurredAt: now, immutable: true }, workspaceId, actor, correlationId); }
+  async failure(executionId: string, failureId: string, now: string, workspaceId: string, actor: ProcedureExecutionAuthorization["actor"], correlationId: string) { return this.append({ eventId: `procedure-execution:${executionId}:failure:${failureId}`, executionId, type: "FAILURE_DETECTED", detail: failureId, occurredAt: now, immutable: true }, workspaceId, actor, correlationId); }
+  async recover(executionId: string, recoveryId: string, now: string, workspaceId: string, actor: ProcedureExecutionAuthorization["actor"], correlationId: string) { return this.append({ eventId: `procedure-execution:${executionId}:recovery:${recoveryId}`, executionId, type: "RECOVERY_STARTED", detail: recoveryId, occurredAt: now, immutable: true }, workspaceId, actor, correlationId); }
+  async verify(executionId: string, verificationId: string, passed: boolean, now: string, workspaceId: string, actor: ProcedureExecutionAuthorization["actor"], correlationId: string) { return this.append({ eventId: `procedure-execution:${executionId}:verification:${verificationId}`, executionId, type: passed ? "VERIFICATION_PASSED" : "VERIFICATION_FAILED", detail: verificationId, occurredAt: now, immutable: true }, workspaceId, actor, correlationId); }
+  private async append(event: ProcedureExecutionEvent, workspaceId: string, actor: ProcedureExecutionAuthorization["actor"], correlationId: string): Promise<ProcedureExecutionEvent> {
+    const stored = await this.ledger.append(event); await this.artifacts?.append({ artifactId: `PROCEDURE_EXECUTION_EVENT:${event.eventId}`, artifactType: "PROCEDURE_EXECUTION_EVENT", subjectId: event.executionId, payload: stored, createdAt: event.occurredAt }); if (this.audit) await this.audit.append({ eventId: `audit:${event.eventId}`, eventType: event.type === "STARTED" ? "PROCEDURE_EXECUTION_STARTED" : event.type === "STEP_COMPLETED" ? "PROCEDURE_STEP_COMPLETED" : event.type === "FAILURE_DETECTED" ? "PROCEDURE_FAILURE_DETECTED" : event.type === "RECOVERY_STARTED" ? "PROCEDURE_RECOVERY_STARTED" : event.type === "VERIFICATION_PASSED" ? "PROCEDURE_VERIFICATION_PASSED" : "PROCEDURE_VERIFICATION_FAILED", workspaceId, occurredAt: event.occurredAt, actor, correlationId, schemaVersion: "10.0", references: {}, payload: { executionId: event.executionId, detail: event.detail } }); return stored;
+  }
+}

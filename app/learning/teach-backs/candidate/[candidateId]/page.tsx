@@ -1,0 +1,14 @@
+import { requireSessionUser } from "@/src/lib/auth";
+import { requireWorkspaceManager } from "@/src/server/auth/permissions";
+import { PrismaTeachBackHumanDecisionRepository, PrismaTeachBackRepository } from "@/services/learning-constitution";
+
+export const dynamic = "force-dynamic";
+
+export default async function TeachBackReviewPage({ params }: Readonly<{ params: Promise<{ candidateId: string }> }>) {
+  const user = await requireSessionUser(); const { candidateId } = await params;
+  if (!user.workspaceId || user.workspaceId === "default") return <main className="mx-auto max-w-5xl p-6"><h1 className="text-2xl font-semibold">Teach-Back Review</h1><p className="mt-3 text-sm text-slate-600">A workspace membership is required.</p></main>;
+  await requireWorkspaceManager({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
+  const repository = new PrismaTeachBackRepository(user.workspaceId); const reviews = new PrismaTeachBackHumanDecisionRepository(user.workspaceId); const attempts = await repository.listByCandidateId(candidateId);
+  const details = await Promise.all(attempts.map(async (attempt) => ({ attempt, evaluations: await repository.listEvaluations(attempt.teachBackId), reviews: await reviews.list(attempt.teachBackId) })));
+  return <main className="mx-auto max-w-5xl space-y-6 p-6"><header><p className="text-sm font-medium uppercase tracking-wide text-violet-700">Noesis · Phase 11</p><h1 className="mt-2 text-2xl font-semibold">Teach-Back Review</h1><p className="mt-2 font-mono text-sm text-slate-600">{candidateId}</p></header>{!details.length ? <section className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">No teach-back attempts have been recorded.</section> : details.map(({ attempt, evaluations, reviews }) => <section key={attempt.teachBackId} className="space-y-4 rounded-lg border border-slate-200 bg-white p-5"><div><h2 className="font-mono text-sm font-semibold">{attempt.teachBackId}</h2><p className="mt-2 text-sm"><b>Lesson:</b> {attempt.lesson}</p><p className="mt-2 text-sm"><b>Scope:</b> {attempt.scope}</p><p className="mt-2 text-sm"><b>Example:</b> {attempt.example}</p><p className="mt-2 text-sm"><b>Counterexample:</b> {attempt.counterexample}</p></div><div className="border-t pt-3 text-sm"><b>Evaluations</b>{evaluations.length ? evaluations.map((e) => <p key={e.evidenceId} className="mt-2">{e.outcome} · {Object.entries(e.dimensions).map(([key, value]) => `${key}: ${value}`).join(", ")}</p>) : <p className="mt-2 text-slate-500">Awaiting evaluation.</p>}</div><div className="border-t pt-3 text-sm"><b>Human review history</b>{reviews.length ? reviews.map((review) => <p key={review.decisionId} className="mt-2">{review.action} — {review.note}</p>) : <p className="mt-2 text-slate-500">No human review recorded.</p>}</div></section>)}</main>;
+}

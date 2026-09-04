@@ -1,0 +1,28 @@
+import type { KnowledgeScopeReference } from "./knowledgeScope";
+import type { ProvenanceActor } from "./provenance";
+
+export const PREFERENCE_STRENGTHS = ["WEAK", "NORMAL", "STRONG", "EXPLICIT", "MANDATORY"] as const;
+export type PreferenceStrength = (typeof PREFERENCE_STRENGTHS)[number];
+export type PreferencePolarity = "PREFER" | "AVOID" | "DISLIKE";
+export type PreferenceStatus = "CANDIDATE" | "ACTIVE" | "ACTIVE_UNREINFORCED" | "STALE_CANDIDATE" | "SUPERSEDED" | "REVOKED";
+export type PreferenceEvidenceKind = "EXPLICIT_STATEMENT" | "REPEATED_EXPLICIT_CHOICE" | "CORRECTION" | "ACCEPTED_RECOMMENDATION" | "BEHAVIORAL_PATTERN" | "AGENT_INFERENCE";
+export type PreferenceEvidence = Readonly<{ evidenceId: string; kind: PreferenceEvidenceKind; provenanceId: string; observedAt: string; weight: number }>;
+export type PreferenceException = Readonly<{ exceptionId: string; condition: string; scope: readonly KnowledgeScopeReference[]; provenanceId: string }>;
+/** A candidate describes one owner's contextual preference, never a general rule or a directive. */
+export type PreferenceCandidate = Readonly<{ preferenceId: string; ownerId: string; subject: string; preferredOption: string; polarity: PreferencePolarity; scope: readonly KnowledgeScopeReference[]; strength: PreferenceStrength; evidence: readonly PreferenceEvidence[]; lastReinforcedAt: string; exceptions: readonly PreferenceException[]; confidence: number; provenanceIds: readonly string[]; authority: "HUMAN_PREFERENCE" | "AGENT_INFERRED"; status: "CANDIDATE"; universalClaim: false; directiveClaim: false; principleClaim: false; createdBy: ProvenanceActor; createdAt: string; immutable: true; executionPermissionGranted: false }>;
+export type PreferenceValidationReason = "OWNER_REQUIRED" | "SCOPE_REQUIRED" | "EVIDENCE_REQUIRED" | "SCOPE_EXPANSION" | "PREFERENCE_CLAIMS_UNIVERSAL_RULE" | "PREFERENCE_CLAIMS_DIRECTIVE" | "PREFERENCE_CLAIMS_PRINCIPLE" | "CONFIDENCE_INVALID" | "PREFERENCE_VALID";
+export type PreferenceValidation = Readonly<{ preferenceId: string; status: "VALID" | "DEFER" | "REJECT"; reasonCodes: readonly PreferenceValidationReason[]; persistenceEffect: "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
+export interface PreferenceValidator { validate(candidate: PreferenceCandidate): PreferenceValidation; }
+export type PreferenceInterpretation = Readonly<{ interpretationId: string; classification: "PREFERENCE" | "DIRECTIVE" | "UNRESOLVED"; polarity?: PreferencePolarity; strength?: PreferenceStrength; scope: readonly KnowledgeScopeReference[]; confidence: number; reasonCodes: readonly string[]; candidate?: PreferenceCandidate; persistenceEffect: "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
+export type PreferenceInterpretationInput = Readonly<{ interpretationId: string; statement: string; ownerId: string; activeScopes: readonly KnowledgeScopeReference[]; provenanceId: string; actor: ProvenanceActor; occurredAt: string }>;
+export type ActivePreference = Readonly<{ preferenceId: string; candidate: PreferenceCandidate; status: "ACTIVE" | "ACTIVE_UNREINFORCED"; activatedAt: string }>;
+export type PreferenceResolution = Readonly<{ status: "APPLIED" | "BYPASSED" | "DEFERRED"; reason: "EXPLICIT_DIRECTIVE" | "NO_APPLICABLE_PREFERENCE" | "EXCEPTION_APPLIES" | "PREFERENCE_SELECTED" | "TIE_REQUIRES_REVIEW"; preferenceId?: string; guidance?: string; persistenceEffect: "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
+export type PreferenceReinforcement = Readonly<{ reinforcementId: string; preferenceId: string; evidence: PreferenceEvidence; observedScope: readonly KnowledgeScopeReference[]; actor: ProvenanceActor; observedAt: string; immutable: true }>;
+export type PreferenceReinforcementResult = Readonly<{ preferenceId: string; status: "RECORDED" | "DEFERRED"; reason: "REINFORCED_WITHIN_SCOPE" | "SCOPE_EXPANSION_REQUIRES_REVIEW"; nextStrength: PreferenceStrength; nextConfidence: number; persistenceEffect: "CREATED" | "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
+export type PreferenceLifecycleAction = "ADD_EXCEPTION" | "NARROW_SCOPE" | "REVOKE" | "SUPERSEDE";
+export type PreferenceLifecycleDecision = Readonly<{ decisionId: string; preferenceId: string; action: PreferenceLifecycleAction; actor: ProvenanceActor; reason: string; decidedAt: string; exception?: PreferenceException; narrowedScope?: readonly KnowledgeScopeReference[]; successorPreferenceId?: string; immutable: true; executionPermissionGranted: false }>;
+export type PreferenceTeachBackPlan = Readonly<{ preferenceId: string; requirement: "NOT_REQUIRED" | "REQUIRED"; lesson: string; scope: readonly KnowledgeScopeReference[]; uncertainty: string; persistenceEffect: "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
+export type PreferenceCorrectionRepair = Readonly<{ correctionId: string; preferenceId: string; action: "NARROW_SCOPE" | "REQUEST_CLARIFICATION"; reason: string; persistenceEffect: "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
+export type PreferenceHumanReview = Readonly<{ reviewId: string; preferenceId: string; action: "ACTIVATE" | "REJECT"; actor: ProvenanceActor; note: string; reviewedAt: string; immutable: true }>;
+export type PreferenceArtifactRecord = Readonly<{ artifactId: string; artifactType: "CANDIDATE" | "VALIDATION" | "INTERPRETATION" | "REINFORCEMENT" | "EXCEPTION" | "LIFECYCLE"; subjectId: string; payload: unknown; createdAt: string }>;
+export interface PreferenceArtifactStore { append(artifact: PreferenceArtifactRecord): Promise<PreferenceArtifactRecord>; listArtifacts(subjectId: string): Promise<readonly PreferenceArtifactRecord[]>; }

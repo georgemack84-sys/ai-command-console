@@ -473,6 +473,43 @@ model Workspace {
   headlineFlowEvents        HeadlineFlowEvent[]
   headlineFlowEventPreferences HeadlineFlowEventPreference[]
   headlineFlowInteractionEvents HeadlineFlowInteractionEvent[]
+  noesisAuthorityBindings       NoesisAuthorityBinding[]
+  noesisDurableRegistryStates   NoesisDurableRegistryState[]
+  noesisDurableKnowledge        NoesisDurableKnowledgeRecord[]
+  noesisGateAuditEvents         NoesisGateAuditEventRecord[]
+  noesisDeferredCandidates      NoesisDeferredCandidateEvent[]
+  noesisDeferredResolutions     NoesisDeferredResolutionEvent[]
+  noesisLearningAuditEvents     NoesisLearningAuditEvent[]
+  noesisTeachBacks              NoesisTeachBack[]
+  noesisTeachBackEvaluations    NoesisTeachBackEvaluation[]
+  noesisTeachBackReviews        NoesisTeachBackReview[]
+  noesisCorrections             NoesisCorrection[]
+  noesisCorrectionEvidence      NoesisCorrectionEvidence[]
+  noesisPrincipleArtifacts      NoesisPrincipleArtifact[]
+  noesisProcedureArtifacts      NoesisProcedureArtifact[]
+  noesisExampleArtifacts        NoesisExampleArtifact[]
+  noesisPreferenceArtifacts     NoesisPreferenceArtifact[]
+  noesisDecisionArtifacts       NoesisDecisionArtifact[]
+  noesisSkillArtifacts          NoesisSkillArtifact[]
+  noesisSkillGraphArtifacts     NoesisSkillGraphArtifact[]
+  noesisPracticeArtifacts       NoesisPracticeArtifact[]
+  noesisEvaluationArtifacts     NoesisEvaluationArtifact[]
+  noesisReflectionArtifacts     NoesisReflectionArtifact[]
+  noesisSocraticArtifacts       NoesisSocraticArtifact[]
+  noesisDecisionPredictionArtifacts NoesisDecisionPredictionArtifact[]
+  noesisKnowledgeGapArtifacts NoesisKnowledgeGapArtifact[]
+  noesisSelfDirectedLearningArtifacts NoesisSelfDirectedLearningArtifact[]
+  noesisGovernedExecutionArtifacts NoesisGovernedExecutionArtifact[]
+  noesisSourceCriticismArtifacts NoesisSourceCriticismArtifact[]
+  noesisEpistemicSynthesisArtifacts NoesisEpistemicSynthesisArtifact[]
+  noesisAutonomousPracticeArtifacts NoesisAutonomousPracticeArtifact[]
+  noesisAdversarialExaminationArtifacts NoesisAdversarialExaminationArtifact[]
+  noesisRetentionArtifacts NoesisRetentionArtifact[]
+  noesisSkillDiscoveryArtifacts NoesisSkillDiscoveryArtifact[]
+  noesisCapabilityArtifacts NoesisCapabilityArtifact[]
+  noesisLearningAnalyticsArtifacts NoesisLearningAnalyticsArtifact[]
+  noesisStrategyRegistryArtifacts NoesisStrategyRegistryArtifact[]
+  noesisStrategyEvaluationArtifacts NoesisStrategyEvaluationArtifact[]
 }
 
 model HeadlineFlowEvent {
@@ -1338,4 +1375,521 @@ model NoesisProvenanceRelationship {
   @@index([workspaceId, fromRecordId, createdAt])
   @@index([workspaceId, toRecordId, createdAt])
   @@map("noesis_provenance_relationships")
+}
+
+// Phase 9: workspace-isolated durable-learning commit boundary. These tables
+// are append-only facts; current deferred state is derived from event history.
+model NoesisAuthorityBinding {
+  bindingId       String   @id @map("binding_id")
+  workspaceId     String   @map("workspace_id")
+  authorityId     String   @map("authority_id")
+  authorityRecord Json     @map("authority_record")
+  createdAt       DateTime @default(now()) @map("created_at")
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, authorityId])
+  @@index([workspaceId, createdAt])
+  @@map("noesis_authority_bindings")
+}
+
+model NoesisDurableRegistryState {
+  stateId     String   @id @map("state_id")
+  workspaceId String   @map("workspace_id")
+  version     Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId])
+  @@map("noesis_durable_registry_state")
+}
+
+model NoesisDurableKnowledgeRecord {
+  knowledgeId          String   @id @map("knowledge_id")
+  workspaceId          String   @map("workspace_id")
+  candidateId          String   @map("candidate_id")
+  candidateFingerprint String   @map("candidate_fingerprint")
+  gateDecisionId       String   @map("gate_decision_id")
+  registryVersion      Int      @map("registry_version")
+  payload              Json
+  createdAt            DateTime @default(now()) @map("created_at")
+  workspace            Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, candidateId])
+  @@unique([workspaceId, gateDecisionId])
+  @@index([workspaceId, registryVersion])
+  @@map("noesis_durable_knowledge_records")
+}
+
+model NoesisGateAuditEventRecord {
+  eventId      String   @id @map("event_id")
+  workspaceId  String   @map("workspace_id")
+  sequence     Int
+  previousHash String?  @map("previous_hash")
+  eventHash    String   @map("event_hash")
+  candidateId  String   @map("candidate_id")
+  payload      Json
+  occurredAt   DateTime @map("occurred_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, candidateId, occurredAt])
+  @@map("noesis_gate_audit_events")
+}
+
+model NoesisDeferredCandidateEvent {
+  eventId             String   @id @map("event_id")
+  workspaceId         String   @map("workspace_id")
+  sequence            Int
+  previousHash        String?  @map("previous_hash")
+  eventHash           String   @map("event_hash")
+  deferredCandidateId String   @map("deferred_candidate_id")
+  candidateId         String   @map("candidate_id")
+  payload             Json
+  occurredAt          DateTime @map("occurred_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, deferredCandidateId, occurredAt])
+  @@map("noesis_deferred_candidate_events")
+}
+
+model NoesisDeferredResolutionEvent {
+  eventId     String   @id @map("event_id")
+  workspaceId String   @map("workspace_id")
+  sequence    Int
+  previousHash String? @map("previous_hash")
+  eventHash   String   @map("event_hash")
+  candidateId String   @map("candidate_id")
+  payload     Json
+  occurredAt  DateTime @map("occurred_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, candidateId, occurredAt])
+  @@map("noesis_deferred_resolution_events")
+}
+
+// Phase 10: canonical, workspace-scoped historical spine for durable learning.
+model NoesisLearningAuditEvent {
+  eventId      String   @id @map("event_id")
+  workspaceId  String   @map("workspace_id")
+  sequence     Int
+  previousHash String?  @map("previous_hash")
+  eventHash    String   @map("event_hash")
+  eventType    String   @map("event_type")
+  correlationId String  @map("correlation_id")
+  knowledgeIds String[] @default([]) @map("knowledge_ids")
+  payload      Json
+  occurredAt   DateTime @map("occurred_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, correlationId, occurredAt])
+  @@index([workspaceId, eventType, occurredAt])
+  @@index([workspaceId, knowledgeIds])
+  @@map("noesis_learning_audit_events")
+}
+
+model NoesisTeachBack {
+  teachBackId String @id @map("teach_back_id")
+  workspaceId String @map("workspace_id")
+  candidateId String @map("candidate_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, candidateId, createdAt])
+  @@map("noesis_teach_backs")
+}
+model NoesisTeachBackEvaluation {
+  evidenceId String @id @map("evidence_id")
+  workspaceId String @map("workspace_id")
+  teachBackId String @map("teach_back_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, teachBackId, createdAt])
+  @@map("noesis_teach_back_evaluations")
+}
+model NoesisTeachBackReview {
+  decisionId String @id @map("decision_id")
+  workspaceId String @map("workspace_id")
+  teachBackId String @map("teach_back_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, teachBackId, createdAt])
+  @@map("noesis_teach_back_reviews")
+}
+
+// Phase 12: append-only correction cases and their analysis, repair, and retest evidence.
+model NoesisCorrection {
+  correctionId String @id @map("correction_id")
+  workspaceId String @map("workspace_id")
+  status String
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status, createdAt])
+  @@map("noesis_corrections")
+}
+model NoesisCorrectionEvidence {
+  recordId String @id @map("record_id")
+  workspaceId String @map("workspace_id")
+  correctionId String @map("correction_id")
+  recordType String @map("record_type")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, correctionId, recordType, createdAt])
+  @@map("noesis_correction_evidence")
+}
+
+// Phase 13: append-only evidence and lifecycle artifacts for principle learning.
+model NoesisPrincipleArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_principle_artifacts")
+}
+
+// Phase 14: append-only procedure definitions, reviews, simulations, and execution evidence.
+model NoesisProcedureArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_procedure_artifacts")
+}
+
+// Phase 15: append-only example candidates and lifecycle evidence. Example payloads are evidence-only.
+model NoesisExampleArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_example_artifacts")
+}
+
+// Phase 16: append-only preference candidates, validation, and lifecycle evidence.
+model NoesisPreferenceArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_preference_artifacts")
+}
+
+// Phase 17: append-only contextual decision and judgment evidence.
+model NoesisDecisionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_decision_artifacts")
+}
+
+model NoesisSkillArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_skill_artifacts")
+}
+
+// Phase 19: immutable dependency proposals, admissions, and graph versions.
+model NoesisSkillGraphArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_skill_graph_artifacts")
+}
+
+// Phase 20: immutable exercises, evaluator specifications, attempts, evidence, and lifecycle facts.
+model NoesisPracticeArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_practice_artifacts")
+}
+
+// Phase 21: immutable evaluation, scoring, validity, and competence evidence facts.
+model NoesisEvaluationArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_evaluation_artifacts")
+}
+
+// Phase 22: immutable reflection cases, diagnostic evidence, and root-cause hypotheses.
+model NoesisReflectionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_reflection_artifacts")
+}
+
+// Phase 23: immutable Socratic objectives, working-model maps, and session facts.
+model NoesisSocraticArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_socratic_artifacts")
+}
+
+// Phase 24: immutable, inference-only teacher-judgment predictions.
+model NoesisDecisionPredictionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_decision_prediction_artifacts")
+}
+
+// Phase 25: append-only epistemic assessments and knowledge-gap lifecycle evidence.
+model NoesisKnowledgeGapArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_knowledge_gap_artifacts")
+}
+
+// Phase 26: immutable learning opportunities, proposals, approvals, and execution leases.
+model NoesisSelfDirectedLearningArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_self_directed_learning_artifacts")
+}
+
+model NoesisGovernedExecutionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_governed_execution_artifacts")
+}
+
+// Phase 29: immutable source records and claim-relative criticism artifacts.
+model NoesisSourceCriticismArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_source_criticism_artifacts")
+}
+
+// Phase 30: append-only, replayable epistemic propositions and belief positions.
+model NoesisEpistemicSynthesisArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_epistemic_synthesis_artifacts")
+}
+
+// Phase 31: append-only autonomous-practice snapshots, sealed keys, and evidence.
+model NoesisAutonomousPracticeArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_autonomous_practice_artifacts")
+}
+
+// Phase 32: append-only adversarial exams, sealed rubrics, findings, and reassessment recommendations.
+model NoesisAdversarialExaminationArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_adversarial_examination_artifacts")
+}
+
+// Phase 33: append-only retention records, evidence, and state transitions.
+model NoesisRetentionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_retention_artifacts")
+}
+
+// Phase 34: append-only discovery episodes and untested candidate-skill definitions.
+model NoesisSkillDiscoveryArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_skill_discovery_artifacts")
+}
+
+// Phase 35: append-only capability requests, grants, and operation-boundary facts.
+model NoesisCapabilityArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_capability_artifacts")
+}
+
+model NoesisLearningAnalyticsArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_learning_analytics_artifacts")
+}
+
+model NoesisStrategyRegistryArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_strategy_registry_artifacts")
+}
+
+model NoesisStrategyEvaluationArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_strategy_evaluation_artifacts")
 }

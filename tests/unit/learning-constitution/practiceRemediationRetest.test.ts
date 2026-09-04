@@ -1,0 +1,20 @@
+import { describe, expect, it } from "vitest";
+import { PracticeArtifactService } from "@/services/learning-constitution";
+import type { PracticeArtifactRecord, PracticeArtifactStore, PracticeAttempt, PracticeEvaluation, PracticeExercise } from "@/types/learning-constitution";
+
+const actor = { actorId: "human:teacher", actorType: "HUMAN" as const };
+const exercise = (exerciseId: string, skillId: string): PracticeExercise => ({ exerciseId, state: "ATTEMPTED", source: "HUMAN_GENERATED", targetSkillIds: [skillId], prerequisiteSkillIds: [], difficulty: 0.5, transferLevel: "MODIFIED", transferDistance: 1, scenario: "Scenario", instructions: "Respond", constraints: [], expectedCompetencies: ["competency"], visibleEvaluationCriteria: ["criterion"], hiddenCriteriaCount: 0, hiddenChallengeCount: 0, scenarioFeatures: { domain: "planning", ambiguityPresent: false, edgeConditionPresent: false, adversarialPressurePresent: false }, similarity: { structuralFingerprint: exerciseId, solutionFingerprint: exerciseId, languageFingerprint: exerciseId }, lineage: { targetSkillIds: [skillId], knowledgeIds: ["K-1"], procedureIds: [], principleIds: [], exampleIds: [], sourceSnapshotId: "snapshot:1" }, generation: { generatorVersion: "20", configVersion: "20", generatedAt: "2026-09-02T00:00:00.000Z", generatedBy: actor } });
+const store = (): PracticeArtifactStore => { const records: PracticeArtifactRecord[] = []; return { append: async (record) => { const replay = records.find((item) => item.artifactId === record.artifactId); if (replay) return replay; records.push(record); return record; }, listArtifacts: async (subjectId) => records.filter((record) => record.subjectId === subjectId), listWorkspaceArtifacts: async () => [...records] }; };
+
+describe("Phase 20 remediation retest gate", () => {
+  it("requires a completed focused remediation before preserving lineage into a retest", async () => {
+    const artifacts = store(); const service = new PracticeArtifactService(artifacts);
+    for (const item of [exercise("PE-ORIGINAL", "SK-ROADMAP"), exercise("PE-REMEDIATE", "SK-DEPENDENCY"), exercise("PE-RETEST", "SK-ROADMAP")]) await artifacts.append({ artifactId: `PRACTICE_EXERCISE:${item.exerciseId}`, artifactType: "EXERCISE", subjectId: item.exerciseId, payload: item, createdAt: item.generation.generatedAt });
+    const failed: PracticeEvaluation = { evaluationId: "PVE-FAIL", attemptId: "PA-FAIL", exerciseId: "PE-ORIGINAL", outcome: "FAIL", score: 0.2, failureTypes: ["DEPENDENCY_FAILURE"], matchedCriteria: [], missedCriteria: ["dependency"], evaluator: actor, evaluatedAt: "2026-09-02T00:01:00.000Z", rubricVersion: "20" }; await service.recordEvaluation(failed, "workspace:1", "eval:1");
+    const remediation = { remediationId: "PR-1", failedExerciseId: "PE-ORIGINAL", failedEvaluationId: "PVE-FAIL", targetSkillId: "SK-DEPENDENCY", remediationExerciseId: "PE-REMEDIATE", createdBy: actor, createdAt: "2026-09-02T00:02:00.000Z" } as const; await service.createRemediation(remediation, "workspace:1", "remediation:1");
+    const retest = { retestId: "RT-1", remediationId: remediation.remediationId, originalExerciseId: "PE-ORIGINAL", retestExerciseId: "PE-RETEST", sourceSnapshotId: "snapshot:1", authorizedBy: actor, authorizedAt: "2026-09-02T00:03:00.000Z" } as const;
+    await expect(service.authorizeRetest(retest, "workspace:1", "retest:1")).rejects.toThrow("completed remediation");
+    const attempt: PracticeAttempt = { attemptId: "PA-REMEDIATE", exerciseId: "PE-REMEDIATE", learnerId: "agent:noesis", response: "dependency practice", submittedAt: "2026-09-02T00:04:00.000Z", responseConfidence: null }; await service.recordAttempt(attempt, actor, "workspace:1", "attempt:1"); await service.completeRemediation({ remediationId: remediation.remediationId, remediationAttemptId: attempt.attemptId, completedBy: actor, completedAt: "2026-09-02T00:05:00.000Z" }, "workspace:1", "completion:1");
+    await expect(service.authorizeRetest(retest, "workspace:1", "retest:1")).resolves.toEqual(retest);
+  });
+});

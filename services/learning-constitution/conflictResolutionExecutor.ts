@@ -4,6 +4,7 @@ import { ConflictImpactAnalyzer } from "./conflictImpactAnalyzer";
 import type { ConflictResolution, ConflictResolutionDecision } from "../../types/learning-constitution/conflictResolution";
 import { supportsProvenanceTransactions } from "../../types/learning-constitution/provenance";
 import type { ProvenanceLedger, ProvenanceRelationship } from "../../types/learning-constitution/provenance";
+import type { LearningAuditLedger } from "../../types/learning-constitution/learningAuditLedger";
 
 type ConflictExecutionResult = Readonly<{ status: "EXECUTED" | "REJECTED" | "PERSISTENCE_FAILED"; reasonCode: "DECISION_MISSING" | "OUTCOME_UNSUPPORTED" | "DURABLE_SUCCESSOR_REQUIRED" | "MERGED_KNOWLEDGE_REQUIRED" | "DURABLE_EXCEPTION_REQUIRED" | "EXCEPTION_CONDITION_REQUIRED" | "NARROWED_SCOPE_REQUIRED" | "IMPACT_ANALYSIS_FAILED" | "RELATED_CONFLICT_UNRESOLVED" | "SUPERSESSION_REJECTED" | "CANDIDATE_REJECTION_FAILED" | "RESOLUTION_EXECUTED" | "PERSISTENCE_FAILED"; resolution?: ConflictResolution; relationships: readonly ProvenanceRelationship[]; persistenceEffect: "CREATED" | "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
 
@@ -14,11 +15,11 @@ type ConflictExecutionResult = Readonly<{ status: "EXECUTED" | "REJECTED" | "PER
  */
 export class ConflictResolutionExecutor {
   private relationshipSequence = 0;
-  constructor(private readonly ledger: ProvenanceLedger, private readonly createId = () => `CR-${crypto.randomUUID()}`, private readonly createRelationshipId = () => `conflict-execution:${crypto.randomUUID()}`, private readonly now = () => new Date().toISOString()) {}
+  constructor(private readonly ledger: ProvenanceLedger, private readonly createId = () => `CR-${crypto.randomUUID()}`, private readonly createRelationshipId = () => `conflict-execution:${crypto.randomUUID()}`, private readonly now = () => new Date().toISOString(), private readonly phase10Audit?: Readonly<{ ledger: LearningAuditLedger; workspaceId: string }>) {}
 
   async execute(decisionId: string): Promise<ConflictExecutionResult> {
     try {
-      const run = (ledger: ProvenanceLedger) => new ConflictResolutionExecutor(ledger, this.createId, this.createRelationshipId, this.now).executeWithinTransaction(decisionId);
+      const run = (ledger: ProvenanceLedger) => new ConflictResolutionExecutor(ledger, this.createId, this.createRelationshipId, this.now, this.phase10Audit).executeWithinTransaction(decisionId);
       return supportsProvenanceTransactions(this.ledger) ? await this.ledger.withTransaction(run) : await run(this.ledger);
     } catch { return this.fail("PERSISTENCE_FAILED", "PERSISTENCE_FAILED"); }
   }
@@ -71,6 +72,7 @@ export class ConflictResolutionExecutor {
     const relationships: ProvenanceRelationship[] = [{ id: this.nextRelationshipId(), fromId: resolution.id, toId: decision.id, type: "EXECUTES_CONFLICT_DECISION", actor: decision.decisionMaker, createdAt: resolution.executedAt, immutable: true }];
     for (const relationship of extraRelationships) relationships.push({ id: this.nextRelationshipId(), ...relationship, actor: decision.decisionMaker, createdAt: resolution.executedAt, immutable: true });
     await this.ledger.append(resolution); for (const relationship of relationships) await this.ledger.relate(relationship);
+    await this.phase10Audit?.ledger.append({ eventId: `learning-audit:conflict:${resolution.id}`, eventType: "CONFLICT_RESOLVED", workspaceId: this.phase10Audit.workspaceId, occurredAt: resolution.executedAt, actor: resolution.executedBy, correlationId: resolution.id, causationId: decision.id, schemaVersion: "10.0", references: { conflictIds: [conflictId], knowledgeIds: [...affectedKnowledgeIds, ...resultingKnowledgeIds] }, payload: { resolutionType, decisionId: decision.id } });
     return { status: "EXECUTED" as const, reasonCode: "RESOLUTION_EXECUTED" as const, resolution, relationships, persistenceEffect: "CREATED" as const, authorityEffect: "UNCHANGED" as const, executionPermissionGranted: false as const };
   }
   private nextRelationshipId() { return `${this.createRelationshipId()}:${this.relationshipSequence++}`; }

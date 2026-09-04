@@ -38,6 +38,7 @@ export const PROVENANCE_RELATIONSHIP_TYPES = [
   "REASSESSMENT_TRIGGER_FOR", "REASSESSMENT_EVIDENCE",
   "DECIDES_PROPOSAL", "DECIDES_CONFLICT", "EXECUTES_CONFLICT_DECISION",
   "EXCEPTION_OF", "NARROWS_SCOPE_OF",
+  "TEACH_BACK_FOR", "EVALUATES_TEACH_BACK",
 ] as const;
 export type ProvenanceRelationshipType = (typeof PROVENANCE_RELATIONSHIP_TYPES)[number];
 
@@ -167,6 +168,9 @@ export type EvidenceSet = Readonly<{
   immutable: true;
 }>;
 
+export type TeachBackProvenanceRecord = Readonly<{ id: string; recordType: "TEACH_BACK"; candidateId: string; teachingEventId: string; generatedBy: ProvenanceActor; createdAt: string; immutable: true }>;
+export type TeachBackEvaluationProvenanceRecord = Readonly<{ id: string; recordType: "TEACH_BACK_EVALUATION"; teachBackId: string; candidateId: string; outcome: "PASS" | "PASS_WITH_UNCERTAINTY" | "PARTIAL" | "CLARIFICATION_REQUIRED" | "FAIL"; evaluator: ProvenanceActor; createdAt: string; immutable: true }>;
+
 export type EvidenceSetRequest = Readonly<{
   evidenceRefs: readonly string[];
   collectedBy: ProvenanceActor;
@@ -227,7 +231,7 @@ export type DurableProvenancedKnowledge = Readonly<{
   immutable: true;
 }>;
 
-export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | HumanApproval | DurableProvenancedKnowledge | ConflictRecord | ConflictSetRecord | ConflictResolutionProposal | ResolutionEvidencePackage | ConflictAuditEvent | ConflictClarificationRequest | ConflictEscalation | ConflictReassessmentTrigger | ConflictResolutionDecision | ConflictResolution;
+export type ProvenanceRecord = TeachingEvent | ExtractionRecord | CandidateKnowledgeRecord | EvidenceSet | TeachBackProvenanceRecord | TeachBackEvaluationProvenanceRecord | HumanApproval | DurableProvenancedKnowledge | ConflictRecord | ConflictSetRecord | ConflictResolutionProposal | ResolutionEvidencePackage | ConflictAuditEvent | ConflictClarificationRequest | ConflictEscalation | ConflictReassessmentTrigger | ConflictResolutionDecision | ConflictResolution;
 
 export type ProvenanceRelationship = Readonly<{
   id: string;

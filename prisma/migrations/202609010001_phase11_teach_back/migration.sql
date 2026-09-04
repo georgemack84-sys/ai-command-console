@@ -1,0 +1,12 @@
+CREATE TABLE "noesis_teach_backs" ("teach_back_id" TEXT NOT NULL, "workspace_id" TEXT NOT NULL, "candidate_id" TEXT NOT NULL, "payload" JSONB NOT NULL, "created_at" TIMESTAMP(3) NOT NULL, CONSTRAINT "noesis_teach_backs_pkey" PRIMARY KEY ("teach_back_id"));
+CREATE TABLE "noesis_teach_back_evaluations" ("evidence_id" TEXT NOT NULL, "workspace_id" TEXT NOT NULL, "teach_back_id" TEXT NOT NULL, "payload" JSONB NOT NULL, "created_at" TIMESTAMP(3) NOT NULL, CONSTRAINT "noesis_teach_back_evaluations_pkey" PRIMARY KEY ("evidence_id"));
+CREATE TABLE "noesis_teach_back_reviews" ("decision_id" TEXT NOT NULL, "workspace_id" TEXT NOT NULL, "teach_back_id" TEXT NOT NULL, "payload" JSONB NOT NULL, "created_at" TIMESTAMP(3) NOT NULL, CONSTRAINT "noesis_teach_back_reviews_pkey" PRIMARY KEY ("decision_id"));
+CREATE INDEX "noesis_teach_backs_workspace_id_candidate_id_created_at_idx" ON "noesis_teach_backs"("workspace_id", "candidate_id", "created_at");
+CREATE INDEX "noesis_teach_back_evaluations_workspace_id_teach_back_id_created_at_idx" ON "noesis_teach_back_evaluations"("workspace_id", "teach_back_id", "created_at");
+CREATE INDEX "noesis_teach_back_reviews_workspace_id_teach_back_id_created_at_idx" ON "noesis_teach_back_reviews"("workspace_id", "teach_back_id", "created_at");
+ALTER TABLE "noesis_teach_backs" ADD CONSTRAINT "noesis_teach_backs_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "Workspace"("id") ON DELETE CASCADE;
+ALTER TABLE "noesis_teach_back_evaluations" ADD CONSTRAINT "noesis_teach_back_evaluations_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "Workspace"("id") ON DELETE CASCADE;
+ALTER TABLE "noesis_teach_back_reviews" ADD CONSTRAINT "noesis_teach_back_reviews_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "Workspace"("id") ON DELETE CASCADE;
+CREATE TRIGGER noesis_teach_backs_prevent_mutation BEFORE UPDATE OR DELETE ON "noesis_teach_backs" FOR EACH ROW EXECUTE FUNCTION prevent_noesis_phase9_ledger_mutation();
+CREATE TRIGGER noesis_teach_back_evaluations_prevent_mutation BEFORE UPDATE OR DELETE ON "noesis_teach_back_evaluations" FOR EACH ROW EXECUTE FUNCTION prevent_noesis_phase9_ledger_mutation();
+CREATE TRIGGER noesis_teach_back_reviews_prevent_mutation BEFORE UPDATE OR DELETE ON "noesis_teach_back_reviews" FOR EACH ROW EXECUTE FUNCTION prevent_noesis_phase9_ledger_mutation();
