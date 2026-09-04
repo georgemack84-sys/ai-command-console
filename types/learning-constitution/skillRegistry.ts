@@ -1,0 +1,17 @@
+import type { KnowledgeScopeReference } from "./knowledgeScope"; import type { ProvenanceActor } from "./provenance";
+export type SkillStatus = "UNDEMONSTRATED" | "CANDIDATE" | "PROVISIONAL" | "DEMONSTRATED" | "VALIDATED" | "MASTERED" | "STALE" | "DEGRADED" | "SUSPENDED" | "RETIRED";
+export type SkillType = "ATOMIC" | "COMPOSITE" | "META" | "DOMAIN" | "TOOL";
+export type SkillCapabilityEvidence = Readonly<{ evidenceId: string; skillId: string; outcome: "SUCCESS" | "PARTIAL" | "FAILURE"; assistance: "INDEPENDENT" | "GUIDED" | "DELEGATED" | "TOOL_BLOCKED"; context: string; provenanceId: string; observedAt: string; revoked: false }>;
+/** Capability record: evidence-backed competence only; it never grants authority or execution permission. */
+export type SkillCandidate = Readonly<{ skillId: string; name: string; description: string; domain: string; skillType: SkillType; scope: readonly KnowledgeScopeReference[]; prerequisiteSkillIds: readonly string[]; procedureIds: readonly string[]; principleIds: readonly string[]; evidence: readonly SkillCapabilityEvidence[]; mastery: number | null; confidence: "UNKNOWN" | "LOW" | "MEDIUM" | "HIGH"; status: "UNDEMONSTRATED" | "CANDIDATE" | "PROVISIONAL"; limitations: readonly string[]; failureModes: readonly string[]; createdBy: ProvenanceActor; createdAt: string; immutable: true; capabilityClaim: false; executionPermissionGranted: false }>;
+export type SkillValidation = Readonly<{ skillId: string; status: "VALID" | "DEFER" | "REJECT"; reasonCodes: readonly string[]; persistenceEffect: "NONE"; authorityEffect: "UNCHANGED"; executionPermissionGranted: false }>;
+export interface SkillValidator { validate(candidate: SkillCandidate): SkillValidation; }
+export type SkillArtifactRecord = Readonly<{ artifactId: string; artifactType: "CANDIDATE" | "EVIDENCE" | "EVALUATION" | "LIFECYCLE"; subjectId: string; payload: unknown; createdAt: string }>;
+/** Append-only history is the source of truth; projections must be rebuilt from it. */
+export interface SkillArtifactStore { append(artifact: SkillArtifactRecord): Promise<SkillArtifactRecord>; listArtifacts(subjectId: string): Promise<readonly SkillArtifactRecord[]>; }
+export type SkillEvaluation = Readonly<{ evaluationId: string; skillId: string; score: number; evaluator: ProvenanceActor; evidenceIds: readonly string[]; createdAt: string; immutable: true }>;
+export type SkillAssessment = Readonly<{ observedScore: number | null; estimatedMastery: number | null; confidence: "UNKNOWN" | "LOW" | "MEDIUM" | "HIGH"; eligibleForProvisional: boolean; rationale: readonly string[]; executionPermissionGranted: false }>;
+export type SkillHumanReview = Readonly<{ reviewId: string; skillId: string; proposedStatus: SkillStatus; actor: ProvenanceActor; note: string; reviewedAt: string; immutable: true }>;
+export type CapabilityCheck = Readonly<{ skillId: string; capability: "UNDEMONSTRATED" | "LIMITED" | "SUPPORTED"; authorized: false; currentlyExecutable: false; reasons: readonly string[] }>;
+export type SkillEvidenceRevocation = Readonly<{ revocationId: string; skillId: string; evidenceId: string; reason: string; actor: ProvenanceActor; revokedAt: string; immutable: true }>;
+export type SkillRegistryEntry = Readonly<{ skill: SkillCandidate; status: SkillStatus; activeEvidenceCount: number; revokedEvidenceCount: number; evaluationCount: number; assessment: SkillAssessment; lastReviewedAt: string | null; executionPermissionGranted: false }>;

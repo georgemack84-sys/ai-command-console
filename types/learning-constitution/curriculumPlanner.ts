@@ -1,0 +1,21 @@
+import type { SkillEdge, SkillEvidence, SkillGraphReadModel, SkillNode } from "./skillGraph";
+import type { EpistemicState } from "./knowledgeGapDetection";
+export type PlannerTargetLevel = "FOUNDATIONAL" | "PRACTICAL" | "TROUBLESHOOTING";
+export type LearningPlanStatus = "READY" | "INSUFFICIENT_EVIDENCE" | "CONSTRAINED";
+export type LessonActivityType = "DIAGNOSTIC" | "GUIDED_PRACTICE" | "SCENARIO_PRACTICE" | "REASSESSMENT";
+export type PlannerAssessmentResult = Readonly<{ id: string; skill_id: string; completed_at: string; score: number | null; competencies: Readonly<Partial<Record<"knowledge" | "application" | "troubleshooting" | "retention" | "calibration", number | null>>>; evidence_ids: readonly string[] }>;
+export type LearningHistoryEntry = Readonly<{ skill_id: string; event: "COMPLETED" | "SKIPPED" | "FAILED" | "STARTED"; occurred_at: string; lesson_id?: string }>;
+export type PlannerSkillState = Readonly<{ skill_id: string; mastery: number | null; confidence: number; retention_score: number | null; last_evaluated: string | null; evidence_ids: readonly string[] }>;
+export type CurriculumPlannerInput = Readonly<{ learner_id: string; goal: Readonly<{ skill_id?: string; free_text: string; target_level?: PlannerTargetLevel }>; skill_graph: SkillGraphReadModel; assessment_results: readonly PlannerAssessmentResult[]; learning_history: readonly LearningHistoryEntry[]; constraints: Readonly<{ available_minutes_per_week?: number; target_date?: string; preferred_session_minutes?: number; excluded_topics?: readonly string[] }>; skill_states?: readonly PlannerSkillState[]; evidence?: readonly SkillEvidence[] }>;
+export type PlanGap = Readonly<{ skill_id: string; competency: PlannerTargetLevel; reason: string; evidence_ids: readonly string[]; diagnostic: boolean }>;
+export type PlannedLesson = Readonly<{ id: string; position: number; target_skill_id: string; target_competency: PlannerTargetLevel; objective: string; activity_type: LessonActivityType; estimated_minutes: number; prerequisite_path: readonly string[]; evidence_references: readonly string[]; why_this_lesson: string; completion_criterion: string; next_step: string }>;
+export type LearningPlan = Readonly<{ version: "curriculum-plan-v1"; goal_summary: string; status: LearningPlanStatus; detected_gaps: readonly PlanGap[]; lessons: readonly PlannedLesson[]; rationale: string; assumptions: readonly string[]; generated_at: string }>;
+export type PlannerGraph = Readonly<{ nodes: readonly SkillNode[]; edges: readonly SkillEdge[] }>;
+export type CurriculumDisposition = "TEACH" | "REMEDIATE" | "PRACTICE" | "VERIFY" | "REVIEW" | "SKIP" | "EVALUATE";
+export type CurriculumSkillInput = Readonly<{ skillId: string; prerequisites: readonly string[]; mastery: "DEMONSTRATED" | "PROVISIONAL" | "WEAK" | "UNKNOWN"; epistemicState: EpistemicState; evidenceIds: readonly string[] }>;
+export type LearningUnit = Readonly<{ unitId: string; skillId: string; disposition: CurriculumDisposition; prerequisites: readonly string[]; rationale: string; evidenceIds: readonly string[]; sequence: number; skipped: boolean }>;
+export type Curriculum = Readonly<{ curriculumId: string; proposalId: string; leaseId: string; goal: string; version: number; units: readonly LearningUnit[]; status: "PROPOSED"; createdAt: string; executionAuthorized: false }>;
+export type CurriculumArtifactRecord = Readonly<{ artifactId: string; artifactType: "CURRICULUM" | "REPLAN" | "UNIT_EVENT"; subjectId: string; payload: unknown; createdAt: string }>;
+export interface CurriculumArtifactStore { append(artifact: CurriculumArtifactRecord): Promise<CurriculumArtifactRecord>; listArtifacts(subjectId: string): Promise<readonly CurriculumArtifactRecord[]>; listWorkspaceArtifacts(): Promise<readonly CurriculumArtifactRecord[]>; }
+export type CurriculumReplan = Readonly<{ curriculumId: string; priorVersion: number; nextVersion: number; cause: "EVALUATION_FAILURE" | "REFLECTION_REMEDIATION"; insertedUnit: LearningUnit; reason: string; scopeExpansion: false; createdAt: string }>;
+export type CurriculumCompletionAssessment = Readonly<{ curriculumId: string; complete: boolean; missingSkillIds: readonly string[]; reasons: readonly string[]; evaluationEvidenceIds: readonly string[]; lessonConsumptionEffect: "NONE" }>;

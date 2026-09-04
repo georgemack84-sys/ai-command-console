@@ -1,0 +1,27 @@
+import { describe, expect, it } from "vitest";
+import { DefaultAuthorityQualificationService } from "../../../services/learning-constitution";
+import type { AuthorityQualificationRequest, AuthorityRecord, ConflictDetectionResult, InformationClassificationResult, KnowledgeScopeResolutionResult } from "../../../types/learning-constitution";
+
+const provenance = { observationId: "observation-1", sourceId: "message:1", sourceType: "CONVERSATION" as const, originatingActorId: "user:georg", observedAt: "2026-08-23T00:00:00.000Z" };
+const record = (authorityType: AuthorityRecord["authorityType"], overrides: Partial<AuthorityRecord> = {}): AuthorityRecord => ({ authorityId: `authority-${authorityType}`, authorityType, authoritySource: "message:1", sourceIdentity: "user:georg", scope: { type: "PROJECT", id: "axiom" }, establishedAt: "2026-08-23T00:00:00.000Z", effectiveFrom: "2026-08-23T00:00:00.000Z", supersedes: [], constraints: [], provenance, ...overrides });
+const classification = (value: InformationClassificationResult["classification"]): InformationClassificationResult => ({ classification: value, confidence: 0.8, status: "CLASSIFIED", proposedDurability: "DURABLE_CANDIDATE", requiresValidation: true, provenance, reasoningMetadata: { rationaleCode: "test", matchedSignals: [], classifierId: "test", classifierVersion: "1" }, relationshipHints: { supersedesKnowledgeIds: [], exceptionToKnowledgeIds: [] }, persistenceEffect: "NONE", authorityEffect: "UNCHANGED", executionPermissionGranted: false });
+const scopeResolution: KnowledgeScopeResolutionResult = { scope: { type: "PROJECT", id: "axiom" }, confidence: 1, status: "RESOLVED", source: "EXPLICIT", provenance, reasoningMetadata: { rationaleCode: "test", matchedScopeIds: ["axiom"], resolverId: "test", resolverVersion: "1" }, requiresClarification: false, promotionRequested: false, persistenceEffect: "NONE", authorityEffect: "UNCHANGED" };
+const conflict = (overrides: Partial<ConflictDetectionResult> = {}): ConflictDetectionResult => ({ candidateId: "candidate-1", existingKnowledgeId: "existing-1", relationship: "CORRECTS", confidence: 1, status: "ASSESSED", scopeCompatibility: { outcome: "COMPATIBLE", reason: "EXACT_SCOPE_MATCH" }, provenance: { candidate: provenance, existingKnowledge: provenance }, reasoningMetadata: { rationaleCode: "test", matchedFields: [], detectorId: "test", detectorVersion: "1" }, correctionTargetKnowledgeId: "existing-1", requiresValidation: true, requiresClarification: false, requiresApproval: true, persistenceEffect: "NONE", authorityEffect: "UNCHANGED", ...overrides });
+const request = (overrides: Partial<AuthorityQualificationRequest> = {}): AuthorityQualificationRequest => ({ resolutionRequest: { classification: classification("CORRECTION"), scopeResolution, source: { sourceClass: "HUMAN", sourceIdentity: "user:georg", sourceReference: "message:1" } }, incomingAuthority: record("HUMAN_CORRECTION", { authorityId: "authority-incoming", supersedes: ["authority-HUMAN_DECISION"] }), existingAuthority: record("HUMAN_DECISION"), subjectScope: { type: "PROJECT", id: "axiom" }, relationshipIntent: "CORRECT", knowledgeConflict: conflict(), profile: { authority: { state: "RECORDED", record: record("HUMAN_CORRECTION", { authorityId: "authority-incoming", supersedes: ["authority-HUMAN_DECISION"] }) }, confidence: { score: 0.5, basis: ["direct correction"] }, evidence: { items: [] } }, ...overrides });
+
+describe("Phase 6 authority qualification", () => {
+  const service = new DefaultAuthorityQualificationService();
+  it("qualifies a complete scoped correction and returns every decision stage", () => {
+    const result = service.qualify(request());
+    expect(result).toMatchObject({ status: "REVIEW_REQUIRED", resolution: { authorityType: "HUMAN_CORRECTION" }, boundary: { outcome: "APPLIES" }, precedence: { outcome: "CORRECT" }, conflict: { outcome: "SUPERSEDE_EXISTING" }, gate: { reasonCode: "SUPERSESSION_REQUIRES_LIFECYCLE" }, authorityEffect: "UNCHANGED" });
+  });
+  it("rejects an agent inference that conflicts with an established human decision", () => {
+    const incoming = record("AGENT_INFERRED", { authorityId: "authority-agent", authoritySource: "run:1", sourceIdentity: "agent:noesis" });
+    const result = service.qualify(request({ resolutionRequest: { classification: classification("FACT"), scopeResolution, source: { sourceClass: "AGENT", sourceIdentity: "agent:noesis", sourceReference: "run:1", agentKnowledgeKind: "INFERRED" } }, incomingAuthority: incoming, profile: { authority: { state: "RECORDED", record: incoming }, confidence: { score: 0.99, basis: ["model"] }, evidence: { items: [] } }, relationshipIntent: "SUPERSEDE", knowledgeConflict: conflict({ relationship: "CONTRADICTS" }) }));
+    expect(result).toMatchObject({ status: "REJECTED", conflict: { reasonCode: "AGENT_CLAIM_CANNOT_OVERRIDE_HUMAN_AUTHORITY" }, gate: { decision: "DENY" } });
+  });
+  it("keeps a human suggestion under review rather than inflating it into authority", () => {
+    const result = service.qualify(request({ resolutionRequest: { classification: classification("SUGGESTION"), scopeResolution, source: { sourceClass: "HUMAN", sourceIdentity: "user:georg", sourceReference: "message:1" } } }));
+    expect(result).toMatchObject({ status: "REVIEW_REQUIRED", resolution: { reasonCode: "SEMANTICS_DO_NOT_ESTABLISH_AUTHORITY" }, gate: { decision: "REVIEW", reasonCode: "UNKNOWN_AUTHORITY" } });
+  });
+});

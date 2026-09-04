@@ -1,0 +1,10 @@
+{
+  "policyVersion": "1.0.0",
+  "minimumConfidenceByCategory": {
+    "CONVERSATION": 0.8, "QUESTION": 0.9, "BRAINSTORM": 0.9, "IDEA": 0.9, "SUGGESTION": 0.9,
+    "FACT": 0.9, "CONCEPT": 0.9, "PREFERENCE": 0.9, "INSTRUCTION": 0.9, "RULE": 0.9,
+    "PRINCIPLE": 0.9, "PROCEDURE": 0.9, "EXAMPLE": 0.95, "DECISION": 0.95, "CORRECTION": 0.95,
+    "EXCEPTION": 0.95, "GOAL": 0.9, "FEEDBACK": 0.9
+  },
+  "maximumAmbiguousConfidence": 0.69
+}

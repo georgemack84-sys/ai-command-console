@@ -8,6 +8,7 @@
 | `.env.example` (after the transitional marker) | Legacy command console | Existing root-application contract retained until migration |
 | `apps/web/.env.example` | Web application | Browser-visible Next.js build configuration |
 | `services/api/.env.example` | Platform API | ASP.NET Core hosting and API runtime configuration |
+| `apps/learning-agent/.env.example` | Learning Agent | Browser-visible Noesis learning API origin |
 
 `services/api/.env.example` is the only backend template. The former `services/platform-api` mirror was removed because no application exists at that path.
 
@@ -20,14 +21,16 @@ Create only the local file needed by the component being run:
 cp .env.example .env
 cp apps/web/.env.example apps/web/.env.local
 cp services/api/.env.example services/api/.env
+cp apps/learning-agent/.env.example apps/learning-agent/.env.local
 
 # PowerShell
 Copy-Item .env.example .env
 Copy-Item apps/web/.env.example apps/web/.env.local
 Copy-Item services/api/.env.example services/api/.env
+Copy-Item apps/learning-agent/.env.example apps/learning-agent/.env.local
 ```
 
-Docker Compose automatically reads the root `.env`. Next.js reads `apps/web/.env.local`. `services/api/.env` is the canonical developer-owned API counterpart and local inventory, but the API does not automatically load it; source it through approved tooling or supply the same values through the shell, IDE, container, or launch profile. A local file never overrides the documented provider model merely by existing.
+Docker Compose automatically reads the root `.env`. Next.js reads `apps/web/.env.local` and `apps/learning-agent/.env.local`. `services/api/.env` is the canonical developer-owned API counterpart and local inventory, but the API does not automatically load it; source it through approved tooling or supply the same values through the shell, IDE, container, or launch profile. A local file never overrides the documented provider model merely by existing.
 
 All local `.env` files are ignored. Do not commit the local copies. Replace sensitive examples before using a non-local environment.
 
@@ -45,7 +48,7 @@ Typed binding and validation
 Authorized consumer
 ```
 
-Repository Platform owns the overall model and template/documentation synchronization. Frontend owns browser-public semantics. Platform API owns backend typed binding and runtime validation. Least exposure keeps raw providers at bootstrap boundaries, secret isolation prevents confidential values from entering public or diagnostic sinks, and build/runtime separation prevents compilation and metadata tooling from activating infrastructure.
+Repository Platform owns the overall model and template/documentation synchronization. Frontend and Learning Agent own their browser-public semantics. Platform API owns backend typed binding and runtime validation. Least exposure keeps raw providers at bootstrap boundaries, secret isolation prevents confidential values from entering public or diagnostic sinks, and build/runtime separation prevents compilation and metadata tooling from activating infrastructure.
 
 ## Resolution and precedence
 
@@ -55,6 +58,7 @@ Lower entries override higher entries.
 | --- | --- |
 | Proprium Compose | interpolation default → root `.env` → invoking process environment |
 | Web build | `apps/web/.env.local` fills missing values → existing process environment |
+| Learning Agent build | `apps/learning-agent/.env.local` fills missing values → existing process environment |
 | Platform API | safe code defaults → `appsettings.json` → optional `appsettings.{Environment}.json` → process environment → optional secret provider → approved non-secret command line |
 
 The API explicitly clears ASP.NET Core's incidental application-provider set and adds only the documented sources in this order. It does not load `.env` files or Development User Secrets. Supply local values through the shell, IDE launch configuration, container environment, or CI environment. ASP.NET hierarchical overrides use double underscores, so `PLATFORM__NAME` overrides `Platform:Name`. API configuration is resolved once at startup and does not dynamically reload.
@@ -101,6 +105,16 @@ Every web value is required at build time, non-sensitive, and publicly observabl
 | `NEXT_PUBLIC_ENVIRONMENT` | Enum | `development`, `test`, `staging`, or `production` |
 
 Changing a `NEXT_PUBLIC_*` value requires rebuilding the frontend. Public variables must never contain passwords, tokens, keys, credentials, or private connection strings.
+
+### Learning agent
+
+The learning agent has one required, non-sensitive browser value. It selects the command-console origin that owns the authenticated Noesis learning APIs and session.
+
+| Variable | Type | Purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_LEARNING_API_ORIGIN` | Absolute URL | Command-console origin serving the Noesis learning APIs |
+
+Changing this value requires rebuilding the learning agent. It must be an absolute credential-free HTTP(S) URL without query string or fragment.
 
 ### Platform API
 

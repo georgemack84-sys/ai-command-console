@@ -119,52 +119,529 @@ enum ReportStatus {
   published
 }
 
+enum KnowledgeScopeKind {
+  global
+  program
+  project
+  component
+  task
+  session
+}
+
+enum KnowledgeInheritance {
+  inheritable
+  local_only
+}
+
+enum KnowledgePromotionStatus {
+  pending
+  approved
+  rejected
+}
+
 model User {
-  id           String            @id @default(cuid())
-  email        String            @unique
-  passwordHash String
-  name         String
-  role         UserRole          @default(operator)
-  status       UserStatus        @default(active)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  memberships  WorkspaceMember[]
-  sessions     AuthSession[]
-  activities   ActivityEvent[]
-  briefs       ResearchBrief[]
-  reports      ResearchReport[]
-  savedViews   SavedView[]
-  alerts       Alert[]
-  createdInvites WorkspaceInvite[] @relation("CreatedWorkspaceInvites")
-  acceptedInvites WorkspaceInvite[] @relation("AcceptedWorkspaceInvites")
+  id                        String                     @id @default(cuid())
+  email                     String                     @unique
+  passwordHash              String
+  name                      String
+  role                      UserRole                   @default(operator)
+  status                    UserStatus                 @default(active)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  memberships               WorkspaceMember[]
+  sessions                  AuthSession[]
+  activities                ActivityEvent[]
+  briefs                    ResearchBrief[]
+  reports                   ResearchReport[]
+  savedViews                SavedView[]
+  alerts                    Alert[]
+  createdInvites            WorkspaceInvite[]          @relation("CreatedWorkspaceInvites")
+  acceptedInvites           WorkspaceInvite[]          @relation("AcceptedWorkspaceInvites")
+  skillEvidence             SkillEvidence[]
+  skillStates               SkillLearnerState[]
+  skillRecommendationEvents SkillRecommendationEvent[]
+  assessmentSessions        AssessmentSession[]
+  competencyProfiles        CompetencyProfile[]
+  assessmentRecommendations AssessmentRecommendation[]
+  learningPlans             LearningPlan[]
+  knowledgeEntries          KnowledgeEntry[]           @relation("KnowledgeCreatedBy")
+  requestedKnowledgePromotions KnowledgePromotion[]    @relation("KnowledgePromotionRequestedBy")
+  approvedKnowledgePromotions  KnowledgePromotion[]    @relation("KnowledgePromotionApprovedBy")
+}
+
+model SkillNode {
+  id                   String                @id
+  slug                 String                @unique
+  name                 String
+  description          String
+  status               String
+  modelVersion         String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  outgoingEdges        SkillEdge[]           @relation("SkillEdgeFrom")
+  incomingEdges        SkillEdge[]           @relation("SkillEdgeTo")
+  evidence             SkillEvidence[]
+  states               SkillLearnerState[]
+  assessmentBlueprints AssessmentBlueprint[]
+  assessmentItems      AssessmentItem[]
+  competencyProfiles   CompetencyProfile[]
+}
+
+model SkillEdge {
+  id          String    @id
+  fromSkillId String
+  toSkillId   String
+  type        String
+  strength    Float?
+  rationale   String
+  createdAt   DateTime  @default(now())
+  fromSkill   SkillNode @relation("SkillEdgeFrom", fields: [fromSkillId], references: [id], onDelete: Cascade)
+  toSkill     SkillNode @relation("SkillEdgeTo", fields: [toSkillId], references: [id], onDelete: Cascade)
+
+  @@unique([fromSkillId, toSkillId, type])
+}
+
+model SkillEvidence {
+  id                   String             @id
+  learnerId            String
+  skillId              String
+  kind                 String
+  occurredAt           DateTime
+  score                Float?
+  outcome              String
+  evaluator            String
+  sourceRef            String?
+  notes                String?
+  rubricVersion        String?
+  assessmentSessionId  String?
+  assessmentItemId     String?
+  evaluationType       String?
+  competencyDimensions String[]
+  learner              User               @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  skill                SkillNode          @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  assessmentSession    AssessmentSession? @relation("AssessmentSessionEvidence", fields: [assessmentSessionId], references: [id], onDelete: SetNull)
+  assessmentItem       AssessmentItem?    @relation("AssessmentItemEvidence", fields: [assessmentItemId], references: [id], onDelete: SetNull)
+
+  @@index([learnerId, skillId, occurredAt])
+  @@index([assessmentSessionId])
+  @@index([assessmentItemId])
+}
+
+model AssessmentBlueprint {
+  id                 String              @id @default(cuid())
+  skillId            String
+  version            String
+  objectives         Json
+  assessedSkillIds   String[]
+  targetCompetencies String[]
+  itemMix            Json
+  itemPlan           Json
+  rules              Json
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  skill              SkillNode           @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  items              AssessmentItem[]
+  sessions           AssessmentSession[]
+
+  @@unique([skillId, version])
+}
+
+model AssessmentItem {
+  id                     String               @id @default(cuid())
+  skillId                String
+  blueprintId            String?
+  evaluationType         String
+  prompt                 String
+  expectedResponseFormat String
+  rubric                 Json
+  difficulty             Int
+  version                String
+  competencyDimensions   String[]
+  content                Json?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  skill                  SkillNode            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  blueprint              AssessmentBlueprint? @relation(fields: [blueprintId], references: [id], onDelete: SetNull)
+  responses              AssessmentResponse[]
+  sessionItems           AssessmentSessionItem[]
+  evidence               SkillEvidence[]      @relation("AssessmentItemEvidence")
+
+  @@index([skillId, evaluationType, version])
+  @@index([blueprintId])
+}
+
+model AssessmentSession {
+  id                 String                    @id @default(cuid())
+  learnerId          String
+  blueprintId        String
+  targetSkillIds     String[]
+  state              String
+  blueprintVersion   String
+  startedAt          DateTime                  @default(now())
+  completedAt        DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  learner            User                      @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  blueprint          AssessmentBlueprint       @relation(fields: [blueprintId], references: [id], onDelete: Restrict)
+  responses          AssessmentResponse[]
+  sessionItems       AssessmentSessionItem[]
+  evidence           SkillEvidence[]           @relation("AssessmentSessionEvidence")
+  competencyProfiles CompetencyProfile[]
+  recommendation     AssessmentRecommendation?
+
+  @@index([learnerId, state])
+}
+
+model AssessmentResponse {
+  id                  String            @id @default(cuid())
+  sessionId           String
+  itemId              String
+  answer              Json
+  selfRatedConfidence Float?
+  evaluationResult    Json?
+  feedback            String?
+  submittedAt         DateTime          @default(now())
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  session             AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  item                AssessmentItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, itemId])
+  @@index([itemId])
+}
+
+model AssessmentSessionItem {
+  id        String            @id @default(cuid())
+  sessionId String
+  itemId    String
+  position  Int
+  createdAt DateTime          @default(now())
+  session   AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  item      AssessmentItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, itemId])
+  @@unique([sessionId, position])
+  @@index([itemId])
+}
+
+model CompetencyProfile {
+  id                 String            @id @default(cuid())
+  sessionId          String
+  learnerId          String
+  skillId            String
+  knowledge          Float?
+  application        Float?
+  troubleshooting    Float?
+  retention          Float?
+  calibration        Float?
+  score              Float?
+  confidenceInterval Json
+  evidenceCount      Int
+  calculationVersion String
+  calculatedAt       DateTime          @default(now())
+  session            AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  learner            User              @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  skill              SkillNode         @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, skillId])
+  @@index([learnerId, skillId, calculatedAt])
+}
+
+model AssessmentRecommendation {
+  id                         String            @id @default(cuid())
+  sessionId                  String            @unique
+  learnerId                  String
+  instructionalStartingPoint String
+  priorityGaps               Json
+  retestAt                   DateTime?
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
+  session                    AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  learner                    User              @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  @@index([learnerId, createdAt])
+}
+
+model SkillLearnerState {
+  id                 String    @id @default(cuid())
+  learnerId          String
+  skillId            String
+  mastery            Float?
+  confidence         Float
+  retentionScore     Float?
+  lastEvaluated      DateTime?
+  displayState       String
+  calculationVersion String
+  calculatedAt       DateTime
+  evidenceIds        String[]
+  learner            User      @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  skill              SkillNode @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([learnerId, skillId])
+}
+
+model SkillRecommendationEvent {
+  id             String   @id @default(cuid())
+  learnerId      String
+  targetSkillId  String?
+  blockedSkillId String
+  outcome        String
+  createdAt      DateTime @default(now())
+  learner        User     @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  @@index([learnerId, createdAt])
+}
+
+model LearningPlan {
+  id          String               @id @default(cuid())
+  learnerId   String
+  version     String
+  status      String
+  goal        Json
+  constraints Json
+  plan        Json
+  createdAt   DateTime             @default(now())
+  supersededAt DateTime?
+  learner     User                 @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  lessons     LearningPlanLesson[]
+  events      LearningPlanEvent[]
+
+  @@index([learnerId, createdAt])
+  @@index([learnerId, supersededAt])
+}
+
+model LearningPlanLesson {
+  id          String              @id @default(cuid())
+  planId      String
+  lessonKey   String
+  position    Int
+  skillId     String
+  lesson      Json
+  plan        LearningPlan        @relation(fields: [planId], references: [id], onDelete: Cascade)
+  events      LearningPlanEvent[]
+
+  @@unique([planId, lessonKey])
+  @@unique([planId, position])
+}
+
+model LearningPlanEvent {
+  id        String              @id @default(cuid())
+  planId    String
+  lessonId  String?
+  type      String
+  createdAt DateTime            @default(now())
+  metadata  Json?
+  plan      LearningPlan        @relation(fields: [planId], references: [id], onDelete: Cascade)
+  lesson    LearningPlanLesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([planId, createdAt])
+  @@index([lessonId])
 }
 
 model Workspace {
-  id          String            @id @default(cuid())
-  name        String
-  slug        String            @unique
-  description String
-  plan        String            @default("scale")
-  statusTone  String            @default("healthy")
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  members     WorkspaceMember[]
-  sources     Source[]
-  updates     MonitoredUpdate[]
-  insights    Insight[]
-  activity    ActivityEvent[]
-  savedViews  SavedView[]
-  briefs      ResearchBrief[]
-  reports     ResearchReport[]
-  invites     WorkspaceInvite[]
-  alerts      Alert[]
-  featureFlags WorkspaceFeatureFlag[]
-  agentTasks  AgentTask[]
-  operationsState WorkspaceOperationsState?
-  operationsFollowups OperationsFollowup[]
-  incidentApprovals IncidentApprovalRequest[]
-  policyOverride WorkspacePolicyOverride?
+  id                        String                           @id @default(cuid())
+  name                      String
+  slug                      String                           @unique
+  description               String
+  plan                      String                           @default("scale")
+  statusTone                String                           @default("healthy")
+  createdAt                 DateTime                         @default(now())
+  updatedAt                 DateTime                         @updatedAt
+  members                   WorkspaceMember[]
+  sources                   Source[]
+  updates                   MonitoredUpdate[]
+  insights                  Insight[]
+  activity                  ActivityEvent[]
+  savedViews                SavedView[]
+  briefs                    ResearchBrief[]
+  reports                   ResearchReport[]
+  invites                   WorkspaceInvite[]
+  alerts                    Alert[]
+  featureFlags              WorkspaceFeatureFlag[]
+  agentTasks                AgentTask[]
+  operationsState           WorkspaceOperationsState?
+  operationsFollowups       OperationsFollowup[]
+  incidentApprovals         IncidentApprovalRequest[]
+  policyOverride            WorkspacePolicyOverride?
   playbookRolloutWorkspaces PolicyPlaybookRolloutWorkspace[]
+  knowledgeScopes           KnowledgeScope[]
+  knowledgeEntries          KnowledgeEntry[]
+  knowledgePromotions       KnowledgePromotion[]
+  knowledgeSemanticKeys     KnowledgeSemanticKeyRecord[]
+  noesisAuthorityBindings       NoesisAuthorityBinding[]
+  noesisDurableRegistryStates   NoesisDurableRegistryState[]
+  noesisDurableKnowledge        NoesisDurableKnowledgeRecord[]
+  noesisGateAuditEvents         NoesisGateAuditEventRecord[]
+  noesisDeferredCandidates      NoesisDeferredCandidateEvent[]
+  noesisDeferredResolutions     NoesisDeferredResolutionEvent[]
+  noesisLearningAuditEvents     NoesisLearningAuditEvent[]
+  noesisTeachBacks              NoesisTeachBack[]
+  noesisTeachBackEvaluations    NoesisTeachBackEvaluation[]
+  noesisTeachBackReviews        NoesisTeachBackReview[]
+  noesisCorrections             NoesisCorrection[]
+  noesisCorrectionEvidence      NoesisCorrectionEvidence[]
+  noesisPrincipleArtifacts      NoesisPrincipleArtifact[]
+  noesisProcedureArtifacts      NoesisProcedureArtifact[]
+  noesisExampleArtifacts        NoesisExampleArtifact[]
+  noesisPreferenceArtifacts     NoesisPreferenceArtifact[]
+  noesisDecisionArtifacts       NoesisDecisionArtifact[]
+  noesisSkillArtifacts          NoesisSkillArtifact[]
+  noesisSkillGraphArtifacts     NoesisSkillGraphArtifact[]
+  noesisPracticeArtifacts       NoesisPracticeArtifact[]
+  noesisEvaluationArtifacts     NoesisEvaluationArtifact[]
+  noesisReflectionArtifacts     NoesisReflectionArtifact[]
+  noesisSocraticArtifacts       NoesisSocraticArtifact[]
+  noesisDecisionPredictionArtifacts NoesisDecisionPredictionArtifact[]
+  noesisKnowledgeGapArtifacts NoesisKnowledgeGapArtifact[]
+  noesisSelfDirectedLearningArtifacts NoesisSelfDirectedLearningArtifact[]
+  noesisGovernedExecutionArtifacts NoesisGovernedExecutionArtifact[]
+  noesisSourceCriticismArtifacts NoesisSourceCriticismArtifact[]
+  noesisEpistemicSynthesisArtifacts NoesisEpistemicSynthesisArtifact[]
+  noesisAutonomousPracticeArtifacts NoesisAutonomousPracticeArtifact[]
+  noesisAdversarialExaminationArtifacts NoesisAdversarialExaminationArtifact[]
+  noesisRetentionArtifacts NoesisRetentionArtifact[]
+  noesisSkillDiscoveryArtifacts NoesisSkillDiscoveryArtifact[]
+  noesisCapabilityArtifacts NoesisCapabilityArtifact[]
+  noesisLearningAnalyticsArtifacts NoesisLearningAnalyticsArtifact[]
+  noesisStrategyRegistryArtifacts NoesisStrategyRegistryArtifact[]
+  noesisStrategyEvaluationArtifacts NoesisStrategyEvaluationArtifact[]
+}
+
+model KnowledgeScope {
+  id          String             @id @default(cuid())
+  workspaceId String
+  name        String
+  kind        KnowledgeScopeKind
+  parentId    String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent      KnowledgeScope?    @relation("KnowledgeScopeHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    KnowledgeScope[]   @relation("KnowledgeScopeHierarchy")
+  records     KnowledgeEntry[]
+  promotionTargets KnowledgePromotion[]
+
+  @@index([workspaceId, kind])
+  @@index([workspaceId, parentId])
+}
+
+model KnowledgeEntry {
+  id                String                @id @default(cuid())
+  workspaceId       String
+  scopeId           String
+  title             String
+  content           String
+  semanticKey       String
+  semanticValue     String
+  inheritance       KnowledgeInheritance  @default(local_only)
+  visibility        String                @default("workspace")
+  sourceKnowledgeId String?
+  sourceScopeId     String?
+  overrideOfId      String?
+  supersededAt      DateTime?
+  supersededById    String?
+  createdById       String
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  workspace         Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  scope             KnowledgeScope        @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+  createdBy         User                  @relation("KnowledgeCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  sourceKnowledge   KnowledgeEntry?       @relation("KnowledgeSourceLineage", fields: [sourceKnowledgeId], references: [id], onDelete: SetNull)
+  derivedKnowledge  KnowledgeEntry[]      @relation("KnowledgeSourceLineage")
+  overrideOf        KnowledgeEntry?       @relation("KnowledgeOverrides", fields: [overrideOfId], references: [id], onDelete: SetNull)
+  overrides         KnowledgeEntry[]      @relation("KnowledgeOverrides")
+  promotionRequests KnowledgePromotion[]  @relation("KnowledgePromotionSource")
+  promotedKnowledge KnowledgePromotion[]  @relation("KnowledgePromotionResult")
+
+  @@index([workspaceId, scopeId, updatedAt])
+  @@index([workspaceId, semanticKey])
+  @@index([scopeId, inheritance])
+  @@index([overrideOfId])
+}
+
+model KnowledgePromotion {
+  id                  String                   @id @default(cuid())
+  workspaceId         String
+  sourceKnowledgeId   String
+  targetScopeId       String
+  promotedKnowledgeId String?                  @unique
+  provenanceRecordId  String?                  @map("provenance_record_id")
+  status              KnowledgePromotionStatus @default(pending)
+  requestedById       String
+  approvedById        String?
+  rejectionReason     String?
+  requestedAt         DateTime                 @default(now())
+  resolvedAt          DateTime?
+  workspace           Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceKnowledge     KnowledgeEntry           @relation("KnowledgePromotionSource", fields: [sourceKnowledgeId], references: [id], onDelete: Cascade)
+  promotedKnowledge   KnowledgeEntry?          @relation("KnowledgePromotionResult", fields: [promotedKnowledgeId], references: [id], onDelete: SetNull)
+  targetScope         KnowledgeScope           @relation(fields: [targetScopeId], references: [id], onDelete: Cascade)
+  requestedBy         User                     @relation("KnowledgePromotionRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  approvedBy          User?                    @relation("KnowledgePromotionApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status, requestedAt])
+  @@index([targetScopeId, status])
+  @@index([workspaceId, provenanceRecordId])
+}
+
+model KnowledgeSemanticKeyRecord {
+  id                String    @id @default(cuid())
+  workspaceId       String    @map("workspace_id")
+  key               String
+  description       String
+  allowedScopeKinds String[]  @map("allowed_scope_kinds")
+  valueKind         String    @map("value_kind")
+  allowedValues     String[]  @map("allowed_values")
+  ownerId           String    @map("owner_id")
+  version           Int       @default(1)
+  status            String    @default("ACTIVE")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId, status])
+  @@map("knowledge_semantic_key_registry")
+}
+
+model KnowledgeSemanticKeyVersionRecord {
+  id                String   @id @default(cuid())
+  workspaceId       String   @map("workspace_id")
+  key               String
+  version           Int
+  description       String
+  allowedScopeKinds String[] @map("allowed_scope_kinds")
+  valueKind         String   @map("value_kind")
+  allowedValues     String[] @map("allowed_values")
+  ownerId           String   @map("owner_id")
+  status            String
+  changeRequestId   String?  @map("change_request_id")
+  activatedAt       DateTime @map("activated_at")
+  retiredAt         DateTime? @map("retired_at")
+
+  @@unique([workspaceId, key, version])
+  @@map("knowledge_semantic_key_versions")
+}
+
+model KnowledgeSemanticKeyChangeRequestRecord {
+  requestId         String   @id @map("request_id")
+  workspaceId       String   @map("workspace_id")
+  key               String
+  operation         String   @default("UPSERT")
+  baseVersion       Int      @map("base_version")
+  description       String
+  allowedScopeKinds String[] @map("allowed_scope_kinds")
+  valueKind         String   @map("value_kind")
+  allowedValues     String[] @map("allowed_values")
+  requestedById     String   @map("requested_by_id")
+  status            String   @default("PENDING")
+  approvedById      String?  @map("approved_by_id")
+  rejectionReason   String?  @map("rejection_reason")
+  requestedAt       DateTime @default(now()) @map("requested_at")
+  resolvedAt        DateTime? @map("resolved_at")
+
+  @@index([workspaceId, status, requestedAt])
+  @@map("knowledge_semantic_key_change_requests")
 }
 
 model WorkspaceInvite {
@@ -265,7 +742,7 @@ model Insight {
 }
 
 model Alert {
-  id          String        @id @default(cuid())
+  id          String           @id @default(cuid())
   workspaceId String
   userId      String?
   sourceId    String?
@@ -274,39 +751,39 @@ model Alert {
   type        String
   title       String
   message     String
-  severity    AlertSeverity @default(info)
-  status      AlertStatus   @default(unread)
+  severity    AlertSeverity    @default(info)
+  status      AlertStatus      @default(unread)
   readAt      DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  source      Source?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  source      Source?          @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   update      MonitoredUpdate? @relation(fields: [updateId], references: [id], onDelete: SetNull)
-  insight     Insight?      @relation(fields: [insightId], references: [id], onDelete: SetNull)
+  insight     Insight?         @relation(fields: [insightId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, status])
   @@index([userId, status])
 }
 
 model FeatureFlag {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  description String?
-  enabled     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String                 @id @default(cuid())
+  key                String                 @unique
+  description        String?
+  enabled            Boolean                @default(false)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   workspaceOverrides WorkspaceFeatureFlag[]
 }
 
 model WorkspaceFeatureFlag {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   workspaceId String
   flagId      String
-  enabled     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  enabled     Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   flag        FeatureFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, flagId])
@@ -314,30 +791,43 @@ model WorkspaceFeatureFlag {
 }
 
 model AgentTask {
-  id          String        @id @default(cuid())
-  workspaceId String
-  type        String
-  status      AgentTaskStatus @default(queued)
-  input       Json?
-  output      Json?
+  id            String           @id @default(cuid())
+  workspaceId   String
+  type          String
+  status        AgentTaskStatus  @default(queued)
+  input         Json?
+  output        Json?
   requestedById String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  executions  AgentExecution[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  executions    AgentExecution[]
 
   @@index([workspaceId, status])
+  @@index([workspaceId, status, createdAt])
+  @@index([workspaceId, status, updatedAt])
+}
+
+model ScopeMonitoringState {
+  id                  String   @id
+  lastStartedAt       DateTime?
+  lastCompletedAt     DateTime?
+  lastFailureAt       DateTime?
+  lastFailureMessage  String?
+  lastWorkspaceCount  Int      @default(0)
+  lastAlertsCreated   Int      @default(0)
+  updatedAt           DateTime @updatedAt
 }
 
 model AgentExecution {
-  id          String            @id @default(cuid())
+  id          String               @id @default(cuid())
   taskId      String
   status      AgentExecutionStatus @default(running)
-  startedAt   DateTime          @default(now())
+  startedAt   DateTime             @default(now())
   completedAt DateTime?
   error       String?
   metadata    Json?
-  task        AgentTask         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task        AgentTask            @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId, status])
 }
@@ -372,155 +862,155 @@ model SavedView {
 }
 
 model ResearchBrief {
-  id            String         @id @default(cuid())
+  id            String           @id @default(cuid())
   workspaceId   String
   ownerId       String?
   title         String
   question      String
-  status        BriefStatus    @default(draft)
-  priority      BriefPriority  @default(medium)
+  status        BriefStatus      @default(draft)
+  priority      BriefPriority    @default(medium)
   assignedAgent String
   tags          String[]
   summary       String
   linkedTaskId  String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  owner         User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner         User?            @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   reports       ResearchReport[]
 }
 
 model ResearchReport {
-  id          String       @id @default(cuid())
+  id          String        @id @default(cuid())
   workspaceId String
   briefId     String
   ownerId     String?
   title       String
   format      ReportFormat
-  status      ReportStatus @default(draft)
+  status      ReportStatus  @default(draft)
   excerpt     String
   keyFindings String[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   brief       ResearchBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
-  owner       User?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  owner       User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 }
 
 model WorkspaceOperationsState {
-  id                           String    @id @default(cuid())
-  workspaceId                  String    @unique
-  escalationOwner              String?
-  incidentApproverTarget       String?
-  backupApproverTarget         String?
-  snoozedUntil                 DateTime?
-  resolutionTaskId             String?
-  resolutionCompletedAt        DateTime?
-  resolutionDescription        String?
-  resolutionOwnerName          String?
-  incidentSummary              String?
-  incidentSummaryUpdatedAt     DateTime?
-  incidentHandoffDraft         String?
+  id                            String    @id @default(cuid())
+  workspaceId                   String    @unique
+  escalationOwner               String?
+  incidentApproverTarget        String?
+  backupApproverTarget          String?
+  snoozedUntil                  DateTime?
+  resolutionTaskId              String?
+  resolutionCompletedAt         DateTime?
+  resolutionDescription         String?
+  resolutionOwnerName           String?
+  incidentSummary               String?
+  incidentSummaryUpdatedAt      DateTime?
+  incidentHandoffDraft          String?
   incidentHandoffDraftUpdatedAt DateTime?
   incidentArchiveRecommendation String?
-  incidentStatus               String    @default("open")
-  incidentStatusUpdatedAt      DateTime?
-  incidentChecklist            Json?
-  lastSweepRunAt               DateTime?
-  lastSweepQueuedAt            DateTime?
-  lastGeneratedCount           Int       @default(0)
-  lastSweepError               String?
-  createdAt                    DateTime  @default(now())
-  updatedAt                    DateTime  @updatedAt
-  workspace                    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  incidentStatus                String    @default("open")
+  incidentStatusUpdatedAt       DateTime?
+  incidentChecklist             Json?
+  lastSweepRunAt                DateTime?
+  lastSweepQueuedAt             DateTime?
+  lastGeneratedCount            Int       @default(0)
+  lastSweepError                String?
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
+  workspace                     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 
 model OperationsFollowup {
-  id              String    @id @default(cuid())
-  workspaceId     String
-  agentName       String
-  description     String
-  status          String    @default("queued")
-  priority        Int       @default(2)
-  ownerId         String?
-  ownerName       String?
+  id                String    @id @default(cuid())
+  workspaceId       String
+  agentName         String
+  description       String
+  status            String    @default("queued")
+  priority          Int       @default(2)
+  ownerId           String?
+  ownerName         String?
   linkedInboxItemId String?
-  createdAt       DateTime  @default(now())
-  completedAt     DateTime?
-  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+  completedAt       DateTime?
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, status])
 }
 
 model IncidentApprovalRequest {
-  id                String    @id @default(cuid())
-  workspaceId       String
-  label             String
-  requestedStatus   String
-  status            String    @default("pending")
-  approverTarget    String?
-  routingMode       String?
-  routingReason     String?
-  routedFromTarget  String?
-  requestedById     String?
-  requestedByName   String?
-  approvedById      String?
-  approvedByName    String?
-  rejectedById      String?
-  rejectedByName    String?
-  rejectionNote     String?
-  archiveRationale  String?
-  createdAt         DateTime  @default(now())
-  resolvedAt        DateTime?
-  updatedAt         DateTime  @updatedAt
-  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id               String    @id @default(cuid())
+  workspaceId      String
+  label            String
+  requestedStatus  String
+  status           String    @default("pending")
+  approverTarget   String?
+  routingMode      String?
+  routingReason    String?
+  routedFromTarget String?
+  requestedById    String?
+  requestedByName  String?
+  approvedById     String?
+  approvedByName   String?
+  rejectedById     String?
+  rejectedByName   String?
+  rejectionNote    String?
+  archiveRationale String?
+  createdAt        DateTime  @default(now())
+  resolvedAt       DateTime?
+  updatedAt        DateTime  @updatedAt
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, status])
   @@index([approverTarget, status])
 }
 
 model PlatformGovernanceSettings {
-  id                               String   @id @default("default")
-  currentEnvironment               String   @default("development")
-  sensitiveActionsRequireApproval  Boolean  @default(true)
-  demoScenarioId                   String?
-  demoScenarioName                 String?
-  demoScenarioDescription          String?
-  createdAt                        DateTime @default(now())
-  updatedAt                        DateTime @updatedAt
+  id                              String   @id @default("default")
+  currentEnvironment              String   @default("development")
+  sensitiveActionsRequireApproval Boolean  @default(true)
+  demoScenarioId                  String?
+  demoScenarioName                String?
+  demoScenarioDescription         String?
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
 }
 
 model EnvironmentPolicy {
-  id                                  String   @id @default(cuid())
-  environment                         String   @unique
-  minimumRoleForCommands              String
-  minimumRoleForApprovals             String
-  minimumRoleForGovernance            String
-  requireChecklistForResolved         Boolean  @default(false)
-  requiredChecklistForResolved        String[]
-  requireSummaryShareBeforeArchived   Boolean  @default(false)
-  requireApprovalForResolved          Boolean  @default(false)
-  requireApprovalForArchived          Boolean  @default(false)
-  incidentApprovalReminderMinutes     Int      @default(30)
-  incidentApprovalEscalationMinutes   Int      @default(60)
-  incidentApprovalEscalationTarget    String   @default("team")
-  incidentApprovalFinalEscalationMinutes Int   @default(120)
-  incidentApprovalFinalEscalationTarget String @default("role:admin")
-  incidentApprovalCapacityLimit       Int      @default(3)
-  autoPromoteApprovalRecommendations  Boolean  @default(false)
-  autoPromoteRecommendationConfidence Float    @default(0.9)
-  autoPromoteObservationHours         Int      @default(24)
-  autoPromoteCooldownHours            Int      @default(72)
-  trustDropAction                     String   @default("notify")
-  trustDropFollowupOwner              String?
-  promoteTrustDropToIncident          Boolean  @default(false)
-  createdAt                           DateTime @default(now())
-  updatedAt                           DateTime @updatedAt
+  id                                     String   @id @default(cuid())
+  environment                            String   @unique
+  minimumRoleForCommands                 String
+  minimumRoleForApprovals                String
+  minimumRoleForGovernance               String
+  requireChecklistForResolved            Boolean  @default(false)
+  requiredChecklistForResolved           String[]
+  requireSummaryShareBeforeArchived      Boolean  @default(false)
+  requireApprovalForResolved             Boolean  @default(false)
+  requireApprovalForArchived             Boolean  @default(false)
+  incidentApprovalReminderMinutes        Int      @default(30)
+  incidentApprovalEscalationMinutes      Int      @default(60)
+  incidentApprovalEscalationTarget       String   @default("team")
+  incidentApprovalFinalEscalationMinutes Int      @default(120)
+  incidentApprovalFinalEscalationTarget  String   @default("role:admin")
+  incidentApprovalCapacityLimit          Int      @default(3)
+  autoPromoteApprovalRecommendations     Boolean  @default(false)
+  autoPromoteRecommendationConfidence    Float    @default(0.9)
+  autoPromoteObservationHours            Int      @default(24)
+  autoPromoteCooldownHours               Int      @default(72)
+  trustDropAction                        String   @default("notify")
+  trustDropFollowupOwner                 String?
+  promoteTrustDropToIncident             Boolean  @default(false)
+  createdAt                              DateTime @default(now())
+  updatedAt                              DateTime @updatedAt
 }
 
 model WorkspacePolicyOverride {
-  id                              String   @id @default(cuid())
-  workspaceId                     String   @unique
+  id                              String          @id @default(cuid())
+  workspaceId                     String          @unique
   environment                     String?
   incidentApprovalCapacityLimit   Int?
   incidentApprovalReminderMinutes Int?
@@ -533,181 +1023,762 @@ model WorkspacePolicyOverride {
   sourcePlaybookId                String?
   updatedById                     String?
   updatedByName                   String?
-  createdAt                       DateTime @default(now())
-  updatedAt                       DateTime @updatedAt
-  workspace                       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt                       DateTime        @default(now())
+  updatedAt                       DateTime        @updatedAt
+  workspace                       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   sourcePlaybook                  PolicyPlaybook? @relation(fields: [sourcePlaybookId], references: [id], onDelete: SetNull)
 
   @@index([sourcePlaybookId])
 }
 
 model PolicyPlaybook {
-  id                            String   @id
+  id                            String                    @id
   name                          String
   environment                   String
   incidentApprovalCapacityLimit Int
   trustDropAction               String
-  requireApprovalForResolved    Boolean  @default(false)
-  promoteTrustDropToIncident    Boolean  @default(false)
+  requireApprovalForResolved    Boolean                   @default(false)
+  promoteTrustDropToIncident    Boolean                   @default(false)
   description                   String?
-  isPreset                      Boolean  @default(false)
+  isPreset                      Boolean                   @default(false)
   createdById                   String?
   createdByName                 String?
-  createdAt                     DateTime @default(now())
-  updatedAt                     DateTime @updatedAt
+  createdAt                     DateTime                  @default(now())
+  updatedAt                     DateTime                  @updatedAt
   rollouts                      PolicyPlaybookRollout[]
   sourcedOverrides              WorkspacePolicyOverride[]
 }
 
 model PolicyPlaybookRollout {
-  id             String   @id @default(cuid())
+  id             String                           @id @default(cuid())
   playbookId     String
   environment    String
-  workspaceCount Int      @default(0)
+  workspaceCount Int                              @default(0)
   appliedById    String?
   appliedByName  String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime                         @default(now())
   rolledBackAt   DateTime?
-  playbook       PolicyPlaybook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  playbook       PolicyPlaybook                   @relation(fields: [playbookId], references: [id], onDelete: Cascade)
   workspaces     PolicyPlaybookRolloutWorkspace[]
 
   @@index([playbookId, createdAt])
 }
 
 model PolicyPlaybookRolloutWorkspace {
-  id               String   @id @default(cuid())
-  rolloutId        String
-  workspaceId      String
-  workspaceName    String
-  beforeOverride   Json?
-  afterOverride    Json?
-  createdAt        DateTime @default(now())
-  rollout          PolicyPlaybookRollout @relation(fields: [rolloutId], references: [id], onDelete: Cascade)
-  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id             String                @id @default(cuid())
+  rolloutId      String
+  workspaceId    String
+  workspaceName  String
+  beforeOverride Json?
+  afterOverride  Json?
+  createdAt      DateTime              @default(now())
+  rollout        PolicyPlaybookRollout @relation(fields: [rolloutId], references: [id], onDelete: Cascade)
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([rolloutId, workspaceId])
   @@index([workspaceId, createdAt])
 }
 
 model ConstitutionalResilienceStateRecord {
-  resilienceId             String   @id @map("resilience_id")
-  resilienceState          String   @map("resilience_state")
-  continuityMode           String   @map("continuity_mode")
-  survivabilityConfidence  Float    @map("survivability_confidence")
-  constitutionalIntegrity  Float    @map("constitutional_integrity")
-  operationalStability     Float    @map("operational_stability")
-  createdAt                DateTime @map("created_at")
+  resilienceId            String   @id @map("resilience_id")
+  resilienceState         String   @map("resilience_state")
+  continuityMode          String   @map("continuity_mode")
+  survivabilityConfidence Float    @map("survivability_confidence")
+  constitutionalIntegrity Float    @map("constitutional_integrity")
+  operationalStability    Float    @map("operational_stability")
+  createdAt               DateTime @map("created_at")
 
   @@map("constitutional_resilience_state")
 }
 
 model ConstitutionalReadinessAssessmentRecord {
-  readinessAssessmentId          String   @id @map("readiness_assessment_id")
-  readinessState                String   @map("readiness_state")
-  readinessConfidence           Float    @map("readiness_confidence")
-  governanceReliability         Float    @map("governance_reliability")
-  auditIntegrity                Float    @map("audit_integrity")
-  containmentSurvivability      Float    @map("containment_survivability")
-  enforcementConsistency        Float    @map("enforcement_consistency")
-  constitutionalSafe            Boolean  @map("constitutional_safe")
-  advisoryOnly                  Boolean  @map("advisory_only")
-  generatedAt                   DateTime @map("generated_at")
+  readinessAssessmentId    String   @id @map("readiness_assessment_id")
+  readinessState           String   @map("readiness_state")
+  readinessConfidence      Float    @map("readiness_confidence")
+  governanceReliability    Float    @map("governance_reliability")
+  auditIntegrity           Float    @map("audit_integrity")
+  containmentSurvivability Float    @map("containment_survivability")
+  enforcementConsistency   Float    @map("enforcement_consistency")
+  constitutionalSafe       Boolean  @map("constitutional_safe")
+  advisoryOnly             Boolean  @map("advisory_only")
+  generatedAt              DateTime @map("generated_at")
 
   @@map("constitutional_readiness_assessments")
 }
 
 model CollapsePreventionEvent {
-  preventionEventId             String   @id @map("prevention_event_id")
-  collapseRisk                  Float    @map("collapse_risk")
-  protectedDomains              Json     @map("protected_domains")
-  containmentActions            Json     @map("containment_actions")
-  escalationActions             Json     @map("escalation_actions")
-  survivabilityResult           String   @map("survivability_result")
-  createdAt                     DateTime @map("created_at")
+  preventionEventId   String   @id @map("prevention_event_id")
+  collapseRisk        Float    @map("collapse_risk")
+  protectedDomains    Json     @map("protected_domains")
+  containmentActions  Json     @map("containment_actions")
+  escalationActions   Json     @map("escalation_actions")
+  survivabilityResult String   @map("survivability_result")
+  createdAt           DateTime @map("created_at")
 
   @@map("collapse_prevention_events")
 }
 
 model ConstitutionalSovereigntyStateRecord {
-  sovereigntyId             String   @id @map("sovereignty_id")
-  sovereigntyState          String   @map("sovereignty_state")
-  constitutionalIntegrity   Float    @map("constitutional_integrity")
-  survivabilityConfidence   Float    @map("survivability_confidence")
-  operationalStability      Float    @map("operational_stability")
-  governanceReliability     Float    @map("governance_reliability")
-  createdAt                 DateTime @map("created_at")
+  sovereigntyId           String   @id @map("sovereignty_id")
+  sovereigntyState        String   @map("sovereignty_state")
+  constitutionalIntegrity Float    @map("constitutional_integrity")
+  survivabilityConfidence Float    @map("survivability_confidence")
+  operationalStability    Float    @map("operational_stability")
+  governanceReliability   Float    @map("governance_reliability")
+  createdAt               DateTime @map("created_at")
 
   @@map("constitutional_sovereignty_state")
 }
 
 model CivilizationGovernanceLedgerRecord {
-  ledgerId                  String   @id @map("ledger_id")
-  sovereigntyState          String   @map("sovereignty_state")
-  validationState           String   @map("validation_state")
-  operatorSupremacyPreserved Boolean @map("operator_supremacy_preserved")
-  advisoryOnly              Boolean  @map("advisory_only")
-  blockedReasons            Json     @map("blocked_reasons")
-  createdAt                 DateTime @map("created_at")
+  ledgerId                   String   @id @map("ledger_id")
+  sovereigntyState           String   @map("sovereignty_state")
+  validationState            String   @map("validation_state")
+  operatorSupremacyPreserved Boolean  @map("operator_supremacy_preserved")
+  advisoryOnly               Boolean  @map("advisory_only")
+  blockedReasons             Json     @map("blocked_reasons")
+  createdAt                  DateTime @map("created_at")
 
   @@map("civilization_governance_ledger")
 }
 
+model AuthorityLedgerEventRecord {
+  eventId               String   @id @map("event_id")
+  eventType             String   @map("event_type")
+  authorityId           String   @map("authority_id")
+  relatedAuthorityId    String?  @map("related_authority_id")
+  reason                String
+  authorityRecord       Json?    @map("authority_record")
+  previousAuthorityType String?  @map("previous_authority_type")
+  newAuthorityType      String?  @map("new_authority_type")
+  authorizedBy          String?  @map("authorized_by")
+  evidenceIds           String[] @map("evidence_ids")
+  occurredAt            DateTime @map("occurred_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  @@index([authorityId, occurredAt])
+  @@index([relatedAuthorityId, occurredAt])
+  @@map("authority_ledger_events")
+}
+
+model AuthorityReviewRequestRecord {
+  reviewId        String   @id @map("review_id")
+  workspaceId     String   @map("workspace_id")
+  authorityRecord Json     @map("authority_record")
+  knowledgeSubmission Json? @map("knowledge_submission")
+  reasonCode      String   @map("reason_code")
+  status          String   @default("PENDING")
+  requestedAt     DateTime @default(now()) @map("requested_at")
+  resolvedAt      DateTime? @map("resolved_at")
+  resolvedBy      String?  @map("resolved_by")
+  rejectionReason String?  @map("rejection_reason")
+  resolutionAction String? @map("resolution_action")
+
+  @@index([workspaceId, status, requestedAt])
+  @@map("authority_review_requests")
+}
+
 model SovereignRiskRegistryRecord {
-  registryId                String   @id @map("registry_id")
-  sovereigntyState          String   @map("sovereignty_state")
-  systemicRisk              Float    @map("systemic_risk")
-  autonomyRisk              Float    @map("autonomy_risk")
-  civilizationScaleRisk     Float    @map("civilization_scale_risk")
-  unstableSystems           Json     @map("unstable_systems")
-  frozenSystems             Json     @map("frozen_systems")
-  createdAt                 DateTime @map("created_at")
+  registryId            String   @id @map("registry_id")
+  sovereigntyState      String   @map("sovereignty_state")
+  systemicRisk          Float    @map("systemic_risk")
+  autonomyRisk          Float    @map("autonomy_risk")
+  civilizationScaleRisk Float    @map("civilization_scale_risk")
+  unstableSystems       Json     @map("unstable_systems")
+  frozenSystems         Json     @map("frozen_systems")
+  createdAt             DateTime @map("created_at")
 
   @@map("sovereign_risk_registry")
 }
 
 model ConstitutionalValidationResultRecord {
-  validationId              String   @id @map("validation_id")
-  validationState           String   @map("validation_state")
-  severity                  String   @map("severity")
-  constitutionalSafe        Boolean  @map("constitutional_safe")
-  survivabilitySafe         Boolean  @map("survivability_safe")
-  autonomySafe              Boolean  @map("autonomy_safe")
-  governanceIntegrity       Float    @map("governance_integrity")
-  containmentIntegrity      Float    @map("containment_integrity")
-  operationalStability      Float    @map("operational_stability")
-  failures                  Json     @map("failures")
-  warnings                  Json     @map("warnings")
-  disputedSystems           Json     @map("disputed_systems")
-  rollbackRequired          Boolean  @map("rollback_required")
-  containmentRequired       Boolean  @map("containment_required")
-  escalationRequired        Boolean  @map("escalation_required")
-  immutableAuditVerified    Boolean  @map("immutable_audit_verified")
-  createdAt                 DateTime @map("created_at")
+  validationId           String   @id @map("validation_id")
+  validationState        String   @map("validation_state")
+  severity               String   @map("severity")
+  constitutionalSafe     Boolean  @map("constitutional_safe")
+  survivabilitySafe      Boolean  @map("survivability_safe")
+  autonomySafe           Boolean  @map("autonomy_safe")
+  governanceIntegrity    Float    @map("governance_integrity")
+  containmentIntegrity   Float    @map("containment_integrity")
+  operationalStability   Float    @map("operational_stability")
+  failures               Json     @map("failures")
+  warnings               Json     @map("warnings")
+  disputedSystems        Json     @map("disputed_systems")
+  rollbackRequired       Boolean  @map("rollback_required")
+  containmentRequired    Boolean  @map("containment_required")
+  escalationRequired     Boolean  @map("escalation_required")
+  immutableAuditVerified Boolean  @map("immutable_audit_verified")
+  createdAt              DateTime @map("created_at")
 
   @@map("constitutional_validation_results")
 }
 
 model RuntimeChaosEventRecord {
-  chaosEventId              String   @id @map("chaos_event_id")
-  replayCorrupted           Boolean  @map("replay_corrupted")
-  containmentFailed         Boolean  @map("containment_failed")
-  escalationStorm           Boolean  @map("escalation_storm")
-  dependencyCollapse        Boolean  @map("dependency_collapse")
-  validationState           String   @map("validation_state")
-  severity                  String   @map("severity")
-  createdAt                 DateTime @map("created_at")
+  chaosEventId       String   @id @map("chaos_event_id")
+  replayCorrupted    Boolean  @map("replay_corrupted")
+  containmentFailed  Boolean  @map("containment_failed")
+  escalationStorm    Boolean  @map("escalation_storm")
+  dependencyCollapse Boolean  @map("dependency_collapse")
+  validationState    String   @map("validation_state")
+  severity           String   @map("severity")
+  createdAt          DateTime @map("created_at")
 
   @@map("runtime_chaos_events")
 }
 
 model GovernanceConflictEventRecord {
-  conflictEventId           String   @id @map("conflict_event_id")
-  disputedSystems           Json     @map("disputed_systems")
-  constitutionalSafe        Boolean  @map("constitutional_safe")
-  containmentRequired       Boolean  @map("containment_required")
-  escalationRequired        Boolean  @map("escalation_required")
-  blockedReasons            Json     @map("blocked_reasons")
-  createdAt                 DateTime @map("created_at")
+  conflictEventId     String   @id @map("conflict_event_id")
+  disputedSystems     Json     @map("disputed_systems")
+  constitutionalSafe  Boolean  @map("constitutional_safe")
+  containmentRequired Boolean  @map("containment_required")
+  escalationRequired  Boolean  @map("escalation_required")
+  blockedReasons      Json     @map("blocked_reasons")
+  createdAt           DateTime @map("created_at")
 
   @@map("governance_conflict_events")
+}
+
+// Phase 7: append-only historical provenance. Payload remains typed by the
+// learning-constitution contract while the ledger retains every record kind.
+model NoesisProvenanceRecord {
+  recordId   String   @id @map("record_id")
+  workspaceId String  @map("workspace_id")
+  recordType String   @map("record_type")
+  payload    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, recordType, createdAt])
+  @@map("noesis_provenance_records")
+}
+
+model NoesisProvenanceRelationship {
+  relationshipId   String   @id @map("relationship_id")
+  workspaceId      String   @map("workspace_id")
+  fromRecordId     String   @map("from_record_id")
+  toRecordId       String   @map("to_record_id")
+  relationshipType String   @map("relationship_type")
+  actor            Json
+  createdAt        DateTime @map("created_at")
+
+  @@unique([workspaceId, fromRecordId, toRecordId, relationshipType])
+  @@index([workspaceId, fromRecordId, createdAt])
+  @@index([workspaceId, toRecordId, createdAt])
+  @@map("noesis_provenance_relationships")
+}
+
+// Phase 9: workspace-isolated durable-learning commit boundary. These tables
+// are append-only facts; current deferred state is derived from event history.
+model NoesisAuthorityBinding {
+  bindingId       String   @id @map("binding_id")
+  workspaceId     String   @map("workspace_id")
+  authorityId     String   @map("authority_id")
+  authorityRecord Json     @map("authority_record")
+  createdAt       DateTime @default(now()) @map("created_at")
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, authorityId])
+  @@index([workspaceId, createdAt])
+  @@map("noesis_authority_bindings")
+}
+
+model NoesisDurableRegistryState {
+  stateId     String   @id @map("state_id")
+  workspaceId String   @map("workspace_id")
+  version     Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId])
+  @@map("noesis_durable_registry_state")
+}
+
+model NoesisDurableKnowledgeRecord {
+  knowledgeId          String   @id @map("knowledge_id")
+  workspaceId          String   @map("workspace_id")
+  candidateId          String   @map("candidate_id")
+  candidateFingerprint String   @map("candidate_fingerprint")
+  gateDecisionId       String   @map("gate_decision_id")
+  registryVersion      Int      @map("registry_version")
+  payload              Json
+  createdAt            DateTime @default(now()) @map("created_at")
+  workspace            Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, candidateId])
+  @@unique([workspaceId, gateDecisionId])
+  @@index([workspaceId, registryVersion])
+  @@map("noesis_durable_knowledge_records")
+}
+
+model NoesisGateAuditEventRecord {
+  eventId      String   @id @map("event_id")
+  workspaceId  String   @map("workspace_id")
+  sequence     Int
+  previousHash String?  @map("previous_hash")
+  eventHash    String   @map("event_hash")
+  candidateId  String   @map("candidate_id")
+  payload      Json
+  occurredAt   DateTime @map("occurred_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, candidateId, occurredAt])
+  @@map("noesis_gate_audit_events")
+}
+
+model NoesisDeferredCandidateEvent {
+  eventId             String   @id @map("event_id")
+  workspaceId         String   @map("workspace_id")
+  sequence            Int
+  previousHash        String?  @map("previous_hash")
+  eventHash           String   @map("event_hash")
+  deferredCandidateId String   @map("deferred_candidate_id")
+  candidateId         String   @map("candidate_id")
+  payload             Json
+  occurredAt          DateTime @map("occurred_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, deferredCandidateId, occurredAt])
+  @@map("noesis_deferred_candidate_events")
+}
+
+model NoesisDeferredResolutionEvent {
+  eventId     String   @id @map("event_id")
+  workspaceId String   @map("workspace_id")
+  sequence    Int
+  previousHash String? @map("previous_hash")
+  eventHash   String   @map("event_hash")
+  candidateId String   @map("candidate_id")
+  payload     Json
+  occurredAt  DateTime @map("occurred_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, candidateId, occurredAt])
+  @@map("noesis_deferred_resolution_events")
+}
+
+// Phase 10: canonical, workspace-scoped historical spine for durable learning.
+model NoesisLearningAuditEvent {
+  eventId      String   @id @map("event_id")
+  workspaceId  String   @map("workspace_id")
+  sequence     Int
+  previousHash String?  @map("previous_hash")
+  eventHash    String   @map("event_hash")
+  eventType    String   @map("event_type")
+  correlationId String  @map("correlation_id")
+  knowledgeIds String[] @default([]) @map("knowledge_ids")
+  payload      Json
+  occurredAt   DateTime @map("occurred_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([workspaceId, correlationId, occurredAt])
+  @@index([workspaceId, eventType, occurredAt])
+  @@index([workspaceId, knowledgeIds])
+  @@map("noesis_learning_audit_events")
+}
+
+model NoesisTeachBack {
+  teachBackId String @id @map("teach_back_id")
+  workspaceId String @map("workspace_id")
+  candidateId String @map("candidate_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, candidateId, createdAt])
+  @@map("noesis_teach_backs")
+}
+model NoesisTeachBackEvaluation {
+  evidenceId String @id @map("evidence_id")
+  workspaceId String @map("workspace_id")
+  teachBackId String @map("teach_back_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, teachBackId, createdAt])
+  @@map("noesis_teach_back_evaluations")
+}
+model NoesisTeachBackReview {
+  decisionId String @id @map("decision_id")
+  workspaceId String @map("workspace_id")
+  teachBackId String @map("teach_back_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, teachBackId, createdAt])
+  @@map("noesis_teach_back_reviews")
+}
+
+// Phase 12: append-only correction cases and their analysis, repair, and retest evidence.
+model NoesisCorrection {
+  correctionId String @id @map("correction_id")
+  workspaceId String @map("workspace_id")
+  status String
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status, createdAt])
+  @@map("noesis_corrections")
+}
+model NoesisCorrectionEvidence {
+  recordId String @id @map("record_id")
+  workspaceId String @map("workspace_id")
+  correctionId String @map("correction_id")
+  recordType String @map("record_type")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, correctionId, recordType, createdAt])
+  @@map("noesis_correction_evidence")
+}
+
+// Phase 13: append-only evidence and lifecycle artifacts for principle learning.
+model NoesisPrincipleArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_principle_artifacts")
+}
+
+// Phase 14: append-only procedure definitions, reviews, simulations, and execution evidence.
+model NoesisProcedureArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_procedure_artifacts")
+}
+
+// Phase 15: append-only example candidates and lifecycle evidence. Example payloads are evidence-only.
+model NoesisExampleArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_example_artifacts")
+}
+
+// Phase 16: append-only preference candidates, validation, and lifecycle evidence.
+model NoesisPreferenceArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_preference_artifacts")
+}
+
+// Phase 17: append-only contextual decision and judgment evidence.
+model NoesisDecisionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_decision_artifacts")
+}
+
+model NoesisSkillArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_skill_artifacts")
+}
+
+// Phase 19: immutable dependency proposals, admissions, and graph versions.
+model NoesisSkillGraphArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_skill_graph_artifacts")
+}
+
+// Phase 20: immutable exercises, evaluator specifications, attempts, evidence, and lifecycle facts.
+model NoesisPracticeArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_practice_artifacts")
+}
+
+// Phase 21: immutable evaluation, scoring, validity, and competence evidence facts.
+model NoesisEvaluationArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_evaluation_artifacts")
+}
+
+// Phase 22: immutable reflection cases, diagnostic evidence, and root-cause hypotheses.
+model NoesisReflectionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_reflection_artifacts")
+}
+
+// Phase 23: immutable Socratic objectives, working-model maps, and session facts.
+model NoesisSocraticArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_socratic_artifacts")
+}
+
+// Phase 24: immutable, inference-only teacher-judgment predictions.
+model NoesisDecisionPredictionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_decision_prediction_artifacts")
+}
+
+// Phase 25: append-only epistemic assessments and knowledge-gap lifecycle evidence.
+model NoesisKnowledgeGapArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_knowledge_gap_artifacts")
+}
+
+// Phase 26: immutable learning opportunities, proposals, approvals, and execution leases.
+model NoesisSelfDirectedLearningArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_self_directed_learning_artifacts")
+}
+
+model NoesisGovernedExecutionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_governed_execution_artifacts")
+}
+
+// Phase 29: immutable source records and claim-relative criticism artifacts.
+model NoesisSourceCriticismArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_source_criticism_artifacts")
+}
+
+// Phase 30: append-only, replayable epistemic propositions and belief positions.
+model NoesisEpistemicSynthesisArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_epistemic_synthesis_artifacts")
+}
+
+// Phase 31: append-only autonomous-practice snapshots, sealed keys, and evidence.
+model NoesisAutonomousPracticeArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_autonomous_practice_artifacts")
+}
+
+// Phase 32: append-only adversarial exams, sealed rubrics, findings, and reassessment recommendations.
+model NoesisAdversarialExaminationArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_adversarial_examination_artifacts")
+}
+
+// Phase 33: append-only retention records, evidence, and state transitions.
+model NoesisRetentionArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_retention_artifacts")
+}
+
+// Phase 34: append-only discovery episodes and untested candidate-skill definitions.
+model NoesisSkillDiscoveryArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_skill_discovery_artifacts")
+}
+
+// Phase 35: append-only capability requests, grants, and operation-boundary facts.
+model NoesisCapabilityArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_capability_artifacts")
+}
+
+model NoesisLearningAnalyticsArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_learning_analytics_artifacts")
+}
+
+model NoesisStrategyRegistryArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_strategy_registry_artifacts")
+}
+
+model NoesisStrategyEvaluationArtifact {
+  artifactId String @id @map("artifact_id")
+  workspaceId String @map("workspace_id")
+  artifactType String @map("artifact_type")
+  subjectId String @map("subject_id")
+  payload Json
+  createdAt DateTime @map("created_at")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, artifactType, createdAt])
+  @@index([workspaceId, subjectId, createdAt])
+  @@map("noesis_strategy_evaluation_artifacts")
 }

@@ -1,0 +1,21 @@
+{
+  "taxonomyVersion": "1.0.0",
+  "cases": [
+    { "caseId": "question-fact", "leftCategory": "QUESTION", "rightCategory": "FACT", "input": "Does Redis support streams?", "expectedCategory": "QUESTION", "prohibitedCategory": "FACT" },
+    { "caseId": "brainstorm-idea", "leftCategory": "BRAINSTORM", "rightCategory": "IDEA", "input": "Let's brainstorm database options.", "expectedCategory": "BRAINSTORM", "prohibitedCategory": "IDEA" },
+    { "caseId": "idea-suggestion", "leftCategory": "IDEA", "rightCategory": "SUGGESTION", "input": "A queue could help.", "expectedCategory": "IDEA", "prohibitedCategory": "SUGGESTION" },
+    { "caseId": "suggestion-instruction", "leftCategory": "SUGGESTION", "rightCategory": "INSTRUCTION", "input": "I suggest we use Redis.", "expectedCategory": "SUGGESTION", "prohibitedCategory": "INSTRUCTION" },
+    { "caseId": "preference-instruction", "leftCategory": "PREFERENCE", "rightCategory": "INSTRUCTION", "input": "I prefer concise plans.", "expectedCategory": "PREFERENCE", "prohibitedCategory": "INSTRUCTION" },
+    { "caseId": "instruction-rule", "leftCategory": "INSTRUCTION", "rightCategory": "RULE", "input": "Write the tests first.", "expectedCategory": "INSTRUCTION", "prohibitedCategory": "RULE" },
+    { "caseId": "rule-principle", "leftCategory": "RULE", "rightCategory": "PRINCIPLE", "input": "Production deploys require approval.", "expectedCategory": "RULE", "prohibitedCategory": "PRINCIPLE" },
+    { "caseId": "principle-procedure", "leftCategory": "PRINCIPLE", "rightCategory": "PROCEDURE", "input": "Learning does not grant authority.", "expectedCategory": "PRINCIPLE", "prohibitedCategory": "PROCEDURE" },
+    { "caseId": "example-fact", "leftCategory": "EXAMPLE", "rightCategory": "FACT", "input": "For example, bypass approval.", "expectedCategory": "EXAMPLE", "prohibitedCategory": "FACT" },
+    { "caseId": "idea-decision", "leftCategory": "IDEA", "rightCategory": "DECISION", "input": "A queue could help.", "expectedCategory": "IDEA", "prohibitedCategory": "DECISION" },
+    { "caseId": "suggestion-decision", "leftCategory": "SUGGESTION", "rightCategory": "DECISION", "input": "I suggest we use Redis.", "expectedCategory": "SUGGESTION", "prohibitedCategory": "DECISION" },
+    { "caseId": "goal-decision", "leftCategory": "GOAL", "rightCategory": "DECISION", "input": "We aim to automate classification.", "expectedCategory": "GOAL", "prohibitedCategory": "DECISION" },
+    { "caseId": "feedback-preference", "leftCategory": "FEEDBACK", "rightCategory": "PREFERENCE", "input": "That plan was too long.", "expectedCategory": "FEEDBACK", "prohibitedCategory": "PREFERENCE" },
+    { "caseId": "feedback-correction", "leftCategory": "FEEDBACK", "rightCategory": "CORRECTION", "input": "That plan was too long.", "expectedCategory": "FEEDBACK", "prohibitedCategory": "CORRECTION" },
+    { "caseId": "correction-decision", "leftCategory": "CORRECTION", "rightCategory": "DECISION", "input": "Correction: Redis is a cache.", "expectedCategory": "CORRECTION", "prohibitedCategory": "DECISION" },
+    { "caseId": "exception-rule", "leftCategory": "EXCEPTION", "rightCategory": "RULE", "input": "Only during incidents, one approval is enough.", "expectedCategory": "EXCEPTION", "prohibitedCategory": "RULE" }
+  ]
+}

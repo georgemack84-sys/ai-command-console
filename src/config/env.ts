@@ -26,6 +26,7 @@ const envSchema = z.object({
   JOB_QUEUE_MAX_RUNNING: z.string().optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:5050"),
+  LEARNING_AGENT_ORIGIN: z.string().url().optional(),
   SENTRY_DSN: z.string().optional(),
   SENTRY_ENVIRONMENT: z.string().optional(),
   SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),

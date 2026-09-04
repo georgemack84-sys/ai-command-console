@@ -438,7 +438,8 @@ function loadControlPolicy() {
 }
 
 function fileExists(...segments) {
-  return fs.existsSync(path.join(__dirname, "..", ...segments));
+  // Discovery paths are runtime inputs, not deployment dependencies.
+  return fs.existsSync(path.join(/* turbopackIgnore: true */ __dirname, "..", ...segments));
 }
 
 function normalizeDiscoveryResult(result) {

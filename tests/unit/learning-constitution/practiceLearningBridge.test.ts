@@ -1,0 +1,26 @@
+import { describe, expect, it } from "vitest";
+import { ConservativeSkillValidator, InMemoryLearningAuditLedger, PracticeGraphRemediationRouter, PracticeSkillRegistryBridgeService, SkillCandidateService, SkillGraphProjectionService, SkillRegistryProjectionService } from "@/services/learning-constitution";
+import type { PracticeArtifactRecord, PracticeEvidence, PracticeEvaluation, SkillArtifactRecord, SkillArtifactStore, SkillCandidate, SkillDependency, SkillGraphArtifactRecord, SkillGraphArtifactStore, SkillRegistryEntry } from "@/types/learning-constitution";
+
+const actor = { actorId: "human:teacher", actorType: "HUMAN" as const };
+const skill = (skillId: string): SkillCandidate => ({ skillId, name: skillId, description: "Test", domain: "Planning", skillType: "ATOMIC", scope: [{ type: "PROJECT", id: "noesis" }], prerequisiteSkillIds: [], procedureIds: [], principleIds: [], evidence: [], mastery: null, confidence: "UNKNOWN", status: "UNDEMONSTRATED", limitations: [], failureModes: [], createdBy: actor, createdAt: "2026-09-01T00:00:00.000Z", immutable: true, capabilityClaim: false, executionPermissionGranted: false });
+const practiceEvidence: PracticeEvidence = { evidenceId: "PEV-1", skillId: "SK-TARGET", exerciseId: "PE-1", attemptId: "PA-1", evaluationId: "PVE-1", transferLevel: "NOVEL", difficulty: 0.5, transferDistance: 3, outcome: "PASS", score: 0.8, strength: "MODERATE", createdAt: "2026-09-01T00:01:00.000Z", skillRegistryEffect: "EVIDENCE_ONLY", durableKnowledgeEffect: "NONE", executionPermissionGranted: false };
+const artifactStore = (): SkillArtifactStore => { const records: SkillArtifactRecord[] = []; return { append: async (artifact) => { const replay = records.find((item) => item.artifactId === artifact.artifactId); if (replay) return replay; records.push(artifact); return artifact; }, listArtifacts: async (subjectId) => records.filter((artifact) => artifact.subjectId === subjectId), listWorkspaceArtifacts: async () => [...records] }; };
+const graphStore = (): SkillGraphArtifactStore => { const records: SkillGraphArtifactRecord[] = []; return { append: async (artifact) => { records.push(artifact); return artifact; }, listWorkspaceArtifacts: async () => [...records] }; };
+const entry = (skillId: string, mastery: number): SkillRegistryEntry => ({ skill: { ...skill(skillId), mastery }, status: "VALIDATED", activeEvidenceCount: 1, revokedEvidenceCount: 0, evaluationCount: 2, assessment: { observedScore: mastery, estimatedMastery: mastery, confidence: "LOW", eligibleForProvisional: true, rationale: [], executionPermissionGranted: false }, lastReviewedAt: null, executionPermissionGranted: false });
+const dependency: SkillDependency = { dependencyId: "SD-1", prerequisite: { skillId: "SK-DEPENDENCY" }, dependent: { skillId: "SK-TARGET" }, relationshipType: "PREREQUISITE", strength: 0.9, requiredMasteryThreshold: 70, evidenceIds: ["EV-1"], provenance: { provenanceIds: ["PR-1"], assertedBy: actor, assertedAt: "2026-09-01T00:00:00.000Z" }, lifecycle: "ACTIVE", graphVersionId: "SG-V1", rationale: "Validated relationship." };
+
+describe("Phase 20 learning bridge", () => {
+  it("attaches practice evidence to an existing skill without promoting mastery or writing knowledge", async () => {
+    const artifacts = artifactStore(); const audit = new InMemoryLearningAuditLedger(); await new SkillCandidateService(new ConservativeSkillValidator(), artifacts).submit(skill("SK-TARGET"));
+    await expect(new PracticeSkillRegistryBridgeService(artifacts, audit).attach({ practiceEvidence, provenanceId: "PR-PRACTICE-1", context: "Novel planning exercise.", workspaceId: "workspace:1", correlationId: "practice:1", actor })).resolves.toMatchObject({ outcome: "SUCCESS", skillId: "SK-TARGET" });
+    expect(await new SkillRegistryProjectionService(artifacts).get("SK-TARGET")).toMatchObject({ activeEvidenceCount: 1, assessment: { estimatedMastery: null } });
+    expect((await audit.list("workspace:1")).map((entry) => entry.event.eventType)).toEqual(["PRACTICE_EVIDENCE_ATTACHED_TO_SKILL"]);
+  });
+  it("routes only dependency-classified practice failure to the existing graph remediation plan", async () => {
+    const graphArtifacts = graphStore(); const evaluation: PracticeEvaluation = { evaluationId: "PVE-FAIL", attemptId: "PA-1", exerciseId: "PE-1", outcome: "FAIL", score: 0.2, failureTypes: ["DEPENDENCY_FAILURE"], matchedCriteria: [], missedCriteria: ["dependency"], evaluator: actor, evaluatedAt: "2026-09-01T00:01:00.000Z", rubricVersion: "1" };
+    const routed = await new PracticeGraphRemediationRouter(graphArtifacts).route({ planId: "RP-20-1", evaluation, targetSkillId: "SK-TARGET", projection: { dependencies: [dependency], latestVersion: { graphVersionId: "SG-V1", previousGraphVersionId: null, dependencyIds: ["SD-1"], changeReason: "Test", validationStatus: "PASSED", createdBy: actor, createdAt: "2026-09-01T00:00:00.000Z" } }, registryEntries: new Map([["SK-DEPENDENCY", entry("SK-DEPENDENCY", 58)], ["SK-TARGET", entry("SK-TARGET", 80)]]), graphVersionId: "SG-V1", createdBy: actor, workspaceId: "workspace:1", correlationId: "practice:1" });
+    expect(routed).toMatchObject({ status: "ROUTED", plan: { bottleneckSkillId: "SK-DEPENDENCY", targetSkillId: "SK-TARGET" } });
+    expect((await new SkillGraphProjectionService(graphArtifacts).get()).dependencies).toEqual([]);
+  });
+});

@@ -49,7 +49,7 @@ for (const command of ['doctor', 'bootstrap', 'dev', 'stop', 'migrate', 'health'
 }
 
 const configuration = read('docs/onboarding/configuration.md');
-for (const template of ['.env.example', 'apps/web/.env.example', 'services/api/.env.example']) {
+for (const template of ['.env.example', 'apps/web/.env.example', 'services/api/.env.example', 'apps/learning-agent/.env.example']) {
   const content = readFileSync(join(root, template), 'utf8');
   const relevant = template === '.env.example' ? content.split('# Transitional root application contract.')[0] : content;
   for (const match of relevant.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)) {

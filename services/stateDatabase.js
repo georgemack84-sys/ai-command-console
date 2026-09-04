@@ -42,7 +42,7 @@ function removeDatabaseFiles() {
   const databasePath = getDatabasePath();
   for (const filePath of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
     try {
-      if (fs.existsSync(filePath)) {
+      if (fs.existsSync(/* turbopackIgnore: true */ filePath)) {
         fs.unlinkSync(filePath);
       }
     } catch {}
@@ -55,7 +55,7 @@ function ensureDataDir() {
 
 function extractLegacyDocuments() {
   const databasePath = getDatabasePath();
-  if (!fs.existsSync(databasePath)) {
+  if (!fs.existsSync(/* turbopackIgnore: true */ databasePath)) {
     return null;
   }
 
@@ -929,7 +929,7 @@ function writeLegacyJson(filePath, value) {
 }
 
 function readLegacyJson(filePath) {
-  if (!filePath || !fs.existsSync(filePath)) {
+  if (!filePath || !fs.existsSync(/* turbopackIgnore: true */ filePath)) {
     return null;
   }
 

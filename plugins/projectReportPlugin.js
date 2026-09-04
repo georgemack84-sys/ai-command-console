@@ -10,14 +10,15 @@ module.exports = {
 
     if (context.pluginArg) {
       const possiblePath = path.resolve(context.pluginArg);
-      if (fs.existsSync(possiblePath)) {
+      if (fs.existsSync(/* turbopackIgnore: true */ possiblePath)) {
         targetDir = possiblePath;
       } else {
         return `Project report failed: path not found: ${possiblePath}`;
       }
     }
 
-    const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+    // The plugin deliberately inspects an operator-selected directory at runtime.
+    const entries = fs.readdirSync(/* turbopackIgnore: true */ targetDir, { withFileTypes: true });
 
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
     const files = entries.filter((e) => e.isFile()).map((e) => e.name);
