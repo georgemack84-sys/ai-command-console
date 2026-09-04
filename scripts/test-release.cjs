@@ -26,8 +26,15 @@ const singleFileTimeoutMs = fileTimeoutArg
   ? Number(fileTimeoutArg.slice("--file-timeout-ms=".length))
   : Math.min(partitionTimeoutMs, 5 * 60 * 1000);
 const maxFilesPerChunk = maxFilesArg ? Number(maxFilesArg.slice("--max-files=".length)) : 40;
-const unitMaxFilesPerChunk = unitMaxFilesArg ? Number(unitMaxFilesArg.slice("--unit-max-files=".length)) : 10;
-const requestedMaxWorkers = maxWorkersArg ? Number(maxWorkersArg.slice("--max-workers=".length)) : 1;
+// Release tests use Vitest's isolated worker model.  Running one ten-file chunk
+// at a time made the release gate pay jsdom setup and module import costs hundreds
+// of times.  Keep the existing 40-file diagnostic boundary and run independent
+// files through a bounded worker pool; --max-workers=1 remains available for
+// targeted serial diagnosis.
+const unitMaxFilesPerChunk = unitMaxFilesArg
+  ? Number(unitMaxFilesArg.slice("--unit-max-files=".length))
+  : maxFilesPerChunk;
+const requestedMaxWorkers = maxWorkersArg ? Number(maxWorkersArg.slice("--max-workers=".length)) : 4;
 const vitestEntrypoint = path.join(root, "node_modules", "vitest", "vitest.mjs");
 const progressPath = path.join(root, ".codex-temp", "test-release-progress.json");
 
@@ -139,7 +146,7 @@ if (dryRun) {
   console.log(`[test:release] partition timeout: ${formatDuration(partitionTimeoutMs)}`);
   console.log(`[test:release] single-file fallback timeout: ${formatDuration(singleFileTimeoutMs)}`);
   console.log(`[test:release] max workers: ${requestedMaxWorkers}`);
-  console.log("[test:release] file parallelism: disabled");
+  console.log("[test:release] file parallelism: enabled (bounded worker pool)");
   console.log("[test:release] file accounting: complete");
   console.log("[test:release] dry run complete");
   process.exit(0);
@@ -230,7 +237,6 @@ function runVitest(paths, timeoutMs) {
       "vitest.release.config.mjs",
       "--reporter=dot",
       `--maxWorkers=${requestedMaxWorkers}`,
-      "--no-file-parallelism",
       "--testTimeout=10000",
     ],
     {
