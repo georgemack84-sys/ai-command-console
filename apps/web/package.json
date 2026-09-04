@@ -96,5 +96,8 @@
     "tsx": "4.21.0",
     "typescript": "5.9.3",
     "vitest": "4.1.2"
+  },
+  "overrides": {
+    "fast-uri": "3.1.7"
   }
 }
