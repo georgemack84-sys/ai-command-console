@@ -66,10 +66,22 @@ jobs:
           host_compose_env="$runtime_dir/compose.env"
           release_env="$runtime_dir/releases/$release_sha.env"
 
-          command -v docker >/dev/null
-          docker compose version >/dev/null
-          test -f "$compose_file"
-          test -f "$host_compose_env"
+          if ! command -v docker >/dev/null; then
+            echo "Staging host prerequisite missing: Docker is not installed or not on PATH."
+            exit 1
+          fi
+          if ! docker compose version >/dev/null; then
+            echo "Staging host prerequisite missing: Docker Compose v2 is unavailable."
+            exit 1
+          fi
+          if [ ! -f "$compose_file" ]; then
+            echo "Staging rollout manifest was not installed at the expected host path."
+            exit 1
+          fi
+          if [ ! -f "$host_compose_env" ]; then
+            echo "Staging host prerequisite missing: $host_compose_env. Create the non-secret Compose wiring file described in docs/operations/proprium-release.md."
+            exit 1
+          fi
 
           umask 077
           printf '%s\n' \
