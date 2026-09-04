@@ -34,7 +34,7 @@ jobs:
           set -o pipefail
           max_attempts=3
           for attempt in $(seq 1 "$max_attempts"); do
-            if output=$(npm run audit:dependencies:root && npm run audit:dependencies:web 2>&1); then
+            if output=$({ npm run audit:dependencies:root && npm run audit:dependencies:web; } 2>&1); then
               status=0
             else
               status=$?
