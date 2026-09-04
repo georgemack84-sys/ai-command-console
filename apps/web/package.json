@@ -77,8 +77,8 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1",
-    "@storybook/addon-a11y": "^10.5.3",
-    "@storybook/nextjs-vite": "^10.5.3",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/nextjs-vite": "^10.6.0",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
     "@types/node": "20.19.37",
@@ -92,9 +92,12 @@
     "jsdom": "29.0.1",
     "knip": "6.32.2",
     "prettier": "3.8.2",
-    "storybook": "^10.5.3",
-    "tsx": "4.21.0",
+    "storybook": "^10.6.0",
+    "tsx": "4.23.13",
     "typescript": "5.9.3",
     "vitest": "4.1.2"
+  },
+  "overrides": {
+    "fast-uri": "3.1.7"
   }
 }
