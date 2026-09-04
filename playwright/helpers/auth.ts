@@ -55,10 +55,10 @@ export async function loginAsShowcaseAdmin(page: Page, next = "/dashboard") {
   await page.goto(`/auth?next=${encodeURIComponent(next)}`);
   await expect(page.getByText(/sign in to access the ai command console/i)).toBeVisible();
 
-  await page.locator('main input[type="text"]').last().fill("showcase@pulse.local");
-  await page.locator('main input[type="password"]').fill("Launchpad-Admin-2026");
+  await page.locator('input[name="email"]').fill("showcase@pulse.local");
+  await page.locator('input[name="password"]').fill("Launchpad-Admin-2026");
 
-  const submitButton = page.locator("main").getByRole("button", { name: /^log in$/i }).last();
+  const submitButton = page.getByRole("button", { name: /^log in$/i }).last();
   await submitButton.evaluate((element) => {
     (element as HTMLButtonElement).click();
   });

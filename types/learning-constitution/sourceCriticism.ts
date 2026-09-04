@@ -1,0 +1,31 @@
+import type { ProvenanceActor } from "./provenance";
+
+export type SourceType = "PRIMARY_OFFICIAL" | "PRIMARY_OBSERVATIONAL" | "PRIMARY_EXPERIMENTAL" | "PRIMARY_DATASET" | "PRIMARY_TESTIMONY" | "SECONDARY_AUTHORITATIVE" | "SECONDARY_EXPERT" | "SECONDARY_ANALYTICAL" | "SECONDARY_JOURNALISTIC" | "TERTIARY_REFERENCE" | "TERTIARY_SUMMARY" | "ANECDOTAL" | "UNSOURCED" | "UNKNOWN";
+export type SourceStatus = "ACTIVE" | "SUPERSEDED" | "RETRACTED" | "UNVERIFIED";
+export type AuthorityClass = "ORIGINAL_AUTHORITY" | "DOMAIN_AUTHORITY" | "OFFICIAL_AUTHORITY" | "EXPERT_AUTHORITY" | "REPUTABLE_SECONDARY" | "ORDINARY_SECONDARY" | "UNKNOWN" | "LOW_AUTHORITY";
+export type DirectnessClass = "DIRECT_PRIMARY" | "PRIMARY_DERIVED" | "AUTHORITATIVE_SECONDARY" | "SECONDARY" | "TERTIARY" | "HEARSAY" | "UNSOURCED";
+export type ClaimVolatility = "STABLE" | "SLOW_CHANGING" | "MODERATE" | "FAST_CHANGING" | "REAL_TIME";
+export type RelevanceClass = "DIRECTLY_RELEVANT" | "HIGHLY_RELEVANT" | "PARTIALLY_RELEVANT" | "TANGENTIAL" | "IRRELEVANT";
+export type ScopeMatch = "EXACT" | "NARROWER" | "BROADER" | "PARTIAL" | "OUT_OF_SCOPE" | "UNRESOLVED";
+export type CorroborationClass = "INDEPENDENT_DIRECT" | "INDEPENDENT_PARTIAL" | "DEPENDENT_DIRECT" | "DEPENDENT_PARTIAL" | "CIRCULAR" | "APPARENT" | "NONE";
+export type EvidenceStrength = "VERY_STRONG" | "STRONG" | "MODERATE" | "WEAK" | "VERY_WEAK" | "INSUFFICIENT";
+export type EvidenceStatus = "SUPPORTED" | "PROVISIONALLY_SUPPORTED" | "MIXED" | "CONFLICTING" | "WEAKLY_SUPPORTED" | "INSUFFICIENT_EVIDENCE" | "UNSUPPORTED" | "REFUTED" | "UNRESOLVED";
+export type ClaimRelation = "SUPPORTS" | "CONTRADICTS" | "PARTIALLY_SUPPORTS" | "CONTEXTUALIZES";
+export type DependencyKind = "CITES" | "SYNDICATED_FROM" | "SAME_DATASET" | "SAME_WITNESS" | "SAME_PRESS_RELEASE" | "SAME_ORGANIZATION" | "SAME_INTERVIEW" | "SAME_UPSTREAM_REPORT" | "SAME_AUTHOR" | "SHARED_METHODOLOGY" | "SAME_ORIGIN";
+export type ConflictClassification = "APPARENT_CONFLICT" | "SCOPE_DIFFERENCE" | "TEMPORAL_DIFFERENCE" | "DEFINITION_DIFFERENCE" | "METHODOLOGY_DIFFERENCE" | "GENUINE_CONFLICT" | "UNRESOLVED";
+export type EvidenceBurden = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+
+/** Immutable description of a retrieved source; quality is evaluated separately per claim. */
+export type SourceRecord = Readonly<{ sourceId: string; sourceType: SourceType; title: string; authorOrIssuer: string | null; publisher: string | null; publicationDate: string | null; retrievalDate: string; declaredScope: readonly string[]; provenanceIds: readonly string[]; knownLimitations: readonly string[]; status: SourceStatus; registeredBy: ProvenanceActor; registeredAt: string; immutable: true; executionPermissionGranted: false }>;
+/** A versioned, claim-relative source-quality judgment. */
+export type SourceAssessment = Readonly<{ assessmentId: string; sourceId: string; claimId: string; authority: AuthorityClass; authorityRationale: string; directness: DirectnessClass; volatility: ClaimVolatility; recencyAppropriate: boolean; relevance: RelevanceClass; scopeMatch: ScopeMatch; corroboration: CorroborationClass; conflictIds: readonly string[]; strength: EvidenceStrength; limitations: readonly string[]; assessedBy: ProvenanceActor; assessedAt: string; supersedesAssessmentId: string | null; immutable: true }>;
+export type ClaimEvidenceLink = Readonly<{ linkId: string; claimId: string; sourceId: string; relation: ClaimRelation; relevance: RelevanceClass; directness: DirectnessClass; scopeMatch: ScopeMatch; interpretation: string; evidenceIds: readonly string[]; createdAt: string; createdBy: ProvenanceActor; immutable: true }>;
+export type SourceDependency = Readonly<{ dependencyId: string; downstreamSourceId: string; upstreamSourceId: string; kind: DependencyKind; evidence: readonly string[]; discoveredAt: string; discoveredBy: ProvenanceActor; immutable: true }>;
+export type EvidenceCluster = Readonly<{ clusterId: string; claimId: string; supportingSourceIds: readonly string[]; contradictingSourceIds: readonly string[]; independentOriginIds: readonly string[]; assessment: EvidenceStatus; strength: EvidenceStrength; conflictClassification: ConflictClassification | null; limitations: readonly string[]; rationale: string; createdAt: string; createdBy: ProvenanceActor; immutable: true; durableKnowledgeEffect: "NONE"; executionPermissionGranted: false }>;
+export type SourceMajorityGuard = Readonly<{ triggered: boolean; publicationCount: number; independentOriginCount: number; reason: string }>;
+export type SourceCriticismDecision = Readonly<{ claimId: string; status: EvidenceStatus; strength: EvidenceStrength; supportingSourceIds: readonly string[]; contradictingSourceIds: readonly string[]; independentOriginIds: readonly string[]; circularSourceIds: readonly string[]; excludedOutOfScopeSourceIds: readonly string[]; excludedStaleSourceIds: readonly string[]; majorityGuard: SourceMajorityGuard; recommendedAction: "PROCEED" | "REQUEST_MORE_EVIDENCE" | "INVOKE_CONFLICT_ENGINE" | "REQUEST_HUMAN_REVIEW"; rationale: string }>;
+export type SourceCriticismRequest = Readonly<{ claimId: string; assessments: readonly SourceAssessment[]; links: readonly ClaimEvidenceLink[]; dependencies: readonly SourceDependency[]; burden: EvidenceBurden }>;
+export type SourceCriticismAuditType = "SOURCE_REGISTERED" | "SOURCE_ASSESSED" | "SOURCE_REASSESSED" | "SOURCE_DEPENDENCY_DISCOVERED" | "FALSE_CORROBORATION_DETECTED" | "SOURCE_CONFLICT_DETECTED" | "SOURCE_SCOPE_MISMATCH" | "SOURCE_SUPERSEDED" | "EVIDENCE_CLUSTER_CREATED" | "EVIDENCE_STRENGTH_CHANGED";
+export type ClaimGranularityDecision = Readonly<{ allowed: boolean; disposition: "EXACT" | "NARROW_SCOPE" | "REQUEST_MORE_EVIDENCE"; reason: string; unsupportedExpansion: readonly string[] }>;
+export type SourceCriticismArtifactRecord = Readonly<{ artifactId: string; artifactType: "SOURCE" | "ASSESSMENT" | "CLAIM_EVIDENCE" | "DEPENDENCY" | "CLUSTER" | "REVIEW_REQUEST"; subjectId: string; payload: unknown; createdAt: string }>;
+export interface SourceCriticismArtifactStore { append(artifact: SourceCriticismArtifactRecord): Promise<SourceCriticismArtifactRecord>; listArtifacts(subjectId: string): Promise<readonly SourceCriticismArtifactRecord[]>; listWorkspaceArtifacts(): Promise<readonly SourceCriticismArtifactRecord[]>; }

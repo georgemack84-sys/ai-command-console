@@ -1,0 +1,10 @@
+import { getSessionUser } from "@/src/lib/auth";
+import { AppError } from "@/src/server/api/errors";
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { requireWorkspaceManager } from "@/src/server/auth/permissions";
+import { PracticeArtifactService, PrismaLearningAuditLedger, PrismaPracticeArtifactRepository } from "@/services/learning-constitution";
+import type { PracticeSession } from "@/types/learning-constitution";
+export const dynamic = "force-dynamic";
+const userFor = async () => { const user = await getSessionUser(); if (!user) throw new AppError(401, "unauthorized", "Authentication required."); if (!user.workspaceId || user.workspaceId === "default") throw new AppError(403, "workspace_required", "Workspace membership is required."); await requireWorkspaceManager({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId }); return user; };
+export async function GET() { try { const user = await userFor(); const artifacts = await new PrismaPracticeArtifactRepository(user.workspaceId!).listWorkspaceArtifacts(); return apiSuccess({ sessions: artifacts.filter((artifact) => artifact.artifactType === "SESSION").map((artifact) => artifact.payload as PracticeSession) }); } catch (error) { return apiError(error, "Unable to load practice sessions."); } }
+export async function POST(request: Request) { try { const user = await userFor(); const session = await request.json() as PracticeSession; if (!session || typeof session !== "object") throw new AppError(400, "practice_session_invalid", "Practice session is required."); const normalized = { ...session, createdBy: { actorId: `user:${user.id}`, actorType: "HUMAN" as const }, createdAt: new Date().toISOString() }; const service = new PracticeArtifactService(new PrismaPracticeArtifactRepository(user.workspaceId!), new PrismaLearningAuditLedger(user.workspaceId!)); return apiSuccess({ session: await service.createSession(normalized, user.workspaceId!, `practice-session:${normalized.sessionId}`) }, { status: 201 }); } catch (error) { return apiError(error, "Unable to create practice session."); } }

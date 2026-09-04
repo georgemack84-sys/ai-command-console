@@ -1,6 +1,7 @@
 import type { ProvenanceLedger, ProvenanceRelationship, ProvenanceRelationshipRequest, ProvenanceRelationshipResult } from "../../types/learning-constitution/provenance";
+import type { LearningAuditLedger } from "../../types/learning-constitution/learningAuditLedger";
 
-type Dependencies = Readonly<{ ledger: ProvenanceLedger; now?: () => string; createId?: (request: ProvenanceRelationshipRequest) => string }>;
+type Dependencies = Readonly<{ ledger: ProvenanceLedger; now?: () => string; createId?: (request: ProvenanceRelationshipRequest) => string; phase10Audit?: Readonly<{ ledger: LearningAuditLedger; workspaceId: string }> }>;
 const result = (values: Omit<ProvenanceRelationshipResult, "authorityEffect" | "executionPermissionGranted">): ProvenanceRelationshipResult => ({ ...values, authorityEffect: "UNCHANGED", executionPermissionGranted: false });
 
 /** The sole generic graph-write boundary; it does not infer relationships. */
@@ -17,7 +18,7 @@ export class ProvenanceRelationshipService {
     const existing = (await this.dependencies.ledger.getRelationships(request.fromId)).find((item) => item.fromId === request.fromId && item.toId === request.toId && item.type === request.type);
     if (existing) return result({ status: "EXISTS", reasonCode: "IDEMPOTENT_REPLAY", relationship: existing, created: false, persistenceEffect: "NONE" });
     const relationship: ProvenanceRelationship = { id: this.createId(request), fromId: request.fromId, toId: request.toId, type: request.type, actor: request.actor, createdAt: request.createdAt ?? this.now(), immutable: true };
-    try { await this.dependencies.ledger.relate(relationship); return result({ status: "CREATED", reasonCode: "RELATIONSHIP_CREATED", relationship, created: true, persistenceEffect: "CREATED" }); }
+    try { await this.dependencies.phase10Audit?.ledger.append({ eventId: `learning-audit:provenance:${relationship.id}`, eventType: "PROVENANCE_LINKED", workspaceId: this.dependencies.phase10Audit.workspaceId, occurredAt: relationship.createdAt, actor: relationship.actor, correlationId: relationship.id, schemaVersion: "10.0", references: { provenanceIds: [relationship.fromId, relationship.toId] }, payload: { relationshipType: relationship.type } }); await this.dependencies.ledger.relate(relationship); return result({ status: "CREATED", reasonCode: "RELATIONSHIP_CREATED", relationship, created: true, persistenceEffect: "CREATED" }); }
     catch { return result({ status: "PERSISTENCE_FAILED", reasonCode: "PERSISTENCE_FAILED", created: false, persistenceEffect: "NONE" }); }
   }
 }

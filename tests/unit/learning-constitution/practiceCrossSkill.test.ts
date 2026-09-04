@@ -1,0 +1,18 @@
+import { describe, expect, it } from "vitest";
+import { PracticeArtifactService, PracticeEvidenceService, PracticeEvaluationValidator } from "@/services/learning-constitution";
+import type { PracticeArtifactRecord, PracticeArtifactStore, PracticeEvaluationResult, PracticeExercise } from "@/types/learning-constitution";
+
+const exercise: PracticeExercise = { exerciseId: "PE-INTEGRATED", state: "ATTEMPTED", source: "HUMAN_GENERATED", targetSkillIds: ["SK-DEPENDENCY", "SK-ESTIMATION", "SK-ROADMAP"], prerequisiteSkillIds: [], difficulty: 0.7, transferLevel: "NOVEL", transferDistance: 3, scenario: "Plan a novel delivery platform.", instructions: "Produce an integrated plan.", constraints: [], expectedCompetencies: ["dependencies", "estimates", "ordering"], visibleEvaluationCriteria: ["explain tradeoffs"], hiddenCriteriaCount: 1, hiddenChallengeCount: 0, scenarioFeatures: { domain: "logistics", ambiguityPresent: false, edgeConditionPresent: false, adversarialPressurePresent: false }, similarity: { structuralFingerprint: "integrated", solutionFingerprint: "plan", languageFingerprint: "v1" }, lineage: { targetSkillIds: ["SK-DEPENDENCY", "SK-ESTIMATION", "SK-ROADMAP"], knowledgeIds: ["K-1"], procedureIds: [], principleIds: [], exampleIds: [], sourceSnapshotId: "snapshot:1" }, generation: { generatorVersion: "20", configVersion: "20", generatedAt: "2026-09-01T00:00:00.000Z", generatedBy: { actorId: "human:teacher", actorType: "HUMAN" } } };
+const result: PracticeEvaluationResult = { evaluation: { evaluationId: "PVE-INTEGRATED", attemptId: "PA-1", exerciseId: exercise.exerciseId, outcome: "PARTIAL", score: 0.63, failureTypes: ["APPLICATION_FAILURE"], matchedCriteria: [], missedCriteria: ["estimate"], evaluator: { actorId: "human:teacher", actorType: "HUMAN" }, evaluatedAt: "2026-09-01T00:01:00.000Z", rubricVersion: "20" }, components: [{ skillId: "SK-DEPENDENCY", outcome: "PASS", score: 0.9, failureTypes: [], rationale: "Dependencies were correctly identified." }, { skillId: "SK-ESTIMATION", outcome: "FAIL", score: 0.2, failureTypes: ["APPLICATION_FAILURE"], rationale: "Estimate omitted capacity constraints." }, { skillId: "SK-ROADMAP", outcome: "PARTIAL", score: 0.65, failureTypes: ["DEPENDENCY_FAILURE"], rationale: "Ordering inherited the estimate gap." }] };
+const store = (): PracticeArtifactStore => { const values: PracticeArtifactRecord[] = []; return { append: async (value) => { values.push(value); return value; }, listArtifacts: async (subjectId) => values.filter((value) => value.subjectId === subjectId), listWorkspaceArtifacts: async () => values }; };
+
+describe("Phase 20 cross-skill practice", () => {
+  it("preserves component diagnosis and generates one evidence record for every target skill", async () => {
+    expect(new PracticeEvaluationValidator().validate(exercise, result)).toMatchObject({ valid: true });
+    const artifacts = store(); await new PracticeArtifactService(artifacts).recordEvaluation(result.evaluation, "workspace:1", "evaluation:1", result.components);
+    const evidence = new PracticeEvidenceService().createForComponents(exercise, result.evaluation, result.components);
+    await Promise.all(evidence.map((item) => new PracticeArtifactService(artifacts).recordEvidence(item, result.evaluation.evaluator, "workspace:1", "evaluation:1")));
+    expect(evidence).toEqual(expect.arrayContaining([expect.objectContaining({ skillId: "SK-ESTIMATION", outcome: "FAIL", score: 0.2 }), expect.objectContaining({ skillId: "SK-ROADMAP", outcome: "PARTIAL" })]));
+    expect((await artifacts.listWorkspaceArtifacts()).filter((item) => item.artifactType === "EVALUATION_COMPONENT")).toHaveLength(3);
+  });
+});
