@@ -1,0 +1,32 @@
+name: ${PROPRIUM_COMPOSE_PROJECT_NAME:-proprium-staging}
+
+services:
+  database-migrations:
+    image: ${PROPRIUM_API_IMAGE:?PROPRIUM_API_IMAGE must be an immutable GHCR tag}
+    command: ["--migrate"]
+    env_file: ["${PROPRIUM_RUNTIME_ENV_FILE:?PROPRIUM_RUNTIME_ENV_FILE must name the host-only runtime environment file}"]
+    networks: [proprium-runtime]
+    restart: "no"
+
+  platform-api:
+    image: ${PROPRIUM_API_IMAGE:?PROPRIUM_API_IMAGE must be an immutable GHCR tag}
+    env_file: ["${PROPRIUM_RUNTIME_ENV_FILE:?PROPRIUM_RUNTIME_ENV_FILE must name the host-only runtime environment file}"]
+    networks: [proprium-runtime]
+    ports: ["${PROPRIUM_API_BIND:?PROPRIUM_API_BIND must be configured}"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "dotnet", "Proprium.Api.dll", "--health-probe", "http://127.0.0.1:8080/api/v1/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    image: ${PROPRIUM_WEB_IMAGE:?PROPRIUM_WEB_IMAGE must be an immutable GHCR tag}
+    networks: [proprium-runtime]
+    ports: ["${PROPRIUM_WEB_BIND:?PROPRIUM_WEB_BIND must be configured}"]
+    restart: unless-stopped
+
+networks:
+  proprium-runtime:
+    name: ${PROPRIUM_RUNTIME_NETWORK:?PROPRIUM_RUNTIME_NETWORK must name the pre-provisioned Docker network}
+    external: true

@@ -27,6 +27,30 @@ Proprium release path.
 Both images include BuildKit provenance and SBOM attestations. Retain the commit
 SHA in deployment records so rollback selects an immutable pair of images.
 
+## Staging rollout authority
+
+`Deploy Proprium Staging` is the only workflow that rolls the published Proprium
+images onto the configured staging host. It is manual, staging-only, and requires
+an immutable 40-character commit SHA that was previously published by `Release
+Proprium`. It never reads, writes, or logs application secrets in GitHub.
+
+Before its first run, provision these host-local files under
+`<DEPLOY_PATH>/proprium` (currently `/srv/ai-command-console/staging/proprium`):
+
+- `runtime.env`: the API's untracked runtime environment, including PostgreSQL,
+  Redis, session-key, and allowed-origin settings;
+- `compose.env`: non-secret Compose wiring with `PROPRIUM_RUNTIME_ENV_FILE`,
+  `PROPRIUM_RUNTIME_NETWORK`, `PROPRIUM_API_BIND`, and `PROPRIUM_WEB_BIND`;
+- a pre-existing external Docker network named by `PROPRIUM_RUNTIME_NETWORK`;
+- Docker credentials that can pull the private GHCR Proprium images.
+
+The workflow copies only the tracked deployment manifest, writes a restrictive
+per-release image-tag file on the host, pulls immutable API and web images, runs
+the API migration task exactly once, waits for the API Docker health check, and
+then starts the web image. A failed migration or readiness check prevents the web
+rollout. The host-local runtime files remain operator-owned and are never copied
+into the repository or action logs.
+
 ## Legacy autonomy quarantine
 
 Production execution of the transitional digest scheduler, watcher, agent
