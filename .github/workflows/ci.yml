@@ -29,40 +29,8 @@ jobs:
       - name: Restore locked validation dependencies
         run: npm ci --ignore-scripts
       - name: Audit production Node dependencies
-        shell: bash
-        env:
-          NPM_CONFIG_FETCH_TIMEOUT: 60000
-        run: |
-          set -o pipefail
-          max_attempts=3
-          for attempt in $(seq 1 "$max_attempts"); do
-            if output=$({ npm run audit:dependencies:root && npm run audit:dependencies:web; } 2>&1); then
-              status=0
-            else
-              status=$?
-            fi
-
-            if [ "$status" -eq 0 ]; then
-              printf '%s\n' "$output"
-              exit 0
-            fi
-
-            printf '%s\n' "$output"
-            if ! grep -Eqi 'audit endpoint returned an error|503 Service Unavailable|ECONNRESET|ETIMEDOUT' <<<"$output"; then
-              exit "$status"
-            fi
-
-            if [ "$attempt" -eq "$max_attempts" ]; then
-              exit "$status"
-            fi
-
-            delay=$((attempt * 30))
-            echo "npm audit service was unavailable; retrying in ${delay}s (attempt ${attempt}/${max_attempts})"
-            sleep "$delay"
-          done
+        run: npm run audit:dependencies:root && npm run audit:dependencies:web
       - name: Audit development dependency exceptions
-        env:
-          NPM_CONFIG_FETCH_TIMEOUT: 60000
         run: npm run audit:dependencies:development && npm run test:dependency-audit-policy
       - name: Scan tracked tree for secret leakage
         run: npm run validate:secrets
