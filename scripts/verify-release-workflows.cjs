@@ -45,6 +45,7 @@ assert.match(stagingDeploySource, /platform-api/);
 assert.match(stagingDeploySource, /web/);
 assert.match(stagingDeploySource, /current-release\.env/);
 assert.match(stagingDeploySource, /DEPLOY_SSH_KEY/);
+assert.match(stagingDeploySource, /Staging host prerequisite missing/);
 assert.doesNotMatch(stagingDeploySource, /pull_request_target/);
 
 console.log('Release workflow contract: PASS (Proprium release, staging rollout, legacy manual-only)');
