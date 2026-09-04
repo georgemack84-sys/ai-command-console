@@ -30,6 +30,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Audit production Node dependencies
         shell: bash
+        env:
+          NPM_CONFIG_FETCH_TIMEOUT: 60000
         run: |
           set -o pipefail
           max_attempts=3
@@ -59,6 +61,8 @@ jobs:
             sleep "$delay"
           done
       - name: Audit development dependency exceptions
+        env:
+          NPM_CONFIG_FETCH_TIMEOUT: 60000
         run: npm run audit:dependencies:development && npm run test:dependency-audit-policy
       - name: Scan tracked tree for secret leakage
         run: npm run validate:secrets
