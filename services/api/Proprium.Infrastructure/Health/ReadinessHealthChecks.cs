@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Proprium.Infrastructure.Persistence;
 using StackExchange.Redis;

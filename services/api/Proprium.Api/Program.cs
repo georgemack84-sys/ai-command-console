@@ -1,21 +1,20 @@
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Writers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi.Writers;
 using Proprium.Api.Configuration;
 using Proprium.Api.Endpoints;
 using Proprium.Api.Middleware;
 using Proprium.Api.OpenApi;
 using Proprium.Api.Security;
 using Proprium.Application.Authentication;
-using Proprium.Infrastructure;
-using Proprium.Infrastructure.Persistence;
-using Proprium.Infrastructure.Health;
 using Proprium.Domain.Identity;
+using Proprium.Infrastructure;
+using Proprium.Infrastructure.Health;
+using Proprium.Infrastructure.Persistence;
 using Swashbuckle.AspNetCore.Swagger;
 
 if (args.Contains("--health-probe", StringComparer.Ordinal))
