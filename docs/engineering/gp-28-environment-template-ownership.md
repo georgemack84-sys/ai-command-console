@@ -2,13 +2,14 @@
 
 ## Outcome
 
-Proprium has three canonical, tracked environment templates and three developer-owned local counterparts:
+Proprium has four canonical, tracked environment templates and four developer-owned local counterparts:
 
 | Template                    | Owner               | Local counterpart     |
 | --------------------------- | ------------------- | --------------------- |
 | `.env.example`              | Repository Platform | `.env`                |
 | `apps/web/.env.example`     | Frontend            | `apps/web/.env.local` |
 | `services/api/.env.example` | Platform API        | `services/api/.env`   |
+| `apps/learning-agent/.env.example` | Learning Agent | `apps/learning-agent/.env.local` |
 
 The source roadmap names `services/platform-api`, but the executable, solution, Dockerfile, configuration bootstrap, and established GP-27 boundary are under `services/api`. Creating a template in the nonexistent alias would create two backend authorities. GP-28 therefore adapts the greenfield path to the real component and mechanically rejects the obsolete alias.
 
@@ -27,6 +28,7 @@ New templates require an owner, purpose, local counterpart, ignore rule, public/
 | `.env.example`                                         | `KEEP`         | Canonical repository template; transitional legacy section remains explicitly bounded                        |
 | `apps/web/.env.example`                                | `KEEP`         | Canonical frontend template                                                                                  |
 | `services/api/.env.example`                            | `KEEP`         | Canonical Platform API template                                                                              |
+| `apps/learning-agent/.env.example`                     | `KEEP`         | Canonical Noesis learning-agent template                                                                    |
 | `services/platform-api/.env.example`                   | `REMOVE`       | Previously removed phantom alias; validator prevents reintroduction                                          |
 | `apps/web/.env.docker`                                 | `KEEP`         | Reviewed, tracked frontend Docker harness profile; not a developer template                                  |
 | `apps/web/.env.test`                                   | `KEEP`         | Reviewed, tracked deterministic test profile; not a developer template                                       |

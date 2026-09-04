@@ -15,6 +15,7 @@ const {
   apiKeys,
   approvedSensitiveExamples,
   intentionallySharedKeys,
+  learningAgentKeys,
   sensitiveKeys,
   webKeys,
 } = require('./configuration-contract-policy.cjs');
@@ -23,6 +24,7 @@ const templates = {
   root: canonicalTemplates[0].path,
   web: canonicalTemplates[1].path,
   api: canonicalTemplates[2].path,
+  learningAgent: canonicalTemplates[3].path,
 };
 
 const rootKeys = canonicalRootKeys;
@@ -132,10 +134,12 @@ const root = parseTemplate('root Proprium section', templates.root, rootSection)
 const rootComplete = parseTemplate('root', templates.root, rootContent);
 const web = parseTemplate('frontend', templates.web);
 const api = parseTemplate('backend', templates.api);
+const learningAgent = parseTemplate('learning agent', templates.learningAgent);
 
 requireExactKeys('root Proprium section', root, rootKeys);
 requireExactKeys('frontend template', web, webKeys);
 requireExactKeys('backend template', api, apiKeys);
+requireExactKeys('learning agent template', learningAgent, learningAgentKeys);
 
 requireConsumers(root, templates.root, ['docker-compose.proprium.yml']);
 requireConsumers(web, templates.web, ['apps/web/src/config/environment-schema.ts']);
@@ -147,6 +151,7 @@ requireConsumers(api, templates.api, [
   'services/api/Proprium.Api/Dockerfile',
   'docker-compose.proprium.yml',
 ]);
+requireConsumers(learningAgent, templates.learningAgent, ['apps/learning-agent/app/page.tsx']);
 
 for (const [key, value] of web) {
   if (!key.startsWith('NEXT_PUBLIC_')) fail(`Frontend key ${key} is not browser-exposed configuration.`);
@@ -158,11 +163,22 @@ for (const [key, value] of web) {
   }
 }
 
+for (const [key, value] of learningAgent) {
+  if (!key.startsWith('NEXT_PUBLIC_')) fail(`Learning agent key ${key} is not browser-exposed configuration.`);
+  if (/(PASSWORD|TOKEN|SECRET|KEY|CREDENTIAL|CONNECTION)/.test(key)) {
+    fail(`Learning agent template exposes a secret-like public variable ${key}.`);
+  }
+  if (/(password=|BEGIN .*PRIVATE KEY|gh[pousr]_|github_pat_|sk-)/i.test(value)) {
+    fail(`Learning agent template exposes credential-like material through ${key}.`);
+  }
+}
+
 validateExamples(templates.root, rootComplete);
 validateExamples(templates.web, web);
 validateExamples(templates.api, api);
+validateExamples(templates.learningAgent, learningAgent);
 
-const inventories = { root, web, api };
+const inventories = { root, web, api, learningAgent };
 const ownersByKey = new Map();
 for (const [owner, values] of Object.entries(inventories)) {
   for (const key of values.keys()) {

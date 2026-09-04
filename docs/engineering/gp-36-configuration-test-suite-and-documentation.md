@@ -26,7 +26,7 @@ These are repository-aligned corrections, not scope reductions.
 
 ## Canonical contracts
 
-The three templates are `.env.example`, `apps/web/.env.example`, and `services/api/.env.example`. Their local counterparts are `.env`, `apps/web/.env.local`, and `services/api/.env`. Templates must be tracked and trackable; local counterparts must be ignored and untracked.
+The four templates are `.env.example`, `apps/web/.env.example`, `services/api/.env.example`, and `apps/learning-agent/.env.example`. Their local counterparts are `.env`, `apps/web/.env.local`, `services/api/.env`, and `apps/learning-agent/.env.local`. Templates must be tracked and trackable; local counterparts must be ignored and untracked.
 
 `scripts/environment-template-parser.cjs` is the one repository parser for the permitted template grammar. It accepts blank lines, comments, and `KEY=value` entries, including empty values. It rejects unsupported syntax and duplicate keys with stable rules and line/previous-line diagnostics. It is intentionally not a shell parser.
 

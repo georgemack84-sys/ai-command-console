@@ -45,6 +45,14 @@ assert.deepEqual(validateTemplateContract(api, apiContent), []);
 assert.ok(validateTemplateContract(api, apiContent.replace('POSTGRES_DATABASE=proprium\n', '')).some(({ id }) => id === 'CONFIG-003'));
 assert.ok(validateTemplateContract(api, apiContent.replace('REDIS_PORT=6379', 'REDIS_PORT=6379\nREDIS_PORT=6379')).some(({ id }) => id === 'CONFIG-004'));
 
+const learningAgent = contractsById.get('learningAgent');
+const learningAgentContent = readFileSync(learningAgent.path, 'utf8');
+assert.deepEqual(validateTemplateContract(learningAgent, learningAgentContent), []);
+assert.ok(validateTemplateContract(learningAgent, learningAgentContent.replace('NEXT_PUBLIC_LEARNING_API_ORIGIN=http://localhost:5050\n', '')).some(({ id }) => id === 'CONFIG-003'));
+assert.ok(validateTemplateContract(learningAgent, learningAgentContent.replace('http://localhost:5050', 'not-a-url')).some(({ id }) => id === 'CONFIG-006'));
+const learningAgentSecret = ['NEXT_PUBLIC_LEARNING_', 'TOKEN'].join('');
+assert.ok(validateTemplateContract(learningAgent, `${learningAgentContent}${learningAgentSecret}=change-me\n`).some(({ id }) => id === 'CONFIG-006'));
+
 const documentation = readFileSync('docs/onboarding/configuration.md', 'utf8');
 assert.ok(validateConfigurationDocumentation(documentation.replace('| `NEXT_PUBLIC_APP_VERSION`', '| `REMOVED_PUBLIC_KEY`')).some(({ message }) => message.includes('NEXT_PUBLIC_APP_VERSION')));
 assert.ok(validateConfigurationDocumentation(documentation.replace('| `NEXT_PUBLIC_APP_VERSION`', '| `STALE_PUBLIC_KEY`')).some(({ message }) => message.includes('stale or unowned')));

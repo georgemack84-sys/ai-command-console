@@ -9,6 +9,9 @@ const webKeys = [
   'NEXT_PUBLIC_API_BASE_URL',
   'NEXT_PUBLIC_ENVIRONMENT',
 ];
+const learningAgentKeys = [
+  'NEXT_PUBLIC_LEARNING_API_ORIGIN',
+];
 const apiKeys = [
   'ASPNETCORE_ENVIRONMENT',
   'ASPNETCORE_URLS',
@@ -70,6 +73,12 @@ const configurationContracts = [
     heading: '### Platform API',
     keys: apiKeys,
   },
+  {
+    id: 'learningAgent',
+    ...canonicalTemplates[3],
+    heading: '### Learning agent',
+    keys: learningAgentKeys,
+  },
 ];
 
 function validateTemplateContract(contract, content) {
@@ -98,7 +107,7 @@ function validateTemplateContract(contract, content) {
       });
     }
   }
-  if (contract.id === 'web') {
+  if (contract.id === 'web' || contract.id === 'learningAgent') {
     for (const { key, line } of parsed.entries) {
       if (!key.startsWith('NEXT_PUBLIC_') || /(PASSWORD|TOKEN|SECRET|PRIVATE_KEY|SIGNING_KEY|CREDENTIAL|CONNECTION_STRING)/.test(key)) {
         errors.push({
@@ -110,7 +119,10 @@ function validateTemplateContract(contract, content) {
         });
       }
     }
-    const apiUrl = parsed.values.get('NEXT_PUBLIC_API_BASE_URL');
+    const apiUrlKey = contract.id === 'web'
+      ? 'NEXT_PUBLIC_API_BASE_URL'
+      : 'NEXT_PUBLIC_LEARNING_API_ORIGIN';
+    const apiUrl = parsed.values.get(apiUrlKey);
     if (apiUrl !== undefined) {
       try {
         const url = new URL(apiUrl);
@@ -119,9 +131,9 @@ function validateTemplateContract(contract, content) {
         errors.push({
           id: 'CONFIG-006',
           path: contract.path,
-          line: parsed.entries.find(({ key }) => key === 'NEXT_PUBLIC_API_BASE_URL')?.line ?? 1,
-          key: 'NEXT_PUBLIC_API_BASE_URL',
-          message: 'NEXT_PUBLIC_API_BASE_URL must be an absolute credential-free HTTP(S) URL without query or fragment',
+          line: parsed.entries.find(({ key }) => key === apiUrlKey)?.line ?? 1,
+          key: apiUrlKey,
+          message: `${apiUrlKey} must be an absolute credential-free HTTP(S) URL without query or fragment`,
         });
       }
     }
@@ -140,7 +152,7 @@ function validateTemplateContract(contract, content) {
   for (const finding of scanText(contract.path, content)) {
     if (!errors.some(({ line, message }) => line === finding.line && message === finding.message)) {
       errors.push({
-        id: contract.id === 'web' ? 'CONFIG-006' : 'CONFIG-005',
+        id: contract.id === 'web' || contract.id === 'learningAgent' ? 'CONFIG-006' : 'CONFIG-005',
         path: finding.path,
         line: finding.line,
         message: finding.message,
@@ -155,6 +167,7 @@ module.exports = {
   approvedSensitiveExamples,
   configurationContracts,
   intentionallySharedKeys,
+  learningAgentKeys,
   sensitiveKeys,
   validateTemplateContract,
   webKeys,

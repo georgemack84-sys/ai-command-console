@@ -33,6 +33,10 @@ const requiredFiles = [
   'apps/web/package.json',
   'apps/web/package-lock.json',
   'apps/web/tsconfig.json',
+  'apps/learning-agent/.env.example',
+  'apps/learning-agent/package.json',
+  'apps/learning-agent/package-lock.json',
+  'apps/learning-agent/tsconfig.json',
   'services/api/.env.example',
   'services/api/Proprium.sln',
   'services/api/Proprium.ArchitectureTests/Proprium.ArchitectureTests.csproj',
@@ -82,7 +86,7 @@ const textBasenames = new Set([
   'CODEOWNERS', 'Dockerfile', 'LICENSE', 'Makefile',
 ]);
 const approvedLocalConfigurations = new Set(['apps/web/.env.docker', 'apps/web/.env.test']);
-const governedRoots = ['.github/', 'apps/web/', 'services/api/', 'services/platform-api/', 'docs/'];
+const governedRoots = ['.github/', 'apps/web/', 'apps/learning-agent/', 'services/api/', 'services/platform-api/', 'docs/'];
 const governedRootFiles = new Set([
   '.editorconfig', '.gitattributes', '.gitignore', '.env.example',
   'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props',

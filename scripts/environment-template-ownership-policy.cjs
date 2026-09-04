@@ -16,6 +16,11 @@ const canonicalTemplates = [
     local: "services/api/.env",
     owner: "Platform API",
   },
+  {
+    path: "apps/learning-agent/.env.example",
+    local: "apps/learning-agent/.env.local",
+    owner: "Learning Agent",
+  },
 ];
 
 const approvedSpecializedEnvironmentFiles = new Set([
