@@ -38,7 +38,8 @@ Before its first run, provision these host-local files under
 `<DEPLOY_PATH>/proprium` (currently `/srv/ai-command-console/staging/proprium`):
 
 - `runtime.env`: the API's untracked runtime environment, including PostgreSQL,
-  Redis, session-key, and allowed-origin settings;
+  Redis, session-key, and allowed-origin settings. The recommended bootstrap
+  mode generates this file on the host for the isolated Proprium state stack;
 - `compose.env`: non-secret Compose wiring with `PROPRIUM_RUNTIME_ENV_FILE`,
   `PROPRIUM_RUNTIME_NETWORK`, `PROPRIUM_API_BIND`, and `PROPRIUM_WEB_BIND`;
 - a pre-existing external Docker network named by `PROPRIUM_RUNTIME_NETWORK`;
@@ -67,13 +68,19 @@ staging-environment workflows instead of opening SSH to the internet:
    container port; the middle port is the available host port. Route public
    traffic through the host's existing reverse proxy; do not expose these
    container ports directly.
-3. In GitHub **Settings → Environments → staging → Environment secrets**, add
-   the multiline `PROPRIUM_RUNTIME_ENV` secret. Its value is the complete
-   host-only `runtime.env` content for Proprium, including database, Redis,
-   session/authentication, and allowed-origin values. It is a dotenv file, not
-   a single random value. Do not commit or paste that content into an issue,
-   pull request, or workflow input. Supply every required assignment (with
-   real staging values, no angle brackets or quotes):
+3. Run `Bootstrap Proprium Staging Host` with `runtime_source` set to
+   `generate_isolated` (the default). It creates a dedicated `proprium-postgres`
+   database with persistent storage and a private `proprium-redis` cache on the
+   chosen Docker network. It generates the database, cache, and application-key
+   material directly on the host; those values never cross a workflow input or
+   action log. This mode does not alter the legacy PostgreSQL container.
+4. Use `operator_provided` only when an operator must connect Proprium to
+   externally managed state. In that case, add the multiline
+   `PROPRIUM_RUNTIME_ENV` secret in GitHub **Settings → Environments → staging
+   → Environment secrets**. Its value is the complete host-only `runtime.env`
+   content for Proprium, not a single random value. Do not commit or paste that
+   content into an issue, pull request, or workflow input. Supply every required
+   assignment (with real staging values, no angle brackets or quotes):
 
    ```text
    ASPNETCORE_ENVIRONMENT=Staging
@@ -94,10 +101,10 @@ staging-environment workflows instead of opening SSH to the internet:
    The bootstrap workflow validates this structure, key presence, port ranges,
    origins, and key encoding without printing any values. It refuses to write a
    malformed file to the host.
-4. Run `Bootstrap Proprium Staging Host` with the network and bindings. It
+5. Run `Bootstrap Proprium Staging Host` with the network and bindings. It
    creates the files at mode `0600` and refuses to replace existing files unless
    `replace_existing_files` is explicitly selected.
-5. Confirm the host has Docker credentials capable of pulling private GHCR
+6. Confirm the host has Docker credentials capable of pulling private GHCR
    images, then use the normal release and rollout procedure above.
 
 Both workflows are manual, staging-only, and use the same protected deployment

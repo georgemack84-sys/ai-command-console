@@ -15,6 +15,19 @@ on:
         description: Loopback web port mapping, for example 127.0.0.1:18081:3000
         required: true
         type: string
+      runtime_source:
+        description: Generate isolated staging credentials on the host, or use the protected operator-provided dotenv secret
+        required: true
+        default: generate_isolated
+        type: choice
+        options:
+          - generate_isolated
+          - operator_provided
+      public_origin:
+        description: Public browser origin permitted to make authenticated API requests
+        required: true
+        default: https://34.45.207.173.sslip.io
+        type: string
       replace_existing_files:
         description: Replace an existing host runtime.env or compose.env
         required: true
@@ -43,13 +56,15 @@ jobs:
       RUNTIME_NETWORK: ${{ inputs.runtime_network }}
       API_BIND: ${{ inputs.api_bind }}
       WEB_BIND: ${{ inputs.web_bind }}
+      RUNTIME_SOURCE: ${{ inputs.runtime_source }}
+      PUBLIC_ORIGIN: ${{ inputs.public_origin }}
       REPLACE_EXISTING_FILES: ${{ inputs.replace_existing_files }}
     steps:
       - name: Validate bootstrap inputs
         shell: bash
         run: |
           set -euo pipefail
-          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY PROPRIUM_RUNTIME_ENV RUNTIME_NETWORK API_BIND WEB_BIND; do
+          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY RUNTIME_NETWORK API_BIND WEB_BIND PUBLIC_ORIGIN; do
             test -n "${!value}"
           done
           [[ "$RUNTIME_NETWORK" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]]
@@ -60,6 +75,11 @@ jobs:
           web_host_port="${BASH_REMATCH[1]}"
           (( web_host_port <= 65535 ))
           test "$api_host_port" != "$web_host_port"
+          [[ "$RUNTIME_SOURCE" == generate_isolated || "$RUNTIME_SOURCE" == operator_provided ]]
+          if [ "$RUNTIME_SOURCE" = operator_provided ]; then
+            test -n "$PROPRIUM_RUNTIME_ENV"
+          fi
+          [[ "$PUBLIC_ORIGIN" =~ ^https?://[^/?#[:space:]]+$ ]]
           [[ "$REPLACE_EXISTING_FILES" == true || "$REPLACE_EXISTING_FILES" == false ]]
 
       - name: Prepare protected host configuration
@@ -67,7 +87,19 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          printf '%s' "$PROPRIUM_RUNTIME_ENV" > runtime.env
+          if [ "$RUNTIME_SOURCE" = operator_provided ]; then
+            printf '%s' "$PROPRIUM_RUNTIME_ENV" > runtime.env
+          fi
+
+          if [ "$RUNTIME_SOURCE" = generate_isolated ]; then
+            printf '%s\n' \
+              "PROPRIUM_RUNTIME_ENV_FILE=$DEPLOY_PATH/proprium/runtime.env" \
+              "PROPRIUM_RUNTIME_NETWORK=$RUNTIME_NETWORK" \
+              "PROPRIUM_API_BIND=$API_BIND" \
+              "PROPRIUM_WEB_BIND=$WEB_BIND" > compose.env
+            chmod 600 compose.env
+            exit 0
+          fi
 
           declare -A runtime_values=()
           while IFS= read -r line || [ -n "$line" ]; do
@@ -142,14 +174,18 @@ jobs:
           remote_runtime="$remote_dir/.runtime.env.$GITHUB_RUN_ID"
           remote_compose="$remote_dir/.compose.env.$GITHUB_RUN_ID"
           ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "install -d -m 750 '$remote_dir/releases' && docker network inspect '$RUNTIME_NETWORK' >/dev/null"
-          scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" runtime.env "$DEPLOY_USER@$DEPLOY_HOST:$remote_runtime"
+          if [ "$RUNTIME_SOURCE" = operator_provided ]; then
+            scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" runtime.env "$DEPLOY_USER@$DEPLOY_HOST:$remote_runtime"
+          fi
           scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" compose.env "$DEPLOY_USER@$DEPLOY_HOST:$remote_compose"
-          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$remote_dir' '$remote_runtime' '$remote_compose' '$REPLACE_EXISTING_FILES'" <<'REMOTE'
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$remote_dir' '$remote_runtime' '$remote_compose' '$REPLACE_EXISTING_FILES' '$RUNTIME_SOURCE' '$PUBLIC_ORIGIN'" <<'REMOTE'
           set -euo pipefail
           runtime_dir="$1"
           staged_runtime="$2"
           staged_compose="$3"
           replace_existing="$4"
+          runtime_source="$5"
+          public_origin="$6"
 
           cleanup() { rm -f "$staged_runtime" "$staged_compose"; }
           trap cleanup EXIT
@@ -159,7 +195,33 @@ jobs:
               exit 1
             fi
           done
-          install -m 600 "$staged_runtime" "$runtime_dir/runtime.env"
+          if [ "$runtime_source" = generate_isolated ]; then
+            command -v openssl >/dev/null || { echo 'Staging host prerequisite missing: openssl.' >&2; exit 1; }
+            random_base64() { openssl rand -base64 48 | tr -d '\n'; }
+            umask 077
+            postgres_password="$(random_base64)"
+            redis_password="$(random_base64)"
+            session_key="$(random_base64)"
+            privacy_key="$(random_base64)"
+            printf '%s\n' \
+              'ASPNETCORE_ENVIRONMENT=Staging' \
+              'POSTGRES_HOST=proprium-postgres' \
+              'POSTGRES_PORT=5432' \
+              'POSTGRES_DATABASE=proprium' \
+              'POSTGRES_DB=proprium' \
+              'POSTGRES_USER=proprium' \
+              "POSTGRES_PASSWORD=$postgres_password" \
+              'REDIS_HOST=proprium-redis' \
+              'REDIS_PORT=6379' \
+              "REDIS_PASSWORD=$redis_password" \
+              "SESSION_TOKEN_DIGEST_KEY=$session_key" \
+              'SESSION_LIFETIME_MINUTES=480' \
+              "LOGIN_RATE_LIMIT_PRIVACY_KEY=$privacy_key" \
+              "AUTH_ALLOWED_ORIGIN=$public_origin" > "$runtime_dir/runtime.env"
+            chmod 600 "$runtime_dir/runtime.env"
+          else
+            install -m 600 "$staged_runtime" "$runtime_dir/runtime.env"
+          fi
           install -m 600 "$staged_compose" "$runtime_dir/compose.env"
           REMOTE
 
@@ -169,7 +231,8 @@ jobs:
           {
             echo '## Proprium staging bootstrap complete'
             echo
-            echo '- Runtime configuration was supplied from the protected `staging` environment secret `PROPRIUM_RUNTIME_ENV`.'
+            echo "- Runtime configuration source: \`$RUNTIME_SOURCE\`."
+            echo '- Generated credentials, when selected, were created only on the staging host and never printed.'
             echo '- Compose wiring is loopback-only and references a pre-existing external Docker network.'
             echo '- No secret values were printed.'
             echo '- Next: run `Release Proprium` for the current `main` SHA, then run `Deploy Proprium Staging` with that immutable SHA.'
