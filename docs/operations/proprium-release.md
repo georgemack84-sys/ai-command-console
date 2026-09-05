@@ -59,9 +59,10 @@ staging-environment workflows instead of opening SSH to the internet:
 
 1. Run `Diagnose Proprium Staging Host`. It uses the existing protected deploy
    key to report Docker networks, running container names/images/networks,
-   listening TCP endpoints, deployment-directory metadata, and tool availability.
-   It does not read environment-file contents, Docker credentials, or application
-   configuration values.
+   listening TCP endpoints, reverse-proxy service/configuration metadata,
+   deployment-directory metadata, and tool availability. It does not read
+   environment-file contents, Docker credentials, or application configuration
+   values.
 2. Choose an existing external Docker network and two unused loopback **port
    mappings**: `127.0.0.1:18080:8080` for the API and
    `127.0.0.1:18081:3000` for the web application. The final port is the fixed
@@ -110,6 +111,15 @@ staging-environment workflows instead of opening SSH to the internet:
 Both workflows are manual, staging-only, and use the same protected deployment
 key as the rollout workflow. They provide a controlled recovery path but do not
 make an internet-accessible SSH service necessary.
+
+### Reverse-proxy cutover
+
+The isolated API and web services bind only to host loopback ports. Before public
+traffic moves from the legacy application, use `Diagnose Proprium Staging Host`
+to identify the active reverse-proxy implementation and its configuration path.
+Do not replace an unknown host proxy configuration. A cutover must be reviewed,
+reversible, and route the public web origin to the Proprium web loopback port and
+the API prefix to the Proprium API loopback port.
 
 ## Legacy autonomy quarantine
 
