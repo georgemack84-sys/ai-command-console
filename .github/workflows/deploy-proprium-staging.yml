@@ -97,14 +97,15 @@ jobs:
 
           wait_for_healthy() {
             local service="$1"
+            local max_attempts="${2:-30}"
             local container
             container="$(compose ps -q "$service")"
             test -n "$container"
-            for attempt in $(seq 1 30); do
+            for attempt in $(seq 1 "$max_attempts"); do
               local status
               status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container")"
               if [ "$status" = healthy ]; then return 0; fi
-              if [ "$attempt" = 30 ]; then
+              if [ "$attempt" = "$max_attempts" ]; then
                 docker logs --tail 100 "$container"
                 return 1
               fi
@@ -125,7 +126,10 @@ jobs:
           wait_for_healthy platform-api
 
           compose up -d --no-deps web
-          wait_for_healthy web
+          # The web image can legitimately take longer than the API to finish
+          # its first Next.js initialization. Give it a bounded two-minute
+          # readiness budget while retaining the shorter checks for data/API.
+          wait_for_healthy web 60
           ln -sfn "releases/$release_sha.env" "$runtime_dir/current-release.env"
           test -f "$runtime_dir/current-release.env"
           REMOTE
