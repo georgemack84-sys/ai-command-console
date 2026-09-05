@@ -75,8 +75,12 @@ jobs:
           done
           echo
           echo '### Nginx route map (directives only)'
-          if command -v nginx >/dev/null; then
-            nginx -T 2>&1 | awk '
+          nginx_binary="$(command -v nginx || true)"
+          if [ -z "$nginx_binary" ] && [ -x /usr/sbin/nginx ]; then
+            nginx_binary=/usr/sbin/nginx
+          fi
+          if [ -n "$nginx_binary" ]; then
+            "$nginx_binary" -T 2>&1 | awk '
               /^[[:space:]]*(listen|server_name|proxy_pass|root|try_files)[[:space:]]/ {
                 sub(/^[[:space:]]+/, "")
                 print
