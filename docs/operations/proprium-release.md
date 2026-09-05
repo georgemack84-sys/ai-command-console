@@ -122,6 +122,10 @@ Do not replace an unknown host proxy configuration. A cutover must be reviewed,
 reversible, and route the public web origin to the Proprium web loopback port and
 the API prefix to the Proprium API loopback port.
 
+The diagnostic uses non-interactive `sudo` only to inspect the effective Nginx
+route directives. A deployment cutover additionally needs a restricted privilege
+grant for `nginx -t`, installing its reviewed include, and reloading Nginx.
+
 ## Legacy autonomy quarantine
 
 Production execution of the transitional digest scheduler, watcher, agent
