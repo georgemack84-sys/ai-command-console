@@ -62,6 +62,8 @@ assert.match(stagingDiagnosticsSource, /docker network ls/);
 assert.match(stagingDiagnosticsSource, /Listening TCP endpoints/);
 assert.match(stagingDiagnosticsSource, /Reverse-proxy inventory/);
 assert.match(stagingDiagnosticsSource, /Caddyfile/);
+assert.match(stagingDiagnosticsSource, /Nginx route map/);
+assert.match(stagingDiagnosticsSource, /proxy_pass/);
 assert.match(stagingDiagnosticsSource, /No application configuration values/);
 assert.doesNotMatch(stagingDiagnosticsSource, /pull_request_target/);
 

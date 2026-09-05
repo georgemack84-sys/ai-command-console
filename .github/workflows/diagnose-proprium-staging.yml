@@ -74,6 +74,18 @@ jobs:
             [ -e "$path" ] && stat -c '%A %U:%G %n' "$path" || true
           done
           echo
+          echo '### Nginx route map (directives only)'
+          if command -v nginx >/dev/null; then
+            nginx -T 2>&1 | awk '
+              /^[[:space:]]*(listen|server_name|proxy_pass|root|try_files)[[:space:]]/ {
+                sub(/^[[:space:]]+/, "")
+                print
+              }
+            ' || echo 'Nginx route map: unavailable to the deploy user.'
+          else
+            echo 'nginx: unavailable'
+          fi
+          echo
           echo '### Deployment directory'
           if [ -d "$runtime_dir" ]; then
             stat -c '%A %U:%G %n' "$runtime_dir"

@@ -59,10 +59,11 @@ staging-environment workflows instead of opening SSH to the internet:
 
 1. Run `Diagnose Proprium Staging Host`. It uses the existing protected deploy
    key to report Docker networks, running container names/images/networks,
-   listening TCP endpoints, reverse-proxy service/configuration metadata,
-   deployment-directory metadata, and tool availability. It does not read
-   environment-file contents, Docker credentials, or application configuration
-   values.
+   listening TCP endpoints, reverse-proxy service/configuration metadata, and a
+   filtered Nginx route map (`listen`, `server_name`, `proxy_pass`, `root`, and
+   `try_files` directives only), deployment-directory metadata, and tool
+   availability. It does not read environment-file contents, Docker credentials,
+   or application configuration values.
 2. Choose an existing external Docker network and two unused loopback **port
    mappings**: `127.0.0.1:18080:8080` for the API and
    `127.0.0.1:18081:3000` for the web application. The final port is the fixed
