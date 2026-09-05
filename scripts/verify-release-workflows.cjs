@@ -69,6 +69,10 @@ assert.match(stagingBootstrapSource, /docker network inspect/);
 assert.match(stagingBootstrapSource, /127\\\.0\\\.0\\\.1/);
 assert.match(stagingBootstrapSource, /:8080/);
 assert.match(stagingBootstrapSource, /:3000/);
+assert.match(stagingBootstrapSource, /required_runtime_keys/);
+assert.match(stagingBootstrapSource, /SESSION_TOKEN_DIGEST_KEY/);
+assert.match(stagingBootstrapSource, /LOGIN_RATE_LIMIT_PRIVACY_KEY/);
+assert.match(stagingBootstrapSource, /invalid dotenv syntax/);
 assert.match(stagingBootstrapSource, /No secret values were printed/);
 assert.doesNotMatch(stagingBootstrapSource, /pull_request_target/);
 
