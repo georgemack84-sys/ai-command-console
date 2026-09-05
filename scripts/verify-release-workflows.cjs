@@ -67,6 +67,8 @@ assert.match(stagingBootstrapSource, /PROPRIUM_RUNTIME_ENV/);
 assert.match(stagingBootstrapSource, /replace_existing_files/);
 assert.match(stagingBootstrapSource, /docker network inspect/);
 assert.match(stagingBootstrapSource, /127\\\.0\\\.0\\\.1/);
+assert.match(stagingBootstrapSource, /:8080/);
+assert.match(stagingBootstrapSource, /:3000/);
 assert.match(stagingBootstrapSource, /No secret values were printed/);
 assert.doesNotMatch(stagingBootstrapSource, /pull_request_target/);
 

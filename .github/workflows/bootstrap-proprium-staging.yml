@@ -8,11 +8,11 @@ on:
         required: true
         type: string
       api_bind:
-        description: Loopback API binding, for example 127.0.0.1:18080
+        description: Loopback API port mapping, for example 127.0.0.1:18080:8080
         required: true
         type: string
       web_bind:
-        description: Loopback web binding, for example 127.0.0.1:18081
+        description: Loopback web port mapping, for example 127.0.0.1:18081:3000
         required: true
         type: string
       replace_existing_files:
@@ -53,12 +53,13 @@ jobs:
             test -n "${!value}"
           done
           [[ "$RUNTIME_NETWORK" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]]
-          for bind in "$API_BIND" "$WEB_BIND"; do
-            [[ "$bind" =~ ^127\.0\.0\.1:([1-9][0-9]{0,4})$ ]]
-            port="${bind##*:}"
-            (( port <= 65535 ))
-          done
-          test "$API_BIND" != "$WEB_BIND"
+          [[ "$API_BIND" =~ ^127\.0\.0\.1:([1-9][0-9]{0,4}):8080$ ]]
+          api_host_port="${BASH_REMATCH[1]}"
+          (( api_host_port <= 65535 ))
+          [[ "$WEB_BIND" =~ ^127\.0\.0\.1:([1-9][0-9]{0,4}):3000$ ]]
+          web_host_port="${BASH_REMATCH[1]}"
+          (( web_host_port <= 65535 ))
+          test "$api_host_port" != "$web_host_port"
           [[ "$REPLACE_EXISTING_FILES" == true || "$REPLACE_EXISTING_FILES" == false ]]
 
       - name: Prepare protected host configuration
