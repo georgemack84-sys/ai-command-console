@@ -1,0 +1,120 @@
+name: Bootstrap Proprium Staging Host
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime_network:
+        description: Name of the pre-existing external Docker network for Proprium
+        required: true
+        type: string
+      api_bind:
+        description: Loopback API binding, for example 127.0.0.1:18080
+        required: true
+        type: string
+      web_bind:
+        description: Loopback web binding, for example 127.0.0.1:18081
+        required: true
+        type: string
+      replace_existing_files:
+        description: Replace an existing host runtime.env or compose.env
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proprium-staging-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      PROPRIUM_RUNTIME_ENV: ${{ secrets.PROPRIUM_RUNTIME_ENV }}
+      RUNTIME_NETWORK: ${{ inputs.runtime_network }}
+      API_BIND: ${{ inputs.api_bind }}
+      WEB_BIND: ${{ inputs.web_bind }}
+      REPLACE_EXISTING_FILES: ${{ inputs.replace_existing_files }}
+    steps:
+      - name: Validate bootstrap inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY PROPRIUM_RUNTIME_ENV RUNTIME_NETWORK API_BIND WEB_BIND; do
+            test -n "${!value}"
+          done
+          [[ "$RUNTIME_NETWORK" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]]
+          for bind in "$API_BIND" "$WEB_BIND"; do
+            [[ "$bind" =~ ^127\.0\.0\.1:([1-9][0-9]{0,4})$ ]]
+            port="${bind##*:}"
+            (( port <= 65535 ))
+          done
+          test "$API_BIND" != "$WEB_BIND"
+          [[ "$REPLACE_EXISTING_FILES" == true || "$REPLACE_EXISTING_FILES" == false ]]
+
+      - name: Prepare protected host configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$PROPRIUM_RUNTIME_ENV" > runtime.env
+          printf '%s\n' \
+            "PROPRIUM_RUNTIME_ENV_FILE=$DEPLOY_PATH/proprium/runtime.env" \
+            "PROPRIUM_RUNTIME_NETWORK=$RUNTIME_NETWORK" \
+            "PROPRIUM_API_BIND=$API_BIND" \
+            "PROPRIUM_WEB_BIND=$WEB_BIND" > compose.env
+          chmod 600 runtime.env compose.env
+
+      - name: Install protected host configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          remote_dir="$DEPLOY_PATH/proprium"
+          remote_runtime="$remote_dir/.runtime.env.$GITHUB_RUN_ID"
+          remote_compose="$remote_dir/.compose.env.$GITHUB_RUN_ID"
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "install -d -m 750 '$remote_dir/releases' && docker network inspect '$RUNTIME_NETWORK' >/dev/null"
+          scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" runtime.env "$DEPLOY_USER@$DEPLOY_HOST:$remote_runtime"
+          scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" compose.env "$DEPLOY_USER@$DEPLOY_HOST:$remote_compose"
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$remote_dir' '$remote_runtime' '$remote_compose' '$REPLACE_EXISTING_FILES'" <<'REMOTE'
+          set -euo pipefail
+          runtime_dir="$1"
+          staged_runtime="$2"
+          staged_compose="$3"
+          replace_existing="$4"
+
+          cleanup() { rm -f "$staged_runtime" "$staged_compose"; }
+          trap cleanup EXIT
+          for target in runtime.env compose.env; do
+            if [ -e "$runtime_dir/$target" ] && [ "$replace_existing" != true ]; then
+              echo "Refusing to replace existing $runtime_dir/$target. Re-run only after reviewing it and explicitly set replace_existing_files=true." >&2
+              exit 1
+            fi
+          done
+          install -m 600 "$staged_runtime" "$runtime_dir/runtime.env"
+          install -m 600 "$staged_compose" "$runtime_dir/compose.env"
+          REMOTE
+
+      - name: Summarize bootstrap
+        shell: bash
+        run: |
+          {
+            echo '## Proprium staging bootstrap complete'
+            echo
+            echo '- Runtime configuration was supplied from the protected `staging` environment secret `PROPRIUM_RUNTIME_ENV`.'
+            echo '- Compose wiring is loopback-only and references a pre-existing external Docker network.'
+            echo '- No secret values were printed.'
+            echo '- Next: run `Release Proprium` for the current `main` SHA, then run `Deploy Proprium Staging` with that immutable SHA.'
+          } >> "$GITHUB_STEP_SUMMARY"

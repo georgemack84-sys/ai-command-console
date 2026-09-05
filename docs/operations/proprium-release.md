@@ -51,6 +51,34 @@ then starts the web image. A failed migration or readiness check prevents the we
 rollout. The host-local runtime files remain operator-owned and are never copied
 into the repository or action logs.
 
+### Staging host bootstrap without interactive SSH
+
+When a staging operator cannot connect interactively to the host, use the
+staging-environment workflows instead of opening SSH to the internet:
+
+1. Run `Diagnose Proprium Staging Host`. It uses the existing protected deploy
+   key to report Docker networks, listening TCP endpoints, deployment-directory
+   metadata, and tool availability. It does not read environment-file contents,
+   Docker credentials, or application configuration values.
+2. Choose an existing external Docker network and two unused loopback bindings,
+   such as `127.0.0.1:18080` and `127.0.0.1:18081`. Route public traffic through
+   the host's existing reverse proxy; do not expose these container ports
+   directly.
+3. In GitHub **Settings → Environments → staging → Environment secrets**, add
+   the multiline `PROPRIUM_RUNTIME_ENV` secret. Its value is the complete
+   host-only `runtime.env` content for Proprium, including database, Redis,
+   session/authentication, and allowed-origin values. Do not commit or paste
+   that content into an issue, pull request, or workflow input.
+4. Run `Bootstrap Proprium Staging Host` with the network and bindings. It
+   creates the files at mode `0600` and refuses to replace existing files unless
+   `replace_existing_files` is explicitly selected.
+5. Confirm the host has Docker credentials capable of pulling private GHCR
+   images, then use the normal release and rollout procedure above.
+
+Both workflows are manual, staging-only, and use the same protected deployment
+key as the rollout workflow. They provide a controlled recovery path but do not
+make an internet-accessible SSH service necessary.
+
 ## Legacy autonomy quarantine
 
 Production execution of the transitional digest scheduler, watcher, agent

@@ -1,0 +1,77 @@
+name: Diagnose Proprium Staging Host
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proprium-staging-host-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+    steps:
+      - name: Validate staging access configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY; do
+            test -n "${!value}"
+          done
+
+      - name: Report non-secret host readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$DEPLOY_PATH/proprium'" <<'REMOTE'
+          set -euo pipefail
+          runtime_dir="$1"
+
+          echo '## Proprium staging host diagnostics'
+          echo
+          echo '### Tooling'
+          command -v docker >/dev/null && docker --version || echo 'Docker: unavailable'
+          docker compose version 2>/dev/null || echo 'Docker Compose v2: unavailable'
+          echo
+          echo '### Docker networks'
+          docker network ls --format '{{.Name}} ({{.Driver}}, {{.Scope}})'
+          echo
+          echo '### Listening TCP endpoints'
+          if command -v ss >/dev/null; then
+            ss -ltnH
+          else
+            echo 'ss: unavailable'
+          fi
+          echo
+          echo '### Deployment directory'
+          if [ -d "$runtime_dir" ]; then
+            stat -c '%A %U:%G %n' "$runtime_dir"
+          else
+            echo "$runtime_dir: absent"
+          fi
+          for file in compose.yml compose.env runtime.env current-release.env; do
+            if [ -f "$runtime_dir/$file" ] || [ -L "$runtime_dir/$file" ]; then
+              stat -c '%A %U:%G %n' "$runtime_dir/$file"
+            else
+              echo "$runtime_dir/$file: absent"
+            fi
+          done
+          echo
+          echo '### Safety boundary'
+          echo 'No application configuration values, Docker credentials, or environment-file contents were read.'
+          REMOTE
