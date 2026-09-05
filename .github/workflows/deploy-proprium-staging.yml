@@ -115,10 +115,11 @@ jobs:
           wait_for_healthy proprium-postgres
           wait_for_healthy proprium-redis
           # A Compose one-off attaches stdin by default. This rollout script is
-          # itself delivered over stdin to the remote shell, so without -T the
-          # migration container can consume the remaining rollout commands and
-          # produce a false-green deployment after only the data services start.
-          compose run --rm --no-deps -T database-migrations
+          # itself delivered over stdin to the remote shell, so the migration
+          # must disable both TTY allocation and interactivity. Disabling only
+          # the TTY still allows the container to consume the remaining rollout
+          # commands and produce a false-green deployment after data startup.
+          compose run --rm --no-deps -T --interactive=false database-migrations
           compose up -d --no-deps platform-api
 
           wait_for_healthy platform-api
