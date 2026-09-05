@@ -114,13 +114,19 @@ jobs:
 
           wait_for_healthy proprium-postgres
           wait_for_healthy proprium-redis
-          compose run --rm --no-deps database-migrations
+          # A Compose one-off attaches stdin by default. This rollout script is
+          # itself delivered over stdin to the remote shell, so without -T the
+          # migration container can consume the remaining rollout commands and
+          # produce a false-green deployment after only the data services start.
+          compose run --rm --no-deps -T database-migrations
           compose up -d --no-deps platform-api
 
           wait_for_healthy platform-api
 
           compose up -d --no-deps web
+          wait_for_healthy web
           ln -sfn "releases/$release_sha.env" "$runtime_dir/current-release.env"
+          test -f "$runtime_dir/current-release.env"
           REMOTE
 
       - name: Summarize staging rollout
