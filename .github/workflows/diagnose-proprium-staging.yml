@@ -51,6 +51,9 @@ jobs:
           echo '### Docker networks'
           docker network ls --format '{{.Name}} ({{.Driver}}, {{.Scope}})'
           echo
+          echo '### Running Docker containers (names, images, networks only)'
+          docker ps --format '{{.Names}} ({{.Image}}; {{.Networks}})' || true
+          echo
           echo '### Listening TCP endpoints'
           if command -v ss >/dev/null; then
             ss -ltnH

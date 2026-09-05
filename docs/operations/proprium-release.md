@@ -57,9 +57,10 @@ When a staging operator cannot connect interactively to the host, use the
 staging-environment workflows instead of opening SSH to the internet:
 
 1. Run `Diagnose Proprium Staging Host`. It uses the existing protected deploy
-   key to report Docker networks, listening TCP endpoints, deployment-directory
-   metadata, and tool availability. It does not read environment-file contents,
-   Docker credentials, or application configuration values.
+   key to report Docker networks, running container names/images/networks,
+   listening TCP endpoints, deployment-directory metadata, and tool availability.
+   It does not read environment-file contents, Docker credentials, or application
+   configuration values.
 2. Choose an existing external Docker network and two unused loopback **port
    mappings**: `127.0.0.1:18080:8080` for the API and
    `127.0.0.1:18081:3000` for the web application. The final port is the fixed
@@ -69,8 +70,30 @@ staging-environment workflows instead of opening SSH to the internet:
 3. In GitHub **Settings → Environments → staging → Environment secrets**, add
    the multiline `PROPRIUM_RUNTIME_ENV` secret. Its value is the complete
    host-only `runtime.env` content for Proprium, including database, Redis,
-   session/authentication, and allowed-origin values. Do not commit or paste
-   that content into an issue, pull request, or workflow input.
+   session/authentication, and allowed-origin values. It is a dotenv file, not
+   a single random value. Do not commit or paste that content into an issue,
+   pull request, or workflow input. Supply every required assignment (with
+   real staging values, no angle brackets or quotes):
+
+   ```text
+   ASPNETCORE_ENVIRONMENT=Staging
+   POSTGRES_HOST=<reachable-postgres-host-or-network-alias>
+   POSTGRES_PORT=5432
+   POSTGRES_DATABASE=<database-name>
+   POSTGRES_USER=<database-user>
+   POSTGRES_PASSWORD=<database-password>
+   REDIS_HOST=<reachable-redis-host-or-network-alias>
+   REDIS_PORT=6379
+   REDIS_PASSWORD=<redis-password-if-required>
+   SESSION_TOKEN_DIGEST_KEY=<base64-key-with-at-least-32-decoded-bytes>
+   SESSION_LIFETIME_MINUTES=480
+   LOGIN_RATE_LIMIT_PRIVACY_KEY=<base64-key-with-at-least-32-decoded-bytes>
+   AUTH_ALLOWED_ORIGIN=https://34.45.207.173.sslip.io
+   ```
+
+   The bootstrap workflow validates this structure, key presence, port ranges,
+   origins, and key encoding without printing any values. It refuses to write a
+   malformed file to the host.
 4. Run `Bootstrap Proprium Staging Host` with the network and bindings. It
    creates the files at mode `0600` and refuses to replace existing files unless
    `replace_existing_files` is explicitly selected.

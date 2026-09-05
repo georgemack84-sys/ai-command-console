@@ -68,6 +68,61 @@ jobs:
           set -euo pipefail
           umask 077
           printf '%s' "$PROPRIUM_RUNTIME_ENV" > runtime.env
+
+          declare -A runtime_values=()
+          while IFS= read -r line || [ -n "$line" ]; do
+            line="${line%$'\r'}"
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            if [[ ! "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+              echo 'PROPRIUM_RUNTIME_ENV contains invalid dotenv syntax; each non-comment line must be KEY=value.' >&2
+              exit 1
+            fi
+            runtime_values["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
+          done < runtime.env
+
+          required_runtime_keys=(
+            ASPNETCORE_ENVIRONMENT
+            POSTGRES_HOST POSTGRES_PORT POSTGRES_DATABASE POSTGRES_USER POSTGRES_PASSWORD
+            REDIS_HOST REDIS_PORT
+            SESSION_TOKEN_DIGEST_KEY SESSION_LIFETIME_MINUTES
+            LOGIN_RATE_LIMIT_PRIVACY_KEY
+            AUTH_ALLOWED_ORIGIN
+          )
+          for key in "${required_runtime_keys[@]}"; do
+            if [ -z "${runtime_values[$key]:-}" ]; then
+              echo "PROPRIUM_RUNTIME_ENV is missing the required $key assignment." >&2
+              exit 1
+            fi
+          done
+          [ "${runtime_values[ASPNETCORE_ENVIRONMENT]}" = Staging ] || {
+            echo 'PROPRIUM_RUNTIME_ENV must set ASPNETCORE_ENVIRONMENT=Staging.' >&2
+            exit 1
+          }
+          for key in POSTGRES_PORT REDIS_PORT; do
+            [[ "${runtime_values[$key]}" =~ ^[1-9][0-9]{0,4}$ ]] && (( ${runtime_values[$key]} <= 65535 )) || {
+              echo "PROPRIUM_RUNTIME_ENV has an invalid $key value." >&2
+              exit 1
+            }
+          done
+          [[ "${runtime_values[SESSION_LIFETIME_MINUTES]}" =~ ^[1-9][0-9]{0,4}$ ]] && (( ${runtime_values[SESSION_LIFETIME_MINUTES]} <= 43200 )) || {
+            echo 'PROPRIUM_RUNTIME_ENV has an invalid SESSION_LIFETIME_MINUTES value.' >&2
+            exit 1
+          }
+          for key in SESSION_TOKEN_DIGEST_KEY LOGIN_RATE_LIMIT_PRIVACY_KEY; do
+            decoded_length="$(printf '%s' "${runtime_values[$key]}" | base64 --decode 2>/dev/null | wc -c)" || {
+              echo "PROPRIUM_RUNTIME_ENV has a non-base64 $key value." >&2
+              exit 1
+            }
+            (( decoded_length >= 32 )) || {
+              echo "PROPRIUM_RUNTIME_ENV has a $key value shorter than 32 decoded bytes." >&2
+              exit 1
+            }
+          done
+          [[ "${runtime_values[AUTH_ALLOWED_ORIGIN]}" =~ ^https?://[^/?#[:space:]]+$ ]] || {
+            echo 'PROPRIUM_RUNTIME_ENV has an invalid AUTH_ALLOWED_ORIGIN value.' >&2
+            exit 1
+          }
+
           printf '%s\n' \
             "PROPRIUM_RUNTIME_ENV_FILE=$DEPLOY_PATH/proprium/runtime.env" \
             "PROPRIUM_RUNTIME_NETWORK=$RUNTIME_NETWORK" \
