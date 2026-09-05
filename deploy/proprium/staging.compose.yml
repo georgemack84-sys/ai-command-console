@@ -47,6 +47,10 @@ services:
   web:
     image: ${PROPRIUM_WEB_IMAGE:?PROPRIUM_WEB_IMAGE must be an immutable GHCR tag}
     networks: [proprium-runtime]
+    environment:
+      # Next's standalone server otherwise uses the container hostname and is
+      # unreachable at loopback from Docker's in-container health check.
+      HOSTNAME: 0.0.0.0
     ports: ["${PROPRIUM_WEB_BIND:?PROPRIUM_WEB_BIND must be configured}"]
     restart: unless-stopped
     healthcheck:

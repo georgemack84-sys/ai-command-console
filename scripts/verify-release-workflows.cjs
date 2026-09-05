@@ -11,11 +11,13 @@ const releaseSource = readFileSync(join(root, '.github', 'workflows', 'release-p
 const stagingDeploySource = readFileSync(join(root, '.github', 'workflows', 'deploy-proprium-staging.yml'), 'utf8');
 const stagingDiagnosticsSource = readFileSync(join(root, '.github', 'workflows', 'diagnose-proprium-staging.yml'), 'utf8');
 const stagingBootstrapSource = readFileSync(join(root, '.github', 'workflows', 'bootstrap-proprium-staging.yml'), 'utf8');
+const stagingComposeSource = readFileSync(join(root, 'deploy', 'proprium', 'staging.compose.yml'), 'utf8');
 const legacy = yaml.load(legacySource);
 const release = yaml.load(releaseSource);
 const stagingDeploy = yaml.load(stagingDeploySource);
 const stagingDiagnostics = yaml.load(stagingDiagnosticsSource);
 const stagingBootstrap = yaml.load(stagingBootstrapSource);
+const stagingCompose = yaml.load(stagingComposeSource);
 
 assert.equal(legacy.name, 'Legacy Deployment (manual only)');
 assert.ok(legacy.on.workflow_dispatch !== undefined);
@@ -88,5 +90,8 @@ assert.match(stagingBootstrapSource, /LOGIN_RATE_LIMIT_PRIVACY_KEY/);
 assert.match(stagingBootstrapSource, /invalid dotenv syntax/);
 assert.match(stagingBootstrapSource, /No secret values were printed/);
 assert.doesNotMatch(stagingBootstrapSource, /pull_request_target/);
+
+assert.equal(stagingCompose.services.web.environment.HOSTNAME, '0.0.0.0');
+assert.match(stagingComposeSource, /in-container health check/);
 
 console.log('Release workflow contract: PASS (Proprium release, staging rollout, legacy manual-only)');
