@@ -92,23 +92,32 @@ jobs:
             docker compose --env-file "$host_compose_env" --env-file "$release_env" -f "$compose_file" "$@"
           }
 
-          compose pull database-migrations platform-api web
+          compose pull proprium-postgres proprium-redis database-migrations platform-api web
+          compose up -d proprium-postgres proprium-redis
+
+          wait_for_healthy() {
+            local service="$1"
+            local container
+            container="$(compose ps -q "$service")"
+            test -n "$container"
+            for attempt in $(seq 1 30); do
+              local status
+              status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container")"
+              if [ "$status" = healthy ]; then return 0; fi
+              if [ "$attempt" = 30 ]; then
+                docker logs --tail 100 "$container"
+                return 1
+              fi
+              sleep 2
+            done
+          }
+
+          wait_for_healthy proprium-postgres
+          wait_for_healthy proprium-redis
           compose run --rm --no-deps database-migrations
           compose up -d --no-deps platform-api
 
-          api_container="$(compose ps -q platform-api)"
-          test -n "$api_container"
-          for attempt in $(seq 1 30); do
-            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$api_container")"
-            if [ "$status" = healthy ]; then
-              break
-            fi
-            if [ "$attempt" = 30 ]; then
-              docker logs --tail 100 "$api_container"
-              exit 1
-            fi
-            sleep 2
-          done
+          wait_for_healthy platform-api
 
           compose up -d --no-deps web
           ln -sfn "releases/$release_sha.env" "$runtime_dir/current-release.env"

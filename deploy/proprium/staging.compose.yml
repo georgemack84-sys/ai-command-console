@@ -1,6 +1,30 @@
 name: ${PROPRIUM_COMPOSE_PROJECT_NAME:-proprium-staging}
 
 services:
+  proprium-postgres:
+    image: postgres:16-alpine
+    env_file: ["${PROPRIUM_RUNTIME_ENV_FILE:?PROPRIUM_RUNTIME_ENV_FILE must name the host-only runtime environment file}"]
+    networks: [proprium-runtime]
+    volumes: [proprium-postgres-data:/var/lib/postgresql/data]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  proprium-redis:
+    image: redis:7-alpine
+    env_file: ["${PROPRIUM_RUNTIME_ENV_FILE:?PROPRIUM_RUNTIME_ENV_FILE must name the host-only runtime environment file}"]
+    command: ["sh", "-ec", "exec redis-server --appendonly no --save '' --requirepass \"$$REDIS_PASSWORD\""]
+    networks: [proprium-runtime]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   database-migrations:
     image: ${PROPRIUM_API_IMAGE:?PROPRIUM_API_IMAGE must be an immutable GHCR tag}
     command: ["--migrate"]
@@ -30,3 +54,7 @@ networks:
   proprium-runtime:
     name: ${PROPRIUM_RUNTIME_NETWORK:?PROPRIUM_RUNTIME_NETWORK must name the pre-provisioned Docker network}
     external: true
+
+volumes:
+  proprium-postgres-data:
+    name: proprium-staging-postgres-data
