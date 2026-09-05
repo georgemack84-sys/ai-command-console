@@ -60,10 +60,12 @@ staging-environment workflows instead of opening SSH to the internet:
    key to report Docker networks, listening TCP endpoints, deployment-directory
    metadata, and tool availability. It does not read environment-file contents,
    Docker credentials, or application configuration values.
-2. Choose an existing external Docker network and two unused loopback bindings,
-   such as `127.0.0.1:18080` and `127.0.0.1:18081`. Route public traffic through
-   the host's existing reverse proxy; do not expose these container ports
-   directly.
+2. Choose an existing external Docker network and two unused loopback **port
+   mappings**: `127.0.0.1:18080:8080` for the API and
+   `127.0.0.1:18081:3000` for the web application. The final port is the fixed
+   container port; the middle port is the available host port. Route public
+   traffic through the host's existing reverse proxy; do not expose these
+   container ports directly.
 3. In GitHub **Settings → Environments → staging → Environment secrets**, add
    the multiline `PROPRIUM_RUNTIME_ENV` secret. Its value is the complete
    host-only `runtime.env` content for Proprium, including database, Redis,
