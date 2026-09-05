@@ -61,6 +61,19 @@ jobs:
             echo 'ss: unavailable'
           fi
           echo
+          echo '### Reverse-proxy inventory (metadata only)'
+          if command -v ss >/dev/null; then
+            ss -ltnp '( sport = :80 or sport = :443 )' 2>/dev/null || true
+          fi
+          for service in caddy nginx apache2 traefik; do
+            if command -v systemctl >/dev/null; then
+              systemctl show "$service" --no-pager -p LoadState -p ActiveState -p SubState -p FragmentPath 2>/dev/null || true
+            fi
+          done
+          for path in /etc/caddy/Caddyfile /etc/nginx/nginx.conf /etc/nginx/sites-enabled /etc/traefik; do
+            [ -e "$path" ] && stat -c '%A %U:%G %n' "$path" || true
+          done
+          echo
           echo '### Deployment directory'
           if [ -d "$runtime_dir" ]; then
             stat -c '%A %U:%G %n' "$runtime_dir"
