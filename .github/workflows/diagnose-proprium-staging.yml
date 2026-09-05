@@ -80,12 +80,14 @@ jobs:
             nginx_binary=/usr/sbin/nginx
           fi
           if [ -n "$nginx_binary" ]; then
-            "$nginx_binary" -T 2>&1 | awk '
+            if ! sudo -n "$nginx_binary" -T 2>&1 | awk '
               /^[[:space:]]*(listen|server_name|proxy_pass|root|try_files)[[:space:]]/ {
                 sub(/^[[:space:]]+/, "")
                 print
               }
-            ' || echo 'Nginx route map: unavailable to the deploy user.'
+            '; then
+              echo 'Nginx route map: elevated access is unavailable to the deploy user.'
+            fi
           else
             echo 'nginx: unavailable'
           fi
