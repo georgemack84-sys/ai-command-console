@@ -206,6 +206,10 @@ try {
     'Mobile drawer did not move focus to its close control.',
   );
   await authenticatedPage.keyboard.press('Escape');
+  await authenticatedPage.waitForFunction(
+    () =>
+      document.activeElement?.getAttribute('aria-label') === 'Open navigation',
+  );
   await check(
     mobileTrigger.evaluate((element) => element === document.activeElement),
     'Mobile drawer did not return focus after Escape.',

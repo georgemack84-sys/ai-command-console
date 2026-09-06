@@ -42,7 +42,7 @@ dotnet build services/api/Proprium.sln --configuration Release --no-restore --no
 npm run validate:backend-compiler
 ```
 
-The build must finish with zero warnings and zero errors. The [GP-08 backend compiler specification](../../docs/engineering/gp-08-backend-compiler-standards.md) defines nullable analysis, warnings-as-errors, the fixed .NET 8 analyzer baseline, generated-code handling, and the suppression policy.
+The build must finish with zero warnings and zero errors. `npm run validate:backend-analyzers` is the canonical name for the full compiler, analyzer, drift, suppression, and style-fixture contract; `validate:backend-compiler` remains a compatibility alias. The [GP-08 backend compiler specification](../../docs/engineering/gp-08-backend-compiler-standards.md) defines nullable analysis and the original baseline, while [GP-43](../../docs/engineering/gp-43-dotnet-analyzer-warning-policy.md) defines the explicit analyzer mode, warning severity, suppression governance, and C# style policy.
 
 After the Release build, run `npm run validate:backend-architecture` to verify the project graph, package isolation, compiled layer and namespace boundaries, and dependency-resolution rules without rebuilding or starting infrastructure. The [GP-10 backend architecture specification](../../docs/engineering/gp-10-backend-architecture.md) records the canonical dependency matrix, controlled negative fixtures, and narrow composition-boundary exceptions.
 
