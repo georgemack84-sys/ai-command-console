@@ -1,4 +1,6 @@
 using NetArchTest.Rules;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Proprium.ArchitectureTests.Fixtures.Api;
 using Proprium.ArchitectureTests.Fixtures.Domain;
 using Xunit;
 
@@ -29,9 +31,11 @@ public sealed class ArchitectureRuleContractTests
     }
 
     [Fact]
-    public void Container_signature_rule_rejects_service_provider_but_allows_typed_dependencies()
+    public void Container_signature_rule_rejects_each_public_container_surface_but_allows_typed_dependencies()
     {
         Assert.NotEmpty(ArchitectureRules.ContainerSignatureViolations([typeof(ServiceLocatorFixture)]));
+        Assert.NotEmpty(ArchitectureRules.ContainerSignatureViolations([typeof(MethodContainerFixture)]));
+        Assert.NotEmpty(ArchitectureRules.ContainerSignatureViolations([typeof(FieldContainerFixture)]));
         Assert.Empty(ArchitectureRules.ContainerSignatureViolations([typeof(ExplicitDependencyFixture)]));
     }
 
@@ -42,14 +46,61 @@ public sealed class ArchitectureRuleContractTests
         Assert.Empty(ArchitectureRules.GenericResolverViolations([typeof(IRepositoryFixture)]));
     }
 
-    public sealed class ServiceLocatorFixture(IServiceProvider services)
+    [Fact]
+    public void Migration_ownership_rule_rejects_a_migration_outside_infrastructure_persistence()
     {
-        public IServiceProvider Services { get; } = services;
+        var violations = ArchitectureRules.MigrationOwnershipViolations(
+            [(typeof(RogueMigrationFixture).Assembly, "controlled fixture")]);
+
+        Assert.NotEmpty(violations);
+    }
+
+    [Fact]
+    public void Endpoint_persistence_rule_rejects_an_endpoint_that_depends_on_a_dbcontext()
+    {
+        var result = Types.InAssembly(typeof(EndpointPersistenceDependencyViolation).Assembly)
+            .That().ResideInNamespace("Proprium.ArchitectureTests.Fixtures.Api")
+            .Should().NotHaveDependencyOnAll(ArchitectureDefinitions.InfrastructureNamespace)
+            .GetResult();
+
+        Assert.False(result.IsSuccessful);
+        Assert.Contains(result.FailingTypes, type => type.FullName == typeof(EndpointPersistenceDependencyViolation).FullName);
+    }
+
+    [Fact]
+    public void Service_locator_call_rule_rejects_runtime_resolution()
+    {
+        var violations = ArchitectureRules.ServiceLocatorCallViolations(
+            [typeof(ServiceLocatorFixture).Assembly],
+            new HashSet<Type>());
+
+        Assert.Contains(violations, violation => violation.Contains(nameof(IServiceProvider.GetService), StringComparison.Ordinal));
+    }
+
+    public sealed class ServiceLocatorFixture
+    {
+        private readonly IServiceProvider services;
+
+        public ServiceLocatorFixture(IServiceProvider services) => this.services = services;
+
+        public IServiceProvider Services => services;
+
+        public object? Resolve() => services.GetService(typeof(TimeProvider));
     }
 
     public sealed class ExplicitDependencyFixture(TimeProvider timeProvider)
     {
         public TimeProvider TimeProvider { get; } = timeProvider;
+    }
+
+    public sealed class MethodContainerFixture
+    {
+        public IServiceProvider Resolve(IServiceProvider services) => services;
+    }
+
+    public sealed class FieldContainerFixture
+    {
+        public IServiceProvider Services = null!;
     }
 
     public interface IServiceResolverFixture
@@ -60,5 +111,12 @@ public sealed class ArchitectureRuleContractTests
     public interface IRepositoryFixture
     {
         T Find<T>(Guid id);
+    }
+
+    public sealed class RogueMigrationFixture : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) { }
+
+        protected override void Down(MigrationBuilder migrationBuilder) { }
     }
 }

@@ -1,5 +1,9 @@
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Proprium.ArchitectureTests;
@@ -52,6 +56,54 @@ internal static class ArchitectureRules
             .Order(StringComparer.Ordinal)
             .ToArray();
 
+    internal static string[] MigrationOwnershipViolations(IEnumerable<(Assembly Assembly, string Owner)> assemblies) =>
+        assemblies
+            .SelectMany(entry => entry.Assembly.GetTypes()
+                .Where(type => !IsGenerated(type) &&
+                    (typeof(Migration).IsAssignableFrom(type) || typeof(ModelSnapshot).IsAssignableFrom(type)))
+                .Where(type => entry.Assembly != ArchitectureDefinitions.InfrastructureAssembly ||
+                    type.Namespace != $"{ArchitectureDefinitions.InfrastructureNamespace}.Persistence")
+                .Select(type => $"{type.FullName} is a migration artifact in {entry.Owner}; only " +
+                    $"{ArchitectureDefinitions.InfrastructureNamespace}.Persistence may own EF migrations and snapshots."))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+    internal static string[] DbContextOwnershipViolations(IEnumerable<(Assembly Assembly, string Owner)> assemblies) =>
+        assemblies
+            .SelectMany(entry => entry.Assembly.GetTypes()
+                .Where(type => !IsGenerated(type) && typeof(DbContext).IsAssignableFrom(type))
+                .Where(type => entry.Assembly != ArchitectureDefinitions.InfrastructureAssembly ||
+                    type.Namespace != $"{ArchitectureDefinitions.InfrastructureNamespace}.Persistence")
+                .Select(type => $"{type.FullName} is a DbContext in {entry.Owner}; only " +
+                    $"{ArchitectureDefinitions.InfrastructureNamespace}.Persistence may own DbContexts."))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+    internal static string[] EndpointPublicSignatureViolations(IEnumerable<Type> endpointTypes) =>
+        endpointTypes
+            .SelectMany(type => PublicSignatureTypes(type)
+                .Where(signatureType => signatureType.Namespace?.StartsWith(
+                    ArchitectureDefinitions.InfrastructureNamespace,
+                    StringComparison.Ordinal) == true)
+                .Select(signatureType => $"{type.FullName} exposes infrastructure type {signatureType.FullName}."))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+    internal static string[] ServiceLocatorCallViolations(
+        IEnumerable<Assembly> assemblies,
+        IReadOnlySet<Type> approvedOwners) =>
+        assemblies
+            .SelectMany(assembly => assembly.GetTypes())
+            .SelectMany(type => AllMethods(type).Select(method => (Owner: SourceOwner(type), Method: method)))
+            .Where(entry => !approvedOwners.Contains(entry.Owner))
+            .SelectMany(entry => CalledMethods(entry.Method)
+                .Where(IsServiceLocatorMethod)
+                .Select(called => $"{entry.Owner.FullName}.{entry.Method.Name} calls {called.DeclaringType?.FullName}.{called.Name}"))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
     private static IEnumerable<Type> PublicSignatureTypes(Type type)
     {
         foreach (var constructor in type.GetConstructors())
@@ -89,4 +141,72 @@ internal static class ArchitectureRules
         type.Name.StartsWith("<", StringComparison.Ordinal) ||
         type.Name.StartsWith("<>z__", StringComparison.Ordinal) ||
         type.Namespace?.StartsWith("System.Text.RegularExpressions.Generated", StringComparison.Ordinal) == true;
+
+    private static IEnumerable<MethodBase> AllMethods(Type type) =>
+        type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Cast<MethodBase>()
+            .Concat(type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static));
+
+    private static Type SourceOwner(Type type)
+    {
+        while (type.DeclaringType is not null) type = type.DeclaringType;
+        return type;
+    }
+
+    private static bool IsServiceLocatorMethod(MethodBase method) =>
+        method.DeclaringType == typeof(IServiceProvider) && method.Name == nameof(IServiceProvider.GetService) ||
+        method.DeclaringType?.Namespace == "Microsoft.Extensions.DependencyInjection" &&
+            method.Name is "GetService" or "GetRequiredService" or "CreateScope" or "CreateAsyncScope" ||
+        method.DeclaringType?.Namespace == "Microsoft.AspNetCore.Http" && method.Name == "get_RequestServices";
+
+    private static IEnumerable<MethodBase> CalledMethods(MethodBase method)
+    {
+        var body = method.GetMethodBody();
+        if (body?.GetILAsByteArray() is not { } il) yield break;
+        for (var offset = 0; offset < il.Length;)
+        {
+            var first = il[offset++];
+            var value = first == 0xfe ? (short)(0xfe00 | il[offset++]) : first;
+            if (!OpCodesByValue.TryGetValue(value, out var opCode)) yield break;
+            if (opCode.OperandType == OperandType.InlineMethod)
+            {
+                var token = BitConverter.ToInt32(il, offset);
+                MethodBase? called = null;
+                try
+                {
+                    called = method.Module.ResolveMethod(
+                        token,
+                        method.DeclaringType?.GetGenericArguments(),
+                        method is MethodInfo methodInfo ? methodInfo.GetGenericArguments() : null);
+                }
+                catch (ArgumentException)
+                {
+                    // Generic calls can be unresolved in structural inspection.
+                }
+
+                if (called is not null) yield return called;
+            }
+
+            offset += OperandSize(opCode.OperandType, il, offset);
+        }
+    }
+
+    private static int OperandSize(OperandType operandType, byte[] il, int offset) => operandType switch
+    {
+        OperandType.InlineNone => 0,
+        OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or OperandType.ShortInlineVar => 1,
+        OperandType.InlineVar => 2,
+        OperandType.InlineI or OperandType.InlineBrTarget or OperandType.InlineField or OperandType.InlineMethod
+            or OperandType.InlineSig or OperandType.InlineString or OperandType.InlineTok or OperandType.InlineType
+            or OperandType.ShortInlineR => 4,
+        OperandType.InlineI8 or OperandType.InlineR => 8,
+        OperandType.InlineSwitch => 4 + (BitConverter.ToInt32(il, offset) * 4),
+        _ => throw new InvalidOperationException($"Unsupported IL operand type {operandType}.")
+    };
+
+    private static readonly IReadOnlyDictionary<short, OpCode> OpCodesByValue = typeof(OpCodes)
+        .GetFields(BindingFlags.Public | BindingFlags.Static)
+        .Where(field => field.FieldType == typeof(OpCode))
+        .Select(field => (OpCode)field.GetValue(null)!)
+        .ToDictionary(opCode => opCode.Value);
 }
