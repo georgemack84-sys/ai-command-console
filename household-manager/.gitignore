@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# local environment files
+.env.local
+.env*.local
+
+# self-hosted household database
+.data/
+
+# TypeScript incremental cache
+*.tsbuildinfo
+
+# editor and operating system files
+.DS_Store
+Thumbs.db
