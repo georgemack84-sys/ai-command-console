@@ -1,6 +1,4 @@
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using Proprium.Api;
 using Proprium.Infrastructure;
 using Proprium.Infrastructure.Retry;
 using Xunit;
@@ -44,7 +42,7 @@ public sealed class DependencyResolutionArchitectureTests
         var owners = typeof(ServiceCollectionExtensions).Assembly.GetTypes()
             .Where(type => type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .SelectMany(constructor => constructor.GetParameters())
-                .Any(parameter => parameter.ParameterType == typeof(IServiceScopeFactory)))
+                .Any(parameter => parameter.ParameterType == typeof(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory)))
             .ToArray();
 
         Assert.Equal([typeof(RetryExecutor)], owners);
@@ -61,7 +59,7 @@ public sealed class DependencyResolutionArchitectureTests
         var productionAssemblies = ArchitectureDefinitions.ProductionLayers.Select(layer => layer.Assembly).ToArray();
         var approvedOwners = new HashSet<Type>
         {
-            typeof(Program),
+            typeof(global::Program),
             ArchitectureDefinitions.ApiAssembly.GetType("Proprium.Api.Configuration.OpenApiToolingConfiguration", throwOnError: true)
                 ?? throw new InvalidOperationException("OpenAPI tooling configuration type was not found."),
             typeof(ServiceCollectionExtensions),
