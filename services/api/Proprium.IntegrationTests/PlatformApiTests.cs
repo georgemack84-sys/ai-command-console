@@ -40,6 +40,34 @@ public sealed class PlatformApiTests(WebApplicationFactory<Program> factory) : I
     }
 
     [Fact]
+    public async Task Request_and_correlation_identifiers_are_distinct_and_propagated()
+    {
+        var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/health");
+        request.Headers.Add("X-Correlation-ID", "d2719f8e-6776-4c0b-9b20-037c9e003e22");
+        request.Headers.Add("X-Request-ID", "b7a85be3-2cb9-4d5b-93bd-3ef7c1f0b7e2");
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal("d2719f8e-6776-4c0b-9b20-037c9e003e22", response.Headers.GetValues("X-Correlation-ID").Single());
+        Assert.Equal("b7a85be3-2cb9-4d5b-93bd-3ef7c1f0b7e2", response.Headers.GetValues("X-Request-ID").Single());
+    }
+
+    [Fact]
+    public async Task Invalid_correlation_and_request_identifiers_are_replaced()
+    {
+        var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/health");
+        request.Headers.Add("X-Correlation-ID", "not-a-guid");
+        request.Headers.Add("X-Request-ID", "not-a-guid");
+
+        var response = await client.SendAsync(request);
+
+        Assert.True(Guid.TryParse(response.Headers.GetValues("X-Correlation-ID").Single(), out _));
+        Assert.True(Guid.TryParse(response.Headers.GetValues("X-Request-ID").Single(), out _));
+    }
+
+    [Fact]
     public async Task OpenApi_is_generated_from_implementation()
     {
         var response = await factory.CreateClient().GetAsync("/openapi/v1.json");

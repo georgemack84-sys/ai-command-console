@@ -9,8 +9,10 @@ using Proprium.Api.Configuration;
 using Proprium.Api.Endpoints;
 using Proprium.Api.Middleware;
 using Proprium.Api.OpenApi;
+using Proprium.Api.Observability;
 using Proprium.Api.Security;
 using Proprium.Application.Authentication;
+using Proprium.Application.Observability;
 using Proprium.Domain.Identity;
 using Proprium.Infrastructure;
 using Proprium.Infrastructure.Health;
@@ -59,12 +61,15 @@ var configuration = ApiConfiguration.Resolve(builder.Configuration, builder.Envi
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
 builder.Services.AddProblemDetails();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRequestContext, HttpRequestContext>();
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
     options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddHealthChecks()
     .AddCheck<PostgresReadinessHealthCheck>("postgres", tags: ["ready"])
-    .AddCheck<RedisReadinessHealthCheck>("redis", tags: ["ready"]);
+    .AddCheck<RedisReadinessHealthCheck>("redis", tags: ["ready"])
+    .AddCheck<OutboxProcessorReadinessHealthCheck>("outbox", tags: ["ready"]);
 builder.Services.AddPropriumConfiguration(configuration);
 builder.Services.AddPropriumInfrastructure();
 builder.Services.AddSingleton<Proprium.Infrastructure.ISystemClock, Proprium.Infrastructure.SystemClock>();

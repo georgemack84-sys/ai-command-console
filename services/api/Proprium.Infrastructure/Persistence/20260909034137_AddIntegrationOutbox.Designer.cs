@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Proprium.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Proprium.Infrastructure.Persistence;
 namespace Proprium.Infrastructure.Persistence
 {
     [DbContext(typeof(PropriumDbContext))]
-    partial class PropriumDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909034137_AddIntegrationOutbox")]
+    partial class AddIntegrationOutbox
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -49,9 +52,6 @@ namespace Proprium.Infrastructure.Persistence
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("PaymentStatus")
-                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
