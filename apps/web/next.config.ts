@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
-const householdManagerOrigin = process.env.HOUSEHOLD_MANAGER_INTERNAL_ORIGIN?.replace(/\/$/, '');
+const householdManagerOrigin =
+  process.env.HOUSEHOLD_MANAGER_INTERNAL_ORIGIN?.replace(/\/$/, '');
 
 const nextConfig: NextConfig = {
   output: 'standalone',
