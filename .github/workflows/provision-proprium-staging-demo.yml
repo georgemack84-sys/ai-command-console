@@ -93,7 +93,7 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "set -euo pipefail; cd '$DEPLOY_PATH/proprium'; docker compose --env-file compose.env -f compose.yml exec -T proprium-postgres sh -ec 'exec psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -v ON_ERROR_STOP=1'" < "$RUNNER_TEMP/provision-demo.sql"
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "set -euo pipefail; cd '$DEPLOY_PATH/proprium'; docker compose --env-file compose.env --env-file current-release.env -f compose.yml exec -T proprium-postgres sh -ec 'exec psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -v ON_ERROR_STOP=1'" < "$RUNNER_TEMP/provision-demo.sql"
           rm -f "$RUNNER_TEMP/provision-demo.sql"
 
       - name: Summarize
