@@ -2,16 +2,22 @@ const { existsSync, readFileSync } = require('node:fs');
 const { basename, extname } = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
+  applyExceptions,
   validateConfigurationAuthority,
   validateDotnetProjects,
   validateJson,
+  validateJsonSchema,
   validateMarkdown,
   validatePackageManager,
   validateRequiredFiles,
   validateSolutionCoverage,
   validateTrackedPaths,
   validateYaml,
+  validationResult,
+  validateExceptionRegistry,
 } = require('./repository-validation-policy.cjs');
+const { schemaRegistry } = require('./repository-schema-registry.cjs');
+const { exceptions } = require('./repository-validation-exceptions.cjs');
 
 const requiredFiles = [
   '.editorconfig',
@@ -52,6 +58,7 @@ const requiredFiles = [
   'docs/validation/day-5/repository-validation.md',
   'docs/validation/day-5/qualification.md',
   'docs/validation/day-5/week-2-admission.md',
+  'docs/validation/gp-45-repository-content-validation.md',
   'docs/engineering/gp-18-baseline-freeze.md',
   'docs/engineering/gp-35-secret-management-and-leak-prevention.md',
   'docs/engineering/gp-36-configuration-test-suite-and-documentation.md',
@@ -92,7 +99,7 @@ const governedRootFiles = new Set([
 const violations = [];
 
 function add(issue) {
-  violations.push(issue);
+  violations.push(issue.category ? issue : validationResult(issue.id, issue.path, issue.problem, issue.expected, issue.severity));
 }
 
 function capture(id, path, expected, action) {
@@ -273,6 +280,24 @@ for (const path of ['scratch/.env.example', 'apps/web/.env.docker', 'apps/web/.e
 }
 capture('RVAL-TEXT-001', '.gitattributes', 'canonical tracked line endings', validateTrackedLineEndings);
 
+for (const entry of schemaRegistry) {
+  if (!trackedSet.has(entry.document) || !existsSync(entry.document)) {
+    add({ id: 'RVAL-SCHEMA-001', path: entry.document, problem: 'registered schema-controlled document is missing or untracked', expected: 'a tracked document at the registered path' });
+    continue;
+  }
+  if (!trackedSet.has(entry.schema) || !existsSync(entry.schema)) {
+    add({ id: 'RVAL-SCHEMA-001', path: entry.schema, problem: `schema registered for ${entry.document} is missing or untracked`, expected: 'a tracked JSON Schema at the registered path' });
+    continue;
+  }
+  try {
+    const schema = JSON.parse(readFileSync(entry.schema, 'utf8'));
+    const document = JSON.parse(readFileSync(entry.document, 'utf8'));
+    violations.push(...validateJsonSchema(document, schema, entry.document));
+  } catch (error) {
+    add({ id: 'RVAL-SCHEMA-001', path: entry.document, problem: `unable to load registered JSON Schema contract: ${error.message}`, expected: 'valid JSON document and schema' });
+  }
+}
+
 for (const path of tracked) {
   if (!existsSync(path) || !isGoverned(path) || !isTextPath(path)) continue;
   const bytes = readFileSync(path);
@@ -299,7 +324,12 @@ for (const path of tracked) {
   if (extname(path) === '.json') violations.push(...validateJson(path, content));
   if (/\.ya?ml$/.test(path)) violations.push(...validateYaml(path, content));
   if (extname(path) === '.md') {
-    violations.push(...validateMarkdown(path, content, (target) => existsSync(target) || trackedSet.has(target)));
+    violations.push(...validateMarkdown(
+      path,
+      content,
+      (target) => existsSync(target) || trackedSet.has(target),
+      (target) => existsSync(target) ? readFileSync(target, 'utf8') : null,
+    ));
   }
 }
 
@@ -319,6 +349,12 @@ if (existsSync('services/api/Proprium.sln')) {
 
 runComposedValidator('RVAL-SECRET-001', 'scripts/validate-secrets.cjs', 'scripts/validate-secrets.cjs');
 runComposedValidator('RVAL-ENV-001', 'scripts/validate-configuration.cjs', 'scripts/validate-configuration.cjs');
+runComposedValidator('RVAL-YAML-003', '.github/workflows/ci.yml', 'scripts/verify-ci-workflow.cjs');
+
+violations.push(...validateExceptionRegistry(exceptions));
+const exceptionApplication = applyExceptions(violations, exceptions);
+violations.length = 0;
+violations.push(...exceptionApplication.remaining, ...exceptionApplication.unused);
 
 if (violations.length > 0) {
   for (const violation of violations) {

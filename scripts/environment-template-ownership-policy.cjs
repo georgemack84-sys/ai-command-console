@@ -27,6 +27,9 @@ const approvedSpecializedEnvironmentFiles = new Set([
   // The learning agent is a separately deployable application with its own
   // runtime origin and session contract.
   "apps/learning-agent/.env.example",
+  // Household Manager is an independently deployed legacy application; its
+  // template is tracked but not part of the Proprium environment contract.
+  "household-manager/.env.example",
   "apps/web/.env.docker",
   "apps/web/.env.test",
 ]);

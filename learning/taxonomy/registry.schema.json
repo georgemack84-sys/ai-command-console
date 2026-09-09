@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["taxonomyVersion", "boundaryRules", "categories"],
+  "additionalProperties": false,
+  "properties": {
+    "taxonomyVersion": { "const": "1.0.0" },
+    "boundaryRules": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["leftCategory", "rightCategory", "distinction", "prohibitedInferences"],
+        "properties": {
+          "leftCategory": { "type": "string" }, "rightCategory": { "type": "string" },
+          "distinction": { "type": "string", "minLength": 1 },
+          "prohibitedInferences": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "displayName", "definition", "semanticIntent", "candidateKnowledge", "promotionRequired", "validationRequirement", "scopeRequirement", "conflictSensitivity", "lifecycleEligibility", "authorityImplication", "examples", "counterexamples", "classificationNotes"],
+        "properties": {
+          "id": { "type": "string" }, "displayName": { "type": "string", "minLength": 1 }, "definition": { "type": "string", "minLength": 1 }, "semanticIntent": { "type": "string", "minLength": 1 },
+          "candidateKnowledge": { "type": "boolean" }, "promotionRequired": { "type": "boolean" },
+          "validationRequirement": { "enum": ["NONE", "CONTEXTUAL", "REQUIRED"] }, "scopeRequirement": { "enum": ["NONE", "CONTEXTUAL", "REQUIRED"] }, "conflictSensitivity": { "enum": ["NONE", "CONTEXTUAL", "REQUIRED"] },
+          "lifecycleEligibility": { "enum": ["NONE", "CANDIDATE"] }, "authorityImplication": { "const": "NONE" },
+          "examples": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }, "counterexamples": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }, "classificationNotes": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  }
+}
