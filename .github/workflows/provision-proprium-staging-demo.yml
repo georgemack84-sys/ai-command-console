@@ -1,0 +1,109 @@
+name: Provision Proprium Staging Demo Account
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: Staging-only demo username (3-64 lowercase letters, digits, dot, underscore, or hyphen)
+        required: true
+        type: string
+      display_name:
+        description: Display name for the demo account
+        required: true
+        type: string
+      household_name:
+        description: Name for the isolated demo household
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proprium-staging-demo-provisioning
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    name: Provision isolated demo account
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEMO_PASSWORD: ${{ secrets.STAGING_DEMO_PASSWORD }}
+      INPUT_USERNAME: ${{ inputs.username }}
+      INPUT_DISPLAY_NAME: ${{ inputs.display_name }}
+      INPUT_HOUSEHOLD_NAME: ${{ inputs.household_name }}
+    steps:
+      - name: Validate inputs and staging access
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$INPUT_USERNAME" =~ ^[a-z0-9][a-z0-9._-]{2,63}$ ]]
+          test "${#INPUT_DISPLAY_NAME}" -gt 0 && test "${#INPUT_DISPLAY_NAME}" -le 256
+          test "${#INPUT_HOUSEHOLD_NAME}" -gt 0 && test "${#INPUT_HOUSEHOLD_NAME}" -le 256
+          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY DEMO_PASSWORD; do
+            test -n "${!value}"
+          done
+
+      - name: Build a non-plaintext provisioning script
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY' > "$RUNNER_TEMP/provision-demo.sql"
+          import base64
+          import hashlib
+          import os
+          import secrets
+          import struct
+
+          password = os.environ["DEMO_PASSWORD"].encode("utf-8")
+          salt = secrets.token_bytes(16)
+          subkey = hashlib.pbkdf2_hmac("sha512", password, salt, 100_000, 32)
+          password_hash = base64.b64encode(b"\x01" + struct.pack(">III", 2, 100_000, len(salt)) + salt + subkey).decode("ascii")
+
+          def sql(value: str) -> str:
+              return "'" + value.replace("'", "''") + "'"
+
+          username = os.environ["INPUT_USERNAME"]
+          display_name = os.environ["INPUT_DISPLAY_NAME"]
+          household_name = os.environ["INPUT_HOUSEHOLD_NAME"]
+          user_id = secrets.token_hex(16)
+          household_id = secrets.token_hex(16)
+          uuid = lambda value: f"{value[0:8]}-{value[8:12]}-{value[12:16]}-{value[16:20]}-{value[20:32]}"
+
+          print("BEGIN;")
+          print(f'''INSERT INTO users ("Id", "Username", "NormalizedUsername", "DisplayName", "PasswordHash", "IsActive", "SecurityVersion", "CreatedAtUtc", "UpdatedAtUtc") VALUES ('{uuid(user_id)}', {sql(username)}, upper({sql(username)}), {sql(display_name)}, {sql(password_hash)}, true, 1, now(), now());''')
+          print(f'''INSERT INTO households ("Id", "OwnerUserId", "Name", "CreatedAtUtc", "UpdatedAtUtc") VALUES ('{uuid(household_id)}', '{uuid(user_id)}', {sql(household_name)}, now(), now());''')
+          print(f'''INSERT INTO household_memberships ("HouseholdId", "UserId", "JoinedAtUtc") VALUES ('{uuid(household_id)}', '{uuid(user_id)}', now());''')
+          print("COMMIT;")
+          PY
+
+      - name: Provision the isolated staging account
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "set -euo pipefail; cd '$DEPLOY_PATH/proprium'; docker compose --env-file compose.env -f compose.yml exec -T proprium-postgres sh -ec 'exec psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -v ON_ERROR_STOP=1'" < "$RUNNER_TEMP/provision-demo.sql"
+          rm -f "$RUNNER_TEMP/provision-demo.sql"
+
+      - name: Summarize
+        shell: bash
+        run: |
+          {
+            echo "## Staging demo account provisioned"
+            echo
+            echo "- Username: \`$INPUT_USERNAME\`"
+            echo "- An isolated household was created."
+            echo "- No role assignments or administrator permissions were granted."
+            echo "- The password and password hash were not printed."
+          } >> "$GITHUB_STEP_SUMMARY"
