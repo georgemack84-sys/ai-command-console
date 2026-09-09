@@ -25,6 +25,8 @@ public static class PlatformEndpoints
         })
             .WithName("GetReadiness").Produces<HealthResponse>();
         v1.MapAuthenticationEndpoints();
+        v1.MapBillingEndpoints();
+        v1.MapRealtimeEndpoints();
         return app;
     }
 }

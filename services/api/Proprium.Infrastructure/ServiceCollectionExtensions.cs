@@ -12,6 +12,11 @@ using Proprium.Infrastructure.Retry;
 using Proprium.Application.Identity;
 using Proprium.Application.Authentication;
 using Proprium.Infrastructure.Authentication;
+using Proprium.Application.Billing;
+using Proprium.Infrastructure.Billing;
+using Proprium.Application.Events;
+using Proprium.Infrastructure.Events;
+using Proprium.Infrastructure.Realtime;
 using StackExchange.Redis;
 
 namespace Proprium.Infrastructure;
@@ -21,6 +26,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddPropriumInfrastructure(this IServiceCollection services)
     {
         services.AddDbContext<PropriumDbContext>((provider, options) => options.UseNpgsql(provider.GetRequiredService<IOptions<PostgresOptions>>().Value.BuildConnectionString()));
+        services.AddDbContextFactory<PropriumDbContext>((provider, options) => options.UseNpgsql(provider.GetRequiredService<IOptions<PostgresOptions>>().Value.BuildConnectionString()));
         services.AddSingleton<IConnectionMultiplexer>(provider =>
         {
             var configuration = provider.GetRequiredService<IOptions<RedisOptions>>().Value.BuildConfiguration();
@@ -40,6 +46,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthenticationAuditRecorder, PostgresAuthenticationAuditRecorder>();
         services.AddScoped<IPasswordChangeService, PostgresPasswordChangeService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IBillCommandService, PostgresBillCommandService>();
+        services.AddScoped<IBillQueryService, PostgresBillQueryService>();
+        services.AddSingleton<IBillUpdatedEventMapper, BillUpdatedIntegrationEventMapper>();
+        services.AddSingleton<IBillCreatedEventMapper, BillCreatedIntegrationEventMapper>();
+        services.AddSingleton<IBillPaymentStatusChangedEventMapper, BillPaymentStatusChangedIntegrationEventMapper>();
+        services.AddSingleton<InMemoryRealtimeSubscriptionRegistry>();
+        services.AddSingleton<IRealtimeSubscriptionRegistry>(provider => provider.GetRequiredService<InMemoryRealtimeSubscriptionRegistry>());
+        services.AddSingleton<IIntegrationEventHandler, RealtimeGateway>();
+        services.AddSingleton<IEventPublisher, InProcessEventPublisher>();
+        services.AddSingleton<EventRuntimeStatus>();
+        services.AddScoped<IRealtimeSubscriptionAuthorizer, PostgresRealtimeSubscriptionAuthorizer>();
+        services.AddHostedService<OutboxProcessor>();
         services.AddSingleton<InMemoryLoginRateLimiter>();
         services.AddSingleton<ILoginRateLimiter, RedisLoginRateLimiter>();
         services.AddScoped<IPermissionResolver, PostgresPermissionResolver>();

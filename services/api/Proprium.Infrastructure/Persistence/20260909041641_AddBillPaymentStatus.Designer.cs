@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Proprium.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Proprium.Infrastructure.Persistence;
 namespace Proprium.Infrastructure.Persistence
 {
     [DbContext(typeof(PropriumDbContext))]
-    partial class PropriumDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909041641_AddBillPaymentStatus")]
+    partial class AddBillPaymentStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
