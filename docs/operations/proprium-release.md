@@ -126,6 +126,23 @@ The diagnostic uses non-interactive `sudo` only to inspect the effective Nginx
 route directives. A deployment cutover additionally needs a restricted privilege
 grant for `nginx -t`, installing its reviewed include, and reloading Nginx.
 
+## Household Manager staging companion
+
+`Deploy Household Manager Staging` builds and deploys the tracked
+`household-manager` application at an immutable commit already reachable from
+`main`. It serves only at `/household-manager/` on the existing Proprium HTTPS
+origin and binds the container to `127.0.0.1:18082`; it does not expose another
+public port or introduce another authentication system. The staged Proprium web
+image proxies that path internally to the Household Manager service, so no
+host-Nginx edit or deploy-user Nginx privilege is required.
+
+The workflow resolves the selected staging demo user's existing isolated
+household from the dedicated Proprium database, then bakes that non-secret
+identifier into the static client build. Requests consequently use the same
+origin and the existing Proprium session cookie. Release and deploy the Proprium
+staging web image for the same commit before deploying Household Manager; that
+web image contains the internal `/household-manager/` rewrite.
+
 ## Legacy autonomy quarantine
 
 Production execution of the transitional digest scheduler, watcher, agent

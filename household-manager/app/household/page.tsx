@@ -41,7 +41,19 @@ function HouseholdContent({ propriumBills }: { propriumBills: boolean }) {
   const [billDueDate, setBillDueDate] = useState("");
 
   const refreshBills = useCallback(() => { void listBills().then(setBills); }, []);
-  useEffect(() => { void Promise.all([householdService.listChores(), householdService.listShopping(), memberService.list(), listBills()]).then(([savedChores, savedShopping, savedMembers, savedBills]) => { setChores(savedChores); setShopping(savedShopping); setMembers(savedMembers); setBills(savedBills); }); }, []);
+  useEffect(() => {
+    if (propriumBills) {
+      void listBills().then(setBills);
+      return;
+    }
+
+    void Promise.all([householdService.listChores(), householdService.listShopping(), memberService.list(), listBills()]).then(([savedChores, savedShopping, savedMembers, savedBills]) => {
+      setChores(savedChores);
+      setShopping(savedShopping);
+      setMembers(savedMembers);
+      setBills(savedBills);
+    });
+  }, [propriumBills]);
   const openItems = useMemo(() => shopping.filter((item) => !item.purchased).length, [shopping]);
 
   async function addChore(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setChores(await householdService.addChore(choreTitle, assignee, cadence, dueDay)); setChoreTitle(""); setAssignee(""); setDueDay("Any day"); }

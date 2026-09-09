@@ -1,0 +1,189 @@
+name: Deploy Household Manager Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Immutable main commit SHA to build and deploy
+        required: true
+        type: string
+      demo_username:
+        description: Existing staging demo username whose isolated household will be used
+        required: true
+        default: staging-demo-20260909
+        type: string
+      public_origin:
+        description: Public HTTPS origin that already serves Proprium
+        required: true
+        default: https://34.45.207.173.sslip.io
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: household-manager-staging-rollout
+  cancel-in-progress: false
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: staging
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      RELEASE_SHA: ${{ inputs.release_sha }}
+      DEMO_USERNAME: ${{ inputs.demo_username }}
+      PUBLIC_ORIGIN: ${{ inputs.public_origin }}
+    steps:
+      - name: Check out main deployment authority
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate immutable release and deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git rev-parse --verify "$RELEASE_SHA^{commit}" >/dev/null
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          [[ "$DEMO_USERNAME" =~ ^[a-z0-9][a-z0-9._-]{2,63}$ ]]
+          [[ "$PUBLIC_ORIGIN" =~ ^https://[^/?#[:space:]]+$ ]]
+          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY; do
+            test -n "${!value}"
+          done
+
+      - name: Check out the immutable release
+        shell: bash
+        run: git checkout --detach "$RELEASE_SHA"
+
+      - name: Configure staging transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Resolve the isolated demo household
+        id: household
+        shell: bash
+        run: |
+          set -euo pipefail
+          household_id="$(ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$DEPLOY_PATH/proprium' '$DEMO_USERNAME'" <<'REMOTE'
+          set -euo pipefail
+          runtime_dir="$1"
+          demo_username="$2"
+          [[ "$demo_username" =~ ^[a-z0-9][a-z0-9._-]{2,63}$ ]]
+
+          compose() {
+            docker compose --env-file "$runtime_dir/compose.env" --env-file "$runtime_dir/current-release.env" -f "$runtime_dir/compose.yml" "$@"
+          }
+
+          sql="SELECT household.\"Id\" FROM households AS household JOIN users AS user_row ON user_row.\"Id\" = household.\"OwnerUserId\" WHERE user_row.\"NormalizedUsername\" = upper('$demo_username') ORDER BY household.\"CreatedAtUtc\" ASC LIMIT 1;"
+          household_id="$(printf '%s\n' "$sql" | compose exec -T proprium-postgres sh -ec 'exec psql -Atq -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1')"
+          [[ "$household_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]
+          printf '%s\n' "$household_id"
+          REMOTE
+          )"
+          [[ "$household_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]
+          echo "household_id=$household_id" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and publish the isolated Household Manager image
+        uses: docker/build-push-action@v7
+        with:
+          context: household-manager
+          file: household-manager/Dockerfile
+          push: true
+          provenance: mode=max
+          sbom: true
+          build-args: |
+            NEXT_PUBLIC_HOUSEHOLD_BASE_PATH=/household-manager
+            NEXT_PUBLIC_PROPRIUM_API_ORIGIN=${{ inputs.public_origin }}
+            NEXT_PUBLIC_PROPRIUM_HOUSEHOLD_ID=${{ steps.household.outputs.household_id }}
+          tags: ghcr.io/${{ github.repository_owner }}/proprium-household-manager:${{ inputs.release_sha }}
+
+      - name: Install the reviewed deployment manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH/proprium/releases'"
+          scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" deploy/proprium/staging.compose.yml "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/proprium/compose.yml"
+
+      - name: Roll out the immutable image and verify container readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$DEPLOY_PATH/proprium' '$RELEASE_SHA' '${{ github.repository_owner }}'" <<'REMOTE'
+          set -euo pipefail
+          runtime_dir="$1"
+          release_sha="$2"
+          repository_owner="$3"
+          compose_file="$runtime_dir/compose.yml"
+          host_compose_env="$runtime_dir/compose.env"
+          current_release="$runtime_dir/current-release.env"
+          release_env="$runtime_dir/releases/household-manager-$release_sha.env"
+
+          test -f "$compose_file"
+          test -f "$host_compose_env"
+          test -f "$current_release"
+          grep -Eq '^PROPRIUM_API_IMAGE=ghcr.io/.+/proprium-api:[0-9a-f]{40}$' "$current_release"
+          grep -Eq '^PROPRIUM_WEB_IMAGE=ghcr.io/.+/proprium-web:[0-9a-f]{40}$' "$current_release"
+
+          umask 077
+          cp -L "$current_release" "$release_env"
+          printf '%s\n' "HOUSEHOLD_MANAGER_IMAGE=ghcr.io/$repository_owner/proprium-household-manager:$release_sha" >> "$release_env"
+
+          compose() {
+            docker compose --env-file "$host_compose_env" --env-file "$release_env" -f "$compose_file" "$@"
+          }
+
+          compose pull household-manager
+          compose up -d --no-deps household-manager
+
+          container="$(compose ps -q household-manager)"
+          test -n "$container"
+          for attempt in $(seq 1 60); do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container")"
+            if [ "$status" = healthy ]; then
+              ln -sfn "releases/household-manager-$release_sha.env" "$current_release"
+              exit 0
+            fi
+            if [ "$attempt" = 60 ]; then
+              docker logs --tail 100 "$container"
+              exit 1
+            fi
+            sleep 2
+          done
+          REMOTE
+
+      - name: Summarize staging rollout
+        shell: bash
+        run: |
+          {
+            echo "## Household Manager staging rollout"
+            echo
+            echo "- Immutable release: \`$RELEASE_SHA\`"
+            echo "- Demo user: \`$DEMO_USERNAME\`"
+            echo "- Public route: \`$PUBLIC_ORIGIN/household-manager/\` via the existing Proprium web container."
+            echo "- The image is configured only for that demo user's isolated household."
+            echo "- Verify two signed-in browser clients can create and reconcile a bill before accepting realtime validation."
+          } >> "$GITHUB_STEP_SUMMARY"

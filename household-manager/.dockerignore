@@ -1,0 +1,13 @@
+node_modules
+.next
+.data
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+*.key
+*.pem
+credentials.json
+npm-debug.log*
+*.tsbuildinfo

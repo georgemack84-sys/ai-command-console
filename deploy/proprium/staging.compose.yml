@@ -59,6 +59,22 @@ services:
       timeout: 3s
       retries: 20
 
+  household-manager:
+    # Keep existing Proprium-only rollout and provisioning commands usable
+    # before the companion application has its first immutable release.
+    image: ${HOUSEHOLD_MANAGER_IMAGE:-ghcr.io/invalid/proprium-household-manager:unconfigured}
+    networks: [proprium-runtime]
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports: ["${HOUSEHOLD_MANAGER_BIND:-127.0.0.1:18082:3000}"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/household-manager/').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
 networks:
   proprium-runtime:
     name: ${PROPRIUM_RUNTIME_NETWORK:?PROPRIUM_RUNTIME_NETWORK must name the pre-provisioned Docker network}
