@@ -24,8 +24,17 @@ const canonicalTemplates = [
 ];
 
 const approvedSpecializedEnvironmentFiles = new Set([
+  // Root standalone deployment inputs are a documented production profile,
+  // not a competing local-development ownership contract.
+  ".env.production.example",
   ".github/environment-templates/production.env.example",
   ".github/environment-templates/staging.env.example",
+  // The learning agent is a separately deployable application with its own
+  // runtime origin and session contract.
+  "apps/learning-agent/.env.example",
+  // Household Manager is an independently deployed legacy application; its
+  // template is tracked but not part of the Proprium environment contract.
+  "household-manager/.env.example",
   "apps/web/.env.docker",
   "apps/web/.env.test",
 ]);

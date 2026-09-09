@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Proprium.Domain;
+using Proprium.Domain.Billing;
 using Proprium.Domain.Identity;
+using Proprium.Infrastructure.Events;
 
 namespace Proprium.Infrastructure.Persistence;
 
@@ -15,6 +17,10 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<AuthenticationEvent> AuthenticationEvents => Set<AuthenticationEvent>();
+    public DbSet<Household> Households => Set<Household>();
+    public DbSet<HouseholdMembership> HouseholdMemberships => Set<HouseholdMembership>();
+    public DbSet<Bill> Bills => Set<Bill>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,6 +99,40 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
             entity.HasIndex(item => item.EventType); entity.HasIndex(item => item.Outcome); entity.HasIndex(item => item.CorrelationId);
             entity.HasOne(item => item.User).WithMany(user => user.AuthenticationEvents).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(item => item.Session).WithMany().HasForeignKey(item => item.SessionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<Household>(entity =>
+        {
+            entity.ToTable("households"); entity.HasKey(household => household.Id);
+            entity.Property(household => household.Name).HasMaxLength(256).IsRequired();
+            entity.HasIndex(household => household.OwnerUserId);
+            entity.HasOne<User>().WithMany().HasForeignKey(household => household.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HouseholdMembership>(entity =>
+        {
+            entity.ToTable("household_memberships"); entity.HasKey(membership => new { membership.HouseholdId, membership.UserId });
+            entity.HasOne(membership => membership.Household).WithMany(household => household.Members).HasForeignKey(membership => membership.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<User>().WithMany().HasForeignKey(membership => membership.UserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(membership => membership.UserId);
+        });
+        modelBuilder.Entity<Bill>(entity =>
+        {
+            entity.ToTable("bills", table => table.HasCheckConstraint("CK_bills_amount", "\"Amount\" >= 0")); entity.HasKey(bill => bill.Id);
+            entity.Property(bill => bill.Name).HasMaxLength(256).IsRequired();
+            entity.Property(bill => bill.Amount).HasPrecision(18, 2);
+            entity.Property(bill => bill.Notes).HasMaxLength(1000);
+            entity.Ignore(bill => bill.DomainEvents);
+            entity.HasOne(bill => bill.Household).WithMany(household => household.Bills).HasForeignKey(bill => bill.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(bill => new { bill.HouseholdId, bill.DueDate });
+        });
+        modelBuilder.Entity<OutboxMessage>(entity =>
+        {
+            entity.ToTable("outbox_messages"); entity.HasKey(message => message.Id);
+            entity.Property(message => message.EventType).HasMaxLength(200).IsRequired();
+            entity.Property(message => message.PayloadJson).HasColumnType("jsonb").IsRequired();
+            entity.Property(message => message.CorrelationId).HasMaxLength(128).IsRequired();
+            entity.Property(message => message.LastError).HasMaxLength(2_000);
+            entity.HasIndex(message => new { message.ProcessedAtUtc, message.CreatedAtUtc });
+            entity.HasIndex(message => message.HouseholdId);
         });
     }
 }
