@@ -6,7 +6,6 @@ using Proprium.Api.Security;
 using Proprium.Application.Authentication;
 using Proprium.Contracts.V1;
 using Proprium.Domain.Identity;
-using Proprium.Infrastructure.Persistence;
 
 namespace Proprium.Api.Endpoints;
 
