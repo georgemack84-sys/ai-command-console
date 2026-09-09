@@ -25,7 +25,6 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPropriumInfrastructure(this IServiceCollection services)
     {
-        services.AddDbContext<PropriumDbContext>((provider, options) => options.UseNpgsql(provider.GetRequiredService<IOptions<PostgresOptions>>().Value.BuildConnectionString()));
         services.AddDbContextFactory<PropriumDbContext>((provider, options) => options.UseNpgsql(provider.GetRequiredService<IOptions<PostgresOptions>>().Value.BuildConnectionString()));
         services.AddSingleton<IConnectionMultiplexer>(provider =>
         {
