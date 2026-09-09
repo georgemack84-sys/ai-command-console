@@ -9,8 +9,14 @@ const nextConfig: NextConfig = {
     if (!householdManagerOrigin) return [];
 
     return [
-      { source: '/household-manager', destination: `${householdManagerOrigin}/household-manager` },
-      { source: '/household-manager/:path*', destination: `${householdManagerOrigin}/household-manager/:path*` },
+      {
+        source: '/household-manager',
+        destination: `${householdManagerOrigin}/household-manager`,
+      },
+      {
+        source: '/household-manager/:path*',
+        destination: `${householdManagerOrigin}/household-manager/:path*`,
+      },
     ];
   },
 };
