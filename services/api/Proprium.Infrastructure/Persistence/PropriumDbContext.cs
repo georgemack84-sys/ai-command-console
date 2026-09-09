@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Proprium.Domain;
-using Proprium.Domain.Identity;
 using Proprium.Domain.Billing;
+using Proprium.Domain.Identity;
 using Proprium.Infrastructure.Events;
 
 namespace Proprium.Infrastructure.Persistence;

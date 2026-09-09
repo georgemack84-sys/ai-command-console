@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Proprium.Infrastructure.Persistence;
 using Proprium.Infrastructure.Events;
+using Proprium.Infrastructure.Persistence;
 using StackExchange.Redis;
 
 namespace Proprium.Infrastructure.Health;

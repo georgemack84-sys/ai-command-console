@@ -1,8 +1,5 @@
-using NetArchTest.Rules;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Proprium.ArchitectureTests.Fixtures.Api;
 using Proprium.ArchitectureTests.Fixtures.Domain;
-using Xunit;
 
 namespace Proprium.ArchitectureTests;
 
