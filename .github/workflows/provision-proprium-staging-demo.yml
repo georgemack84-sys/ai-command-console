@@ -79,9 +79,10 @@ jobs:
           uuid = lambda value: f"{value[0:8]}-{value[8:12]}-{value[12:16]}-{value[16:20]}-{value[20:32]}"
 
           print("BEGIN;")
-          print(f'''INSERT INTO users ("Id", "Username", "NormalizedUsername", "DisplayName", "PasswordHash", "IsActive", "SecurityVersion", "CreatedAtUtc", "UpdatedAtUtc") VALUES ('{uuid(user_id)}', {sql(username)}, upper({sql(username)}), {sql(display_name)}, {sql(password_hash)}, true, 1, now(), now());''')
-          print(f'''INSERT INTO households ("Id", "OwnerUserId", "Name", "CreatedAtUtc", "UpdatedAtUtc") VALUES ('{uuid(household_id)}', '{uuid(user_id)}', {sql(household_name)}, now(), now());''')
-          print(f'''INSERT INTO household_memberships ("HouseholdId", "UserId", "JoinedAtUtc") VALUES ('{uuid(household_id)}', '{uuid(user_id)}', now());''')
+          print(f'''INSERT INTO users ("Id", "Username", "NormalizedUsername", "DisplayName", "PasswordHash", "IsActive", "SecurityVersion", "CreatedAtUtc", "UpdatedAtUtc") VALUES ('{uuid(user_id)}', {sql(username)}, upper({sql(username)}), {sql(display_name)}, {sql(password_hash)}, true, 1, now(), now()) ON CONFLICT ("NormalizedUsername") DO NOTHING;''')
+          print(f'''INSERT INTO households ("Id", "OwnerUserId", "Name", "CreatedAtUtc", "UpdatedAtUtc") SELECT '{uuid(household_id)}', user_row."Id", {sql(household_name)}, now(), now() FROM users AS user_row WHERE user_row."NormalizedUsername" = upper({sql(username)}) AND NOT EXISTS (SELECT 1 FROM households AS existing WHERE existing."OwnerUserId" = user_row."Id" AND existing."Name" = {sql(household_name)});''')
+          print(f'''INSERT INTO household_memberships ("HouseholdId", "UserId", "JoinedAtUtc") SELECT household."Id", user_row."Id", now() FROM households AS household JOIN users AS user_row ON user_row."Id" = household."OwnerUserId" WHERE user_row."NormalizedUsername" = upper({sql(username)}) AND household."Name" = {sql(household_name)} ON CONFLICT ("HouseholdId", "UserId") DO NOTHING;''')
+          print(f'''INSERT INTO user_roles ("UserId", "RoleId", "AssignedAtUtc") SELECT user_row."Id", role."Id", now() FROM users AS user_row JOIN roles AS role ON role."NormalizedName" = 'MEMBER' WHERE user_row."NormalizedUsername" = upper({sql(username)}) ON CONFLICT ("UserId", "RoleId") DO NOTHING;''')
           print("COMMIT;")
           PY
 
