@@ -26,6 +26,7 @@ describe("Proprium bill source", () => {
         credentials: "include",
         headers: { "Content-Type": "application/json", "X-Proprium-CSRF": "1" },
         method: "POST",
+        body: JSON.stringify({ name: "Electric", amount: 25, dueDate: "2026-09-09", notes: null }),
       }),
     );
   });

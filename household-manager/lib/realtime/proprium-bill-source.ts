@@ -15,7 +15,7 @@ export async function listPropriumBills(): Promise<PropriumBill[]> {
 }
 
 export async function createPropriumBill(input: { name: string; amount: number; dueDate: string; notes?: string | null }): Promise<PropriumBill> {
-  return request<PropriumBill>("", "POST", input);
+  return request<PropriumBill>("", "POST", { ...input, notes: input.notes ?? null });
 }
 
 export async function setPropriumBillPaymentStatus(billId: string, paymentStatus: "Paid" | "Unpaid"): Promise<PropriumBill> {
