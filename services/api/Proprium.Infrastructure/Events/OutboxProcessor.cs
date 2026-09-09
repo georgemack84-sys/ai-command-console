@@ -27,7 +27,7 @@ public sealed class OutboxProcessor(
             catch (Exception exception)
             {
                 runtimeStatus.RecordOutboxFailure();
-                logger.LogError(exception, "Outbox processor batch failed.");
+                logger.LogError("Outbox processor batch failed with type {ExceptionType}.", exception.GetType().Name);
             }
         }
     }
@@ -58,8 +58,8 @@ public sealed class OutboxProcessor(
             catch (Exception exception)
             {
                 message.Attempts++;
-                message.LastError = exception.Message.Length <= 2_000 ? exception.Message : exception.Message[..2_000];
-                logger.LogWarning(exception, "Outbox event {EventId} {EventType} failed on attempt {Attempt}", message.Id, message.EventType, message.Attempts);
+                message.LastError = exception.GetType().Name;
+                logger.LogWarning("Outbox event {EventId} {EventType} failed on attempt {Attempt} with type {ExceptionType}", message.Id, message.EventType, message.Attempts, exception.GetType().Name);
             }
         }
         if (messages.Count > 0) await database.SaveChangesAsync(cancellationToken);
