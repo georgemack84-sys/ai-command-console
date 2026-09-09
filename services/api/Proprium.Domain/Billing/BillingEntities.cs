@@ -18,7 +18,12 @@ public sealed class HouseholdMembership
     public Guid HouseholdId { get; init; }
     public Guid UserId { get; init; }
     public DateTimeOffset JoinedAtUtc { get; init; } = DateTimeOffset.UtcNow;
-    public Household Household { get; init; } = null!;
+    private Household? _household;
+    public Household Household
+    {
+        get => _household ?? throw new InvalidOperationException("The household membership has not been associated with a household.");
+        init => _household = value;
+    }
 }
 
 public sealed class Bill
@@ -34,7 +39,12 @@ public sealed class Bill
     public BillPaymentStatus PaymentStatus { get; private set; } = BillPaymentStatus.Unpaid;
     public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAtUtc { get; private set; } = DateTimeOffset.UtcNow;
-    public Household Household { get; init; } = null!;
+    private Household? _household;
+    public Household Household
+    {
+        get => _household ?? throw new InvalidOperationException("The bill has not been associated with a household.");
+        init => _household = value;
+    }
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     public static Bill Create(Guid householdId, string name, decimal amount, DateOnly dueDate, string? notes, Guid actorId, DateTimeOffset occurredAtUtc)

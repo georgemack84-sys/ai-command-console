@@ -62,7 +62,8 @@ public sealed class DependencyResolutionArchitectureTests
         var approvedOwners = new HashSet<Type>
         {
             typeof(Program),
-            ArchitectureDefinitions.ApiAssembly.GetType("Proprium.Api.Configuration.OpenApiToolingConfiguration", throwOnError: true)!,
+            ArchitectureDefinitions.ApiAssembly.GetType("Proprium.Api.Configuration.OpenApiToolingConfiguration", throwOnError: true)
+                ?? throw new InvalidOperationException("OpenAPI tooling configuration type was not found."),
             typeof(ServiceCollectionExtensions),
         };
         approvedOwners.UnionWith(ArchitectureExceptionRegistry.ApprovedTypes("ARCH-005", productionAssemblies));

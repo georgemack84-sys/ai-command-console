@@ -97,7 +97,7 @@ public sealed class ArchitectureRuleContractTests
 
     public sealed class FieldContainerFixture
     {
-        public IServiceProvider Services = null!;
+        public IServiceProvider? Services;
     }
 
     public interface IServiceResolverFixture

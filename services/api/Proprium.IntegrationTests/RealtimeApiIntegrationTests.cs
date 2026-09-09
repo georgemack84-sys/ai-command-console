@@ -31,11 +31,13 @@ public sealed class RealtimeApiIntegrationTests(WebApplicationFactory<Program> f
         using var reader = new StreamReader(await response.Content.ReadAsStreamAsync());
         await reader.ReadLineAsync(); await reader.ReadLineAsync();
         var created = await clientA.PostAsJsonAsync($"/api/v1/households/{householdId}/bills", new CreateBillRequest("Water", 55m, new DateOnly(2026, 10, 10), null));
-        var bill = await created.Content.ReadFromJsonAsync<BillResponse>(); Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var bill = await created.Content.ReadFromJsonAsync<BillResponse>()
+            ?? throw new InvalidOperationException("The created bill response was empty.");
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var processor = factory.Services.GetServices<IHostedService>().OfType<OutboxProcessor>().Single();
         await processor.ProcessPendingAsync();
         await AssertEventAsync(reader, "proprium.bill.created.v1");
-        await clientA.PatchAsJsonAsync($"/api/v1/households/{householdId}/bills/{bill!.Id}/payment-status", new SetBillPaymentStatusRequest("Paid"));
+        await clientA.PatchAsJsonAsync($"/api/v1/households/{householdId}/bills/{bill.Id}/payment-status", new SetBillPaymentStatusRequest("Paid"));
         await processor.ProcessPendingAsync(); await AssertEventAsync(reader, "proprium.bill.paid.v1");
         await clientA.PatchAsJsonAsync($"/api/v1/households/{householdId}/bills/{bill.Id}/payment-status", new SetBillPaymentStatusRequest("Unpaid"));
         await processor.ProcessPendingAsync(); await AssertEventAsync(reader, "proprium.bill.unpaid.v1");

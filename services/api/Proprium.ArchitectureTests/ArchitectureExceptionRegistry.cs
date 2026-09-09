@@ -18,14 +18,14 @@ internal static class ArchitectureExceptionRegistry
     [
         new(
             "ARCH-005",
-            typeof(RetryExecutor).FullName!,
+            typeof(RetryExecutor).FullName ?? throw new InvalidOperationException("RetryExecutor must have a full name."),
             "Retry execution creates a fresh scope for each database attempt; the exact owner is protected by ARCH-005 tests.",
             "George",
             new DateOnly(2026, 9, 6),
             new DateOnly(2026, 12, 5)),
         new(
             "ARCH-006",
-            typeof(RetryExecutor).FullName!,
+            typeof(RetryExecutor).FullName ?? throw new InvalidOperationException("RetryExecutor must have a full name."),
             "Retry execution exposes IServiceScopeFactory only to create a fresh scope for each database attempt.",
             "George",
             new DateOnly(2026, 9, 6),
