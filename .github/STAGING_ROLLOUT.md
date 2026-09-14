@@ -8,6 +8,7 @@ Use this checklist for the first real staging deployment.
 - Fill in values from `.github/environment-templates/staging.env.example`.
 - Add the `DEPLOY_SSH_KEY` secret.
 - Confirm `DEPLOY_ARTIFACT_ONLY=false` unless you intentionally want an artifact-only dry run.
+- Set `NURU_EDITION_PREPARE_COMMAND` to a reviewed host command, for example `cd <DEPLOY_PATH>/current && npm run nuru:prepare-edition`.
 
 Quick inventory:
 
@@ -74,6 +75,8 @@ In the app:
 - `/auth` loads successfully
 - `/settings` loads and shows workspace/invite state
 - `/platform` shows healthy deployment posture
+- `/nuru` loads a seven-item discovery collection
+- `/nuru/studio/editions` is available to an administrator
 - runtime diagnostics do not show new high-severity failures
 - active alerts do not show runtime readiness/liveness failures after rollout stabilizes
 
@@ -84,6 +87,9 @@ In the app:
 - Confirm the shared SQLite paths are writable and present.
 - Confirm logs are being written.
 - Confirm the alert webhook destination receives test notifications if configured.
+- Run **Prepare Nuru Daily Edition** manually with `target_environment=staging`; it should report a prepared seven-item candidate.
+- As an administrator, review the candidate in `/nuru/studio/editions`, choose one featured item, and publish it for staging.
+- As a regular signed-in user, complete `.github/NURU_STAGING_ACCEPTANCE.md`.
 
 ## 7. Roll Back If Needed
 
