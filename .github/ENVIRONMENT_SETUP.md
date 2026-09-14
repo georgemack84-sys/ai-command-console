@@ -1,6 +1,6 @@
 # GitHub Environment Setup
 
-This repo expects two GitHub Environments:
+This repository expects two GitHub Environments:
 
 - `staging`
 - `production`
@@ -32,6 +32,7 @@ Strongly recommended variables:
 - `DEPLOY_HEALTHCHECK_URL`
 - `DEPLOY_VALIDATION_PATHS`
 - `DEPLOY_RELEASE_RETENTION`
+- `NURU_EDITION_PREPARE_COMMAND` — reviewed host command that runs `npm run nuru:prepare-edition` in the deployed application environment.
 
 ## Production
 
