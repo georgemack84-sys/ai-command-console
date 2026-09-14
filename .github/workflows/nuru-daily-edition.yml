@@ -1,0 +1,54 @@
+name: Prepare Nuru Daily Edition
+
+on:
+  schedule:
+    # 06:00 UTC gives editors a review window before the next local morning.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: GitHub Environment to use for this manual candidate-preparation run.
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ github.event_name == 'schedule' && 'production' || inputs.target_environment }}
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      NURU_EDITION_PREPARE_COMMAND: ${{ vars.NURU_EDITION_PREPARE_COMMAND }}
+    steps:
+      - name: Validate scheduler configuration
+        shell: bash
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$NURU_EDITION_PREPARE_COMMAND"
+
+      - name: Prepare tomorrow's candidate edition
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "$NURU_EDITION_PREPARE_COMMAND"
+
+      - name: Summarize review state
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "Tomorrow's Nuru candidate edition is ready for editorial review." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Nuru candidate preparation needs editorial attention. Check whether seven active discoveries are available." >> "$GITHUB_STEP_SUMMARY"
+          fi

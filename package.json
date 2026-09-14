@@ -23,6 +23,7 @@
     "check:legacy-state": "node scripts/check-legacy-state.cjs",
     "dev:postgres:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-postgres-windows.ps1",
     "worker:jobs": "tsx scripts/job-worker.ts",
+    "nuru:prepare-edition": "tsx scripts/nuru-prepare-edition.ts",
     "startup:check": "tsx scripts/startup-governor.ts",
     "build": "node scripts/run-next.cjs build",
     "build:debug-prerender": "node node_modules/next/dist/bin/next build --debug-prerender",

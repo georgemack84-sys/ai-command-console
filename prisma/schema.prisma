@@ -78,6 +78,14 @@ enum InsightStatus {
   archived
 }
 
+enum NuruDiscoveryCategory {
+  near_certain
+  adjacent
+  serendipity
+  wildcard
+  featured
+}
+
 enum AgentTaskStatus {
   queued
   running
@@ -169,6 +177,151 @@ model User {
   approvedKnowledgePromotions  KnowledgePromotion[]    @relation("KnowledgePromotionApprovedBy")
   headlineFlowEventPreferences HeadlineFlowEventPreference[]
   headlineFlowInteractionEvents HeadlineFlowInteractionEvent[]
+  nuruDiscoveryPreferences NuruUserDiscoveryPreference[]
+  nuruInsightFeedback     NuruInsightFeedback?
+  nuruRabbitHoleProgress  NuruRabbitHoleProgress[]
+  nuruTasteSignals        NuruTasteSignal[]
+  nuruPrivacySettings     NuruPrivacySettings?
+}
+
+model NuruPrivacySettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  personalizationPaused Boolean  @default(false)
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NuruDiscovery {
+  id          String                @id
+  title       String
+  meta        String
+  category    NuruDiscoveryCategory
+  matchScore  Int
+  imageKey    String
+  imageUrl    String?
+  sourceUrl   String?
+  eyebrow     String                @default("")
+  summary     String                @default("")
+  rationale   String                @default("")
+  connection  String                @default("")
+  paths       String[]              @default([])
+  isPublished Boolean               @default(true)
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  preferences NuruUserDiscoveryPreference[]
+  editionItems NuruDailyEditionItem[]
+}
+
+model NuruDailyEdition {
+  id        String                 @id @default(cuid())
+  editionAt DateTime               @unique
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  items     NuruDailyEditionItem[]
+}
+
+model NuruDailyEditionItem {
+  id          String           @id @default(cuid())
+  editionId   String
+  discoveryId String
+  position    Int
+  isFeatured  Boolean          @default(false)
+  edition     NuruDailyEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  discovery   NuruDiscovery    @relation(fields: [discoveryId], references: [id], onDelete: Cascade)
+
+  @@unique([editionId, discoveryId])
+  @@unique([editionId, position])
+  @@index([editionId, isFeatured])
+}
+
+model NuruDailyEditionCandidate {
+  id           String   @id @default(cuid())
+  editionAt    DateTime @unique
+  discoveryIds String[]
+  featuredId   String?
+  status       String   @default("prepared")
+  generatedAt  DateTime @default(now())
+  reviewedAt   DateTime?
+}
+
+model NuruUserDiscoveryPreference {
+  id          String        @id @default(cuid())
+  userId      String
+  discoveryId String
+  savedAt     DateTime?
+  dismissedAt DateTime?
+  affinity    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discovery   NuruDiscovery @relation(fields: [discoveryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, discoveryId])
+  @@index([userId, savedAt])
+  @@index([userId, dismissedAt])
+}
+
+model NuruInsightFeedback {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NuruRabbitHole {
+  id        String                  @id
+  title     String
+  subtitle  String
+  coverKey  String
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  steps     NuruRabbitHoleStep[]
+  progress  NuruRabbitHoleProgress[]
+}
+
+model NuruRabbitHoleStep {
+  id           String         @id
+  rabbitHoleId String
+  position     Int
+  title        String
+  description  String
+  rabbitHole   NuruRabbitHole @relation(fields: [rabbitHoleId], references: [id], onDelete: Cascade)
+
+  @@unique([rabbitHoleId, position])
+}
+
+model NuruRabbitHoleProgress {
+  id             String         @id @default(cuid())
+  userId         String
+  rabbitHoleId   String
+  completedSteps String[]       @default([])
+  updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rabbitHole     NuruRabbitHole @relation(fields: [rabbitHoleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, rabbitHoleId])
+  @@index([userId, updatedAt])
+}
+
+model NuruTasteSignal {
+  id          String   @id @default(cuid())
+  userId      String
+  nodeId      String
+  label       String
+  cluster     String
+  score       Int
+  isActive    Boolean  @default(true)
+  confirmedAt DateTime?
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, nodeId])
+  @@index([userId, isActive, score])
 }
 
 model SkillNode {
