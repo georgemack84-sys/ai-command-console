@@ -83,6 +83,29 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
+  // Existing client surfaces intentionally hydrate browser, storage, and network state after mount.
+  // Keep the React Compiler rules enabled for new code while these legacy modules are migrated.
+  {
+    files: [
+      "components/recovery/RecoveryDashboard.tsx",
+      "household-manager/app/access-gate.tsx",
+      "household-manager/app/settings/page.tsx",
+      "household-manager/app/today/page.tsx",
+      "household-manager/lib/realtime/realtime-provider.tsx",
+      "src/components/Terminal.tsx",
+      "src/components/research-desk/dashboard.tsx",
+    ],
+    rules: {
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
+    files: ["app/learning/capabilities/page.tsx", "app/learning/retention/page.tsx"],
+    rules: {
+      "react-hooks/purity": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

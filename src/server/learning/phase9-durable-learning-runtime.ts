@@ -83,7 +83,7 @@ export function createPhase9DurableLearningRuntime(workspaceId: string) {
     registryVersion: () => new PrismaRegistryVersionProvider(workspaceId).currentVersion(),
     teachBack: { requirement: (classification, scope) => new DeterministicTeachBackPolicy().evaluate({ classification, scope }), latestOutcome: (candidateId) => teachBackEvidence.latestOutcome(candidateId) },
   });
-  let lifecycle: DeferredCandidateLifecycleService | undefined;
+  const lifecycle: DeferredCandidateLifecycleService | undefined;
   const promotion = new DurableLearningPromotionService({
     gate: new FailClosedDurableLearningGate({ auditLedger: new PrismaGateAuditLedger(workspaceId) }),
     registryWriter: new PrismaDurableRegistryWriter(workspaceId),
@@ -100,4 +100,3 @@ export function createPhase9DurableLearningRuntime(workspaceId: string) {
     resolution: new DeferredCandidateResolutionService({ registry: deferredCandidates, resolutionLedger, reevaluationInputProvider: provider, lifecycle }),
   };
 }
-
