@@ -83,7 +83,7 @@ export function createPhase9DurableLearningRuntime(workspaceId: string) {
     registryVersion: () => new PrismaRegistryVersionProvider(workspaceId).currentVersion(),
     teachBack: { requirement: (classification, scope) => new DeterministicTeachBackPolicy().evaluate({ classification, scope }), latestOutcome: (candidateId) => teachBackEvidence.latestOutcome(candidateId) },
   });
-  const lifecycle: DeferredCandidateLifecycleService | undefined;
+  let lifecycle: DeferredCandidateLifecycleService | undefined = undefined;
   const promotion = new DurableLearningPromotionService({
     gate: new FailClosedDurableLearningGate({ auditLedger: new PrismaGateAuditLedger(workspaceId) }),
     registryWriter: new PrismaDurableRegistryWriter(workspaceId),
