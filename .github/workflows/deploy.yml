@@ -129,11 +129,16 @@ jobs:
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
         shell: bash
         run: |
+          BUILD_OUTPUT_DIR=.next-production
+          if [ ! -d "$BUILD_OUTPUT_DIR/standalone" ]; then
+            echo "Expected standalone build output at $BUILD_OUTPUT_DIR/standalone"
+            exit 1
+          fi
           rm -rf release
           mkdir -p release
-          cp -R .next/standalone/. release/
+          cp -R "$BUILD_OUTPUT_DIR/standalone/." release/
           mkdir -p release/.next
-          cp -R .next/static release/.next/static
+          cp -R "$BUILD_OUTPUT_DIR/static" release/.next/static
           if [ -d public ]; then cp -R public release/public; fi
           if [ -d data ]; then cp -R data release/data; fi
           if [ -d logs ]; then cp -R logs release/logs; fi
