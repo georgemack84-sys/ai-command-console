@@ -28,6 +28,14 @@ npm run dev
 
 Then open `http://localhost:3000`.
 
+## Hosted adapter
+
+Production builds use the public weather adapter at
+`https://axiom-time-adapter.onrender.com`. This value is compiled into the
+static bundle from `.env.production`; it is not a secret. Server-only adapter
+credentials remain in the host environment and must never be added to a
+`NEXT_PUBLIC_` variable.
+
 ## Verify
 
 ```bash
