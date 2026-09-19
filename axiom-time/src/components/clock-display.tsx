@@ -46,14 +46,6 @@ export function ClockDisplay() {
   const [notificationStatus, setNotificationStatus] =
     useState<NotificationEnablement | null>(null);
 
-  if (!workspace.temporalState) {
-    return <p className="clock-loading">Calibrating local time…</p>;
-  }
-
-  const { temporalState } = workspace;
-  const [time, meridiem] = temporalState.localTime.split(" ");
-  const nextEvent = workspace.horizon[0];
-
   const submitAlarm = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -127,6 +119,14 @@ export function ClockDisplay() {
     setWeatherFetchedAt(cached.fetchedAt);
     setWeatherCity(cached.weather.city);
   }, []);
+
+  if (!workspace.temporalState) {
+    return <p className="clock-loading">Calibrating local time…</p>;
+  }
+
+  const { temporalState } = workspace;
+  const [time, meridiem] = temporalState.localTime.split(" ");
+  const nextEvent = workspace.horizon[0];
 
   const loadWeather = async (city: string) => {
     setWeatherCity(city);
