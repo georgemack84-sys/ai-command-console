@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import type { ProposedTimeAction } from "@/contracts/time-intents";
 import { sceneClassForMutation } from "@/core/time-mutation";
 import { useTimeWorkspace } from "@/hooks/use-time-workspace";
@@ -11,6 +11,12 @@ import {
 } from "@/services/notification-adapter";
 import { parseTimeCommand } from "@/services/time-command-parser";
 import { formatDuration, nextAlarmOccurrence } from "@/services/time-tools";
+import {
+  fetchWeatherContext,
+  loadCachedWeather,
+  saveCachedWeather,
+  type WeatherContext,
+} from "@/services/weather-adapter";
 
 const formatAlarm = (hour: number, minute: number) =>
   new Intl.DateTimeFormat("en-US", {
@@ -22,14 +28,6 @@ const formatAlarm = (hour: number, minute: number) =>
 const hours = Array.from({ length: 24 }, (_, hour) => hour);
 const minutes = Array.from({ length: 60 }, (_, minute) => minute);
 
-interface WeatherContext {
-  city: string;
-  temperature: number;
-  weatherCode: number;
-  sunrise: string;
-  sunset: string;
-}
-
 export function ClockDisplay() {
   const workspace = useTimeWorkspace();
   const [alarmLabel, setAlarmLabel] = useState("");
@@ -39,8 +37,11 @@ export function ClockDisplay() {
   const [proposal, setProposal] = useState<ProposedTimeAction | null>(null);
   const [commandError, setCommandError] = useState("");
   const [weather, setWeather] = useState<WeatherContext | null>(null);
+  const [weatherFetchedAt, setWeatherFetchedAt] = useState("");
   const [weatherError, setWeatherError] = useState("");
+  const [weatherStatus, setWeatherStatus] = useState("");
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherCity, setWeatherCity] = useState("");
   const [voiceStatus, setVoiceStatus] = useState("");
   const [notificationStatus, setNotificationStatus] =
     useState<NotificationEnablement | null>(null);
@@ -119,6 +120,44 @@ export function ClockDisplay() {
   const requestNotifications = async () =>
     setNotificationStatus(await enableNotifications());
 
+  useEffect(() => {
+    const cached = loadCachedWeather();
+    if (!cached) return;
+    setWeather(cached.weather);
+    setWeatherFetchedAt(cached.fetchedAt);
+    setWeatherCity(cached.weather.city);
+  }, []);
+
+  const loadWeather = async (city: string) => {
+    setWeatherCity(city);
+    setWeatherLoading(true);
+    setWeatherError("");
+    setWeatherStatus(
+      "Waking the weather service. The free service can take up to a minute on its first request.",
+    );
+    try {
+      const nextWeather = await fetchWeatherContext({
+        adapterUrl: process.env.NEXT_PUBLIC_AXIOM_ADAPTERS_URL,
+        city,
+        onRetry: (attempt) =>
+          setWeatherStatus(
+            `Still connecting to weather service (attempt ${attempt} of 3)…`,
+          ),
+      });
+      setWeather(nextWeather);
+      saveCachedWeather(nextWeather);
+      setWeatherFetchedAt(new Date().toISOString());
+      setWeatherStatus("");
+    } catch (error) {
+      setWeatherError(
+        error instanceof Error ? error.message : "Weather lookup failed.",
+      );
+      setWeatherStatus("");
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
   const confirmProposal = async () => {
     if (!proposal) return;
     const { intent } = proposal;
@@ -127,28 +166,7 @@ export function ClockDisplay() {
     } else if (intent.type === "START_TIMER") {
       workspace.addTimer(intent.minutes, intent.label);
     } else {
-      setWeatherLoading(true);
-      setWeatherError("");
-      try {
-        const adapterUrl = process.env.NEXT_PUBLIC_AXIOM_ADAPTERS_URL;
-        if (!adapterUrl)
-          throw new Error("Weather adapter is unavailable offline.");
-        const response = await fetch(
-          `${adapterUrl.replace(/\/$/, "")}/weather?city=${encodeURIComponent(intent.city)}`,
-        );
-        const data = (await response.json()) as WeatherContext & {
-          error?: string;
-        };
-        if (!response.ok)
-          throw new Error(data.error ?? "Weather lookup failed.");
-        setWeather(data);
-      } catch (error) {
-        setWeatherError(
-          error instanceof Error ? error.message : "Weather lookup failed.",
-        );
-      } finally {
-        setWeatherLoading(false);
-      }
+      await loadWeather(intent.city);
     }
     setProposal(null);
     setCommand("");
@@ -463,8 +481,30 @@ export function ClockDisplay() {
             </span>
           )}
           {weatherError && (
-            <p className="form-error" role="alert">
-              {weatherError}
+            <div className="weather-error" role="alert">
+              <p className="form-error">{weatherError}</p>
+              <button
+                type="button"
+                onClick={() => void loadWeather(weatherCity)}
+                disabled={weatherLoading || !weatherCity}
+              >
+                Retry weather
+              </button>
+            </div>
+          )}
+          {weatherLoading && (
+            <p className="helper-text" role="status">
+              {weatherStatus}
+            </p>
+          )}
+          {weather && weatherFetchedAt && !weatherLoading && (
+            <p className="helper-text" role="status">
+              Saved locally{" "}
+              {new Date(weatherFetchedAt).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+              .
             </p>
           )}
         </article>

@@ -300,6 +300,17 @@ input::-webkit-calendar-picker-indicator {
   font-size: 0.78rem;
   line-height: 1.4;
 }
+.weather-error {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  justify-content: space-between;
+}
+.weather-error button {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.72rem;
+}
 .proposal {
   display: grid;
   gap: 0.35rem;
