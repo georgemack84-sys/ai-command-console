@@ -42,7 +42,7 @@ jobs:
       PUBLIC_ORIGIN: ${{ inputs.public_origin }}
     steps:
       - name: Check out main deployment authority
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
