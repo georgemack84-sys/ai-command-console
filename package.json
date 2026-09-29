@@ -168,7 +168,8 @@
   },
   "overrides": {
     "deepmerge-ts": "8.0.0",
-    "@humanfs/node": "0.16.8"
+    "@humanfs/node": "0.16.8",
+    "undici": "7.29.1"
   },
   "description": "Multi-agent command console with research workflows and governed operations tooling.",
   "keywords": [
