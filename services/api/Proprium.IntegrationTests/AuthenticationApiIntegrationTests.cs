@@ -50,7 +50,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var isolatedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             services.RemoveAll<ILoginSourceResolver>();
-            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"198.51.100.{Random.Shared.Next(1, 255)}"));
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"test-source-{Guid.NewGuid():N}"));
         }));
         var client = isolatedFactory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
@@ -256,7 +256,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         await using var isolatedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             services.RemoveAll<ILoginSourceResolver>();
-            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"198.51.100.{Random.Shared.Next(1, 255)}"));
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"test-source-{Guid.NewGuid():N}"));
         }));
         Assert.Equal(HttpStatusCode.Forbidden, (await isolatedFactory.CreateClient().PostAsJsonAsync("/api/v1/auth/login", request)).StatusCode);
 
@@ -399,7 +399,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     [Fact]
     public async Task Login_rate_limit_normalizes_json_property_casing()
     {
-        var source = $"198.51.100.{Random.Shared.Next(1, 255)}";
+        var source = $"test-source-{Guid.NewGuid():N}";
         var username = $"unknown-{Guid.NewGuid():N}";
         await using var rateLimitFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
@@ -433,7 +433,7 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
             await database.SaveChangesAsync();
         }
 
-        var source = $"198.51.100.{Random.Shared.Next(1, 255)}";
+        var source = $"test-source-{Guid.NewGuid():N}";
         await using var rateLimitFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             services.RemoveAll<ILoginSourceResolver>();
