@@ -9,7 +9,7 @@ describe('foundation routes', () => {
   it('renders startup information', () => {
     render(createElement(HomePage));
     expect(
-      screen.getByText('Backend connectivity: Not checked'),
+      screen.getByText('Backend connectivity: Checking…'),
     ).toBeInTheDocument();
   });
   it('renders only approved health information', () => {
