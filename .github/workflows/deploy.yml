@@ -175,6 +175,7 @@ jobs:
           DEPLOY_HEALTHCHECK_ATTEMPTS: ${{ vars.DEPLOY_HEALTHCHECK_ATTEMPTS }}
           DEPLOY_HEALTHCHECK_DELAY_SECONDS: ${{ vars.DEPLOY_HEALTHCHECK_DELAY_SECONDS }}
           DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
+          DEPLOY_SSH_KEY_FINGERPRINT: ${{ vars.DEPLOY_SSH_KEY_FINGERPRINT }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           RELEASE_ROOT="${DEPLOY_PATH}/releases"
@@ -186,6 +187,12 @@ jobs:
           # OpenSSH keys must be LF-delimited on the Linux runner.
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          ACTUAL_KEY_FINGERPRINT="$(ssh-keygen -y -f ~/.ssh/deploy_key | ssh-keygen -lf - | awk '{print $2}')"
+          if [ -n "$DEPLOY_SSH_KEY_FINGERPRINT" ] && [ "$ACTUAL_KEY_FINGERPRINT" != "$DEPLOY_SSH_KEY_FINGERPRINT" ]; then
+            echo "Deployment SSH key fingerprint does not match the configured staging fingerprint."
+            exit 1
+          fi
+          echo "Deployment SSH key fingerprint verified: $ACTUAL_KEY_FINGERPRINT"
           ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
           if [ -z "${{ steps.metadata.outputs.rollback_release }}" ]; then
             scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" "ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz"
@@ -227,6 +234,7 @@ jobs:
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
           DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
+          DEPLOY_SSH_KEY_FINGERPRINT: ${{ vars.DEPLOY_SSH_KEY_FINGERPRINT }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           KEEP_RELEASES="${DEPLOY_RELEASE_RETENTION:-5}"
@@ -238,6 +246,11 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          ACTUAL_KEY_FINGERPRINT="$(ssh-keygen -y -f ~/.ssh/deploy_key | ssh-keygen -lf - | awk '{print $2}')"
+          if [ -n "$DEPLOY_SSH_KEY_FINGERPRINT" ] && [ "$ACTUAL_KEY_FINGERPRINT" != "$DEPLOY_SSH_KEY_FINGERPRINT" ]; then
+            echo "Deployment SSH key fingerprint does not match the configured staging fingerprint."
+            exit 1
+          fi
           ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
           ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
             RELEASE_ROOT='$DEPLOY_PATH/releases'; \
