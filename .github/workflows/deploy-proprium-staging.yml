@@ -134,6 +134,25 @@ jobs:
           test -f "$runtime_dir/current-release.env"
           REMOTE
 
+      - name: Verify public staging endpoints
+        shell: bash
+        env:
+          # The staging Nginx server is published through sslip.io using the
+          # same external address used by the SSH deployment target. Running
+          # this from the GitHub-hosted runner confirms the public route, not
+          # merely the Docker loopback health checks on the staging host.
+          PUBLIC_BASE_URL: https://${{ vars.DEPLOY_HOST }}.sslip.io
+        run: |
+          set -euo pipefail
+          test -n "$PUBLIC_BASE_URL"
+
+          health_response="$(curl --fail --silent --show-error --max-time 15 \
+            --retry 3 --retry-delay 2 "$PUBLIC_BASE_URL/api/v1/health/live")"
+          printf '%s' "$health_response" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"healthy"'
+
+          curl --fail --silent --show-error --max-time 15 \
+            --retry 3 --retry-delay 2 --output /dev/null "$PUBLIC_BASE_URL/"
+
       - name: Summarize staging rollout
         shell: bash
         run: |
@@ -144,5 +163,6 @@ jobs:
             echo "- API migration: completed exactly once before API rollout"
             echo "- API readiness: Docker health check passed"
             echo "- Web rollout: completed"
+            echo "- Public endpoint verification: web and API health checks passed"
             echo "- Required operator follow-up: verify browser sign-in, refresh, logout, and revoked-session behavior."
           } >> "$GITHUB_STEP_SUMMARY"
