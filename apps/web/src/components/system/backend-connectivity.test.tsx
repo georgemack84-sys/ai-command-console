@@ -19,9 +19,7 @@ describe('BackendConnectivity', () => {
 
     expect(screen.getByText('Backend connectivity: Checking…')).toBeVisible();
     await waitFor(() =>
-      expect(
-        screen.getByText('Backend connectivity: Available'),
-      ).toBeVisible(),
+      expect(screen.getByText('Backend connectivity: Available')).toBeVisible(),
     );
     expect(apiRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({ path: '/api/v1/health/live' }),
