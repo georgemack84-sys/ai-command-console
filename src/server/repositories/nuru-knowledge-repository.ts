@@ -1,0 +1,86 @@
+import { prisma } from "@/src/server/db/prisma";
+
+type KnowledgeRow = { id: string; title: string };
+type ProposalRow = { id: string; itemId: string; status: string; recommendation: string; evidence: unknown };
+export type NuruPersistenceModel = {
+  findMany(args: unknown): Promise<KnowledgeRow[]>;
+  findUnique(args: unknown): Promise<ProposalRow | null>;
+  create(args: unknown): Promise<KnowledgeRow | ProposalRow>;
+  createMany(args: unknown): Promise<unknown>;
+  update(args: unknown): Promise<ProposalRow | KnowledgeRow>;
+  upsert(args: unknown): Promise<unknown>;
+};
+export type MetadataRow = { key: string; value: unknown };
+export type NuruMetadataPersistenceModel = { findMany(args: unknown): Promise<MetadataRow[]>; upsert(args: unknown): Promise<unknown> };
+export type ArchiveKnowledgeRow = { id: string; title: string; content: string; contentType: string; status: string; project: string | null; source: unknown; metadata: unknown; relationships: unknown; confidence: number; currentVersion: number; provenance: unknown; createdAt: Date };
+export type NuruArchiveModel = { create(args: unknown): Promise<ArchiveKnowledgeRow>; findUnique(args: unknown): Promise<ArchiveKnowledgeRow | null>; findMany(args: unknown): Promise<ArchiveKnowledgeRow[]>; update(args: unknown): Promise<ArchiveKnowledgeRow>; };
+export type RelationshipRow = { id: string; sourceItemId: string; targetItemId: string; relationshipType: string; confidence: number; evidence: string; proposedBy: string; status: string; createdAt: Date };
+export type NuruRelationshipPersistenceModel = { createMany(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<RelationshipRow[]>; update(args: unknown): Promise<RelationshipRow> };
+export type NuruEmbeddingPersistenceModel = { upsert(args: unknown): Promise<unknown>; deleteMany(args: unknown): Promise<unknown> };
+export type NuruDiscoveryCandidatePersistenceModel = { create(args: unknown): Promise<{ id: string }>; upsert(args: unknown): Promise<{ id: string }>; findMany(args: unknown): Promise<Array<{ externalKey: string | null; status: string }>> };
+export type NuruDiscoveryRetrievalRunRow = { sourceId: string; status: string; candidateCount: number; startedAt: Date; completedAt: Date | null };
+export type NuruDiscoveryRetrievalRunPersistenceModel = { create(args: unknown): Promise<{ id: string }>; update(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<NuruDiscoveryRetrievalRunRow[]> };
+export type NuruContextAssessmentPersistenceModel = { create(args: unknown): Promise<unknown> };
+export type NuruQualityAssessmentPersistenceModel = { create(args: unknown): Promise<unknown> };
+export type NuruSourcePersistenceModel = { create(args: unknown): Promise<unknown>; upsert(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruSourceRegistryPersistenceModel = { create(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]>; update(args: unknown): Promise<unknown> };
+export type NuruRawArtifactPersistenceModel = { create(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruNormalizedDocumentPersistenceModel = { upsert(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruClaimCandidatePersistenceModel = { upsert(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]>; update(args: unknown): Promise<unknown> };
+export type NuruSourceClassificationPersistenceModel = { upsert(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruClaimEvidenceQualityPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruClaimCorroborationPersistenceModel = { upsert(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruKnowledgeDevelopmentPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruTemporalClaimPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]>; findUnique(args: unknown): Promise<unknown> };
+export type NuruEntityPersistenceModel = { findMany(args: unknown): Promise<unknown[]> };
+export type TandemMissionKnowledgePackagePersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type TandemKnowledgeCandidateReceiptPersistenceModel = { create(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown> };
+export type NuruKnowledgeCorrectionPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]>; findUnique(args: unknown): Promise<unknown> };
+export type NuruKnowledgeCorrectionDecisionPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]>; findUnique(args: unknown): Promise<unknown> };
+export type NuruHeadlineFlowCandidatePersistenceModel = { create(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown> };
+export type NuruProvenancePersistenceModel = { createMany(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruDuplicateAssessmentPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruContradictionAssessmentPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruSupersessionReviewPersistenceModel = { create(args: unknown): Promise<unknown>; update(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruCurationQueuePersistenceModel = { create(args: unknown): Promise<unknown>; update(args: unknown): Promise<unknown>; findUnique(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruHumanFeedbackPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<unknown[]> };
+export type NuruDiscoverInterestSignalRow = { knowledgeItemId: string; signalType: string; weight: number; source: string; reasonCode: string | null; createdAt: Date };
+export type NuruDiscoverInterestSignalPersistenceModel = { create(args: unknown): Promise<NuruDiscoverInterestSignalRow>; findMany(args: unknown): Promise<NuruDiscoverInterestSignalRow[]> };
+export type NuruDiscoverTopicPreferenceRow = { topic: string; createdAt: Date; updatedAt: Date };
+export type NuruDiscoverTopicPreferencePersistenceModel = { findMany(args: unknown): Promise<NuruDiscoverTopicPreferenceRow[]>; deleteMany(args: unknown): Promise<unknown>; createMany(args: unknown): Promise<unknown> };
+export type NuruDiscoverCatalogEntryRow = { id: string; knowledgeItemId: string; status: string; topics: string[]; reason: string; admittedBy: string | null; createdAt: Date; updatedAt: Date };
+export type NuruDiscoverCatalogEntryPersistenceModel = { findMany(args: unknown): Promise<NuruDiscoverCatalogEntryRow[]>; findUnique(args: unknown): Promise<NuruDiscoverCatalogEntryRow | null>; upsert(args: unknown): Promise<NuruDiscoverCatalogEntryRow> };
+export type NuruTasteInterviewResponsePersistenceModel = { findMany(args: unknown): Promise<Array<{ promptId: string; answer: string; updatedAt: Date }>>; upsert(args: unknown): Promise<unknown> };
+export type NuruTasteProfileSignalPersistenceModel = { findMany(args: unknown): Promise<Array<{ id: string; userId: string; concept: string; dimension: string; polarity: number; confidence: number; evidenceCount: number; status: string; isActive: boolean; updatedAt: Date }>>; findUnique(args: unknown): Promise<{ id: string; userId: string; concept: string; dimension: string; polarity: number; confidence: number; evidenceCount: number; status: string; isActive: boolean; updatedAt: Date } | null>; upsert(args: unknown): Promise<{ id: string }>; update(args: unknown): Promise<{ id: string; userId: string; concept: string; dimension: string; polarity: number; confidence: number; evidenceCount: number; status: string; isActive: boolean; updatedAt: Date }>; deleteMany(args: unknown): Promise<unknown> };
+export type NuruTasteEvidencePersistenceModel = { createMany(args: unknown): Promise<unknown>; deleteMany(args: unknown): Promise<unknown> };
+export type NuruPersonalEditionRow = {
+  id: string;
+  editionDate: Date;
+  rankingVersion: string;
+  inputSnapshot: unknown;
+  createdAt: Date;
+  items: Array<{
+    position: number;
+    lane: string;
+    score: number;
+    scoreBreakdown: unknown;
+    explanation: string;
+    shownAt: Date;
+    candidate: { id: string; title: string; content: string; source: unknown; reasonDiscovered: string; initialType: string; confidence: number };
+  }>;
+};
+export type NuruPersonalEditionPersistenceModel = { findUnique(args: unknown): Promise<NuruPersonalEditionRow | null>; upsert(args: unknown): Promise<NuruPersonalEditionRow> };
+export type NuruPersonalEditionItemPersistenceModel = { findMany(args: unknown): Promise<Array<{ candidateId: string }>> };
+export type NuruPersonalEditionFeedbackPersistenceModel = { create(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<Array<{ candidateId: string; action: string }>> };
+export type AgentRunRow = { agentType: string; status: string; durationMs: number | null; tokenUsage: number; toolUsage: unknown; modelCost: number; retryCount: number; createdAt: Date };
+export type NuruAgentRunPersistenceModel = { create(args: unknown): Promise<unknown>; createMany(args: unknown): Promise<unknown>; update(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<AgentRunRow[]> };
+export type AuditRow = { id: string; eventType: string; actor: string; agentRunId: string | null; resourceId: string; inputReference: string | null; outputReference: string | null; decision: string | null; reason: string | null; correlationId: string; createdAt: Date };
+export type NuruAuditPersistenceModel = { create(args: unknown): Promise<AuditRow>; createMany(args: unknown): Promise<unknown>; findMany(args: unknown): Promise<AuditRow[]> };
+export type NuruVaultRecordRow = { storageId: string; sequence: bigint; workspaceId: string; recordId: string; kind: string; payload: unknown; recordedAt: Date };
+export type NuruVaultRecordPersistenceModel = { create(args: unknown): Promise<NuruVaultRecordRow>; findMany(args: unknown): Promise<NuruVaultRecordRow[]> };
+export type NuruPersistenceTransaction = { nuruKnowledgeItem: NuruPersistenceModel; nuruCurationProposal: NuruPersistenceModel; nuruAgentRun: NuruAgentRunPersistenceModel; nuruAuditEvent: NuruAuditPersistenceModel; nuruVaultRecord: NuruVaultRecordPersistenceModel; nuruMetadataRecord: NuruMetadataPersistenceModel; nuruRelationship: NuruRelationshipPersistenceModel; nuruEmbeddingReference: NuruEmbeddingPersistenceModel; nuruDiscoveryCandidate: NuruDiscoveryCandidatePersistenceModel; nuruDiscoveryRetrievalRun: NuruDiscoveryRetrievalRunPersistenceModel; nuruContextAssessment: NuruContextAssessmentPersistenceModel; nuruQualityAssessment: NuruQualityAssessmentPersistenceModel; nuruSource: NuruSourcePersistenceModel; nuruSourceRegistry: NuruSourceRegistryPersistenceModel; nuruRawArtifact: NuruRawArtifactPersistenceModel; nuruNormalizedDocument: NuruNormalizedDocumentPersistenceModel; nuruClaimCandidate: NuruClaimCandidatePersistenceModel; nuruSourceClassification: NuruSourceClassificationPersistenceModel; nuruClaimEvidenceQuality: NuruClaimEvidenceQualityPersistenceModel; nuruClaimCorroboration: NuruClaimCorroborationPersistenceModel; nuruKnowledgeDevelopment: NuruKnowledgeDevelopmentPersistenceModel; nuruTemporalClaim: NuruTemporalClaimPersistenceModel; nuruEntity: NuruEntityPersistenceModel; tandemMissionKnowledgePackage: TandemMissionKnowledgePackagePersistenceModel; tandemKnowledgeCandidateReceipt: TandemKnowledgeCandidateReceiptPersistenceModel; nuruKnowledgeCorrection: NuruKnowledgeCorrectionPersistenceModel; nuruKnowledgeCorrectionDecision: NuruKnowledgeCorrectionDecisionPersistenceModel; nuruHeadlineFlowCandidate: NuruHeadlineFlowCandidatePersistenceModel; nuruProvenanceLink: NuruProvenancePersistenceModel; nuruDuplicateAssessment: NuruDuplicateAssessmentPersistenceModel; nuruContradictionAssessment: NuruContradictionAssessmentPersistenceModel; nuruSupersessionReview: NuruSupersessionReviewPersistenceModel; nuruCurationQueue: NuruCurationQueuePersistenceModel; nuruHumanFeedback: NuruHumanFeedbackPersistenceModel; nuruDiscoverInterestSignal: NuruDiscoverInterestSignalPersistenceModel; nuruDiscoverTopicPreference: NuruDiscoverTopicPreferencePersistenceModel; nuruDiscoverCatalogEntry: NuruDiscoverCatalogEntryPersistenceModel; nuruTasteInterviewResponse: NuruTasteInterviewResponsePersistenceModel; nuruTasteProfileSignal: NuruTasteProfileSignalPersistenceModel; nuruTasteEvidence: NuruTasteEvidencePersistenceModel; nuruPersonalEdition: NuruPersonalEditionPersistenceModel; nuruPersonalEditionItem: NuruPersonalEditionItemPersistenceModel; nuruPersonalEditionFeedback: NuruPersonalEditionFeedbackPersistenceModel };
+
+/** The only Nuru module permitted to import Prisma directly. */
+export const nuruKnowledgeRepository = prisma as unknown as NuruPersistenceTransaction & {
+  $transaction: <T>(fn: (tx: NuruPersistenceTransaction) => Promise<T>) => Promise<T>;
+};

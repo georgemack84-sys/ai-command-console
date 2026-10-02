@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   // Next writes a trace file in its output root that cannot be shared safely.
   distDir: process.env.NODE_ENV === "production" ? ".next-production" : ".next",
   output: "standalone",
+  images: {
+    unoptimized: process.env.NEXT_IMAGE_UNOPTIMIZED === "true",
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
+  },
   outputFileTracingExcludes: {
     "*": [
       "data/**",

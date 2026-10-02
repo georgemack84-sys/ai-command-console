@@ -10,6 +10,7 @@ import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
 import { isFeatureEnabled } from "@/src/server/feature-flags/feature-flag-service";
 import { createAlert } from "@/src/server/alerts/alert-service";
 import { assertSafeSourceUrl, resolveSafeRedirectUrl } from "@/src/server/security/server-url-policy";
+import { fetchFromNuruEgress } from "@/src/server/security/nuru-egress-fetch";
 
 const parser = new Parser();
 const MAX_RSS_REDIRECTS = 3;
@@ -93,13 +94,14 @@ async function fetchRssXml(url: string) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), getRssIngestTimeoutMs());
     try {
-      const response = await fetch(currentUrl, {
+      const response = await fetchFromNuruEgress(currentUrl, {
         headers: {
           "User-Agent": getRssUserAgent(),
           Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
         },
         redirect: "manual",
         signal: controller.signal,
+        maxBytes: getRssIngestMaxContentBytes(),
       });
 
       if (response.status >= 300 && response.status < 400) {
