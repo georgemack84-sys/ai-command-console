@@ -41,6 +41,8 @@
     "ReadAR",
     "**/.next/**",
     "tests/**",
-    "apps/web/**"
+    "apps/web/**",
+    "axiom-time/**",
+    "household-manager/**"
   ]
 }

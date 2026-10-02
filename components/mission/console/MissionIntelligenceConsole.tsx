@@ -27,7 +27,7 @@ export function MissionIntelligenceConsole({
       <MissionConsoleShell>
         <div className="space-y-5">
           <MissionStatusHeader view={view} />
-          <MissionConsoleNav />
+          <MissionConsoleNav missionId={view.missionId} />
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <AutonomyReadinessPanel view={view} />
             <ApprovalPanel view={view} />
