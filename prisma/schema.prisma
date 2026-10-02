@@ -182,6 +182,13 @@ model User {
   nuruRabbitHoleProgress  NuruRabbitHoleProgress[]
   nuruTasteSignals        NuruTasteSignal[]
   nuruPrivacySettings     NuruPrivacySettings?
+  nuruDiscoverInterestSignals NuruDiscoverInterestSignal[]
+  nuruDiscoverTopicPreferences NuruDiscoverTopicPreference[]
+  nuruTasteInterviewResponses NuruTasteInterviewResponse[]
+  nuruTasteProfileSignals NuruTasteProfileSignal[]
+  nuruTasteEvidence NuruTasteEvidence[]
+  nuruPersonalEditions NuruPersonalEdition[]
+  nuruPersonalEditionFeedback NuruPersonalEditionFeedback[]
 }
 
 model NuruPrivacySettings {
@@ -213,6 +220,891 @@ model NuruDiscovery {
   updatedAt   DateTime              @updatedAt
   preferences NuruUserDiscoveryPreference[]
   editionItems NuruDailyEditionItem[]
+}
+
+// Nuru Agents are deliberately separate from the discovery recommendation
+// models above. Agents create proposals; only the governance service can
+// promote a proposal to an archived knowledge item.
+model NuruKnowledgeItem {
+  id             String   @id @default(cuid())
+  title          String
+  content        String
+  contentType    String
+  status         String   @default("READY_FOR_REVIEW")
+  project        String?
+  relatedProjects Json    @default("[]")
+  source         Json
+  sourceId       String?
+  metadata       Json
+  relationships  Json
+  confidence     Float
+  currentVersion Int      @default(1)
+  provenance     Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  proposals      NuruCurationProposal[]
+  sourceRecord   NuruSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  metadataRecords NuruMetadataRecord[]
+  outgoingRelationships NuruRelationship[] @relation("NuruRelationshipSource")
+  incomingRelationships NuruRelationship[] @relation("NuruRelationshipTarget")
+  embeddingReferences NuruEmbeddingReference[]
+  provenanceLinks NuruProvenanceLink[]
+  discoverInterestSignals NuruDiscoverInterestSignal[]
+  discoverCatalogEntry    NuruDiscoverCatalogEntry?
+
+  @@index([status, createdAt])
+  @@index([sourceId])
+}
+
+// Curator-approved identities used by Tandem's retrieval boundary. Aliases are
+// separate so a name never becomes a canonical identity merely by being queried.
+model NuruEntity {
+  id            String            @id
+  canonicalName String
+  entityType    String
+  status        String            @default("APPROVED")
+  createdAt     DateTime          @default(now())
+  aliases       NuruEntityAlias[]
+
+  @@index([status, canonicalName])
+}
+
+model NuruEntityAlias {
+  id              String     @id
+  entityId        String
+  alias           String
+  normalizedAlias String     @unique
+  createdAt       DateTime   @default(now())
+  entity          NuruEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([entityId])
+}
+
+// Immutable Tandem mission context snapshots. They do not participate in Nuru's
+// curation or canonical knowledge lifecycle.
+model TandemMissionKnowledgePackage {
+  id               String   @id
+  workspaceId      String
+  missionId        String
+  packageId        String
+  attachedBy       String
+  attachedAt       DateTime @default(now())
+  knowledgePackage Json
+
+  @@unique([workspaceId, missionId, packageId])
+  @@index([workspaceId, missionId, attachedAt])
+}
+
+// Receipt of a Tandem proposal entering Nuru curation. It records no admission
+// decision and is intentionally independent of canonical knowledge items.
+model TandemKnowledgeCandidateReceipt {
+  id                String   @id
+  workspaceId       String
+  candidateId       String
+  missionId         String
+  curationProposalId String
+  receivedAt        DateTime @default(now())
+  payload           Json
+
+  @@unique([workspaceId, candidateId])
+  @@index([workspaceId, missionId, receivedAt])
+  @@index([curationProposalId])
+}
+
+model TandemKnowledgeSubscription {
+  subscriptionId String @id
+  workspaceId String
+  missionId String
+  entityIds Json
+  topics Json
+  eventTypes Json
+  significanceThreshold String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, missionId, createdAt])
+}
+
+model TandemKnowledgeSubscriptionDelivery {
+  id String @id
+  subscriptionId String
+  missionId String
+  updateId String
+  deliveredAt DateTime @default(now())
+  @@unique([subscriptionId, updateId])
+  @@index([missionId, deliveredAt])
+}
+
+model NuruDiscoveryCandidate {
+  id               String   @id @default(cuid())
+  title            String
+  content          String
+  source           Json
+  reasonDiscovered String
+  initialType      String
+  relevanceScore   Int
+  confidence       Float
+  status           String   @default("CANDIDATE")
+  createdBy        String
+  correlationId    String
+  externalKey      String?  @unique
+  createdAt        DateTime @default(now())
+  personalEditionItems NuruPersonalEditionItem[]
+  personalEditionFeedback NuruPersonalEditionFeedback[]
+
+  @@index([status, createdAt])
+  @@index([correlationId])
+}
+
+model NuruPersonalEdition {
+  id             String                    @id @default(cuid())
+  userId         String
+  editionDate    DateTime
+  rankingVersion String
+  inputSnapshot  Json
+  createdAt      DateTime                  @default(now())
+  user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items          NuruPersonalEditionItem[]
+
+  @@unique([userId, editionDate])
+  @@index([userId, createdAt])
+}
+
+model NuruPersonalEditionItem {
+  id             String                @id @default(cuid())
+  editionId      String
+  candidateId    String
+  position       Int
+  lane           String
+  score          Int
+  scoreBreakdown Json
+  explanation    String
+  shownAt        DateTime              @default(now())
+  edition        NuruPersonalEdition   @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  candidate      NuruDiscoveryCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([editionId, position])
+  @@unique([editionId, candidateId])
+  @@index([candidateId, shownAt])
+}
+
+model NuruPersonalEditionFeedback {
+  id          String   @id @default(cuid())
+  userId      String
+  candidateId String
+  action      String
+  reasonCode  String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidate   NuruDiscoveryCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, candidateId, createdAt])
+}
+
+model NuruDiscoveryRetrievalRun {
+  id            String   @id @default(cuid())
+  sourceId      String
+  query         String
+  status        String
+  candidateCount Int     @default(0)
+  failureReason String?
+  policyVersion String
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  @@index([sourceId, startedAt])
+  @@index([status, startedAt])
+}
+
+model NuruContextAssessment {
+  id               String   @id @default(cuid())
+  candidateId      String
+  project          String?
+  relatedProjects  Json    @default("[]")
+  topic            String
+  artifactType     String
+  scope            String
+  sourceContext    String
+  likelyPurpose    String
+  dependencies     Json
+  applicableSystem String?
+  historicalContext String?
+  relatedComponents Json
+  confidence       Float
+  createdBy        String
+  correlationId    String
+  createdAt        DateTime @default(now())
+
+  @@index([candidateId, createdAt])
+  @@index([correlationId])
+}
+
+model NuruQualityAssessment {
+  id                    String   @id @default(cuid())
+  itemId                String
+  status                String
+  sourceKnown           Boolean
+  provenanceAvailable   Boolean
+  duplicateState        String
+  conflictDetected      Boolean
+  contextAccurate       Boolean
+  relationshipsJustified Boolean
+  evidenceSufficient    Boolean
+  confidence            Float
+  warnings              Json
+  createdBy             String
+  correlationId         String
+  createdAt             DateTime @default(now())
+
+  @@index([itemId, createdAt])
+  @@index([correlationId])
+}
+
+model NuruSource {
+  id          String   @id @default(cuid())
+  sourceType  String
+  origin      String
+  uri         String?
+  location    String?
+  author      String?
+  authority   String
+  checksum    String?
+  version     String?
+  derivedFromSourceId String?
+  retrievedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  items       NuruKnowledgeItem[]
+
+  @@index([checksum])
+  @@index([origin])
+  @@index([derivedFromSourceId])
+}
+
+// NSI-02: Source identity and admission policy. This is intentionally distinct
+// from the legacy monitoring Source record and from artifact-level NuruSource.
+model NuruSourceRegistry {
+  id                  String   @id
+  workspaceId         String
+  name                String
+  domain              String?
+  baseUrl             String?
+  category            String
+  topics              String[]
+  authorityClass      String
+  ingestionMethods    String[]
+  refreshPolicy       String
+  admissionState      String
+  operationalState    String
+  enabled             Boolean  @default(true)
+  requiresReview      Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  lastCheckedAt       DateTime?
+  lastSuccessfulFetch DateTime?
+
+  @@index([workspaceId, admissionState])
+  @@index([workspaceId, domain])
+}
+
+// NSI-03: original bytes are retained before any extraction, normalization, or
+// claim analysis. This table is append-only at the application boundary.
+model NuruRawArtifact {
+  id               String   @id
+  workspaceId      String
+  sourceRegistryId String
+  originUrl        String?
+  contentType      String
+  body             Bytes
+  contentHash      String
+  byteLength       Int
+  originalFilename String?
+  submittedBy      String
+  retrievedAt      DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([workspaceId, sourceRegistryId, retrievedAt])
+  @@index([contentHash])
+  @@unique([workspaceId, sourceRegistryId, contentHash])
+}
+
+// NSI-09/10: a working document derived from, but never replacing, raw bytes.
+model NuruNormalizedDocument {
+  id               String   @id
+  workspaceId      String
+  rawArtifactId    String   @unique
+  sourceRegistryId String
+  status           String
+  title            String?
+  content          String?
+  sections         Json
+  language         String?
+  extractionMethod String
+  contentHash      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([workspaceId, sourceRegistryId, status])
+}
+
+// NSI-13: candidates are evidence references, not knowledge assertions.
+model NuruClaimCandidate {
+  id                   String   @id
+  workspaceId          String
+  normalizedDocumentId String
+  rawArtifactId        String
+  sourceRegistryId     String
+  claimText            String
+  claimType            String
+  confidence           Float
+  passageReference     String
+  passageText          String
+  fingerprint          String
+  status               String
+  extractionMethod     String
+  reviewedBy           String?
+  reviewReason         String?
+  reviewedAt           DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([normalizedDocumentId, fingerprint])
+  @@index([workspaceId, status, createdAt])
+  @@index([rawArtifactId, passageReference])
+}
+
+// NSI-15: class is an assessment of a particular source supporting a particular
+// claim in context. It is not a blanket trust score and cannot admit knowledge.
+model NuruSourceClassification {
+  id               String   @id
+  workspaceId      String
+  claimCandidateId String
+  sourceRegistryId String
+  sourceClass      String
+  context          String
+  rationale        String
+  classifiedBy     String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([claimCandidateId, sourceRegistryId])
+  @@index([workspaceId, sourceRegistryId, createdAt])
+  @@index([claimCandidateId])
+}
+
+// NSI-16: a Quality Agent verdict for evidence, never a canonical admission.
+model NuruClaimEvidenceQuality {
+  id               String   @id
+  workspaceId      String
+  claimCandidateId String
+  status           String
+  confidence       Float
+  sourceAuthority  String
+  freshness        String
+  independence     String
+  corroboration    String
+  conflicts        String
+  missingEvidence  String[]
+  warnings         String[]
+  qualityRunId     String?
+  assessedBy       String
+  createdAt        DateTime @default(now())
+
+  @@index([workspaceId, claimCandidateId, createdAt])
+}
+
+// NSI-17: supporting claim provenance is counted by independent origin, not by URL volume.
+model NuruClaimCorroboration {
+  id                    String   @id
+  workspaceId           String
+  claimCandidateId      String
+  supportingClaimId     String
+  sourceRelationship    String
+  supportsClaim         Boolean
+  rationale             String
+  recordedBy            String
+  createdAt             DateTime @default(now())
+
+  @@unique([claimCandidateId, supportingClaimId])
+  @@index([workspaceId, claimCandidateId, createdAt])
+}
+
+// NSI-18: operational investigation candidates. Priority is never an evidence or truth score.
+model NuruUrlFrontierEntry {
+  id                String   @id
+  workspaceId       String
+  sourceRegistryId  String
+  url               String
+  status            String
+  topicRelevance    Int
+  sourceAuthority   Int
+  freshness         Int
+  changeProbability Int
+  crawlCost         Int
+  userInterest      Int
+  priority          Int
+  lastFetchedAt     DateTime?
+  queuedBy          String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([workspaceId, url])
+  @@index([workspaceId, status, priority, createdAt])
+}
+
+// NSI-19: scheduler output only. A scheduled job does not itself acquire content.
+model NuruCrawlScheduleJob {
+  id              String   @id
+  workspaceId     String
+  frontierEntryId String
+  sourceRegistryId String
+  cadence         String
+  status          String
+  dueAt           DateTime
+  scheduledBy     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([frontierEntryId])
+  @@index([workspaceId, status, dueAt])
+}
+
+// NSI-20: immutable comparison between retained document versions.
+model NuruSourceChangeEvent {
+  id                  String   @id
+  workspaceId         String
+  previousDocumentId  String
+  currentDocumentId   String
+  changeTypes         String[]
+  summary             String
+  previousContentHash String?
+  currentContentHash  String?
+  detectedBy          String
+  createdAt           DateTime @default(now())
+
+  @@unique([previousDocumentId, currentDocumentId])
+  @@index([workspaceId, currentDocumentId, createdAt])
+}
+
+// HF01/02: an append-only record of an event that may change Nuru's durable
+// understanding. Developments are evidence for later curation; they are never
+// canonical knowledge and have no admission authority.
+model NuruKnowledgeDevelopment {
+  id                String   @id
+  workspaceId       String
+  subjectId         String
+  type              String
+  eventTime         DateTime
+  publicationTime   DateTime?
+  discoveryTime     DateTime
+  summary           String
+  claims            Json
+  evidence          Json
+  entities          Json
+  sourceAuthority   String
+  verificationState String
+  provenance        Json
+  createdBy         String
+  correlationId     String
+  createdAt         DateTime @default(now())
+
+  @@index([workspaceId, subjectId, eventTime])
+  @@index([workspaceId, verificationState, createdAt])
+  @@index([correlationId])
+}
+
+// HF03/05/08: a claim's observed state at a point in time. These are
+// append-only evidence records, separate from canonical NuruKnowledgeItem.
+model NuruTemporalClaim {
+  id                String   @id
+  workspaceId       String
+  subjectId         String
+  predicate         String
+  value             Json
+  normalizedValue   String
+  state             String
+  effectiveFrom     DateTime
+  effectiveTo       DateTime?
+  assertedAt        DateTime
+  observedAt        DateTime
+  recordedAt        DateTime @default(now())
+  developmentId     String?
+  evidence          Json
+  provenance        Json
+  createdBy         String
+  correlationId     String
+
+  @@index([workspaceId, subjectId, predicate, effectiveFrom])
+  @@index([workspaceId, state, recordedAt])
+  @@index([developmentId])
+}
+
+// A correction request does not mutate either claim. The separate decision
+// record makes the review history auditable and preserves rejected corrections.
+model NuruKnowledgeCorrection {
+  id                    String   @id
+  workspaceId           String
+  subjectId             String
+  previousClaimId       String
+  correctedClaimId      String
+  reason                String
+  evidence              Json
+  requestedBy           String
+  correlationId         String
+  createdAt             DateTime @default(now())
+
+  @@index([workspaceId, subjectId, createdAt])
+  @@index([previousClaimId])
+  @@index([correctedClaimId])
+}
+
+model NuruKnowledgeCorrectionDecision {
+  id            String   @id
+  correctionId  String
+  action        String
+  reason        String
+  decidedBy     String
+  correlationId String
+  createdAt     DateTime @default(now())
+
+  @@unique([correctionId])
+  @@index([correctionId, createdAt])
+}
+
+// HF06: receipt proving that a specific stabilized Headline Flow event version
+// has entered Nuru curation. It prevents duplicate bridge submissions.
+model NuruHeadlineFlowCandidate {
+  id                  String   @id @default(cuid())
+  workspaceId         String
+  eventId             String
+  eventVersion        Int
+  subjectId           String
+  developmentId       String
+  curationProposalId  String
+  createdAt           DateTime @default(now())
+
+  @@unique([workspaceId, eventId, eventVersion])
+  @@index([workspaceId, subjectId, createdAt])
+  @@index([curationProposalId])
+}
+
+// NSI-25: discovery proposals are not registry entries and cannot authorize acquisition.
+model NuruSourceDiscoveryProposal {
+  id          String   @id
+  workspaceId String
+  name        String
+  url         String
+  domain      String
+  category    String
+  rationale   String
+  status      String
+  proposedBy  String
+  createdAt   DateTime @default(now())
+
+  @@unique([workspaceId, url])
+  @@index([workspaceId, status, createdAt])
+}
+
+// NSI-26: domain usefulness is contextual metadata, not an authority upgrade.
+model NuruSourceSpecialization {
+  id               String   @id
+  workspaceId      String
+  sourceRegistryId String
+  domain           String
+  usefulness       Int
+  rationale        String
+  assessedBy       String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([sourceRegistryId, domain])
+  @@index([workspaceId, domain, usefulness])
+}
+
+// NSI-27: conflicting claims remain preserved while investigation is required.
+model NuruClaimConflict {
+  id                String   @id
+  workspaceId       String
+  claimCandidateId  String
+  conflictingClaimId String
+  status            String
+  rationale         String
+  detectedBy        String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([claimCandidateId, conflictingClaimId])
+  @@index([workspaceId, status, createdAt])
+}
+
+// NSI-28: stale evidence is a revalidation signal, not an automatic rejection.
+model NuruClaimStalenessAssessment {
+  id               String   @id
+  workspaceId      String
+  claimCandidateId String
+  status           String
+  ageDays          Int
+  thresholdDays    Int
+  rationale        String
+  assessedBy       String
+  createdAt        DateTime @default(now())
+
+  @@index([workspaceId, status, createdAt])
+  @@index([claimCandidateId, createdAt])
+}
+
+// NSI-29: bounded research requests; missions cannot directly acquire or admit information.
+model NuruResearchMission {
+  id               String   @id
+  workspaceId      String
+  claimCandidateId String?
+  question         String
+  rationale        String
+  status           String
+  createdBy        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([workspaceId, status, createdAt])
+}
+
+model NuruProvenanceLink {
+  id              String   @id @default(cuid())
+  knowledgeItemId String
+  sequence        Int
+  stage           String
+  referenceId     String
+  actor           String
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  knowledgeItem   NuruKnowledgeItem @relation(fields: [knowledgeItemId], references: [id], onDelete: Cascade)
+
+  @@unique([knowledgeItemId, sequence])
+  @@index([referenceId])
+}
+
+model NuruDuplicateAssessment {
+  id            String   @id @default(cuid())
+  itemId        String
+  matchedItemId String?
+  result        String
+  contentHash   String
+  metadataScore Float
+  semanticScore Float
+  confidence    Float
+  evidence      Json
+  createdAt     DateTime @default(now())
+
+  @@index([itemId, createdAt])
+  @@index([contentHash])
+}
+
+model NuruContradictionAssessment {
+  id            String   @id @default(cuid())
+  itemId        String
+  relatedItemId String
+  state         String
+  confidence    Float
+  evidence      Json
+  investigation Json
+  createdAt     DateTime @default(now())
+
+  @@index([itemId, createdAt])
+  @@index([relatedItemId])
+}
+
+model NuruSupersessionReview {
+  id              String   @id @default(cuid())
+  currentItemId   String
+  candidateItemId String
+  status          String
+  reason          String
+  requestedBy     String
+  decidedBy       String?
+  decisionReason  String?
+  narrowedScope   String?
+  correlationId   String
+  decidedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([currentItemId])
+  @@index([candidateItemId])
+}
+
+model NuruCurationQueue {
+  id            String   @id @default(cuid())
+  candidateId   String?
+  itemId        String?
+  proposalId    String?
+  status        String
+  lane          String?
+  priority      Int      @default(50)
+  reason        String
+  correlationId String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, priority, createdAt])
+  @@index([candidateId])
+  @@index([itemId])
+  @@index([proposalId])
+}
+
+model NuruHumanFeedback {
+  id                  String   @id @default(cuid())
+  proposalId          String
+  agentRecommendation String
+  humanDecision       String
+  reason              String
+  scope               String?
+  reviewer            String
+  correlationId       String
+  evaluationStatus    String   @default("PENDING_REVIEW")
+  createdAt           DateTime @default(now())
+
+  @@index([proposalId, createdAt])
+  @@index([evaluationStatus, createdAt])
+}
+
+model NuruMetadataRecord {
+  id        String   @id @default(cuid())
+  itemId    String
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  item      NuruKnowledgeItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, key])
+}
+
+model NuruRelationship {
+  id               String   @id @default(cuid())
+  sourceItemId     String
+  targetItemId     String
+  relationshipType String
+  confidence       Float
+  evidence         String
+  proposedBy       String
+  status           String   @default("PROPOSED")
+  createdAt        DateTime @default(now())
+  sourceItem       NuruKnowledgeItem @relation("NuruRelationshipSource", fields: [sourceItemId], references: [id], onDelete: Cascade)
+  targetItem       NuruKnowledgeItem @relation("NuruRelationshipTarget", fields: [targetItemId], references: [id], onDelete: Cascade)
+
+  @@index([sourceItemId, status])
+  @@index([targetItemId, status])
+}
+
+model NuruCurationProposal {
+  id              String   @id @default(cuid())
+  itemId          String
+  recommendation  String
+  classification  String
+  project         String?
+  qualityStatus   String
+  confidence      Float
+  evidence        Json
+  reasoningSummary String
+  warnings        Json
+  requiredReview  Boolean  @default(true)
+  status          String   @default("HUMAN_REVIEW_REQUIRED")
+  createdBy       String
+  decisionReason  String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  item            NuruKnowledgeItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  runs            NuruAgentRun[]
+  auditEvents     NuruAuditEvent[]
+  decisions       NuruCurationDecision[]
+
+  @@index([status, createdAt])
+}
+
+model NuruAgentRun {
+  id            String   @id @default(cuid())
+  proposalId    String?
+  agentId       String
+  agentType     String
+  status        String
+  objective     String
+  inputContext  Json     @default("{}")
+  result        Json
+  correlationId String
+  model         String
+  promptVersion String
+  policyVersion String
+  identitySnapshot Json
+  durationMs    Int?
+  tokenUsage    Int      @default(0)
+  toolUsage     Json     @default("[]")
+  modelCost     Float    @default(0)
+  retryCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  proposal      NuruCurationProposal? @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, createdAt])
+}
+
+model NuruAgentIdentity {
+  agentId       String   @id
+  agentType     String
+  role          String
+  version       String
+  model         String
+  permissions   Json
+  tools         Json
+  policyProfile String
+  promptVersion String
+  status        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, agentType])
+}
+
+model NuruAuditEvent {
+  id            String   @id @default(cuid())
+  proposalId    String?
+  eventType     String
+  actor         String
+  agentRunId    String?
+  resourceId    String
+  inputReference String?
+  outputReference String?
+  decision      String?
+  reason        String?
+  correlationId String
+  createdAt     DateTime @default(now())
+  proposal      NuruCurationProposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+
+  @@index([resourceId, createdAt])
+  @@index([proposalId, createdAt])
+}
+
+model NuruCurationDecision {
+  id         String   @id @default(cuid())
+  proposalId String
+  outcome    String
+  decidedBy  String
+  reason     String
+  decidedAt  DateTime @default(now())
+  proposal   NuruCurationProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, decidedAt])
+}
+
+model NuruEmbeddingReference {
+  id          String   @id @default(cuid())
+  itemId      String
+  provider    String
+  model       String
+  externalRef String
+  createdAt   DateTime @default(now())
+  item        NuruKnowledgeItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalRef])
+  @@index([itemId])
 }
 
 model NuruDailyEdition {
@@ -322,6 +1214,106 @@ model NuruTasteSignal {
 
   @@unique([userId, nodeId])
   @@index([userId, isActive, score])
+}
+
+// Discover feedback is append-only user preference evidence. It never changes
+// the referenced knowledge item or grants authority over its canonical status.
+model NuruDiscoverInterestSignal {
+  id              String   @id @default(cuid())
+  userId          String
+  knowledgeItemId String
+  signalType      String
+  weight          Int
+  source          String
+  reasonCode      String?
+  createdAt       DateTime @default(now())
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  knowledgeItem   NuruKnowledgeItem @relation(fields: [knowledgeItemId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([userId, knowledgeItemId, createdAt])
+  @@index([knowledgeItemId, createdAt])
+}
+
+// Explicit, editable user topic choices for Discover. These are private
+// preference inputs, not inferred profile data and never affect canonical knowledge.
+model NuruDiscoverTopicPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  topic     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topic])
+  @@index([userId, updatedAt])
+}
+
+// Interview answers and their interpretations are separate. Answers are raw,
+// user-owned evidence; profile signals remain tentative and correctable.
+model NuruTasteInterviewResponse {
+  id        String   @id @default(cuid())
+  userId    String
+  promptId  String
+  answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, promptId])
+  @@index([userId, updatedAt])
+}
+
+model NuruTasteProfileSignal {
+  id            String   @id @default(cuid())
+  userId        String
+  concept       String
+  dimension     String
+  polarity      Int
+  confidence    Float
+  evidenceCount Int      @default(0)
+  status        String   @default("CANDIDATE")
+  source        String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evidence      NuruTasteEvidence[]
+
+  @@unique([userId, concept, dimension, source])
+  @@index([userId, isActive, updatedAt])
+}
+
+model NuruTasteEvidence {
+  id        String   @id @default(cuid())
+  userId    String
+  signalId  String
+  sourceType String
+  sourceId  String
+  summary   String
+  weight    Float
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signal    NuruTasteProfileSignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([signalId, createdAt])
+}
+
+// Presentation admission is deliberately separate from canonical knowledge.
+// Withdrawing an entry removes it from Discover without altering the record.
+model NuruDiscoverCatalogEntry {
+  id              String   @id @default(cuid())
+  knowledgeItemId String   @unique
+  status          String   @default("ACTIVE")
+  topics          String[] @default([])
+  reason          String
+  admittedBy      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  knowledgeItem   NuruKnowledgeItem @relation(fields: [knowledgeItemId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
 }
 
 model SkillNode {
@@ -2045,4 +3037,23 @@ model NoesisStrategyEvaluationArtifact {
   @@index([workspaceId, artifactType, createdAt])
   @@index([workspaceId, subjectId, createdAt])
   @@map("noesis_strategy_evaluation_artifacts")
+}
+
+// Vault records are append-only snapshots. recordId is the logical ID; storageId
+// identifies an immutable persisted snapshot so supersession never rewrites history.
+model NuruVaultRecord {
+  storageId     String   @id @default(cuid())
+  sequence      BigInt   @unique @default(autoincrement())
+  workspaceId   String
+  recordId      String
+  kind          String
+  schemaVersion String
+  classification String
+  correlationId String
+  payload       Json
+  recordedAt    DateTime @default(now())
+
+  @@index([workspaceId, recordId, sequence])
+  @@index([workspaceId, kind, sequence])
+  @@index([workspaceId, correlationId, sequence])
 }
