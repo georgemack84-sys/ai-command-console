@@ -11,12 +11,13 @@ This recovery branch was reconstructed from clean base `a50b8c350c2397e49127b699
 - `git diff --check` — passed.
 - `npm run test:nuru:v1-release` — passed: 20 test files, 59 tests.
 - Nuru dashboard E2E — passed: 2 tests.
-- Database-backed lifecycle E2E specs — correctly skipped by their explicit readiness guard because local PostgreSQL at `localhost:55432` was unavailable.
+- Database-backed Vault lifecycle E2E — passed against a disposable migrated and seeded PostgreSQL cluster at `localhost:55432`.
+- Database-backed Tandem revision lifecycle E2E — passed in isolation against that cluster.
 
 ## Known limitation
 
-The full application production build remains blocked by three pre-existing, out-of-boundary durable-learning imports whose implementation files are absent from the clean base. After Nuru dependency closure, the build reports no Nuru module-resolution errors. This limitation does not alter the Nuru boundary or the original dirty workspace.
+The combined Tandem-and-Vault run has an unresolved cross-scenario flake: after the Tandem revision workflow, the subsequent approval POST can remain unresolved. Each lifecycle passes in isolation, so this is tracked as a test/runtime concurrency or cleanup issue rather than evidence of a schema or migration failure.
 
 ## Recovery decision
 
-This branch is suitable for a qualified Nuru commit series. A release candidate still requires a fresh environment with PostgreSQL available to execute the guarded lifecycle E2E scenarios and to resolve the unrelated durable-learning build blocker.
+This branch is suitable for a qualified Nuru commit series. A release candidate still requires resolving the combined lifecycle flake and rerunning both workflows together from a fresh environment.
