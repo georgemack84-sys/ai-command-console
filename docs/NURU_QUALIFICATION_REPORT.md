@@ -11,13 +11,12 @@ This recovery branch was reconstructed from clean base `a50b8c350c2397e49127b699
 - `git diff --check` — passed.
 - `npm run test:nuru:v1-release` — passed: 20 test files, 59 tests.
 - Nuru dashboard E2E — passed: 2 tests.
-- Database-backed Vault lifecycle E2E — passed against a disposable migrated and seeded PostgreSQL cluster at `localhost:55432`.
-- Database-backed Tandem revision lifecycle E2E — passed in isolation against that cluster.
+- Database-backed Tandem revision and Vault lifecycle E2E — passed together (2/2) against a disposable migrated and seeded PostgreSQL cluster at `localhost:55432`.
 
 ## Known limitation
 
-The combined Tandem-and-Vault run has an unresolved cross-scenario flake: after the Tandem revision workflow, the subsequent approval POST can remain unresolved. Each lifecycle passes in isolation, so this is tracked as a test/runtime concurrency or cleanup issue rather than evidence of a schema or migration failure.
+The lifecycle test now waits for the remounted decision control to retain its entered rationale before submitting a governance action. This prevents a refresh/remount race from triggering client-side empty-rationale validation.
 
 ## Recovery decision
 
-This branch is suitable for a qualified Nuru commit series. A release candidate still requires resolving the combined lifecycle flake and rerunning both workflows together from a fresh environment.
+This branch is suitable for the final regression and release-candidate bundles.

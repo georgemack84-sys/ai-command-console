@@ -36,7 +36,9 @@ test("a governor can review a Tandem revision lifecycle from request to approval
   await page.reload({ waitUntil: "domcontentloaded" });
   const candidateCard = (candidateId: string) => page.locator(`a[href="/nuru/tandem-audit-verifier?candidateId=${encodeURIComponent(candidateId)}"]`).locator("xpath=ancestor::li[1]");
   const originalCard = candidateCard(originalCandidateId);
-  await originalCard.getByLabel("Decision reason").fill("Please provide a distinct revised candidate for the acceptance workflow.");
+  const originalReason = originalCard.getByLabel("Decision reason");
+  await originalReason.fill("Please provide a distinct revised candidate for the acceptance workflow.");
+  await expect(originalReason).toHaveValue("Please provide a distinct revised candidate for the acceptance workflow.");
   const revisionDecision = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes(`/api/nuru/curation/proposals/${original.data.curationProposalId}/request-changes`));
   await originalCard.getByRole("button", { name: "Request revision" }).click();
   expect((await revisionDecision).ok()).toBeTruthy();
@@ -51,7 +53,9 @@ test("a governor can review a Tandem revision lifecycle from request to approval
   const revised = await revisedResponse.json() as { data: { curationProposalId: string } };
   await page.reload({ waitUntil: "domcontentloaded" });
   const revisedCard = candidateCard(revisedCandidateId);
-  await revisedCard.getByLabel("Decision reason").fill("The linked revision satisfies the governed acceptance criteria.");
+  const revisedReason = revisedCard.getByLabel("Decision reason");
+  await revisedReason.fill("The linked revision satisfies the governed acceptance criteria.");
+  await expect(revisedReason).toHaveValue("The linked revision satisfies the governed acceptance criteria.");
   const approvalDecision = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes(`/api/nuru/curation/proposals/${revised.data.curationProposalId}/approve`));
   await revisedCard.getByRole("button", { name: "Approve" }).click();
   expect((await approvalDecision).ok()).toBeTruthy();
