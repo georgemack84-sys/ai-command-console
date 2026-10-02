@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/src/server/security/server-url-policy", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/src/server/security/server-url-policy")>()),
+  assertResolvedPublicSourceUrl: vi.fn(async (url: string) => new URL(url)),
+}));
+
+vi.mock("@/src/server/security/nuru-egress-fetch", () => ({
+  fetchFromNuruEgress: vi.fn((url: string, options: RequestInit) => fetch(url, options)),
+}));
+
 vi.mock("@/src/server/db/prisma", () => ({
   prisma: {
     source: {

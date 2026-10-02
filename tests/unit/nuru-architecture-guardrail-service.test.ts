@@ -1,0 +1,5 @@
+import { describe, expect, it } from "vitest";
+import { type VaultRecord, vaultSchemaVersion } from "@/src/nuru/vault-contracts";
+import { NuruArchitectureGuardrailService } from "@/src/server/services/nuru-architecture-guardrail-service";
+const at = "2026-09-30T12:00:00.000Z"; const correlationId = "c8d1df9a-ae91-4ea3-8718-9df8d6e9bc36";
+describe("Nuru architecture guardrails", () => { it("flags a qualified implementation entry without executed tests", async () => { const records: VaultRecord[] = [{ schemaVersion: vaultSchemaVersion, id: "ledger-1", kind: "CODEX_IMPLEMENTATION_LEDGER", classification: "PUBLIC", createdAt: at, correlationId, buildPackageId: "package-1", branch: "main", filesChanged: [], commandsExecuted: ["test"], testsExecuted: [], migrationStatus: "NOT_REQUIRED", qualificationStatus: "QUALIFIED", knownLimitations: [], recordedBy: "human" }]; await expect(NuruArchitectureGuardrailService.inspect({ readVaultRecords: async () => records })).resolves.toEqual([expect.objectContaining({ code: "MISSING_QUALIFICATION", severity: "WARNING" })]); }); });

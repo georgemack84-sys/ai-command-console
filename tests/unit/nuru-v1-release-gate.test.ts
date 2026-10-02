@@ -1,0 +1,4 @@
+import { describe, expect, it } from "vitest";
+import { NuruV1ReleaseGate } from "@/src/server/services/nuru-v1-release-gate";
+const all = { agentServiceBoundary: true, noDirectAgentDatabaseAccess: true, canonicalMutationsAuditable: true, provenanceEndToEnd: true, agentOutputsSchemaValidated: true, permissionsEnforced: true, humanReviewWorks: true, conflictDetectionWorks: true, duplicateDetectionWorks: true, supersessionPreservesHistory: true, failuresDegradeGracefully: true, curationReplayable: true, dashboardExposesRationale: true, evaluationSuitePasses: true };
+describe("Nuru V1 release gate", () => { it("fails closed until every invariant is evidenced", () => { expect(NuruV1ReleaseGate.evaluate({ ...all, evaluationSuitePasses: false })).toMatchObject({ approved: false, unmet: ["evaluationSuitePasses"] }); expect(NuruV1ReleaseGate.evaluate(all).approved).toBe(true); }); });
