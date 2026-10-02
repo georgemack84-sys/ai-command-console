@@ -64,7 +64,11 @@ function Test-PortOpen {
 
 function Get-PostgresService {
   Get-Service -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -like "postgresql*" -or $_.DisplayName -like "PostgreSQL*" } |
+    Where-Object {
+      ($_.Name -like "postgresql*" -or $_.DisplayName -like "PostgreSQL*Server*") -and
+      $_.Name -notlike "pgagent*" -and
+      $_.DisplayName -notlike "PostgreSQL Scheduling Agent*"
+    } |
     Sort-Object Name |
     Select-Object -First 1
 }
