@@ -20,3 +20,13 @@ The lifecycle test now waits for the remounted decision control to retain its en
 ## Recovery decision
 
 This branch is suitable for the final regression and release-candidate bundles.
+
+## Final regression
+
+The release-candidate branch passed the final gates on 2026-10-02:
+
+- `npm run typecheck`
+- `npm run test:nuru:v1-release` — 20 files and 59 tests
+- `npm run build` — including standalone packaging
+
+The `nuru-qualified-1` annotated tag identifies the exact qualified baseline commit.
