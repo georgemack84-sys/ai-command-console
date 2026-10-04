@@ -19,7 +19,9 @@ export function classifyCurationLane(input: { confidence: number; evidenceQualit
 export const NuruCurationQueueService = {
   async enqueue(rawItem: z.input<typeof curationQueueItemSchema>) {
     const item = curationQueueItemSchema.parse(rawItem);
-    return nuruKnowledgeRepository.nuruCurationQueue.create({ data: item });
+    return item.proposalId
+      ? nuruKnowledgeRepository.nuruCurationQueue.upsert({ where: { proposalId: item.proposalId }, create: item, update: {} })
+      : nuruKnowledgeRepository.nuruCurationQueue.create({ data: item });
   },
 
   async transition(rawTransition: z.input<typeof curationQueueTransitionSchema>) {

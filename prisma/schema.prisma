@@ -934,7 +934,7 @@ model NuruCurationQueue {
   id            String   @id @default(cuid())
   candidateId   String?
   itemId        String?
-  proposalId    String?
+  proposalId    String?  @unique
   status        String
   lane          String?
   priority      Int      @default(50)
@@ -946,7 +946,6 @@ model NuruCurationQueue {
   @@index([status, priority, createdAt])
   @@index([candidateId])
   @@index([itemId])
-  @@index([proposalId])
 }
 
 // Durable claim for a caller-supplied submission key. It prevents a retry from
@@ -1031,6 +1030,7 @@ model NuruCurationProposal {
   decisionReason  String?
   reviewedBy      String?
   reviewedAt      DateTime?
+  submissionReceiptId String? @unique
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   item            NuruKnowledgeItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
