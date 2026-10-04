@@ -6,12 +6,12 @@ import { NuruCurationProposalStoreService } from "@/src/server/services/nuru-cur
 import { sourceSchema } from "@/src/nuru/domain";
 import { classifyCurationLane, NuruCurationQueueService } from "@/src/server/services/nuru-curation-queue-service";
 import { NuruPriorityService } from "@/src/server/services/nuru-priority-service";
-export const curationPipelineInputSchema = z.object({ title: z.string().min(3), content: z.string().min(20), project: z.string().optional(), source: sourceSchema, correlationId: z.string().min(1), humanApproved: z.boolean().default(false), approvedBy: z.string().min(1).default("human.reviewer") }); export type CurationPipelineInput = z.infer<typeof curationPipelineInputSchema>;
+export const curationPipelineInputSchema = z.object({ title: z.string().min(3), content: z.string().min(20), project: z.string().optional(), source: sourceSchema, correlationId: z.string().min(1), submissionReceiptId: z.string().min(1).optional(), humanApproved: z.boolean().default(false), approvedBy: z.string().min(1).default("human.reviewer") }); export type CurationPipelineInput = z.infer<typeof curationPipelineInputSchema>;
 /** Coordinates the complete V1 path; one materialized item survives from review to archive. */
 export const NuruCurationPipeline = { async run(rawInput: CurationPipelineInput) {
   const input = curationPipelineInputSchema.parse(rawInput), curatorRun = await NuruCuratorAgent.curate(input);
   if (curatorRun.status !== "success" || !curatorRun.result?.proposal) return { status: "CURATION_INCOMPLETE" as const, curatorRun, archive: null };
-  const curated = curatorRun.result, materialized = await NuruCurationProposalStoreService.materialize({ title: input.title, content: input.content, project: curated.context?.primaryProject ?? input.project, relatedProjects: curated.context?.relatedProjects ?? [], source: input.source, proposal: curated.proposal, correlationId: input.correlationId });
+  const curated = curatorRun.result, materialized = await NuruCurationProposalStoreService.materialize({ title: input.title, content: input.content, project: curated.context?.primaryProject ?? input.project, relatedProjects: curated.context?.relatedProjects ?? [], source: input.source, proposal: curated.proposal, correlationId: input.correlationId, submissionReceiptId: input.submissionReceiptId });
   const proposal = { ...curated.proposal, id: materialized.proposal.id, itemId: materialized.item.id }, qualityStatus = curated.quality?.status ?? "PASS_WITH_WARNINGS";
   const evidenceQuality: "STRONG" | "SUFFICIENT" | "NONE" | "LIMITED" = qualityStatus === "PASS" ? "STRONG" : qualityStatus === "PASS_WITH_WARNINGS" ? "SUFFICIENT" : qualityStatus === "INSUFFICIENT_EVIDENCE" ? "NONE" : "LIMITED";
   const lane = classifyCurationLane({ confidence: proposal.confidence, evidenceQuality, sourceAuthority: input.source.authority, conflictDetected: qualityStatus === "CONFLICT" });
