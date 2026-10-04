@@ -1,12 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-vi.mock("@/src/server/services/nuru-curator-agent", () => ({ NuruCuratorAgent: { curate: vi.fn(async () => ({ status: "success", result: { proposal: { id: "proposal-1", recommendation: "ACCEPT", classification: "Architecture Decision", confidence: 0.94, requiredReview: true }, quality: { status: "PASS" } } })) } }));
+vi.mock("@/src/server/services/nuru-curator-agent", () => ({ NuruCuratorAgent: { curate: vi.fn(async () => ({ status: "success", result: { proposal: { id: "proposal-1", recommendation: "ACCEPT", classification: "Architecture Decision", confidence: .94, requiredReview: true }, quality: { status: "PASS" } } })) } }));
 vi.mock("@/src/server/services/nuru-governance-gate", () => ({ NuruGovernanceGate: { evaluate: vi.fn((input) => input.humanApproved ? { outcome: "APPROVED", authorizedAction: "ARCHIVE" } : { outcome: "HUMAN_REVIEW_REQUIRED" }) } }));
 vi.mock("@/src/server/services/nuru-archive-service", () => ({ NuruArchiveService: { store: vi.fn(async () => ({ id: "K-500", status: "ARCHIVED" })) } }));
 vi.mock("@/src/server/services/nuru-curation-queue-service", () => ({ classifyCurationLane: vi.fn(() => "HUMAN_REVIEW"), NuruCurationQueueService: { enqueue: vi.fn(async () => ({ id: "queue-1" })), transition: vi.fn() } }));
 import { NuruCurationPipeline } from "@/src/server/services/nuru-curation-pipeline";
-
 const input = { title: "Agent boundary", content: "Keep Archive and Search as deterministic services rather than agents.", source: { sourceType: "HUMAN_INPUT" as const, origin: "Owner", authority: "OWNER" as const }, correlationId: "corr-pipeline" };
-describe("Nuru end-to-end curation pipeline", () => {
-  it("routes unapproved curation to human review", async () => { expect((await NuruCurationPipeline.run({ ...input, humanApproved: false })).status).toBe("HUMAN_REVIEW_REQUIRED"); });
-  it("archives only after governance approval", async () => { expect(await NuruCurationPipeline.run({ ...input, humanApproved: true })).toMatchObject({ status: "ARCHIVED", archive: { id: "K-500" } }); });
-});
+describe("Nuru end-to-end curation pipeline", () => { it("routes unapproved curation to human review", async () => { expect((await NuruCurationPipeline.run({ ...input, humanApproved: false })).status).toBe("HUMAN_REVIEW_REQUIRED"); }); it("archives only after governance approval", async () => { expect(await NuruCurationPipeline.run({ ...input, humanApproved: true })).toMatchObject({ status: "ARCHIVED", archive: { id: "K-500" } }); }); });
