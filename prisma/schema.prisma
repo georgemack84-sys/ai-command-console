@@ -956,6 +956,8 @@ model NuruCurationSubmissionReceipt {
   actorId        String
   idempotencyKey String
   status         String   @default("PROCESSING")
+  request        Json     @default("{}")
+  correlationId  String?
   proposalId     String?
   queueId        String?
   result         Json     @default("{}")
