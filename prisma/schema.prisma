@@ -947,6 +947,24 @@ model NuruCurationQueue {
   @@index([proposalId])
 }
 
+// Durable claim for a caller-supplied submission key. It prevents a retry from
+// starting a second curator workflow while the first is still in progress.
+model NuruCurationSubmissionReceipt {
+  id             String   @id @default(cuid())
+  actorId        String
+  idempotencyKey String
+  status         String   @default("PROCESSING")
+  proposalId     String?
+  queueId        String?
+  result         Json     @default("{}")
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([actorId, idempotencyKey])
+  @@index([status, updatedAt])
+}
+
 model NuruHumanFeedback {
   id                  String   @id @default(cuid())
   proposalId          String
