@@ -56,7 +56,7 @@ export function createPhase9DurableLearningRuntime(workspaceId: string) {
         delegationValid: true,
       });
     },
-    conflictEvaluator: async ({ candidate, scope, provenance: candidateProvenance }) => {
+    conflictEvaluator: async ({ candidate, provenance: candidateProvenance }) => {
       await new PromotionConflictAnalysisService(provenance).analyze(candidate.id, { actorId: "agent:noesis", actorType: "AGENT" });
       const assessment = await conflictGate.evaluate(candidate.id);
       const blocked = assessment.decision === "BLOCK";

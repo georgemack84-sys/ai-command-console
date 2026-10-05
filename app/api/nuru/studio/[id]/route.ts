@@ -12,7 +12,7 @@ async function requireNuruEditor() {
   if (user.role !== "admin") throw new AppError(403, "forbidden", "Nuru Studio is available to editors only.");
 }
 
-export async function GET(_request: Request, { params }: RouteContext<"/api/nuru/studio/[id]">) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireNuruEditor();
     const discovery = await getStudioDiscovery((await params).id);
@@ -21,7 +21,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/nuru
   } catch (error) { return apiError(error, "Unable to load this discovery."); }
 }
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/nuru/studio/[id]">) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireNuruEditor();
     const id = (await params).id;

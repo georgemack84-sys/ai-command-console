@@ -35,7 +35,7 @@ assert.deepEqual(
 );
 
 for (const [id, job] of Object.entries(workflow.jobs)) {
-  assert.equal(job['runs-on'], 'ubuntu-latest', `${id} must use the supported runner`);
+  assert.equal(job['runs-on'], 'ubuntu-24.04', `${id} must use the supported runner`);
   assert.ok(job['timeout-minutes'] > 0, `${id} must have a positive timeout`);
 }
 

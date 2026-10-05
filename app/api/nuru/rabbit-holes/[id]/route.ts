@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 const PREFERENCES_COOKIE = "nuru-preferences";
 
-export async function GET(_request: Request, { params }: RouteContext<"/api/nuru/rabbit-holes/[id]">) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const user = await getSessionUser();
@@ -24,7 +24,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/nuru
   }
 }
 
-export async function POST(request: Request, { params }: RouteContext<"/api/nuru/rabbit-holes/[id]">) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const action = rabbitHoleActionSchema.parse(await request.json());
