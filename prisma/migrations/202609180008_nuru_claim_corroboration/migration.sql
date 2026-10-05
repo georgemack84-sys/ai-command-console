@@ -1,0 +1,3 @@
+CREATE TABLE "NuruClaimCorroboration" ("id" TEXT NOT NULL, "workspaceId" TEXT NOT NULL, "claimCandidateId" TEXT NOT NULL, "supportingClaimId" TEXT NOT NULL, "sourceRelationship" TEXT NOT NULL, "supportsClaim" BOOLEAN NOT NULL, "rationale" TEXT NOT NULL, "recordedBy" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "NuruClaimCorroboration_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "NuruClaimCorroboration_claimCandidateId_supportingClaimId_key" ON "NuruClaimCorroboration"("claimCandidateId", "supportingClaimId");
+CREATE INDEX "NuruClaimCorroboration_workspaceId_claimCandidateId_createdAt_idx" ON "NuruClaimCorroboration"("workspaceId", "claimCandidateId", "createdAt");

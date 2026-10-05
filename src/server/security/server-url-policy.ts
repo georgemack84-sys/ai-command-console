@@ -1,5 +1,6 @@
 import { AppError } from "@/src/server/api/errors";
 import { sourceAllowsPrivateUrls } from "@/src/config/env";
+import { lookup } from "node:dns/promises";
 
 const SAFE_SOURCE_PROTOCOLS = new Set(["http:", "https:"]);
 
@@ -98,8 +99,35 @@ export function assertSafeSourceUrl(url: string) {
   if (!SAFE_SOURCE_PROTOCOLS.has(parsed.protocol)) {
     throw new AppError(400, "invalid_source_url", "Source URL must use http or https.");
   }
+  if (parsed.username || parsed.password) {
+    throw new AppError(400, "invalid_source_url", "Source URLs cannot contain credentials.");
+  }
+  if (parsed.hash) {
+    throw new AppError(400, "invalid_source_url", "Source URLs cannot contain fragments.");
+  }
   if (!sourceAllowsPrivateUrls() && isBlockedHostname(parsed.hostname)) {
     throw new AppError(400, "invalid_source_url", "Source URL cannot target local, private, or reserved network addresses.");
+  }
+  return parsed;
+}
+
+type AddressLookup = (hostname: string, options: { all: true; verbatim: true }) => Promise<Array<{ address: string }>>;
+
+/**
+ * Re-check DNS immediately before a network request. URL validation alone is
+ * insufficient when a public hostname can later resolve to private address space.
+ */
+export async function assertResolvedPublicSourceUrl(url: string, resolver: AddressLookup = lookup) {
+  const parsed = assertSafeSourceUrl(url);
+  if (sourceAllowsPrivateUrls()) return parsed;
+  let records: Array<{ address: string }>;
+  try {
+    records = await resolver(parsed.hostname, { all: true, verbatim: true });
+  } catch {
+    throw new AppError(502, "source_dns_resolution_failed", "Source hostname could not be resolved safely.");
+  }
+  if (!records.length || records.some((record) => isBlockedHostname(record.address))) {
+    throw new AppError(400, "invalid_source_url", "Source hostname resolves to local, private, or reserved network space.");
   }
   return parsed;
 }
