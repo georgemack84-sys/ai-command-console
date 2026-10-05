@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { NuruVersionRegistry } from "@/src/server/services/nuru-version-registry";
+describe("Nuru version registry", () => { it("captures every governed version dimension", () => { expect(NuruVersionRegistry.snapshot("nuru.curator.v1")).toMatchObject({ agent: { id: "nuru.curator.v1", version: "v1" }, promptVersion: "nuru-v1", knowledgeSchemaVersion: "knowledge-schema-v1.5", workflowVersion: "workflow-templates-v1.0", modelRoutingVersion: "model-routing-v1.0", toolRegistryVersion: "tool-registry-v1.0", curationRulesVersion: "curation-rules-v2.1" }); }); });
