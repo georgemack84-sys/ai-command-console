@@ -1,0 +1,9 @@
+import { getSessionUser } from "@/src/lib/auth";
+import { AppError } from "@/src/server/api/errors";
+import { apiError, apiSuccess } from "@/src/server/api/response";
+import { requireWorkspaceManager, requireWorkspaceViewer } from "@/src/server/auth/permissions";
+import { NuruTemporalClaimService, temporalClaimInputSchema } from "@/src/server/services/nuru-temporal-claim-service";
+import { enforceNsiWriteRateLimit } from "@/src/server/security/nsi-write-rate-limit";
+
+export async function GET(request: Request) { try { const user = await getSessionUser(); if (!user) throw new AppError(401, "unauthorized", "Authentication required."); await requireWorkspaceViewer({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId }); const subjectId = new URL(request.url).searchParams.get("subjectId"); if (!subjectId) throw new AppError(400, "subject_required", "A subjectId query parameter is required."); return apiSuccess({ claims: await NuruTemporalClaimService.timeline(user.workspaceId, subjectId), corrections: await NuruTemporalClaimService.correctionHistory(user.workspaceId, subjectId) }); } catch (error) { return apiError(error, "Unable to load temporal claims."); } }
+export async function POST(request: Request) { try { const user = await getSessionUser(); if (!user) throw new AppError(401, "unauthorized", "Authentication required."); await requireWorkspaceManager({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId }); await enforceNsiWriteRateLimit(request, { operation: "write", userId: user.id, workspaceId: user.workspaceId }); return apiSuccess({ claim: await NuruTemporalClaimService.record(temporalClaimInputSchema.parse(await request.json()), { workspaceId: user.workspaceId, actor: `human:${user.id}`, correlationId: crypto.randomUUID() }) }, { status: 201 }); } catch (error) { return apiError(error, "Unable to record temporal claim."); } }

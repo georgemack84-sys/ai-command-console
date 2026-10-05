@@ -1,0 +1,4 @@
+import { z } from "zod";
+export const nuruV1ReleaseGateSchema = z.object({ agentServiceBoundary: z.boolean(), noDirectAgentDatabaseAccess: z.boolean(), canonicalMutationsAuditable: z.boolean(), provenanceEndToEnd: z.boolean(), agentOutputsSchemaValidated: z.boolean(), permissionsEnforced: z.boolean(), humanReviewWorks: z.boolean(), conflictDetectionWorks: z.boolean(), duplicateDetectionWorks: z.boolean(), supersessionPreservesHistory: z.boolean(), failuresDegradeGracefully: z.boolean(), curationReplayable: z.boolean(), dashboardExposesRationale: z.boolean(), evaluationSuitePasses: z.boolean() });
+export type NuruV1ReleaseEvidence = z.infer<typeof nuruV1ReleaseGateSchema>;
+export const NuruV1ReleaseGate = { evaluate(raw: z.input<typeof nuruV1ReleaseGateSchema>) { const evidence = nuruV1ReleaseGateSchema.parse(raw); const unmet = Object.entries(evidence).filter(([, value]) => !value).map(([key]) => key); return { approved: unmet.length === 0, unmet, evidence }; } };
