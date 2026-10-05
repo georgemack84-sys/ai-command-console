@@ -37,9 +37,12 @@ export default defineConfig({
       RATE_LIMIT_ENABLED: "false",
       SENTRY_DSN: "",
       NEXT_PUBLIC_APP_URL: "http://localhost:5050",
+      NEXT_IMAGE_UNOPTIMIZED: "true",
     },
-    url: "http://localhost:5050",
-    reuseExistingServer: false,
+    // Server readiness must not depend on compiling the interactive console root.
+    // The health route is deterministic and verifies that Next can serve requests.
+    url: "http://localhost:5050/api/ready",
+    reuseExistingServer: process.env.CI !== "true",
     timeout: 180_000,
   },
 });
