@@ -51,6 +51,41 @@ ai-command-console-report-*.txt
 project-files.txt
 project-report.txt
 
+# Local validation, workspace, and recovery artifacts.
+.next-*
+playwright/.auth/
+playwright/.storage-state/
+.codex-worktrees/
+data/agents/continuity/
+.codex-auth-test.status
+.codex-day4-levels-123.ps1
+.codex-day4-levels-123.status
+.codex-day4-levels-123.status.png
+.codex-day4-state.txt
+.codex-diagnostic.png
+.codex-inspect.ps1
+.codex-inspection.png
+.codex-level2-check.ps1
+.codex-level2-status.png
+.codex-location.txt
+.codex-login-route-check.txt
+.codex-login-status.png
+.codex-login-test-result.png
+.codex-login-test.exit
+.codex-render-status.ps1
+.codex-route-check.png
+.codex-vps-state.txt
+/.pnpm-store/
+
+# Local workspace-purification recovery evidence; retained outside the repository.
+/nuru-recovery/
+
+# Archived standalone projects retained outside this repository.
+/axiom-os/
+/publisher/
+/market-signal/
+/day-to-day-assistant/
+
 # IDE and operating-system state. Shared VS Code project files may be added
 # explicitly without committing per-developer editor state.
 .idea/
