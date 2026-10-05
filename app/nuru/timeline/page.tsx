@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, Search, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock3, Search, ShieldCheck } from "lucide-react";
 import { FormEvent, useState } from "react";
 import "../nuru.css";
 

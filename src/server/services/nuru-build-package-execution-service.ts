@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type CodexBuildPackage, type CodexExecutionEvent, type VaultRecord, codexExecutionEventSchema } from "@/src/nuru/vault-contracts";
+import { type CodexBuildPackage, type CodexExecutionEvent, codexExecutionEventSchema } from "@/src/nuru/vault-contracts";
 import { NuruBuildPackageReadinessService, type BuildPackageReadinessStore } from "@/src/server/services/nuru-build-package-readiness-service";
 export const startBuildPackageSchema = z.object({ branch: z.string().trim().min(1).max(500) });
 export interface BuildPackageExecutionStore extends BuildPackageReadinessStore { appendExecutionEvent(record: CodexExecutionEvent): Promise<void>; }
