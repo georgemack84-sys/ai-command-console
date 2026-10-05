@@ -1,0 +1,104 @@
+name: ai-command-console-staging
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_command_console}
+      POSTGRES_USER: ${POSTGRES_USER:-ai_command_console}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in staging.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [app-internal]
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.staging
+      target: migrate
+    env_file: ${STAGING_ENV_FILE:-staging.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [app-internal]
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.staging
+      target: web
+    env_file: ${STAGING_ENV_FILE:-staging.env}
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
+      JOB_QUEUE_EXECUTION_MODE: external
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - app-data:/var/lib/ai-command-console
+      - app-logs:/app/logs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks: [app-internal]
+
+  worker:
+    profiles: ["external-worker"]
+    build:
+      context: .
+      dockerfile: Dockerfile.staging
+      target: worker
+    env_file: ${STAGING_ENV_FILE:-staging.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
+      JOB_QUEUE_EXECUTION_MODE: external
+      NURU_EGRESS_PROXY_REQUIRED: "true"
+      NURU_EGRESS_PROXY_URL: http://nuru-egress-proxy:3128
+      NODE_USE_ENV_PROXY: "1"
+      HTTP_PROXY: http://nuru-egress-proxy:3128
+      HTTPS_PROXY: http://nuru-egress-proxy:3128
+      NO_PROXY: localhost,127.0.0.1,::1,postgres,nuru-egress-proxy
+    volumes:
+      - app-data:/var/lib/ai-command-console
+      - app-logs:/app/logs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      egress-proxy:
+        condition: service_started
+    restart: unless-stopped
+    networks: [app-internal, egress-proxy]
+
+  egress-proxy:
+    profiles: ["external-worker"]
+    build:
+      context: ./docker/nuru-egress
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks: [egress-proxy, egress-external]
+
+volumes:
+  postgres-data:
+  app-data:
+  app-logs:
+
+networks:
+  app-internal:
+    internal: true
+  egress-proxy:
+    internal: true
+  egress-external:
