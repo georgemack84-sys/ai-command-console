@@ -1,5 +1,7 @@
+import nextDynamic from "next/dynamic";
 import { requireSessionUser } from "@/src/lib/auth";
-import { BriefsPageClient } from "@/src/components/research-desk/briefs-page-client";
+
+const BriefsPageClient = nextDynamic(() => import("@/src/components/research-desk/briefs-page-client").then((module) => module.BriefsPageClient));
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,9 @@
+import nextDynamic from "next/dynamic";
 import { requireSessionUser } from "@/src/lib/auth";
-import { MissionIntelligenceConsole } from "@/components/mission/console/MissionIntelligenceConsole";
 import { buildMissionConsoleComposition } from "@/services/mission-intelligence-console";
 import { buildConstitutionalGovernanceSeedFromComposition, buildConstitutionalGovernanceView } from "@/services/constitutional-governance-layer";
+
+const MissionIntelligenceConsole = nextDynamic(() => import("@/components/mission/console/MissionIntelligenceConsole").then((module) => module.MissionIntelligenceConsole));
 
 export const dynamic = "force-dynamic";
 

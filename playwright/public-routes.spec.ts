@@ -26,9 +26,9 @@ test("console page shows the live command workspace", async ({ page }) => {
     await expect(page.getByText(/sign in to access the ai command console/i)).toBeVisible();
     return;
   }
-  await expect(page.getByText(/operations console/i)).toBeVisible();
-  await expect(page.getByText(/command desk/i)).toBeVisible();
-  await expect(page.getByText(/live briefing/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /mission intelligence console/i })).toBeVisible();
+  await expect(page.getByText(/constitutional mission intelligence/i)).toBeVisible();
+  await expect(page.getByText(/mission: mission-001/i)).toBeVisible();
 });
 
 test("briefs page keeps the premium research intake structure", async ({ page }) => {
@@ -71,7 +71,7 @@ test("auth and console pages avoid horizontal overflow", async ({ page }) => {
   for (const route of ["/auth", "/console"]) {
     await page.goto(route, { waitUntil: "domcontentloaded" });
     if (route === "/console" && databaseReady) {
-      await page.getByText(/operations console/i).waitFor();
+      await page.getByRole("heading", { name: /mission intelligence console/i }).waitFor();
       await page.waitForTimeout(250);
     }
     const widths = await page.evaluate(() => ({

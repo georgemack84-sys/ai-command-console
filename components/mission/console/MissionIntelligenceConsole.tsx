@@ -23,7 +23,7 @@ export function MissionIntelligenceConsole({
   governanceView?: ConstitutionalGovernanceView;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]">
       <MissionConsoleShell>
         <div className="space-y-5">
           <MissionStatusHeader view={view} />
