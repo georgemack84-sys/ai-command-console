@@ -53,7 +53,10 @@ export default function NuruRelationshipsPage() {
   useEffect(() => { void Promise.resolve().then(load).catch(() => setMessage("Unable to load relationship governance.")); }, []);
   useEffect(() => {
     if (!selected) return;
-    void loadSelected(selected.id).catch(() => { setRelationships([]); setHistory([]); });
+    const timer = window.setTimeout(() => {
+      void loadSelected(selected.id).catch(() => { setRelationships([]); setHistory([]); });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [selected]);
 
   async function decide(review: PendingReview | HistoricalRelationship, decision: Decision) {

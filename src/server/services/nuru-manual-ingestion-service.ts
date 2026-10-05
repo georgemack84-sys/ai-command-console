@@ -92,10 +92,14 @@ export const NuruManualIngestionService = {
       orderBy: { retrievedAt: "desc" },
       take: 50,
     }) as Array<Record<string, unknown>>;
-    return rows.map(({ body: _body, ...artifact }) => ({
-      ...artifact,
-      retrievedAt: artifact.retrievedAt instanceof Date ? artifact.retrievedAt.toISOString() : artifact.retrievedAt,
-      createdAt: artifact.createdAt instanceof Date ? artifact.createdAt.toISOString() : artifact.createdAt,
-    }));
+    return rows.map((row) => {
+      const { body, ...artifact } = row;
+      void body;
+      return {
+        ...artifact,
+        retrievedAt: artifact.retrievedAt instanceof Date ? artifact.retrievedAt.toISOString() : artifact.retrievedAt,
+        createdAt: artifact.createdAt instanceof Date ? artifact.createdAt.toISOString() : artifact.createdAt,
+      };
+    });
   },
 };
