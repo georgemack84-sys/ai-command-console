@@ -8,9 +8,8 @@ describe("Headline Flow review enrichment", () => {
     mocks.findReceipts.mockResolvedValue([{ workspaceId: "ws-1", eventId: "event-1", eventVersion: 2, subjectId: "company:a", developmentId: "dev-1", curationProposalId: "proposal-1" }]);
     mocks.findDevelopments.mockResolvedValue([{ id: "dev-1", summary: "Stabilized acquisition.", eventTime: new Date("2026-09-20"), verificationState: "CORROBORATING", sourceAuthority: "MODERATE", claims: [{ text: "Acquisition completed." }], evidence: [] }]);
     mocks.findClaims.mockResolvedValue([{ id: "claim-1", subjectId: "company:a", predicate: "owner", value: "Old owner", state: "DISPUTED", effectiveFrom: new Date("2025-01-01") }]); mocks.findCorrections.mockResolvedValue([]); mocks.findDecisions.mockResolvedValue([]);
-    mocks.findEvent.mockResolvedValue({ id: "event-1", title: "Acquisition", summary: "Company A acquired B.", status: "resolved", importance: "important", confidence: "multi_source", version: 2, sourceCount: 2, lastMeaningfulUpdateAt: "2026-09-20T00:00:00.000Z", evidence: [] });
     const result = await NuruHeadlineFlowReviewService.enrich([{ id: "proposal-1" }, { id: "proposal-other" }]);
-    expect(result[0]).toMatchObject({ headlineFlow: { event: { id: "event-1", sourceCount: 2 }, development: { id: "dev-1" }, temporalContext: { claims: [{ id: "claim-1", state: "DISPUTED" }] } } });
+    expect(result[0]).toMatchObject({ headlineFlow: { event: null, development: { id: "dev-1" }, temporalContext: { claims: [{ id: "claim-1", state: "DISPUTED" }] } } });
     expect(result[1]).not.toHaveProperty("headlineFlow");
   });
 });

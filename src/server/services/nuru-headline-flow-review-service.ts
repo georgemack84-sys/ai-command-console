@@ -1,4 +1,3 @@
-import { headlineFlowEventRegistryRepository } from "@/src/server/headline-flow/event-registry/prisma-event-registry-repository";
 import { nuruKnowledgeRepository } from "@/src/server/repositories/nuru-knowledge-repository";
 
 type Proposal = Record<string, unknown> & { id: string };
@@ -21,8 +20,6 @@ export const NuruHeadlineFlowReviewService = {
     const corrections = await (nuruKnowledgeRepository.nuruKnowledgeCorrection as unknown as { findMany(args: unknown): Promise<Correction[]> }).findMany({ where: { workspaceId: { in: workspaceIds }, subjectId: { in: subjectIds } }, orderBy: { createdAt: "desc" }, take: 500 });
     const decisions = corrections.length ? await (nuruKnowledgeRepository.nuruKnowledgeCorrectionDecision as unknown as { findMany(args: unknown): Promise<CorrectionDecision[]> }).findMany({ where: { correctionId: { in: corrections.map((correction) => correction.id) } } }) : [];
     const developmentsById = new Map(developments.map((development) => [development.id, development]));
-    const events = await Promise.all(receipts.map(async (receipt) => [receipt.curationProposalId, await headlineFlowEventRegistryRepository.findByIdForWorkspace(receipt.eventId, receipt.workspaceId)] as const));
-    const eventByProposalId = new Map(events);
     const receiptByProposalId = new Map(receipts.map((receipt) => [receipt.curationProposalId, receipt]));
     const claimsBySubject = new Map(subjectIds.map((subjectId) => [subjectId, temporalClaims.filter((claim) => claim.subjectId === subjectId)]));
     const correctionsBySubject = new Map(subjectIds.map((subjectId) => [subjectId, corrections.filter((correction) => correction.subjectId === subjectId)]));
@@ -31,10 +28,9 @@ export const NuruHeadlineFlowReviewService = {
       const receipt = receiptByProposalId.get(proposal.id);
       if (!receipt) return proposal;
       const development = developmentsById.get(receipt.developmentId);
-      const event = eventByProposalId.get(proposal.id);
       const subjectClaims = claimsBySubject.get(receipt.subjectId) ?? [];
       const subjectCorrections = correctionsBySubject.get(receipt.subjectId) ?? [];
-      return { ...proposal, headlineFlow: { event: event ? { id: event.id, title: event.title, summary: event.summary, status: event.status, importance: event.importance, confidence: event.confidence, version: event.version, sourceCount: event.sourceCount, lastMeaningfulUpdateAt: event.lastMeaningfulUpdateAt, evidence: event.evidence.map((evidence) => ({ id: evidence.id, sourceName: evidence.sourceName, headline: evidence.headline, articleUrl: evidence.articleUrl })) } : null, development: development ? { id: development.id, summary: development.summary, eventTime: development.eventTime.toISOString(), verificationState: development.verificationState, sourceAuthority: development.sourceAuthority, claims: development.claims, evidence: development.evidence } : null, temporalContext: { subjectId: receipt.subjectId, claims: subjectClaims.map((claim) => ({ id: claim.id, predicate: claim.predicate, value: claim.value, state: claim.state, effectiveFrom: claim.effectiveFrom.toISOString() })), corrections: subjectCorrections.map((correction) => ({ id: correction.id, previousClaimId: correction.previousClaimId, correctedClaimId: correction.correctedClaimId, reason: correction.reason, decision: decisionsByCorrectionId.get(correction.id)?.action ?? null })) } } };
+      return { ...proposal, headlineFlow: { event: null, development: development ? { id: development.id, summary: development.summary, eventTime: development.eventTime.toISOString(), verificationState: development.verificationState, sourceAuthority: development.sourceAuthority, claims: development.claims, evidence: development.evidence } : null, temporalContext: { subjectId: receipt.subjectId, claims: subjectClaims.map((claim) => ({ id: claim.id, predicate: claim.predicate, value: claim.value, state: claim.state, effectiveFrom: claim.effectiveFrom.toISOString() })), corrections: subjectCorrections.map((correction) => ({ id: correction.id, previousClaimId: correction.previousClaimId, correctedClaimId: correction.correctedClaimId, reason: correction.reason, decision: decisionsByCorrectionId.get(correction.id)?.action ?? null })) } } };
     });
   },
 };

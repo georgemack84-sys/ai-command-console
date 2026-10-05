@@ -20,6 +20,18 @@ const envSchema = z.object({
   RSS_INGEST_MAX_ITEMS: z.string().optional(),
   RSS_INGEST_MAX_CONTENT_BYTES: z.string().optional(),
   RSS_USER_AGENT: z.string().optional(),
+  SOURCE_ALLOW_PRIVATE_URLS: z.string().optional(),
+  REDIS_URL: z.string().url().optional(),
+  RATE_LIMIT_BACKEND: z.enum(["memory", "redis"]).default("memory"),
+  RATE_LIMIT_NSI_WRITE_LIMIT: z.string().optional(),
+  RATE_LIMIT_NSI_FETCH_LIMIT: z.string().optional(),
+  RATE_LIMIT_NSI_CANONICAL_ADMISSION_LIMIT: z.string().optional(),
+  NURU_EGRESS_PROXY_URL: z.string().url().optional(),
+  NURU_EGRESS_PROXY_REQUIRED: z.string().optional(),
+  NURU_AUDIT_SIGNING_PROVIDER: z.enum(["gcp_kms", "local_secret"]).optional(),
+  NURU_GCP_KMS_CRYPTO_KEY_VERSION: z.string().optional(),
+  NURU_AUDIT_SIGNING_KEY_ID: z.string().optional(),
+  NURU_AUDIT_SIGNING_PRIVATE_KEY_PKCS8_BASE64: z.string().optional(),
   JOB_QUEUE_EXECUTION_MODE: z.enum(["in_process", "external"]).default("in_process"),
   JOB_WORKER_POLL_INTERVAL_MS: z.string().optional(),
   JOB_QUEUE_MAX_PENDING: z.string().optional(),
@@ -190,6 +202,19 @@ export function getRssIngestMaxContentBytes() {
 export function getRssUserAgent() {
   const configured = env.RSS_USER_AGENT?.trim();
   return configured || "AI-Command-Console/1.0 (+https://example.com)";
+}
+
+/** Explicit test-only escape hatch for source integrations behind private networks. */
+export function sourceAllowsPrivateUrls() {
+  const configured = env.SOURCE_ALLOW_PRIVATE_URLS?.toLowerCase();
+  return configured === "true" || configured === "1" || configured === "yes";
+}
+
+export function nuruEgressProxyRequired() {
+  const configured = env.NURU_EGRESS_PROXY_REQUIRED?.toLowerCase();
+  if (configured === "true" || configured === "1" || configured === "yes") return true;
+  if (configured === "false" || configured === "0" || configured === "no") return false;
+  return isProduction();
 }
 
 export function getJobWorkerPollIntervalMs() {

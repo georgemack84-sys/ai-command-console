@@ -121,6 +121,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@google-cloud/kms": "6.2.1",
     "@prisma/client": "^6.19.3",
     "@sentry/node": "^10.70.0",
     "@supabase/ssr": "^0.12.7",
