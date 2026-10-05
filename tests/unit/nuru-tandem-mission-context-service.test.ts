@@ -9,7 +9,14 @@ describe("Nuru Tandem mission context", () => {
     const create = vi.fn(async (value) => value); const service = new NuruTandemMissionContextService({ create, list: vi.fn() });
     const result = await service.attach(packageFixture, { workspaceId: "ws-1", missionId: "mission-1", attachedBy: "human:1" });
     expect(result).toMatchObject({ immutable: true, canonicalKnowledgeEffect: "NONE", package: { packageId: "pkg-1" } });
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ missionId: "mission-1", knowledgePackage: packageFixture }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      missionId: "mission-1",
+      knowledgePackage: expect.objectContaining({
+        packageId: packageFixture.packageId,
+        missionId: packageFixture.missionId,
+        relationships: [],
+      }),
+    }));
   });
 
   it("rejects attaching a package to a different mission", async () => {
