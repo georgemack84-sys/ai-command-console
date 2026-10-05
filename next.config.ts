@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   // Next writes a trace file in its output root that cannot be shared safely.
   distDir: process.env.NODE_ENV === "production" ? ".next-production" : ".next",
   output: "standalone",
+  // Cloud KMS loads package metadata dynamically; keep it as a server runtime dependency.
+  serverExternalPackages: ["@google-cloud/kms"],
   outputFileTracingExcludes: {
     "*": [
       "data/**",

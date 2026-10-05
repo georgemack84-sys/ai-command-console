@@ -1,0 +1,7 @@
+{
+  "status": "PASSED",
+  "verifiedAt": "2026-09-24T08:51:09.590Z",
+  "command": "npx vitest run --config vitest.config.mjs --pool forks --maxWorkers 1 --no-file-parallelism tests/unit/nuru-v1-acceptance.test.ts tests/unit/nuru-personal-discovery-release.test.ts tests/unit/nuru-rabbit-hole-service.test.ts tests/unit/nuru-discovery-source-service.test.ts tests/unit/nuru-personal-edition-calibration-service.test.ts tests/unit/nuru-personal-edition-pool-service.test.ts tests/unit/nuru-personal-edition-feedback-service.test.ts tests/unit/nuru-evaluation-dataset.test.ts tests/unit/nuru-evaluation-scorecard.test.ts tests/unit/nuru-adversarial-corpus.test.ts tests/unit/nuru-duplicate-service.test.ts tests/unit/nuru-contradiction-service.test.ts tests/unit/nuru-supersession-service.test.ts && npx vitest run --config vitest.config.mjs --pool forks --maxWorkers 1 --no-file-parallelism tests/unit/nuru-entity-resolution-service.test.ts tests/unit/nuru-tandem-knowledge-gateway-service.test.ts tests/unit/nuru-tandem-mission-context-service.test.ts tests/unit/nuru-tandem-mission-replay-service.test.ts tests/unit/nuru-tandem-knowledge-intake-service.test.ts tests/unit/nuru-tandem-knowledge-subscription-service.test.ts tests/unit/nuru-tandem-governance-qualification.test.ts",
+  "testFiles": 20,
+  "tests": 54
+}

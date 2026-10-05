@@ -121,6 +121,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@google-cloud/kms": "6.2.1",
     "@prisma/client": "^6.19.3",
     "@sentry/node": "^10.70.0",
     "@supabase/ssr": "^0.12.7",
@@ -140,6 +141,7 @@
     "react-dom": "19.2.3",
     "react-map-gl": "^8.1.0",
     "recharts": "^3.8.0",
+    "redis": "^5.12.1",
     "rss-parser": "^3.13.0",
     "tailwind-merge": "^3.5.0",
     "uuid": "^14.0.1",

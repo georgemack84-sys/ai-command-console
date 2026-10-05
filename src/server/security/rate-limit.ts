@@ -45,6 +45,22 @@ export function getJobsRateLimit() {
   return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 30;
 }
 
+/** Bounded high-impact Source Intelligence writes per actor and window. */
+export function getNsiWriteRateLimit() {
+  const configured = Number(env.RATE_LIMIT_NSI_WRITE_LIMIT);
+  return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 12;
+}
+
+export function getNsiFetchRateLimit() {
+  const configured = Number(env.RATE_LIMIT_NSI_FETCH_LIMIT);
+  return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 6;
+}
+
+export function getNsiCanonicalAdmissionRateLimit() {
+  const configured = Number(env.RATE_LIMIT_NSI_CANONICAL_ADMISSION_LIMIT);
+  return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 6;
+}
+
 export function getClientIp(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {

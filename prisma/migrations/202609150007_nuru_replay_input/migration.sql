@@ -1,0 +1,1 @@
+ALTER TABLE "NuruAgentRun" ADD COLUMN "inputContext" JSONB NOT NULL DEFAULT '{}';
