@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryLearningAuditLedger, PracticeArtifactService, PracticeEvidenceService, PracticeExerciseGenerationService, PracticeLineageRetrievalService, PracticeRegressionScheduler, PracticeSkillRegistryBridgeService, SkillCandidateService, ConservativeSkillValidator } from "@/services/learning-constitution";
-import type { PracticeArtifactRecord, PracticeArtifactStore, PracticeEvaluation, PracticeExercise, PracticeExerciseGenerationRequest, SkillArtifactRecord, SkillArtifactStore, SkillCandidate, SkillRegistryEntry } from "@/types/learning-constitution";
+import type { PracticeArtifactRecord, PracticeArtifactStore, PracticeEvaluation, PracticeExerciseGenerationRequest, SkillArtifactRecord, SkillArtifactStore, SkillCandidate, SkillRegistryEntry } from "@/types/learning-constitution";
 
 const actor = { actorId: "human:teacher", actorType: "HUMAN" as const };
 const stamp = "2026-09-02T00:00:00.000Z";

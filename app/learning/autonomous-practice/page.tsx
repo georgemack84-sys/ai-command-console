@@ -15,7 +15,6 @@ export default async function AutonomousPracticePage() {
   const sessions = all.filter((artifact) => artifact.artifactType === "SESSION").map((artifact) => artifact.payload as AutonomousPracticeSession);
   const exercises = all.filter((artifact) => artifact.artifactType === "EXERCISE_SNAPSHOT").map((artifact) => artifact.payload as AutonomousExerciseSnapshot);
   const evidence = all.filter((artifact) => artifact.artifactType === "EVIDENCE").map((artifact) => artifact.payload as AutonomousPracticeEvidence);
-  const stops = all.filter((artifact) => artifact.artifactType === "STOP");
   const sealedKeys = all.filter((artifact) => artifact.artifactType === "SEALED_ANSWER_KEY").length;
 
   return <main className="mx-auto max-w-5xl space-y-6 p-6">

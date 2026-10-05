@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ConservativeSkillValidator, InMemoryLearningAuditLedger, PracticeGraphRemediationRouter, PracticeSkillRegistryBridgeService, SkillCandidateService, SkillGraphProjectionService, SkillRegistryProjectionService } from "@/services/learning-constitution";
-import type { PracticeArtifactRecord, PracticeEvidence, PracticeEvaluation, SkillArtifactRecord, SkillArtifactStore, SkillCandidate, SkillDependency, SkillGraphArtifactRecord, SkillGraphArtifactStore, SkillRegistryEntry } from "@/types/learning-constitution";
+import type { PracticeEvidence, PracticeEvaluation, SkillArtifactRecord, SkillArtifactStore, SkillCandidate, SkillDependency, SkillGraphArtifactRecord, SkillGraphArtifactStore, SkillRegistryEntry } from "@/types/learning-constitution";
 
 const actor = { actorId: "human:teacher", actorType: "HUMAN" as const };
 const skill = (skillId: string): SkillCandidate => ({ skillId, name: skillId, description: "Test", domain: "Planning", skillType: "ATOMIC", scope: [{ type: "PROJECT", id: "noesis" }], prerequisiteSkillIds: [], procedureIds: [], principleIds: [], evidence: [], mastery: null, confidence: "UNKNOWN", status: "UNDEMONSTRATED", limitations: [], failureModes: [], createdBy: actor, createdAt: "2026-09-01T00:00:00.000Z", immutable: true, capabilityClaim: false, executionPermissionGranted: false });
