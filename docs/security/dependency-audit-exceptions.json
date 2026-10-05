@@ -1,4 +1,41 @@
 {
   "schemaVersion": 1,
-  "exceptions": []
+  "exceptions": [
+    {
+      "id": "DEV-2026-10-BRACES-ROOT",
+      "owner": "platform-security",
+      "expiresOn": "2026-11-05",
+      "graphs": ["root"],
+      "affectedPackages": [
+        "@next/eslint-plugin-next",
+        "braces",
+        "chokidar",
+        "eslint-config-next",
+        "fast-glob",
+        "micromatch",
+        "nodemon"
+      ],
+      "advisoryUrls": ["https://github.com/advisories/GHSA-vfj7-8cjw-p6xm"],
+      "maximumSeverity": "high",
+      "exposure": "Development-only file-glob parsing in lint and local-reload tooling; the package is omitted from production dependency installation.",
+      "mitigation": "Pinned to the newest supported Next.js and Nodemon releases. Re-evaluate when the upstream braces chain publishes a patched compatible release, and before this exception expires."
+    },
+    {
+      "id": "DEV-2026-10-BRACES-WEB",
+      "owner": "platform-security",
+      "expiresOn": "2026-11-05",
+      "graphs": ["web"],
+      "affectedPackages": [
+        "@next/eslint-plugin-next",
+        "braces",
+        "eslint-config-next",
+        "fast-glob",
+        "micromatch"
+      ],
+      "advisoryUrls": ["https://github.com/advisories/GHSA-vfj7-8cjw-p6xm"],
+      "maximumSeverity": "high",
+      "exposure": "Development-only glob parsing used by frontend lint tooling; this chain is excluded from the deployed production dependency set.",
+      "mitigation": "Pinned to the newest supported Next.js and ESLint integration releases. Re-evaluate when the upstream braces chain publishes a patched compatible release, and before this exception expires."
+    }
+  ]
 }
