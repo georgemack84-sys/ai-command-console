@@ -139,7 +139,10 @@ export function qualifyNuruDiscoveryBatch(candidates: readonly NuruExternalCandi
   const seen = new Set<string>();
   for (const candidate of candidates) {
     const assessment = assessNuruExternalCandidate(candidate, rssUrls);
-    if (!assessment.accepted) { rejected.push({ candidate, reason: assessment.reason }); continue; }
+    if (!assessment.accepted) {
+      rejected.push({ candidate, reason: assessment.reason as DiscoveryBatchRejection["reason"] });
+      continue;
+    }
     const retrievedAt = Date.parse(candidate.retrievedAt);
     if (!Number.isFinite(retrievedAt) || now.getTime() - retrievedAt > candidateFreshnessMs) { rejected.push({ candidate, reason: "STALE_RETRIEVAL" }); continue; }
     if (seen.has(assessment.externalKey)) { rejected.push({ candidate, reason: "DUPLICATE_IN_RUN" }); continue; }
