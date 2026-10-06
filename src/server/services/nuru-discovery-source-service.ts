@@ -124,6 +124,37 @@ export function assessNuruExternalCandidate(candidate: NuruExternalCandidate, rs
   } catch { return { accepted: false as const, reason: "INVALID_SOURCE_URL" }; }
 }
 
+export type DiscoveryBatchRejection = { candidate: NuruExternalCandidate; reason: "STALE_RETRIEVAL" | "DUPLICATE_IN_RUN" | "SOURCE_URL_OUTSIDE_POLICY" | "SOURCE_TYPE_OUTSIDE_POLICY" | "INSUFFICIENT_METADATA" | "INVALID_SOURCE_URL" };
+const candidateFreshnessMs = 24 * 60 * 60 * 1_000;
+
+/**
+ * Qualifies a bounded discovery batch before persistence.  A discovery result
+ * is still only a candidate: duplicates are retained as diagnostics, stale
+ * material is not presented as new, and similarly titled independent sources
+ * are explicitly routed to quality review rather than silently merged.
+ */
+export function qualifyNuruDiscoveryBatch(candidates: readonly NuruExternalCandidate[], now = new Date(), rssUrls = configuredRssUrls()) {
+  const accepted: Array<{ candidate: NuruExternalCandidate; externalKey: string }> = [];
+  const rejected: DiscoveryBatchRejection[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const assessment = assessNuruExternalCandidate(candidate, rssUrls);
+    if (!assessment.accepted) { rejected.push({ candidate, reason: assessment.reason }); continue; }
+    const retrievedAt = Date.parse(candidate.retrievedAt);
+    if (!Number.isFinite(retrievedAt) || now.getTime() - retrievedAt > candidateFreshnessMs) { rejected.push({ candidate, reason: "STALE_RETRIEVAL" }); continue; }
+    if (seen.has(assessment.externalKey)) { rejected.push({ candidate, reason: "DUPLICATE_IN_RUN" }); continue; }
+    seen.add(assessment.externalKey);
+    accepted.push({ candidate, externalKey: assessment.externalKey });
+  }
+  const titleGroups = new Map<string, string[]>();
+  for (const item of accepted) {
+    const key = `${item.candidate.type}:${item.candidate.title.trim().toLocaleLowerCase()}`;
+    titleGroups.set(key, [...(titleGroups.get(key) ?? []), item.externalKey]);
+  }
+  const conflictedExternalKeys = new Set([...titleGroups.values()].filter((keys) => keys.length > 1).flat());
+  return { accepted, rejected, conflictedExternalKeys };
+}
+
 function sourceFailureCode(error: unknown): NuruRetrievalSourceOutcome["failureCode"] {
   return error instanceof Error && /requires (NURU_SOURCE_CONTACT|TMDB_ACCESS_TOKEN|NURU_DISCOVERY_RSS_URLS)/.test(error.message) ? "CONFIGURATION_MISSING" : "SOURCE_UNAVAILABLE";
 }
@@ -203,9 +234,10 @@ export async function retrieveNuruDiscoveryCandidatesWithStatus(rawInput: z.inpu
     const run = await nuruKnowledgeRepository.nuruDiscoveryRetrievalRun.create({ data: { sourceId, query: input.query, status: "RUNNING", policyVersion } });
     try {
       const retrieved = await retrieveWithSourcePolicy(sourceId, input.query, input.limit);
-      const candidates = retrieved.candidates.filter((candidate) => assessNuruExternalCandidate(candidate).accepted);
+      const qualification = qualifyNuruDiscoveryBatch(retrieved.candidates);
+      const candidates = qualification.accepted.map((item) => item.candidate);
       await nuruKnowledgeRepository.$transaction(async (tx) => {
-        for (const candidate of candidates) { const assessment = assessNuruExternalCandidate(candidate); if (!assessment.accepted) continue; const persisted = await tx.nuruDiscoveryCandidate.upsert({ where: { externalKey: assessment.externalKey }, create: { title: candidate.title, content: candidate.summary, source: { sourceType: "WEB_SOURCE", origin: candidate.sourceUrl, uri: candidate.sourceUrl, authority: candidate.sourceAuthority, retrievedAt: candidate.retrievedAt, topics: candidate.topics, publishedAt: candidate.publishedAt }, reasonDiscovered: `Retrieved from ${candidate.sourceId} for query “${input.query}”.`, initialType: candidate.type, relevanceScore: 50, confidence: candidate.sourceAuthority === "HIGH" ? 0.75 : 0.65, status: "ELIGIBLE", createdBy: `nuru.source.${candidate.sourceId}.v1`, correlationId: run.id, externalKey: assessment.externalKey }, update: { correlationId: run.id, status: "ELIGIBLE", source: { sourceType: "WEB_SOURCE", origin: candidate.sourceUrl, uri: candidate.sourceUrl, authority: candidate.sourceAuthority, retrievedAt: candidate.retrievedAt, topics: candidate.topics, publishedAt: candidate.publishedAt } } }); await tx.nuruQualityAssessment.create({ data: { itemId: persisted.id, status: "PASS", sourceKnown: true, provenanceAvailable: true, duplicateState: "EXTERNAL_KEY_DEDUPED", conflictDetected: false, contextAccurate: true, relationshipsJustified: true, evidenceSufficient: true, confidence: candidate.sourceAuthority === "HIGH" ? 0.75 : 0.65, warnings: [], createdBy: "nuru.source-eligibility.v1", correlationId: run.id } }); }
+        for (const item of qualification.accepted) { const { candidate, externalKey } = item; const conflictDetected = qualification.conflictedExternalKeys.has(externalKey); const persisted = await tx.nuruDiscoveryCandidate.upsert({ where: { externalKey }, create: { title: candidate.title, content: candidate.summary, source: { sourceType: "WEB_SOURCE", origin: candidate.sourceUrl, uri: candidate.sourceUrl, authority: candidate.sourceAuthority, retrievedAt: candidate.retrievedAt, topics: candidate.topics, publishedAt: candidate.publishedAt }, reasonDiscovered: `Retrieved from ${candidate.sourceId} for query “${input.query}”.`, initialType: candidate.type, relevanceScore: 50, confidence: candidate.sourceAuthority === "HIGH" ? 0.75 : 0.65, status: "ELIGIBLE", createdBy: `nuru.source.${candidate.sourceId}.v1`, correlationId: run.id, externalKey }, update: { correlationId: run.id, status: "ELIGIBLE", source: { sourceType: "WEB_SOURCE", origin: candidate.sourceUrl, uri: candidate.sourceUrl, authority: candidate.sourceAuthority, retrievedAt: candidate.retrievedAt, topics: candidate.topics, publishedAt: candidate.publishedAt } } }); await tx.nuruQualityAssessment.create({ data: { itemId: persisted.id, status: conflictDetected ? "NEEDS_REVIEW" : "PASS", sourceKnown: true, provenanceAvailable: true, duplicateState: "EXTERNAL_KEY_DEDUPED", conflictDetected, contextAccurate: true, relationshipsJustified: true, evidenceSufficient: true, confidence: candidate.sourceAuthority === "HIGH" ? 0.75 : 0.65, warnings: conflictDetected ? ["Independent discovery candidates share the same title and require review."] : [], createdBy: "nuru.source-eligibility.v1", correlationId: run.id } }); }
         await tx.nuruDiscoveryRetrievalRun.update({ where: { id: run.id }, data: { status: "COMPLETED", candidateCount: candidates.length, completedAt: new Date() } });
       });
       all.push(...candidates); sources.push({ sourceId, state: "COMPLETED", candidateCount: candidates.length, cached: retrieved.cached, failureCode: null });
