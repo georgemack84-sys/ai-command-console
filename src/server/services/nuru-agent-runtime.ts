@@ -28,6 +28,12 @@ export class NuruAgentRuntime {
     if (!agent || (agent.status && agent.status !== "ACTIVE")) return { runId, agentId, correlationId: request.correlationId, status: "failure", error: agent ? `Nuru agent is ${agent.status.toLowerCase()}.` : "Unknown Nuru agent.", durationMs: 0 };
     const modelRoute = NuruModelRouter.route({ agentType: agent.agentType, contextSize: JSON.stringify(request.context).length, complexity: request.modelConstraints?.complexity ?? (request.tokenBudget > 6_000 ? "HIGH" : agent.agentType === "DISCOVERY" ? "LOW" : "STANDARD"), privacy: request.modelConstraints?.privacy, costSensitivity: request.modelConstraints?.costSensitivity, latencySensitivity: request.modelConstraints?.latencySensitivity, requiredReasoning: request.modelConstraints?.requiredReasoning });
     const allowedTools = this.tools.filter((tool) => agent.allowedTools.includes(tool.name));
+    const undeclaredToolNames = agent.allowedTools.filter((name) => !allowedTools.some((tool) => tool.name === name));
+    if (undeclaredToolNames.length) {
+      const error = `Agent declares unavailable tools: ${undeclaredToolNames.join(", ")}.`;
+      await NuruAuditService.record({ operation: "AGENT_RESULT_RECEIVED", actor: agent.agentId, agentRunId: runId, resourceId: "runtime", decision: "FAILURE", reason: error, correlationId: request.correlationId });
+      return { runId, agentId, correlationId: request.correlationId, status: "failure", error, durationMs: Date.now() - startedAt };
+    }
     for (const tool of allowedTools) {
       const decision = NuruPermissionsService.authorize({ subject: agent.agentId, resource: tool.resource, action: tool.action, context: { correlationId: request.correlationId, purpose: request.objective } });
       if (!decision.allowed) return { runId, agentId, correlationId: request.correlationId, status: "permission_denied", error: decision.reason, durationMs: Date.now() - startedAt };
@@ -44,11 +50,13 @@ export class NuruAgentRuntime {
       const result = await Promise.race([this.model.execute(context, () => operation(context)), new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Agent run exceeded its time budget.")), request.timeBudgetMs))]);
       const validatedResult = outputSchema ? outputSchema.parse(result) as T : result;
       await nuruKnowledgeRepository.nuruAgentRun.update({ where: { id: runId }, data: { status: "success", result: validatedResult, durationMs: Date.now() - startedAt } });
+      await NuruAuditService.record({ operation: "AGENT_RESULT_RECEIVED", actor: agent.agentId, agentRunId: runId, resourceId: String(request.context.itemId ?? "runtime"), outputReference: "validated", decision: "SUCCESS", reason: "Agent result passed its declared output contract.", correlationId: request.correlationId });
       return { runId, agentId, correlationId: request.correlationId, status: "success", result: validatedResult, durationMs: Date.now() - startedAt, modelRoute };
     } catch (error) {
       const timeout = error instanceof Error && error.message.includes("time budget"); const invalidOutput = error instanceof z.ZodError;
       const status = timeout ? "timeout" : invalidOutput ? "invalid_output" : "failure";
       await nuruKnowledgeRepository.nuruAgentRun.update({ where: { id: runId }, data: { status, result: { error: error instanceof Error ? error.message : "Unknown failure" }, durationMs: Date.now() - startedAt } });
+      await NuruAuditService.record({ operation: "AGENT_RESULT_RECEIVED", actor: agent.agentId, agentRunId: runId, resourceId: String(request.context.itemId ?? "runtime"), decision: status.toUpperCase(), reason: error instanceof Error ? error.message.slice(0, 2_000) : "Unknown agent failure.", correlationId: request.correlationId });
       return { runId, agentId, correlationId: request.correlationId, status, error: error instanceof Error ? error.message : "Unknown failure", durationMs: Date.now() - startedAt, modelRoute };
     }
   }
