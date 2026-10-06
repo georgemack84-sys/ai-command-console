@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), run: vi.fn() }));
-vi.mock("@/src/server/repositories/nuru-knowledge-repository", () => ({ nuruKnowledgeRepository: { nuruCurationSubmissionReceipt: { create: mocks.create, findUnique: mocks.findUnique, update: mocks.update } } })); vi.mock("@/src/server/services/nuru-curation-pipeline", () => ({ NuruCurationPipeline: { run: mocks.run } }));
+const mocks = vi.hoisted(() => ({ create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn(), run: vi.fn() }));
+vi.mock("@/src/server/repositories/nuru-knowledge-repository", () => ({ nuruKnowledgeRepository: { nuruCurationSubmissionReceipt: { create: mocks.create, findUnique: mocks.findUnique, update: mocks.update, updateMany: mocks.updateMany } } })); vi.mock("@/src/server/services/nuru-curation-pipeline", () => ({ NuruCurationPipeline: { run: mocks.run } }));
 import { NuruCurationSubmissionService } from "@/src/server/services/nuru-curation-submission-service";
 const input = { title: "Recovery boundary", content: "A durable submission receipt must preserve a validated payload for governed recovery.", source: { sourceType: "HUMAN_INPUT" as const, origin: "Owner", authority: "OWNER" as const }, idempotencyKey: "00000000-0000-4000-8000-000000000001" }; const receipt = { id: "receipt-1", actorId: "admin-1", idempotencyKey: input.idempotencyKey, status: "REQUIRES_RECOVERY", request: input, correlationId: "nuru-submission:receipt-1", proposalId: null, queueId: null, result: {}, error: "Interrupted", createdAt: new Date(), updatedAt: new Date() };
 describe("Nuru curation submission receipt", () => {
@@ -8,12 +8,13 @@ describe("Nuru curation submission receipt", () => {
 
   it("persists the validated request and receipt-bound correlation before running the pipeline", async () => { mocks.create.mockResolvedValue({ ...receipt, status: "PROCESSING" }); mocks.run.mockResolvedValue({ status: "HUMAN_REVIEW_REQUIRED", proposal: { id: "proposal-1" }, queue: { id: "queue-1" } }); mocks.update.mockResolvedValue({ ...receipt, status: "COMPLETE", proposalId: "proposal-1", queueId: "queue-1" }); const result = await NuruCurationSubmissionService.submit(input, "admin-1"); expect(result).toMatchObject({ replayed: false, receipt: { status: "COMPLETE", proposalId: "proposal-1" } }); expect(mocks.run).toHaveBeenCalledWith(expect.objectContaining({ submissionReceiptId: "receipt-1", correlationId: "nuru-submission:receipt-1" })); });
 
-  it("allows the submitting governor to inspect and resume the same receipt", async () => { mocks.findUnique.mockResolvedValue(receipt); mocks.update.mockResolvedValueOnce({ ...receipt, status: "PROCESSING", error: null }).mockResolvedValueOnce({ ...receipt, status: "COMPLETE", proposalId: "proposal-1", queueId: "queue-1", error: null }); mocks.run.mockResolvedValue({ status: "HUMAN_REVIEW_REQUIRED", proposal: { id: "proposal-1" }, queue: { id: "queue-1" } }); await expect(NuruCurationSubmissionService.inspect("receipt-1", "admin-1")).resolves.toMatchObject({ receipt: { status: "REQUIRES_RECOVERY", canResumeAutomatically: true }, request: input }); await expect(NuruCurationSubmissionService.recover("receipt-1", "admin-1")).resolves.toMatchObject({ recovered: true, receipt: { status: "COMPLETE", proposalId: "proposal-1" } }); expect(mocks.run).toHaveBeenLastCalledWith(expect.objectContaining({ submissionReceiptId: "receipt-1", correlationId: "nuru-submission:receipt-1" })); await expect(NuruCurationSubmissionService.inspect("receipt-1", "admin-2")).rejects.toMatchObject({ status: 403 }); });
+  it("allows the submitting governor to inspect and resume the same receipt", async () => { mocks.findUnique.mockResolvedValue(receipt); mocks.updateMany.mockResolvedValue({ count: 1 }); mocks.update.mockResolvedValueOnce({ ...receipt, status: "COMPLETE", proposalId: "proposal-1", queueId: "queue-1", error: null }); mocks.run.mockResolvedValue({ status: "HUMAN_REVIEW_REQUIRED", proposal: { id: "proposal-1" }, queue: { id: "queue-1" } }); await expect(NuruCurationSubmissionService.inspect("receipt-1", "admin-1")).resolves.toMatchObject({ receipt: { status: "REQUIRES_RECOVERY", canResumeAutomatically: true }, request: input }); await expect(NuruCurationSubmissionService.recover("receipt-1", "admin-1")).resolves.toMatchObject({ recovered: true, receipt: { status: "COMPLETE", proposalId: "proposal-1" } }); expect(mocks.run).toHaveBeenLastCalledWith(expect.objectContaining({ submissionReceiptId: "receipt-1", correlationId: "nuru-submission:receipt-1" })); await expect(NuruCurationSubmissionService.inspect("receipt-1", "admin-2")).rejects.toMatchObject({ status: 403 }); });
 
   it("recovers an interrupted post-claim run through the original receipt", async () => {
     let stored = { ...receipt, status: "PROCESSING", error: null, result: null as unknown };
     mocks.create.mockImplementation(async ({ data }: { data: typeof stored }) => stored = { ...stored, ...data });
     mocks.findUnique.mockImplementation(async () => stored);
+    mocks.updateMany.mockImplementation(async ({ where, data }: { where: { status: string }; data: Partial<typeof stored> }) => { if (stored.status !== where.status) return { count: 0 }; stored = { ...stored, ...data }; return { count: 1 }; });
     mocks.update.mockImplementation(async ({ data }: { data: Partial<typeof stored> }) => stored = { ...stored, ...data });
     mocks.run.mockRejectedValueOnce(new Error("Injected post-claim interruption")).mockResolvedValueOnce({ status: "HUMAN_REVIEW_REQUIRED", proposal: { id: "proposal-1" }, queue: { id: "queue-1" } });
 
@@ -25,5 +26,30 @@ describe("Nuru curation submission receipt", () => {
     await expect(NuruCurationSubmissionService.recover("receipt-1", "admin-1")).resolves.toMatchObject({ recovered: true, receipt: { status: "COMPLETE", proposalId: "proposal-1", queueId: "queue-1" } });
     expect(mocks.run).toHaveBeenNthCalledWith(1, expect.objectContaining({ submissionReceiptId: "receipt-1", correlationId: claimedCorrelationId }));
     expect(mocks.run).toHaveBeenNthCalledWith(2, expect.objectContaining({ submissionReceiptId: "receipt-1", correlationId: claimedCorrelationId }));
+  });
+
+  it("allows only one recovery worker to claim an interrupted receipt", async () => {
+    let stored = { ...receipt, status: "REQUIRES_RECOVERY", error: "Interrupted", result: null as unknown };
+    mocks.findUnique.mockImplementation(async () => ({ ...stored }));
+    mocks.updateMany.mockImplementation(async ({ where, data }: { where: { status: string }; data: Partial<typeof stored> }) => { if (stored.status !== where.status) return { count: 0 }; stored = { ...stored, ...data }; return { count: 1 }; });
+    mocks.update.mockImplementation(async ({ data }: { data: Partial<typeof stored> }) => stored = { ...stored, ...data });
+    mocks.run.mockResolvedValue({ status: "HUMAN_REVIEW_REQUIRED", proposal: { id: "proposal-1" }, queue: { id: "queue-1" } });
+
+    const [first, second] = await Promise.allSettled([NuruCurationSubmissionService.recover("receipt-1", "admin-1"), NuruCurationSubmissionService.recover("receipt-1", "admin-1")]);
+    expect([first, second].filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect([first, second].find((result) => result.status === "rejected")).toMatchObject({ reason: { status: 409, code: "submission_recovery_in_progress" } });
+    expect(mocks.run).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a different payload that reuses an existing submission key", async () => {
+    mocks.create.mockRejectedValue({ code: "P2002" });
+    mocks.findUnique.mockResolvedValue({ ...receipt, request: input });
+    await expect(NuruCurationSubmissionService.submit({ ...input, title: "Different recovery boundary" }, "admin-1")).rejects.toMatchObject({ status: 409, code: "submission_idempotency_conflict" });
+  });
+
+  it("replays an equivalent receipt even when persisted JSON object keys are reordered", async () => {
+    mocks.create.mockRejectedValue({ code: "P2002" });
+    mocks.findUnique.mockResolvedValue({ ...receipt, request: { idempotencyKey: input.idempotencyKey, source: { authority: "OWNER", origin: "Owner", sourceType: "HUMAN_INPUT" }, content: input.content, title: input.title } });
+    await expect(NuruCurationSubmissionService.submit(input, "admin-1")).resolves.toMatchObject({ replayed: true, receipt: { id: "receipt-1" } });
   });
 });
