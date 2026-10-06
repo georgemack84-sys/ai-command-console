@@ -18,15 +18,21 @@ export interface VaultCanonicalStore {
 }
 
 export class VaultCanonicalPromotionError extends Error {
-  constructor(public readonly code: "DECISION_NOT_APPROVED" | "DECISION_CANDIDATE_MISMATCH" | "INVALID_CURRENT_RECORD" | "SELF_SUPERSESSION", message: string) {
+  constructor(public readonly code: "CANDIDATE_NOT_PROPOSED" | "DECISION_NOT_APPROVED" | "DECISION_NOT_GOVERNANCE" | "DECISION_CANDIDATE_MISMATCH" | "INVALID_CURRENT_RECORD" | "SELF_SUPERSESSION", message: string) {
     super(message);
     this.name = "VaultCanonicalPromotionError";
   }
 }
 
 function assertApprovedDecision(candidate: VaultCandidate, decision: GovernanceDecision) {
+  if (candidate.status !== "PROPOSED") {
+    throw new VaultCanonicalPromotionError("CANDIDATE_NOT_PROPOSED", "Only a proposed candidate may enter canonical promotion.");
+  }
   if (decision.outcome !== "APPROVED") {
     throw new VaultCanonicalPromotionError("DECISION_NOT_APPROVED", "Only an approved governance decision can promote a canonical record.");
+  }
+  if (decision.decidedBy !== "nuru.governance.v1") {
+    throw new VaultCanonicalPromotionError("DECISION_NOT_GOVERNANCE", "Canonical promotion requires a decision issued by the governance authority.");
   }
   if (decision.candidateId !== candidate.id) {
     throw new VaultCanonicalPromotionError("DECISION_CANDIDATE_MISMATCH", "The governance decision must reference the candidate being promoted.");
