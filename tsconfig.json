@@ -2,7 +2,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -21,7 +25,10 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*", "./*"]
+      "@/*": [
+        "./src/*",
+        "./*"
+      ]
     }
   },
   "include": [
@@ -32,13 +39,24 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".next-production/types/**/*.ts",
-    ".next-production/dev/types/**/*.ts"
+    ".next-production/dev/types/**/*.ts",
+    ".next-vault-e2e/types/**/*.ts",
+    ".next-vault-e2e/dev/types/**/*.ts",
+    ".next-vault-e2e-5055/types/**/*.ts",
+    ".next-vault-e2e-5055/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "ReadAR",
     "**/.next/**",
     "tests/**",
-    "apps/web/**"
+    "apps/web/**",
+    "axiom-os/**",
+    "axiom-time/**",
+    "household-manager/**",
+    "market-signal/**",
+    "app/api/adversarial-adaptation-testing/**",
+    "app/api/mission-health-certification-gate/**",
+    "app/api/scenario-intelligence/**"
   ]
 }

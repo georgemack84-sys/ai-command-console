@@ -15,6 +15,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    networks: [app-internal]
 
   migrate:
     build:
@@ -28,6 +29,7 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+    networks: [app-internal]
 
   web:
     build:
@@ -48,6 +50,7 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+    networks: [app-internal]
 
   worker:
     # The web process owns the in-process queue used by the default staging
@@ -63,15 +66,42 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in staging.env}
       JOB_QUEUE_EXECUTION_MODE: external
+      NURU_EGRESS_PROXY_REQUIRED: "true"
+      NURU_EGRESS_PROXY_URL: http://nuru-egress-proxy:3128
+      NODE_USE_ENV_PROXY: "1"
+      HTTP_PROXY: http://nuru-egress-proxy:3128
+      HTTPS_PROXY: http://nuru-egress-proxy:3128
+      NO_PROXY: localhost,127.0.0.1,::1,postgres,nuru-egress-proxy
     volumes:
       - app-data:/var/lib/ai-command-console
       - app-logs:/app/logs
     depends_on:
       migrate:
         condition: service_completed_successfully
+      egress-proxy:
+        condition: service_started
     restart: unless-stopped
+    networks: [app-internal, egress-proxy]
+
+  egress-proxy:
+    profiles: ["external-worker"]
+    build:
+      context: ./docker/nuru-egress
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks: [egress-proxy, egress-external]
 
 volumes:
   postgres-data:
   app-data:
   app-logs:
+
+networks:
+  app-internal:
+    internal: true
+  egress-proxy:
+    internal: true
+  egress-external:

@@ -1,0 +1,4 @@
+# One approved domain suffix per line. Keep this file intentionally empty until
+# deployment owners approve the retrieval targets, for example:
+# .example-publisher.com
+# api.openai.com
