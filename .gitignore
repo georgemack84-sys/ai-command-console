@@ -83,3 +83,9 @@ project-report.txt
 .DS_Store
 Desktop.ini
 Thumbs.db
+# Isolated Next build outputs and local agent metadata.
+.next-*
+AGENTS.md
+CLAUDE.md
+/axiom-time/
+data/agents/continuity/

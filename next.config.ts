@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Keep production builds isolated from the live development server on Windows.
   // Next writes a trace file in its output root that cannot be shared safely.
-  distDir: process.env.NODE_ENV === "production" ? ".next-production" : ".next",
+  distDir: process.env.NEXT_DIST_DIR || (process.env.NODE_ENV === "production" ? ".next-production" : ".next"),
   output: "standalone",
   // Cloud KMS loads package metadata dynamically; keep it as a server runtime dependency.
   serverExternalPackages: ["@google-cloud/kms"],

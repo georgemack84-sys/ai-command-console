@@ -3,7 +3,7 @@
 const { spawn } = require("child_process");
 const { join } = require("path");
 
-const child = spawn(process.execPath, [join(__dirname, "run-next.cjs"), "dev"], {
+const child = spawn(process.execPath, [join(__dirname, "run-next.cjs"), "dev", ...process.argv.slice(2)], {
   stdio: "inherit",
   env: process.env,
 });
