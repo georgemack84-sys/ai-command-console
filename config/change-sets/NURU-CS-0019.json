@@ -1,0 +1,10 @@
+{
+  "id": "NURU-CS-0019",
+  "project": "NURU",
+  "purpose": "Introduce durable, pre-commit change-set traceability for Nuru recovery work.",
+  "expectedAreas": ["Governance", "Configuration", "Scripts", "Tests", "Documentation"],
+  "expectedPaths": ["config/change-sets/**", "scripts/change-set-*.cjs", "package.json", "docs/governance/**"],
+  "dependencies": ["project ownership metadata"],
+  "requiredCommands": ["npm run validate:change-sets", "npm run validate:repository"],
+  "status": "ACTIVE"
+}
