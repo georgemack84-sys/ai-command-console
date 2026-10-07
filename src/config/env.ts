@@ -232,13 +232,6 @@ export function sourceAllowsPrivateUrls() {
   return configured === "true" || configured === "1" || configured === "yes";
 }
 
-export function nuruEgressProxyRequired() {
-  const configured = env.NURU_EGRESS_PROXY_REQUIRED?.toLowerCase();
-  if (configured === "true" || configured === "1" || configured === "yes") return true;
-  if (configured === "false" || configured === "0" || configured === "no") return false;
-  return isProduction();
-}
-
 export function getJobWorkerPollIntervalMs() {
   const configured = Number(env.JOB_WORKER_POLL_INTERVAL_MS);
   return Number.isFinite(configured) && configured >= 250 ? Math.floor(configured) : 2_000;
