@@ -1,0 +1,11 @@
+{
+  "id": "NURU-CS-0021",
+  "project": "NURU",
+  "purpose": "Produce automatic qualification candidates from change-set intent and working-tree evidence.",
+  "expectedAreas": ["Governance", "Configuration", "Scripts", "Tests", "Documentation"],
+  "expectedPaths": ["config/change-sets/**", "scripts/qualification-candidate*.cjs", "scripts/qualify-change-set.cjs", "package.json", "docs/governance/**"],
+  "dependencies": ["project ownership metadata", "change-set records", "dirty-tree intelligence"],
+  "requiredCommands": ["npm run test:qualification-candidate"],
+  "verification": { "npm run test:qualification-candidate": "PASS" },
+  "status": "ACTIVE"
+}
