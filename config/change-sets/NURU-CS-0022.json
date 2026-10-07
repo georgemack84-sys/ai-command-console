@@ -1,0 +1,11 @@
+{
+  "id": "NURU-CS-0022",
+  "project": "NURU",
+  "purpose": "Enforce a fail-closed qualified-commit decision from qualification and secret-safety evidence.",
+  "expectedAreas": ["Governance", "Configuration", "Scripts", "Tests"],
+  "expectedPaths": ["config/change-sets/**", "scripts/qualified-commit*.cjs", "package.json"],
+  "dependencies": ["qualification candidates", "secret safety validation"],
+  "requiredCommands": ["npm run test:qualified-commit-gate"],
+  "verification": { "npm run test:qualified-commit-gate": "PASS" },
+  "status": "ACTIVE"
+}
