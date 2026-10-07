@@ -6,7 +6,8 @@ const path = require("path");
 
 const [, , command = "dev", ...args] = process.argv;
 const root = process.cwd();
-const devLifecycleDir = path.join(root, ".next", "dev", "ai-command-console");
+const devOutputDir = path.resolve(root, process.env.NEXT_DIST_DIR || ".next");
+const devLifecycleDir = path.join(devOutputDir, "dev", "ai-command-console");
 const devPidFile = path.join(devLifecycleDir, "dev-server.json");
 const productionDistDir = path.join(root, ".next-production");
 
@@ -26,9 +27,9 @@ function removePath(targetPath) {
 function pruneDevRuntimeArtifacts() {
   const removed = [];
   const candidates = [
-    path.join(root, ".next", "dev", "cache", "turbopack"),
-    path.join(root, ".next", "dev", "logs"),
-    path.join(root, ".next", "diagnostics"),
+    path.join(devOutputDir, "dev", "cache", "turbopack"),
+    path.join(devOutputDir, "dev", "logs"),
+    path.join(devOutputDir, "diagnostics"),
   ];
 
   for (const candidate of candidates) {
@@ -37,11 +38,10 @@ function pruneDevRuntimeArtifacts() {
     }
   }
 
-  const nextRoot = path.join(root, ".next");
-  if (fs.existsSync(nextRoot)) {
-    for (const entry of fs.readdirSync(nextRoot)) {
+  if (fs.existsSync(devOutputDir)) {
+    for (const entry of fs.readdirSync(devOutputDir)) {
       if (/^_events_\d+\.json$/i.test(entry)) {
-        const candidate = path.join(nextRoot, entry);
+        const candidate = path.join(devOutputDir, entry);
         if (removePath(candidate)) {
           removed.push(path.relative(root, candidate));
         }
@@ -152,8 +152,10 @@ function prelaunchDevPortHygiene(port) {
 
   const priorPid = Number(previous?.childPid || 0);
   if (priorPid > 0 && processExists(priorPid)) {
-    const listeningPids = listListeningPids(port);
-    if (listeningPids.includes(priorPid) && terminateProcessTree(priorPid)) {
+    const priorPort = Number(previous?.port || 0);
+    const listeningPids = listListeningPids(priorPort || port);
+    const replaceOwnedServer = process.env.AI_COMMAND_CONSOLE_REPLACE_OWNED_DEV_SERVER === "1";
+    if ((replaceOwnedServer || listeningPids.includes(priorPid)) && terminateProcessTree(priorPid)) {
       report.clearedPids.push(priorPid);
     }
   }

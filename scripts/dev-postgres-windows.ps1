@@ -64,7 +64,12 @@ function Test-PortOpen {
 
 function Get-PostgresService {
   Get-Service -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -like "postgresql*" -or $_.DisplayName -like "PostgreSQL*" } |
+    # pgAgent is a scheduler companion, not the PostgreSQL database server.
+    # Prefer the versioned database service (for example postgresql-x64-18).
+    Where-Object {
+      ($_.Name -match '^postgresql(?:-x64)?-\d+$' -or $_.DisplayName -match '^PostgreSQL Server') -and
+      $_.Name -notmatch 'pgagent' -and $_.DisplayName -notmatch 'pgAgent'
+    } |
     Sort-Object Name |
     Select-Object -First 1
 }
