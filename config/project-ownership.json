@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "generated": [".next/**", ".next-production/**", "coverage/**", "playwright-report/**", "test-results/**"],
+  "temporary": [".codex-temp/**", ".codex-worktrees/**", ".codex/**", ".cache/**", "tmp/**", "temp/**"],
+  "owners": [
+    { "id": "NURU", "paths": ["src/nuru/**", "src/server/services/nuru-*.ts", "src/server/repositories/nuru-*.ts", "app/nuru/**", "app/api/nuru/**", "tests/unit/nuru-*.test.ts", "tests/e2e/nuru-*.spec.ts", "tests/evals/nuru/**", "prisma/migrations/*nuru*"] },
+    { "id": "PROPRIUM_API", "paths": ["services/api/**", "services/platform-api/**"] },
+    { "id": "PROPRIUM_WEB", "paths": ["apps/web/**"] },
+    { "id": "SHARED_PLATFORM", "paths": ["app/**", "src/**", "components/**", "config/**", "controllers/**", "lib/**", "prisma/**", "scripts/**", "tests/**", ".github/**", "docker/**", "deploy/**", "docs/**", "package.json", "package-lock.json", "docker-compose*.yml"] }
+  ]
+}
