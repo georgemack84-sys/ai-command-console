@@ -13,7 +13,7 @@ function pendingCandidates(candidates: VaultCandidate[], canonicalCandidateIds: 
 
 function approvedDecision(candidate: VaultCandidate, rationale: string, input: { actor: string; correlationId: string }) {
   const decidedAt = new Date().toISOString();
-  return { schemaVersion: candidate.schemaVersion, id: `decision:${crypto.randomUUID()}`, kind: "GOVERNANCE_DECISION" as const, classification: candidate.classification, createdAt: decidedAt, correlationId: input.correlationId, candidateId: candidate.id, outcome: "APPROVED" as const, decidedBy: input.actor, decidedAt, rationale, requiredHumanReview: true, humanApprovalId: `approval:${crypto.randomUUID()}` };
+  return { schemaVersion: candidate.schemaVersion, id: `decision:${crypto.randomUUID()}`, kind: "GOVERNANCE_DECISION" as const, classification: candidate.classification, createdAt: decidedAt, correlationId: input.correlationId, candidateId: candidate.id, outcome: "APPROVED" as const, decidedBy: "nuru.governance.v1", decidedAt, rationale, requiredHumanReview: true, humanApprovalId: `approval:${input.actor}:${crypto.randomUUID()}` };
 }
 
 /** Human approval facade: candidates are listed and promoted only through the canonical gate. */
