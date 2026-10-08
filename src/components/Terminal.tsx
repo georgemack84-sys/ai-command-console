@@ -138,6 +138,46 @@ type AgentDependencyGraph = {
   }>;
 };
 
+type AutomationTemplateStep = {
+  id: string;
+  action: string;
+  payload: Record<string, unknown>;
+};
+
+type AutomationTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  builtIn: boolean;
+  steps: AutomationTemplateStep[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+type AutomationTemplatePreflight = {
+  ok: boolean;
+  status: string;
+  errors: string[];
+  requiresConfirmation: boolean;
+  template: AutomationTemplate;
+  stepChecks: Array<{
+    id: string;
+    index: number;
+    action: string;
+    label: string;
+    risk: string;
+    requiresConfirmation: boolean;
+    allowed: boolean;
+    payload: Record<string, unknown>;
+  }>;
+  summary: {
+    stepCount: number;
+    readOnlySteps: number;
+    controlledWriteSteps: number;
+    blockedSteps: number;
+  };
+};
+
 type PluginItem = {
   name: string;
   loaded: boolean;
@@ -237,6 +277,18 @@ type Overview = {
         allowAlertResolutionRecommendations: boolean;
         allowReviewFollowupRecommendations: boolean;
       };
+    };
+    templates: {
+      items: AutomationTemplate[];
+      catalog: Array<{
+        action: string;
+        label: string;
+        description: string;
+        risk: string;
+        requiresConfirmation: boolean;
+        defaultPayload: Record<string, unknown>;
+      }>;
+      maxSteps: number;
     };
   };
   telemetry: {
@@ -610,6 +662,19 @@ type ApiResponse = {
         schedulesThatWouldStart: number;
       };
     };
+    automationTemplate?: AutomationTemplate;
+    automationTemplatePreflight?: AutomationTemplatePreflight;
+    automationTemplateRun?: {
+      templateId: string;
+      status: string;
+      results: Array<{
+        stepId: string;
+        action: string;
+        ok: boolean;
+        output?: string;
+        error?: string;
+      }>;
+    };
   };
   overview: Overview;
 };
@@ -833,6 +898,11 @@ const EMPTY_OVERVIEW: Overview = {
         allowAlertResolutionRecommendations: true,
         allowReviewFollowupRecommendations: true,
       },
+    },
+    templates: {
+      items: [],
+      catalog: [],
+      maxSteps: 6,
     },
   },
   telemetry: {
@@ -1251,6 +1321,16 @@ export default function Terminal({
     allowAlertResolutionRecommendations: true,
     allowReviewFollowupRecommendations: true,
   });
+  const [automationTemplateDraft, setAutomationTemplateDraft] = useState<AutomationTemplate>({
+    id: "",
+    name: "",
+    description: "",
+    builtIn: false,
+    steps: [],
+    createdAt: "",
+    updatedAt: "",
+  });
+  const [automationTemplatePreflight, setAutomationTemplatePreflight] = useState<AutomationTemplatePreflight | null>(null);
   const [createTask, setCreateTask] = useState({ agentName: "researcher", description: "", priority: "3" });
   const [routeTask, setRouteTask] = useState("Compare the top local-first knowledge base tools for small teams.");
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
@@ -1843,6 +1923,95 @@ export default function Terminal({
       });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to preview watcher automation.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  function resetAutomationTemplateDraft() {
+    setAutomationTemplateDraft({
+      id: "",
+      name: "",
+      description: "",
+      builtIn: false,
+      steps: [],
+      createdAt: "",
+      updatedAt: "",
+    });
+    setAutomationTemplatePreflight(null);
+  }
+
+  function editAutomationTemplate(template: AutomationTemplate) {
+    setAutomationTemplateDraft({
+      ...template,
+      id: template.builtIn ? "" : template.id,
+      name: template.builtIn ? `${template.name} copy` : template.name,
+      builtIn: false,
+      steps: template.steps.map((step) => ({ ...step, id: template.builtIn ? id() : step.id, payload: { ...step.payload } })),
+      createdAt: template.builtIn ? "" : template.createdAt,
+      updatedAt: template.builtIn ? "" : template.updatedAt,
+    });
+    setAutomationTemplatePreflight(null);
+  }
+
+  function addAutomationTemplateStep() {
+    const catalogEntry = overview.automation.templates.catalog[0];
+    if (!catalogEntry || automationTemplateDraft.steps.length >= overview.automation.templates.maxSteps) {
+      return;
+    }
+    setAutomationTemplateDraft((current) => ({
+      ...current,
+      steps: [
+        ...current.steps,
+        { id: id(), action: catalogEntry.action, payload: { ...catalogEntry.defaultPayload } },
+      ],
+    }));
+    setAutomationTemplatePreflight(null);
+  }
+
+  function moveAutomationTemplateStep(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= automationTemplateDraft.steps.length) {
+      return;
+    }
+    setAutomationTemplateDraft((current) => {
+      const steps = [...current.steps];
+      [steps[index], steps[nextIndex]] = [steps[nextIndex], steps[index]];
+      return { ...current, steps };
+    });
+    setAutomationTemplatePreflight(null);
+  }
+
+  async function requestAutomationTemplate(
+    action: "automation-template:preflight" | "automation-template:save" | "automation-template:delete" | "automation-template:run",
+    payload: Record<string, unknown>,
+    label: string,
+  ) {
+    try {
+      setRunning(true);
+      const response = action === "automation-template:preflight"
+        ? await postConsole({ action, payload })
+        : await postConsoleWithConfirmation({ action, payload });
+      setPreviousOverview(overview);
+      setOverview(response.overview);
+      setLastSyncAt(new Date().toISOString());
+
+      if (response.detail?.automationTemplatePreflight) {
+        setAutomationTemplatePreflight(response.detail.automationTemplatePreflight);
+      }
+      if (response.detail?.automationTemplate) {
+        setAutomationTemplateDraft(response.detail.automationTemplate);
+        setAutomationTemplatePreflight(null);
+      }
+      if (action === "automation-template:delete" && response.ok) {
+        resetAutomationTemplateDraft();
+      }
+
+      const output = response.ok ? response.output || label : response.error || "Automation template action failed.";
+      pushHistory(setHistory, { id: id(), command: label, output, ok: response.ok, createdAt: new Date().toISOString(), kind: "action" });
+      pushToast(setToasts, { id: id(), tone: response.ok ? "success" : "error", message: output });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Automation template action failed.");
     } finally {
       setRunning(false);
     }
@@ -2756,6 +2925,198 @@ export default function Terminal({
                     ) : (
                       <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-zinc-500">No research signals match this filter.</div>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">Automation Template Builder</p>
+                    <p className="mt-1 text-xs text-zinc-500">Compose up to {overview.automation.templates.maxSteps} allowlisted steps. Controlled writes always require confirmation.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={resetAutomationTemplateDraft}
+                    className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-sm text-zinc-300"
+                  >
+                    New Template
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                  <div className="space-y-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Reusable templates</p>
+                    {overview.automation.templates.items.map((template) => (
+                      <div key={template.id} className="rounded-2xl bg-black/30 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm text-white">{template.name}</p>
+                            <p className="mt-1 text-xs text-zinc-500">{template.description || "No description."}</p>
+                          </div>
+                          <span className={`rounded-full border px-2 py-1 text-[11px] ${template.builtIn ? toneClass("active") : toneClass("paused")}`}>
+                            {template.builtIn ? "built in" : "custom"}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {template.steps.map((step, index) => (
+                            <span key={step.id} className="rounded-full border border-white/10 bg-zinc-950/70 px-2 py-1 text-[11px] text-zinc-400">
+                              {index + 1}. {overview.automation.templates.catalog.find((item) => item.action === step.action)?.label || step.action}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button type="button" onClick={() => editAutomationTemplate(template)} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100">
+                            {template.builtIn ? "Copy" : "Edit"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void requestAutomationTemplate("automation-template:preflight", { templateId: template.id }, `preflight ${template.name}`)}
+                            className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100"
+                          >
+                            Preflight
+                          </button>
+                          <button
+                            type="button"
+                            disabled={running}
+                            onClick={() => void requestAutomationTemplate("automation-template:run", { templateId: template.id }, `run ${template.name}`)}
+                            className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100 disabled:opacity-50"
+                          >
+                            Run
+                          </button>
+                          {!template.builtIn ? (
+                            <button
+                              type="button"
+                              onClick={() => void requestAutomationTemplate("automation-template:delete", { templateId: template.id }, `delete ${template.name}`)}
+                              className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-100"
+                            >
+                              Delete
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        value={automationTemplateDraft.name}
+                        onChange={(event) => {
+                          setAutomationTemplateDraft((current) => ({ ...current, name: event.target.value }));
+                          setAutomationTemplatePreflight(null);
+                        }}
+                        className="rounded-xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none"
+                        placeholder="Template name"
+                      />
+                      <input
+                        value={automationTemplateDraft.description}
+                        onChange={(event) => {
+                          setAutomationTemplateDraft((current) => ({ ...current, description: event.target.value }));
+                          setAutomationTemplatePreflight(null);
+                        }}
+                        className="rounded-xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none"
+                        placeholder="Purpose"
+                      />
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {automationTemplateDraft.steps.map((step, index) => (
+                        <div key={step.id} className="rounded-2xl border border-white/10 bg-zinc-950/60 p-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-zinc-500">{index + 1}</span>
+                            <select
+                              value={step.action}
+                              onChange={(event) => {
+                                const catalogEntry = overview.automation.templates.catalog.find((item) => item.action === event.target.value);
+                                setAutomationTemplateDraft((current) => ({
+                                  ...current,
+                                  steps: current.steps.map((item) => item.id === step.id
+                                    ? { ...item, action: event.target.value, payload: { ...(catalogEntry?.defaultPayload || {}) } }
+                                    : item),
+                                }));
+                                setAutomationTemplatePreflight(null);
+                              }}
+                              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-white outline-none"
+                            >
+                              {overview.automation.templates.catalog.map((item) => (
+                                <option key={item.action} value={item.action}>{item.label}</option>
+                              ))}
+                            </select>
+                            <button type="button" onClick={() => moveAutomationTemplateStep(index, -1)} disabled={index === 0} className="rounded-full border border-white/10 px-2 py-1 text-xs text-zinc-400 disabled:opacity-30">↑</button>
+                            <button type="button" onClick={() => moveAutomationTemplateStep(index, 1)} disabled={index === automationTemplateDraft.steps.length - 1} className="rounded-full border border-white/10 px-2 py-1 text-xs text-zinc-400 disabled:opacity-30">↓</button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAutomationTemplateDraft((current) => ({ ...current, steps: current.steps.filter((item) => item.id !== step.id) }));
+                                setAutomationTemplatePreflight(null);
+                              }}
+                              className="rounded-full border border-rose-500/20 px-2 py-1 text-xs text-rose-200"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          {step.action === "watcher:start" ? (
+                            <label className="mt-3 flex items-center gap-3 text-xs text-zinc-400">
+                              Interval seconds
+                              <input
+                                type="number"
+                                min="1"
+                                max="3600"
+                                value={Number(step.payload.intervalSeconds || 5)}
+                                onChange={(event) => {
+                                  setAutomationTemplateDraft((current) => ({
+                                    ...current,
+                                    steps: current.steps.map((item) => item.id === step.id
+                                      ? { ...item, payload: { intervalSeconds: Number(event.target.value || 5) } }
+                                      : item),
+                                  }));
+                                  setAutomationTemplatePreflight(null);
+                                }}
+                                className="w-28 rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-white outline-none"
+                              />
+                            </label>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={automationTemplateDraft.steps.length >= overview.automation.templates.maxSteps}
+                      onClick={addAutomationTemplateStep}
+                      className="mt-3 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100 disabled:opacity-40"
+                    >
+                      Add Step
+                    </button>
+
+                    {automationTemplatePreflight ? (
+                      <div className={`mt-4 rounded-2xl border p-3 ${automationTemplatePreflight.ok ? "border-emerald-500/20 bg-emerald-500/5" : "border-rose-500/20 bg-rose-500/5"}`}>
+                        <p className="text-sm text-white">Preflight: {automationTemplatePreflight.status.replace(/_/g, " ")}</p>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          {automationTemplatePreflight.summary.readOnlySteps} read-only · {automationTemplatePreflight.summary.controlledWriteSteps} controlled write · {automationTemplatePreflight.summary.blockedSteps} blocked
+                        </p>
+                        {automationTemplatePreflight.errors.map((message) => <p key={message} className="mt-2 text-xs text-rose-200">{message}</p>)}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void requestAutomationTemplate("automation-template:preflight", { template: automationTemplateDraft }, `preflight ${automationTemplateDraft.name || "draft"}`)}
+                        className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100"
+                      >
+                        Preflight Draft
+                      </button>
+                      <button
+                        type="button"
+                        disabled={running}
+                        onClick={() => void requestAutomationTemplate("automation-template:save", { template: automationTemplateDraft }, `save ${automationTemplateDraft.name || "template"}`)}
+                        className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100 disabled:opacity-50"
+                      >
+                        Save Template
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

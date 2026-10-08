@@ -400,6 +400,16 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 20;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 21) {
+    normalizedLoadedPolicy.actionCategoryMap = {
+      ...(normalizedLoadedPolicy.actionCategoryMap || {}),
+      "automation-template:preflight": "shell_read",
+      "automation-template:save": "workflow_control",
+      "automation-template:delete": "workflow_control",
+      "automation-template:run": "workflow_control",
+    };
+    normalizedLoadedPolicy.version = 21;
+  }
 
   const defaults = createDefaultPolicy();
   return {

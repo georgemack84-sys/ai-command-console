@@ -14,6 +14,7 @@ const { listPlugins } = require("../../../services/pluginLoader");
 const { buildSystemSummary, buildHealthSummary, buildWorkloadSummary, getAgentDashboard } = require("../../../services/dashboard");
 const { listAuditEvents } = require("../../../services/auditTrail");
 const { loadAutomationPolicy } = require("../../../services/automationPolicy");
+const { MAX_TEMPLATE_STEPS, getAutomationStepCatalog, listAutomationTemplates } = require("../../../services/automationTemplates");
 const { buildTelemetrySummary } = require("../../../services/telemetry");
 const { listJobs, buildJobMetrics } = require("../../../services/jobQueue");
 const { listAgentProfiles } = require("../../../services/agentRuntime");
@@ -364,6 +365,11 @@ export async function buildTerminalOverviewSnapshot(
     automation: {
       alertThresholds: alerts.thresholds,
       policy: automationPolicy,
+      templates: {
+        items: listAutomationTemplates(),
+        catalog: getAutomationStepCatalog(),
+        maxSteps: MAX_TEMPLATE_STEPS,
+      },
     },
     telemetry: buildTelemetrySummary(40),
     jobs: {
