@@ -63,12 +63,17 @@ Delivered:
 Goals:
 - Reduce manual oversight while keeping the system safe
 
-Planned features:
-- Visual automation builder
+Status: In progress
+
+Delivered:
 - Watcher rule editor
+- Read-only watcher simulation with per-rule outcomes before execution
 - Escalation policies for stalled work
 - Auto-remediation for common operational failures
 - Scheduled operational summaries
+
+Next:
+- Visual multi-step automation builder with reusable policy-governed templates
 
 ## Phase 5: Collaboration and Governance
 

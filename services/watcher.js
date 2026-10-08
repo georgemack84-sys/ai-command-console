@@ -145,14 +145,22 @@ function shouldStartSchedule(agentName, desiredInterval, desiredMaxCycles) {
   return false;
 }
 
-function evaluateRules() {
-  assertLegacyAutonomyAllowed("watcher rule evaluation");
-  const startedAt = Date.now();
-  const state = loadWatcherState();
+function buildRuleDecisions(state, options = {}) {
+  const preview = Boolean(options.preview);
   const decisions = [];
 
   for (const rule of state.rules) {
     if (!rule || !rule.enabled) {
+      if (preview && rule) {
+        decisions.push({
+          ruleName: rule.name,
+          agentName: rule.agentName,
+          queuedCount: getQueuedCountForAgent(rule.agentName),
+          minQueuedTasks: Number(rule.minQueuedTasks || 1),
+          matched: false,
+          action: "disabled",
+        });
+      }
       continue;
     }
 
@@ -176,13 +184,15 @@ function evaluateRules() {
       );
 
       if (canStart) {
-        const schedule = startSchedule(
-          rule.agentName,
-          rule.scheduleIntervalSeconds || 3,
-          rule.scheduleMaxCycles || 3
-        );
+        const scheduleInput = {
+          intervalSeconds: Number(rule.scheduleIntervalSeconds || 3),
+          maxCycles: Number(rule.scheduleMaxCycles || 3),
+        };
+        const schedule = preview
+          ? { enabled: true, cycleCount: 0, ...scheduleInput }
+          : startSchedule(rule.agentName, scheduleInput.intervalSeconds, scheduleInput.maxCycles);
 
-        decision.action = "schedule_started";
+        decision.action = preview ? "schedule_would_start" : "schedule_started";
         decision.schedule = {
           enabled: schedule.enabled,
           intervalSeconds: schedule.intervalSeconds,
@@ -190,15 +200,17 @@ function evaluateRules() {
           cycleCount: schedule.cycleCount
         };
 
-        logWatcherEvent({
-          event: "watcher_triggered_schedule",
-          ruleName: rule.name,
-          agentName: rule.agentName,
-          queuedCount,
-          minQueuedTasks: rule.minQueuedTasks,
-          scheduleIntervalSeconds: rule.scheduleIntervalSeconds,
-          scheduleMaxCycles: rule.scheduleMaxCycles
-        });
+        if (!preview) {
+          logWatcherEvent({
+            event: "watcher_triggered_schedule",
+            ruleName: rule.name,
+            agentName: rule.agentName,
+            queuedCount,
+            minQueuedTasks: rule.minQueuedTasks,
+            scheduleIntervalSeconds: rule.scheduleIntervalSeconds,
+            scheduleMaxCycles: rule.scheduleMaxCycles
+          });
+        }
       } else {
         decision.action = "schedule_already_active_or_valid";
       }
@@ -206,6 +218,30 @@ function evaluateRules() {
 
     decisions.push(decision);
   }
+
+  return decisions;
+}
+
+function previewRules() {
+  const state = loadWatcherState();
+  const decisions = buildRuleDecisions(state, { preview: true });
+
+  return {
+    ok: true,
+    decisions,
+    summary: {
+      evaluatedRules: decisions.length,
+      matchedRules: decisions.filter((item) => item.matched).length,
+      schedulesThatWouldStart: decisions.filter((item) => item.action === "schedule_would_start").length,
+    },
+  };
+}
+
+function evaluateRules() {
+  assertLegacyAutonomyAllowed("watcher rule evaluation");
+  const startedAt = Date.now();
+  const state = loadWatcherState();
+  const decisions = buildRuleDecisions(state);
 
   state.lastRunAt = new Date().toISOString();
   state.lastError = null;
@@ -417,6 +453,7 @@ module.exports = {
   stopWatcher,
   getWatcherStatus,
   evaluateRules,
+  previewRules,
   updateWatcherRule,
   addWatcherRule,
   removeWatcherRule,

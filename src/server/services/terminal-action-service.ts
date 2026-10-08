@@ -7,7 +7,7 @@ const { addTask } = require("../../../services/taskQueue");
 const { routeManagerTask } = require("../../../services/agentRuntime");
 const { appendAuditEvent } = require("../../../services/auditTrail");
 const { cancelJob, retryJob, getJob, enqueueJob } = require("../../../services/jobQueue");
-const { startWatcher, stopWatcher, getWatcherStatus, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules } = require("../../../services/watcher");
+const { startWatcher, stopWatcher, getWatcherStatus, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules, previewRules } = require("../../../services/watcher");
 const { updateAlertThresholds, runAlertChecks, acknowledgeAlert, resolveAlert, addAlertNote } = require("../../../services/alerts");
 const { updateAutomationPolicy } = require("../../../services/automationPolicy");
 const { updateAgentProfile } = require("../../../services/agentProfiles");
@@ -23,6 +23,7 @@ const terminalActionSet = new Set([
   "job:detail",
   "watcher:start",
   "watcher:stop",
+  "watcher:preview",
   "watcher:rule-upsert",
   "watcher:rule-delete",
   "policy:update-thresholds",
@@ -127,6 +128,16 @@ export async function executeTerminalAction(
       payload: { reason: payload.reason || "stopped_by_user", actorId: actor.id },
     });
     return { ok: true, output: "Watcher stopped." };
+  }
+
+  if (action === "watcher:preview") {
+    const preview = previewRules();
+    appendAuditEvent({ type: action, message: "Previewed watcher automation.", payload: { actorId: actor.id, summary: preview.summary } });
+    return {
+      ok: true,
+      output: `${preview.summary.schedulesThatWouldStart} schedule${preview.summary.schedulesThatWouldStart === 1 ? "" : "s"} would start across ${preview.summary.matchedRules} matching rule${preview.summary.matchedRules === 1 ? "" : "s"}.`,
+      detail: { watcherPreview: preview },
+    };
   }
 
   if (action === "watcher:rule-upsert") {

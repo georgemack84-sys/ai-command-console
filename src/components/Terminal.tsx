@@ -595,6 +595,21 @@ type ApiResponse = {
   } | null;
   detail?: {
     job?: Overview["jobs"]["items"][number];
+    watcherPreview?: {
+      decisions: Array<{
+        ruleName: string;
+        agentName: string;
+        queuedCount: number;
+        minQueuedTasks: number;
+        matched: boolean;
+        action: string;
+      }>;
+      summary: {
+        evaluatedRules: number;
+        matchedRules: number;
+        schedulesThatWouldStart: number;
+      };
+    };
   };
   overview: Overview;
 };
@@ -1213,6 +1228,7 @@ export default function Terminal({
   const [selectedJobDetail, setSelectedJobDetail] = useState<Overview["jobs"]["items"][number] | null>(null);
   const [agentProfileDrafts, setAgentProfileDrafts] = useState<Record<string, Partial<AgentDetail["profile"]>>>({});
   const [watcherRuleDrafts, setWatcherRuleDrafts] = useState<Record<string, Overview["watcher"]["rules"][number]>>({});
+  const [watcherPreview, setWatcherPreview] = useState<NonNullable<ApiResponse["detail"]>["watcherPreview"] | null>(null);
   const [newWatcherRule, setNewWatcherRule] = useState({
     name: "",
     agentName: "researcher",
@@ -1793,6 +1809,40 @@ export default function Terminal({
       pushToast(setToasts, { id: id(), tone: response.ok ? "success" : "error", message: output });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Action failed.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function previewWatcherAutomation() {
+    try {
+      setRunning(true);
+      const response = await postConsole({ action: "watcher:preview", payload: {} });
+      setPreviousOverview(overview);
+      setOverview(response.overview);
+      setLastSyncAt(new Date().toISOString());
+
+      if (!response.ok || !response.detail?.watcherPreview) {
+        setError(response.error || "Unable to preview watcher automation.");
+        return;
+      }
+
+      setWatcherPreview(response.detail.watcherPreview);
+      pushHistory(setHistory, {
+        id: id(),
+        command: "watcher:preview",
+        output: response.output || "Watcher automation preview completed.",
+        ok: true,
+        createdAt: new Date().toISOString(),
+        kind: "action",
+      });
+      pushToast(setToasts, {
+        id: id(),
+        tone: "success",
+        message: response.output || "Watcher automation preview completed.",
+      });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to preview watcher automation.");
     } finally {
       setRunning(false);
     }
@@ -2917,6 +2967,13 @@ export default function Terminal({
                     <div className="flex gap-2">
                       <button
                         type="button"
+                        onClick={() => void previewWatcherAutomation()}
+                        className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100"
+                      >
+                        Preview
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => void runAction("watcher:start", { intervalSeconds: overview.watcher.intervalSeconds || 4 }, "watcher:start")}
                         className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100"
                       >
@@ -2931,6 +2988,24 @@ export default function Terminal({
                       </button>
                     </div>
                   </div>
+                  {watcherPreview ? (
+                    <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-3">
+                      <p className="text-sm font-medium text-cyan-100">Automation preview</p>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        {watcherPreview.summary.schedulesThatWouldStart} schedule{watcherPreview.summary.schedulesThatWouldStart === 1 ? "" : "s"} would start from {watcherPreview.summary.matchedRules} matching rule{watcherPreview.summary.matchedRules === 1 ? "" : "s"}. No changes were made.
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        {watcherPreview.decisions.map((decision) => (
+                          <div key={decision.ruleName} className="flex items-center justify-between gap-3 text-xs">
+                            <span className="text-zinc-300">{decision.ruleName} · {decision.agentName}</span>
+                            <span className="text-zinc-500">
+                              {decision.queuedCount}/{decision.minQueuedTasks} queued · {decision.action.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="mt-4 space-y-3">
                     {overview.watcher.rules.map((rule) => {
                       const draft = watcherRuleDrafts[rule.name] || rule;
