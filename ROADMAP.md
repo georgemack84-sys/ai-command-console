@@ -83,9 +83,9 @@ Status: In progress
 Delivered:
 - Shared operator sessions and reusable macros with owner/admin controls, assignment, visibility filtering, governed archival, and audit history
 - Handoff notes and review delegation with participant authorization, creator/assignee visibility, governed reassignment and closure, and audit history
+- Unified brief and report ownership controls with workspace-member validation, safe self-claim/release, governed admin reassignment, assignment inventory, and audit history
 
 Planned features:
-- Ownership and assignment controls
 - Approval gates for sensitive actions
 - Environment separation for dev, staging, and production
 

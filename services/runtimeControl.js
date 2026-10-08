@@ -429,6 +429,15 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 23;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 24) {
+    normalizedLoadedPolicy.actionCategoryMap = {
+      ...(normalizedLoadedPolicy.actionCategoryMap || {}),
+      "ownership:claim-item": "process_control",
+      "ownership:release-item": "workflow_control",
+      "ownership:assign-item": "workflow_control",
+    };
+    normalizedLoadedPolicy.version = 24;
+  }
 
   const defaults = createDefaultPolicy();
   return {

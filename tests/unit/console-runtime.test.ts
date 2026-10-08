@@ -89,6 +89,11 @@ vi.mock("@/src/server/services/terminal-overview-service", () => ({
     trust: { lastWatcherRunAt: null, lastWatcherError: null, pendingReviews: 0, activeAlerts: 1, schedulesWithErrors: 0 },
     recommendations: [{ id: "alerts", title: "Triage active research signals", command: "alerts:active", tone: "critical" }],
     ownershipSignals: [{ id: "ownership:orphaned", title: "1 workspace item is unassigned", detail: "1 brief does not have an owner.", tone: "warning", command: "ownership:signals" }],
+    ownershipAssignments: {
+      members: [{ id: "user_1", name: "Admin", email: "admin@example.com", role: "admin", membershipRole: "owner" }],
+      items: [{ id: "brief_1", resourceType: "brief", title: "Track rumor velocity", status: "draft", ownerId: null, ownerName: null, assignedAgent: "researcher" }],
+      summary: { total: 1, assigned: 0, unassigned: 1, unavailableOwners: 0 },
+    },
     activity: [{ timestamp: "2026-04-05T01:00:00.000Z", event: "system_activity", message: "Activity recorded." }],
     automation: {
       alertThresholds: { queuedTasksHigh: 6, pendingReviewsHigh: 4, inactiveAgentsHigh: 2 },
@@ -206,6 +211,12 @@ vi.mock("tsx/cjs/api", () => ({
       }
       return { action: input.action, output: "Collaboration action completed." };
     },
+  }),
+  loadTerminalOwnershipService: () => ({
+    executeTerminalOwnershipAction: async (input: { action: string }) => ({
+      action: input.action,
+      output: input.action === "ownership:claim-item" ? 'Brief "Track rumor velocity" is now owned by Admin.' : "Ownership updated.",
+    }),
   }),
   loadTerminalGovernanceCompatService: () => ({
     executeTerminalGovernanceCompatAction: async (input: { action: string; payload?: Record<string, unknown> }) => {
@@ -2335,6 +2346,28 @@ describe("console runtime", () => {
         ok: false,
         requiresConfirmation: true,
         plan: expect.objectContaining({ action: "collaboration:delegate-handoff" }),
+      }),
+    );
+  });
+
+  it("routes self-claim immediately and gates ownership reassignment", async () => {
+    const claimResult = await executeTerminalRequest(
+      { action: "ownership:claim-item", payload: { resourceType: "brief", resourceId: "brief_1" } },
+      actor,
+    );
+    expect(claimResult).toEqual(
+      expect.objectContaining({ ok: true, plan: expect.objectContaining({ action: "ownership:claim-item" }) }),
+    );
+
+    const assignmentResult = await executeTerminalRequest(
+      { action: "ownership:assign-item", payload: { resourceType: "brief", resourceId: "brief_1", ownerId: "user_2" } },
+      actor,
+    );
+    expect(assignmentResult).toEqual(
+      expect.objectContaining({
+        ok: false,
+        requiresConfirmation: true,
+        plan: expect.objectContaining({ action: "ownership:assign-item" }),
       }),
     );
   });

@@ -119,6 +119,12 @@ const terminalCollaborationActions = new Set([
   "collaboration:digest-preferences",
 ]);
 
+const terminalOwnershipActions = new Set([
+  "ownership:claim-item",
+  "ownership:release-item",
+  "ownership:assign-item",
+]);
+
 const legacyTerminalFallbackCommands = new Set(["help"]);
 const plannerGovernedTerminalCommands = new Set(["plugins", "whyblocked", "diagnose"]);
 const plannerGovernedTerminalCommandPatterns = [
@@ -389,7 +395,7 @@ function getGovernedStructuredActionPlan(
     };
   }
 
-  if (terminalOperationsActions.has(action) || terminalCollaborationActions.has(action)) {
+  if (terminalOperationsActions.has(action) || terminalCollaborationActions.has(action) || terminalOwnershipActions.has(action)) {
     return {
       type: "single",
       action,
@@ -897,6 +903,7 @@ export async function executeTerminalRequest(
     Boolean(body.action) &&
     (terminalOperationsActions.has(String(body.action)) ||
       terminalCollaborationActions.has(String(body.action)) ||
+      terminalOwnershipActions.has(String(body.action)) ||
       canHandleTerminalAction(String(body.action)) ||
       canHandleTerminalGovernanceCompatAction(String(body.action)) ||
       body.action === "collaboration:digest-generate" ||

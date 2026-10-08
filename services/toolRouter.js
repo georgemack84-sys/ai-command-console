@@ -46,6 +46,7 @@ const RESEARCH_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "servi
 const RESEARCH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-action-service.ts");
 const OPERATIONS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "operations-action-service.ts");
 const TERMINAL_COLLABORATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-collaboration-service.ts");
+const TERMINAL_OWNERSHIP_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-ownership-service.ts");
 const TERMINAL_GOVERNANCE_COMPAT_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-governance-compat-service.ts");
 const TERMINAL_DIGEST_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-digest-service.ts");
 const POLICY_GOVERNANCE_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "policy-governance-service.ts");
@@ -97,6 +98,11 @@ const TERMINAL_COLLABORATION_ROUTED_ACTIONS = new Set([
   "collaboration:inbox-acknowledge",
   "collaboration:digest-preferences",
 ]);
+const TERMINAL_OWNERSHIP_ROUTED_ACTIONS = new Set([
+  "ownership:claim-item",
+  "ownership:release-item",
+  "ownership:assign-item",
+]);
 const GOVERNANCE_COMPAT_ROUTED_ACTIONS = new Set([
   "collaboration:apply-approval-policy-recommendation",
   "collaboration:promote-approval-policy-recommendation",
@@ -135,6 +141,14 @@ function loadTerminalCollaborationService() {
     return injectedBridge.loadTerminalCollaborationService();
   }
   return requireTypeScriptModule(TERMINAL_COLLABORATION_SERVICE_PATH, __filename);
+}
+
+function loadTerminalOwnershipService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadTerminalOwnershipService === "function") {
+    return injectedBridge.loadTerminalOwnershipService();
+  }
+  return requireTypeScriptModule(TERMINAL_OWNERSHIP_SERVICE_PATH, __filename);
 }
 
 function loadTerminalGovernanceCompatService() {
@@ -1052,6 +1066,23 @@ async function route(plan, modes = {}) {
               : collaborationResult;
         } catch (error) {
           result = { ok: false, error: error?.message || `Collaboration action failed: ${plan.action}` };
+        }
+        break;
+      }
+
+      if (TERMINAL_OWNERSHIP_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const ownershipService = loadTerminalOwnershipService();
+          const ownershipResult = await ownershipService.executeTerminalOwnershipAction(
+            { action: plan.action, payload: plan.payload || {} },
+            getPlanActor(plan),
+          );
+          result =
+            ownershipResult && typeof ownershipResult === "object" && typeof ownershipResult.output === "string"
+              ? ownershipResult.output
+              : ownershipResult;
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Ownership action failed: ${plan.action}` };
         }
         break;
       }
