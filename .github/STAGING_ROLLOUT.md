@@ -7,6 +7,7 @@ Use this checklist for the first real staging deployment.
 - Create the `staging` GitHub Environment.
 - Fill in values from `.github/environment-templates/staging.env.example`.
 - Add the `DEPLOY_SSH_KEY` secret.
+- Add the `DEPLOY_DATABASE_URL` secret using the same PostgreSQL connection string as the host runtime `DATABASE_URL`. Do not add this value as a GitHub variable or commit it to an env file.
 - Confirm `DEPLOY_ARTIFACT_ONLY=false` unless you intentionally want an artifact-only dry run.
 - Set `NURU_EDITION_PREPARE_COMMAND` to a reviewed host command, for example `cd <DEPLOY_PATH>/current && npm run nuru:prepare-edition`.
 
@@ -63,7 +64,8 @@ In GitHub Actions:
 
 - `Validate deploy configuration` passes
 - `Run preflight` passes
-- `Lint`, `Test`, `Build standalone bundle`, and `Guard Legacy Runtime Residue` pass
+- `Lint`, `Test`, and `Build standalone bundle` pass
+- `Apply database migrations` passes before the release is switched
 - `Deploy over SSH` passes
 - `Post-deploy smoke check` passes
 - deployment summary shows the expected release version and host

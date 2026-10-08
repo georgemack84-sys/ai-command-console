@@ -28,6 +28,14 @@ export function normalizeDatabaseError(error: unknown) {
     return new AppError(503, "database_unavailable", "Database is unavailable. Start Postgres and try again.");
   }
 
+  if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === "P2021" || error.code === "P2022")) {
+    return new AppError(
+      503,
+      "database_schema_outdated",
+      "Database schema is missing a required migration. Apply the pending Prisma migrations and try again.",
+    );
+  }
+
   const message = getMessage(error);
   if (isDatabaseConnectionMessage(message)) {
     return new AppError(503, "database_unavailable", "Database is unavailable. Start Postgres and try again.");

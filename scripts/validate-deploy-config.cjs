@@ -19,6 +19,7 @@ function validateDeployConfig() {
     "DEPLOY_USER",
     "DEPLOY_PATH",
     "DEPLOY_SSH_KEY",
+    "DEPLOY_DATABASE_URL",
   ];
 
   const optionalRecommendedSettings = [
