@@ -422,7 +422,13 @@ function buildLegacyOverview(options = {}, deps) {
               matchesCollaborationTargets(Array.isArray(macro.sharedWith) ? macro.sharedWith.join(",") : macro.sharedWith, collaborationTargets)),
         )
         .slice(0, 12),
-      handoffs: collaboration.handoffs.slice(0, 12),
+      handoffs: collaboration.handoffs
+        .filter(
+          (handoff) =>
+            String(handoff.status || "open") === "open" &&
+            (handoff.assignedById === actor.id || matchesCollaborationTargets(handoff.assignedTo, collaborationTargets)),
+        )
+        .slice(0, 12),
       approvals: collaboration.approvals.slice(0, 12),
       inbox,
       notificationHistory,

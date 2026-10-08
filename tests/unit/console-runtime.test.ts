@@ -2311,6 +2311,34 @@ describe("console runtime", () => {
     );
   });
 
+  it("routes handoff notes immediately and gates delegation", async () => {
+    const noteResult = await executeTerminalRequest(
+      {
+        action: "collaboration:add-handoff-note",
+        payload: { handoffId: "handoff_1", note: "Review completed" },
+      },
+      actor,
+    );
+    expect(noteResult).toEqual(
+      expect.objectContaining({ ok: true, plan: expect.objectContaining({ action: "collaboration:add-handoff-note" }) }),
+    );
+
+    const delegationResult = await executeTerminalRequest(
+      {
+        action: "collaboration:delegate-handoff",
+        payload: { handoffId: "handoff_1", assignedTo: "operator_2" },
+      },
+      actor,
+    );
+    expect(delegationResult).toEqual(
+      expect.objectContaining({
+        ok: false,
+        requiresConfirmation: true,
+        plan: expect.objectContaining({ action: "collaboration:delegate-handoff" }),
+      }),
+    );
+  });
+
   it("requires confirmation before running an automation template", async () => {
     const result = await executeTerminalRequest(
       {

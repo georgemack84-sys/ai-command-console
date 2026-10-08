@@ -317,6 +317,7 @@ function createHandoff(handoff) {
     kind: handoff.kind || "general",
     workspaceId: handoff.workspaceId || null,
     relatedApprovalId: handoff.relatedApprovalId || null,
+    notes: [],
     status: "open",
     createdAt: new Date().toISOString(),
   };
@@ -325,7 +326,48 @@ function createHandoff(handoff) {
   return next;
 }
 
-function closeHandoff(handoffId) {
+function getHandoff(handoffId) {
+  return loadCollaborationState().handoffs.find((item) => item.id === String(handoffId || "")) || null;
+}
+
+function addHandoffNote(handoffId, note = {}) {
+  const state = loadCollaborationState();
+  const index = state.handoffs.findIndex((item) => item.id === handoffId);
+  if (index === -1) return null;
+  const nextNote = {
+    id: `handoff_note_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    note: String(note.note || "").trim(),
+    authorId: note.authorId || "demo",
+    authorName: note.authorName || "Demo User",
+    createdAt: new Date().toISOString(),
+  };
+  state.handoffs[index] = {
+    ...state.handoffs[index],
+    notes: [...(Array.isArray(state.handoffs[index].notes) ? state.handoffs[index].notes : []), nextNote].slice(-50),
+    updatedAt: nextNote.createdAt,
+  };
+  saveCollaborationState(state);
+  return state.handoffs[index];
+}
+
+function reassignHandoff(handoffId, assignment = {}) {
+  const state = loadCollaborationState();
+  const index = state.handoffs.findIndex((item) => item.id === handoffId);
+  if (index === -1) return null;
+  const timestamp = new Date().toISOString();
+  state.handoffs[index] = {
+    ...state.handoffs[index],
+    assignedTo: assignment.assignedTo || "team",
+    reassignedById: assignment.reassignedById || "demo",
+    reassignedByName: assignment.reassignedByName || "Demo User",
+    reassignedAt: timestamp,
+    updatedAt: timestamp,
+  };
+  saveCollaborationState(state);
+  return state.handoffs[index];
+}
+
+function closeHandoff(handoffId, closure = {}) {
   const state = loadCollaborationState();
   const index = state.handoffs.findIndex((item) => item.id === handoffId);
   if (index === -1) {
@@ -335,6 +377,8 @@ function closeHandoff(handoffId) {
     ...state.handoffs[index],
     status: "closed",
     closedAt: new Date().toISOString(),
+    closedById: closure.closedById || null,
+    closedByName: closure.closedByName || null,
   };
   saveCollaborationState(state);
   return state.handoffs[index];
@@ -415,6 +459,9 @@ module.exports = {
   getSharedMacro,
   archiveSharedMacro,
   createHandoff,
+  getHandoff,
+  addHandoffNote,
+  reassignHandoff,
   closeHandoff,
   createApprovalRequest,
   getApprovalRequest,

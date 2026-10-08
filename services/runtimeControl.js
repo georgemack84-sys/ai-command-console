@@ -420,6 +420,15 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 22;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 23) {
+    normalizedLoadedPolicy.actionCategoryMap = {
+      ...(normalizedLoadedPolicy.actionCategoryMap || {}),
+      "collaboration:add-handoff-note": "process_control",
+      "collaboration:delegate-handoff": "workflow_control",
+      "collaboration:close-handoff": "workflow_control",
+    };
+    normalizedLoadedPolicy.version = 23;
+  }
 
   const defaults = createDefaultPolicy();
   return {

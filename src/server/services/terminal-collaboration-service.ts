@@ -14,6 +14,9 @@ const {
   getSharedMacro,
   archiveSharedMacro,
   createHandoff,
+  getHandoff,
+  addHandoffNote,
+  reassignHandoff,
   closeHandoff,
   updateInboxItemState,
   recordInboxHistoryItem,
@@ -62,6 +65,21 @@ const actionSchema = z.discriminatedUnion("action", [
       title: z.string().min(1),
       note: z.string().min(1),
       assignedTo: z.string().optional().default("team"),
+    }),
+  }),
+  z.object({
+    action: z.literal("collaboration:add-handoff-note"),
+    payload: z.object({
+      handoffId: z.string().min(1),
+      note: z.string().min(1).max(2_000),
+    }),
+  }),
+  z.object({
+    action: z.literal("collaboration:delegate-handoff"),
+    payload: z.object({
+      handoffId: z.string().min(1),
+      assignedTo: z.string().min(1).max(120),
+      note: z.string().max(2_000).optional(),
     }),
   }),
   z.object({
@@ -133,6 +151,43 @@ function requireOwnerOrAdmin(resource: { ownerId?: string } | null, actor: Colla
   }
   if (resource.ownerId !== actor.id && actor.role !== "admin") {
     throw new AppError(403, "collaboration_forbidden", `Only the owner or an admin can modify this ${label.replace(/_/g, " ")}.`);
+  }
+}
+
+type HandoffResource = {
+  id: string;
+  title: string;
+  assignedById?: string;
+  assignedTo?: string;
+  status?: string;
+};
+
+function actorMatchesTarget(actor: CollaborationActor, target: string | undefined) {
+  const targets = String(target || "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  const actorTargets = new Set([
+    actor.id,
+    actor.email,
+    actor.name,
+    actor.role,
+    `user:${actor.id}`,
+    `role:${actor.role}`,
+    "team",
+  ].map((item) => String(item || "").trim().toLowerCase()).filter(Boolean));
+  return targets.some((targetItem) => actorTargets.has(targetItem));
+}
+
+function requireHandoffParticipant(resource: HandoffResource | null, actor: CollaborationActor) {
+  if (!resource) {
+    throw new AppError(404, "handoff_not_found", "Handoff not found.");
+  }
+  if (resource.status !== "open") {
+    throw new AppError(409, "handoff_closed", "Closed handoffs cannot be modified.");
+  }
+  if (actor.role !== "admin" && resource.assignedById !== actor.id && !actorMatchesTarget(actor, resource.assignedTo)) {
+    throw new AppError(403, "collaboration_forbidden", "Only the handoff creator, current assignee, or an admin can modify this handoff.");
   }
 }
 
@@ -212,6 +267,7 @@ export async function executeTerminalCollaborationAction(
   }
 
   if (parsed.action === "collaboration:create-handoff") {
+    requireOperator(actor);
     const handoff = createHandoff({
       title: parsed.payload.title,
       note: parsed.payload.note,
@@ -223,11 +279,37 @@ export async function executeTerminalCollaborationAction(
     return { action: parsed.action, output: `Created handoff "${handoff.title}".` };
   }
 
-  if (parsed.action === "collaboration:close-handoff") {
-    const handoff = closeHandoff(parsed.payload.handoffId);
-    if (!handoff) {
-      throw new AppError(404, "handoff_not_found", `Handoff not found: ${parsed.payload.handoffId}`);
+  if (parsed.action === "collaboration:add-handoff-note") {
+    requireOperator(actor);
+    const existing = getHandoff(parsed.payload.handoffId) as HandoffResource | null;
+    requireHandoffParticipant(existing, actor);
+    const handoff = addHandoffNote(parsed.payload.handoffId, { note: parsed.payload.note, authorId: actor.id, authorName: actorName });
+    appendAuditEvent({ type: parsed.action, message: `Added a note to handoff ${handoff.title}.`, payload: { handoffId: handoff.id, actorId: actor.id } });
+    return { action: parsed.action, output: `Added a note to handoff "${handoff.title}".` };
+  }
+
+  if (parsed.action === "collaboration:delegate-handoff") {
+    requireOperator(actor);
+    const existing = getHandoff(parsed.payload.handoffId) as HandoffResource | null;
+    requireHandoffParticipant(existing, actor);
+    const previousAssignee = existing!.assignedTo || "team";
+    const handoff = reassignHandoff(parsed.payload.handoffId, {
+      assignedTo: parsed.payload.assignedTo,
+      reassignedById: actor.id,
+      reassignedByName: actorName,
+    });
+    if (parsed.payload.note?.trim()) {
+      addHandoffNote(parsed.payload.handoffId, { note: parsed.payload.note, authorId: actor.id, authorName: actorName });
     }
+    appendAuditEvent({ type: parsed.action, message: `Delegated handoff ${handoff.title} to ${handoff.assignedTo}.`, payload: { handoffId: handoff.id, previousAssignee, assignedTo: handoff.assignedTo, actorId: actor.id } });
+    return { action: parsed.action, output: `Delegated handoff "${handoff.title}" to ${handoff.assignedTo}.` };
+  }
+
+  if (parsed.action === "collaboration:close-handoff") {
+    requireOperator(actor);
+    const existing = getHandoff(parsed.payload.handoffId) as HandoffResource | null;
+    requireHandoffParticipant(existing, actor);
+    const handoff = closeHandoff(parsed.payload.handoffId, { closedById: actor.id, closedByName: actorName });
     appendAuditEvent({ type: parsed.action, message: `Closed handoff ${handoff.title}.`, payload: { handoffId: handoff.id, actorId: actor.id } });
     return { action: parsed.action, output: `Closed handoff "${handoff.title}".` };
   }
