@@ -28,6 +28,9 @@ assert.match(legacySource, /name: Apply database migrations on deployment host/)
 assert.match(legacySource, /tools\/prisma-migration/);
 assert.match(legacySource, /shared\/\$\{\{ steps\.metadata\.outputs\.target_environment \}\}\.env/);
 assert.match(legacySource, /node node_modules\/prisma\/build\/index\.js migrate deploy/);
+assert.match(legacySource, /DEPLOY_PRISMA_BASELINE/);
+assert.match(legacySource, /migrate diff --exit-code --from-schema-datasource/);
+assert.match(legacySource, /migrate resolve --applied/);
 assert.doesNotMatch(legacySource, /DEPLOY_DATABASE_URL/);
 assert.match(legacySource, /rollback_release == ''/);
 
