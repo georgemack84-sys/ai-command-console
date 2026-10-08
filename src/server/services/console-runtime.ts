@@ -111,6 +111,8 @@ const terminalCollaborationActions = new Set([
   "collaboration:save-shared-macro",
   "collaboration:archive-shared-macro",
   "collaboration:create-handoff",
+  "collaboration:add-handoff-note",
+  "collaboration:delegate-handoff",
   "collaboration:close-handoff",
   "collaboration:inbox-mark-read",
   "collaboration:inbox-acknowledge",

@@ -189,6 +189,16 @@ describe("runtime control", () => {
     expect(runtimeControl.reviewPlan({ type: "single", action: "collaboration:save-shared-macro", payload: {} }, context, policy)).toEqual(
       expect.objectContaining({ decision: "auto_execute" }),
     );
+    expect(policy.actionCategoryMap["collaboration:add-handoff-note"]).toBe("process_control");
+    expect(runtimeControl.reviewPlan({ type: "single", action: "collaboration:add-handoff-note", payload: {} }, context, policy)).toEqual(
+      expect.objectContaining({ decision: "auto_execute" }),
+    );
+    for (const action of ["collaboration:delegate-handoff", "collaboration:close-handoff"]) {
+      expect(policy.actionCategoryMap[action]).toBe("workflow_control");
+      expect(runtimeControl.reviewPlan({ type: "single", action, payload: {} }, context, policy)).toEqual(
+        expect.objectContaining({ decision: "confirm_required" }),
+      );
+    }
   });
 
   it("returns confirmation required for watcher control actions before execution", () => {

@@ -446,6 +446,16 @@ type Overview = {
       kind?: string;
       workspaceId?: string | null;
       relatedApprovalId?: string | null;
+      notes?: Array<{
+        id: string;
+        note: string;
+        authorId: string;
+        authorName: string;
+        createdAt: string;
+      }>;
+      reassignedById?: string;
+      reassignedByName?: string;
+      reassignedAt?: string;
       status: string;
       createdAt: string;
       closedAt?: string;
@@ -1307,6 +1317,8 @@ export default function Terminal({
   const [shareTargets, setShareTargets] = useState("team");
   const [sessionAssigneeDrafts, setSessionAssigneeDrafts] = useState<Record<string, string>>({});
   const [handoffDraft, setHandoffDraft] = useState({ title: "", note: "", assignedTo: "team" });
+  const [handoffNoteDrafts, setHandoffNoteDrafts] = useState<Record<string, string>>({});
+  const [handoffAssigneeDrafts, setHandoffAssigneeDrafts] = useState<Record<string, string>>({});
   const [approvalNotes, setApprovalNotes] = useState<Record<string, string>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
@@ -4326,15 +4338,57 @@ export default function Terminal({
                           {handoff.workspaceId ? ` • ${handoff.workspaceId}` : ""}
                         </p>
                         <p className="mt-2 text-sm text-zinc-300">{handoff.note}</p>
+                        {handoff.notes?.length ? (
+                          <div className="mt-3 space-y-2 border-l border-cyan-400/20 pl-3">
+                            {handoff.notes.slice(-4).map((note) => (
+                              <div key={note.id}>
+                                <p className="text-sm text-zinc-300">{note.note}</p>
+                                <p className="mt-1 text-[11px] text-zinc-500">{note.authorName} • {formatTime(note.createdAt)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                         {handoff.status === "open" ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void runAction("collaboration:close-handoff", { handoffId: handoff.id }, `close-handoff ${handoff.title}`)}
-                              className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100"
-                            >
-                              Mark Closed
-                            </button>
+                          <div className="mt-3 space-y-2">
+                            <div className="flex flex-wrap gap-2">
+                              <input
+                                value={handoffNoteDrafts[handoff.id] || ""}
+                                onChange={(event) => setHandoffNoteDrafts((current) => ({ ...current, [handoff.id]: event.target.value }))}
+                                className="min-w-48 flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-2 py-1 text-xs text-white outline-none"
+                                placeholder="Add handoff note"
+                              />
+                              <button
+                                type="button"
+                                disabled={!handoffNoteDrafts[handoff.id]?.trim()}
+                                onClick={() => void runAction("collaboration:add-handoff-note", { handoffId: handoff.id, note: handoffNoteDrafts[handoff.id] }, `note-handoff ${handoff.title}`).then(() => setHandoffNoteDrafts((current) => ({ ...current, [handoff.id]: "" })))}
+                                className="rounded-lg border border-cyan-400/20 px-2 py-1 text-xs text-cyan-100 disabled:opacity-50"
+                              >
+                                Add Note
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <input
+                                value={handoffAssigneeDrafts[handoff.id] ?? handoff.assignedTo}
+                                onChange={(event) => setHandoffAssigneeDrafts((current) => ({ ...current, [handoff.id]: event.target.value }))}
+                                className="min-w-48 flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-2 py-1 text-xs text-white outline-none"
+                                placeholder="user, role, or team"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void runAction("collaboration:delegate-handoff", { handoffId: handoff.id, assignedTo: handoffAssigneeDrafts[handoff.id] ?? handoff.assignedTo }, `delegate-handoff ${handoff.title}`)}
+                                className="rounded-lg border border-amber-400/20 px-2 py-1 text-xs text-amber-100"
+                              >
+                                Delegate
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void runAction("collaboration:close-handoff", { handoffId: handoff.id }, `close-handoff ${handoff.title}`)}
+                                className="rounded-lg border border-rose-400/20 px-2 py-1 text-xs text-rose-100"
+                              >
+                                Mark Closed
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
                             {handoff.relatedApprovalId ? (
                               <>
                                 <button
@@ -4361,6 +4415,7 @@ export default function Terminal({
                                 </button>
                               </>
                             ) : null}
+                            </div>
                           </div>
                         ) : null}
                         {handoff.relatedApprovalId ? (

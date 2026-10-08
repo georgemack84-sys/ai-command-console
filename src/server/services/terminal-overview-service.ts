@@ -454,18 +454,21 @@ export function buildTerminalCollaborationSnapshot(input: {
   const visibleHandoffs = (Array.isArray(collaborationState.handoffs) ? collaborationState.handoffs : [])
     .filter(
       (handoff: Record<string, unknown>) =>
-        String(handoff.status || "open") === "open" && matchesTargets(handoff.assignedTo, actorTargets),
+        String(handoff.status || "open") === "open" &&
+        (handoff.assignedById === input.user.id || matchesTargets(handoff.assignedTo, actorTargets)),
     )
     .slice(0, 8);
 
   visibleHandoffs.forEach((handoff: Record<string, unknown>) => {
+    const handoffNotes = Array.isArray(handoff.notes) ? handoff.notes : [];
+    const latestNote = handoffNotes.at(-1) as Record<string, unknown> | undefined;
     inbox.push({
       id: `inbox:${String(handoff.id)}`,
       type: "handoff",
       status: handoff.status || "open",
       tone: "warning",
       title: handoff.title,
-      detail: `${String(handoff.assignedByName || "Someone")} assigned this handoff to ${String(handoff.assignedTo || "team")}. ${String(handoff.note || "")}`.trim(),
+      detail: `${String(handoff.assignedByName || "Someone")} assigned this handoff to ${String(handoff.assignedTo || "team")}. ${String(latestNote?.note || handoff.note || "")}`.trim(),
       handoffId: handoff.id,
       kind: handoff.kind || "general",
       workspaceId: handoff.workspaceId || null,

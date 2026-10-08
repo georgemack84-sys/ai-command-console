@@ -82,11 +82,11 @@ Status: In progress
 
 Delivered:
 - Shared operator sessions and reusable macros with owner/admin controls, assignment, visibility filtering, governed archival, and audit history
+- Handoff notes and review delegation with participant authorization, creator/assignee visibility, governed reassignment and closure, and audit history
 
 Planned features:
 - Ownership and assignment controls
 - Approval gates for sensitive actions
-- Handoff notes and review delegation
 - Environment separation for dev, staging, and production
 
 ## Phase 6: Platform Backbone
