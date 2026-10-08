@@ -96,6 +96,11 @@ type AgentDetail = {
     lastRunAt: string | null;
     stepCount: number;
     maxSteps: number;
+    recovery: {
+      state?: string;
+      explanation?: string;
+      recommendedCommand?: string;
+    } | null;
   };
   schedule: {
     enabled: boolean;
@@ -4297,21 +4302,54 @@ export default function Terminal({
                 </div>
               </div>
 
+              {selectedAgent.runtime.recovery ? (
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-amber-200">Recovery Guidance</p>
+                  <p className="mt-2 text-sm text-amber-50">{selectedAgent.runtime.recovery.explanation || "Inspect the current state before continuing."}</p>
+                  {selectedAgent.runtime.recovery.recommendedCommand ? (
+                    <button
+                      type="button"
+                      onClick={() => void executeCommand(selectedAgent.runtime.recovery?.recommendedCommand || "", "action")}
+                      className="mt-3 rounded-full border border-amber-200/20 px-3 py-2 font-mono text-xs text-amber-100 transition hover:bg-amber-100/10"
+                    >
+                      {selectedAgent.runtime.recovery.recommendedCommand}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Quick Actions</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button type="button" onClick={() => void executeCommand(`agent:status ${selectedAgent.agentName}`, "action")} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100">
                     Inspect
                   </button>
-                  <button type="button" onClick={() => void executeCommand(`agent:start ${selectedAgent.agentName}`, "action")} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100">
-                    Start
-                  </button>
-                  <button type="button" onClick={() => void executeCommand(`agent:tick ${selectedAgent.agentName}`, "action")} className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">
-                    Tick
-                  </button>
-                  <button type="button" onClick={() => void executeCommand(`agent:stop ${selectedAgent.agentName}`, "action")} className="rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
-                    Stop
-                  </button>
+                  {selectedAgent.runtime.active ? (
+                    <>
+                      <button type="button" onClick={() => void executeCommand(`agent:tick ${selectedAgent.agentName}`, "action")} className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">
+                        Tick
+                      </button>
+                      <button type="button" onClick={() => void executeCommand(`agent:pause ${selectedAgent.agentName}`, "action")} className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+                        Pause
+                      </button>
+                      <button type="button" onClick={() => void executeCommand(`agent:stop ${selectedAgent.agentName}`, "action")} className="rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+                        Stop
+                      </button>
+                    </>
+                  ) : selectedAgent.runtime.status === "paused" ? (
+                    <button type="button" onClick={() => void executeCommand(`agent:resume ${selectedAgent.agentName}`, "action")} className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">
+                      Resume
+                    </button>
+                  ) : (
+                    <>
+                      <button type="button" onClick={() => void executeCommand(`agent:restart ${selectedAgent.agentName}`, "action")} className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">
+                        Restart
+                      </button>
+                      <button type="button" onClick={() => void executeCommand(`agent:start ${selectedAgent.agentName}`, "action")} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-100">
+                        Fresh Start
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 

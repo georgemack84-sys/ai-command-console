@@ -46,7 +46,7 @@ Delivered:
 
 ## Phase 3: Agent Operations
 
-Status: In progress
+Status: Completed
 
 Goals:
 - Make each agent observable and manageable as an operational unit
@@ -56,8 +56,6 @@ Delivered:
 - Goal and workload inspection panels
 - Editable agent runtime configuration
 - Cross-agent dependency map
-
-Next:
 - Pause/resume/restart controls with explicit recovery explanations
 
 ## Phase 4: Automation and Policy

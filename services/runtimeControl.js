@@ -169,6 +169,9 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
       agent_start: normalizedLoadedPolicy.actionCategoryMap?.agent_start || "process_control",
       agent_tick: normalizedLoadedPolicy.actionCategoryMap?.agent_tick || "process_control",
       agent_stop: normalizedLoadedPolicy.actionCategoryMap?.agent_stop || "process_control",
+      agent_pause: normalizedLoadedPolicy.actionCategoryMap?.agent_pause || "process_control",
+      agent_resume: normalizedLoadedPolicy.actionCategoryMap?.agent_resume || "process_control",
+      agent_restart: normalizedLoadedPolicy.actionCategoryMap?.agent_restart || "process_control",
     };
     normalizedLoadedPolicy.version = 6;
   }
@@ -193,6 +196,9 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
       agent_start: "agent_control",
       agent_tick: "agent_control",
       agent_stop: "agent_control",
+      agent_pause: "agent_control",
+      agent_resume: "agent_control",
+      agent_restart: "agent_control",
     };
     normalizedLoadedPolicy.actionPrefixCategoryMap = {
       ...(normalizedLoadedPolicy.actionPrefixCategoryMap || {}),
@@ -203,6 +209,9 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
       "agent:start ": "agent_control",
       "agent:tick ": "agent_control",
       "agent:stop ": "agent_control",
+      "agent:pause ": "agent_control",
+      "agent:resume ": "agent_control",
+      "agent:restart ": "agent_control",
     };
     normalizedLoadedPolicy.version = 7;
   }
@@ -375,6 +384,21 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
   if (Number(normalizedLoadedPolicy.version || 1) < 19) {
     normalizedLoadedPolicy.strictMode = normalizeStrictModeConfig(normalizedLoadedPolicy.strictMode);
     normalizedLoadedPolicy.version = 19;
+  }
+  if (Number(normalizedLoadedPolicy.version || 1) < 20) {
+    normalizedLoadedPolicy.actionCategoryMap = {
+      ...(normalizedLoadedPolicy.actionCategoryMap || {}),
+      agent_pause: "agent_control",
+      agent_resume: "agent_control",
+      agent_restart: "agent_control",
+    };
+    normalizedLoadedPolicy.commandPrefixCategoryMap = {
+      ...(normalizedLoadedPolicy.commandPrefixCategoryMap || {}),
+      "agent:pause ": "agent_control",
+      "agent:resume ": "agent_control",
+      "agent:restart ": "agent_control",
+    };
+    normalizedLoadedPolicy.version = 20;
   }
 
   const defaults = createDefaultPolicy();

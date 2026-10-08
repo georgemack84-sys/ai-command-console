@@ -141,6 +141,36 @@ test("agent:update-config persists safe profile changes and exposes them in the 
   }
 });
 
+test("agent lifecycle recovery preserves a paused run and restarts stopped agents deliberately", async () => {
+  const snapshot = snapshotFiles(FILES);
+
+  try {
+    resetState();
+    const started = await handleConsoleRequest({ command: "agent:start researcher" }, { bypassApproval: true });
+    assert.equal(started.ok, true);
+
+    const paused = await handleConsoleRequest({ command: "agent:pause researcher" }, { bypassApproval: true });
+    assert.equal(paused.ok, true);
+    assert.match(paused.output, /paused/i);
+    assert.match(paused.output, /Resume returns/i);
+
+    const resumed = await handleConsoleRequest({ command: "agent:resume researcher" }, { bypassApproval: true });
+    assert.equal(resumed.ok, true);
+    assert.match(resumed.output, /resumed/i);
+    assert.match(resumed.output, /Recovered/i);
+
+    const stopped = await handleConsoleRequest({ command: "agent:stop researcher" }, { bypassApproval: true });
+    assert.equal(stopped.ok, true);
+
+    const restarted = await handleConsoleRequest({ command: "agent:restart researcher" }, { bypassApproval: true });
+    assert.equal(restarted.ok, true);
+    assert.match(restarted.output, /restarted/i);
+    assert.match(restarted.output, /fresh bounded plan/i);
+  } finally {
+    restoreFiles(snapshot);
+  }
+});
+
 test("watcher:rule-upsert saves watcher rules into overview state", async () => {
   const snapshot = snapshotFiles(FILES);
 
