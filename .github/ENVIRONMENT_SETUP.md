@@ -18,6 +18,7 @@ Recommended behavior:
 Required GitHub Environment secret:
 
 - `DEPLOY_SSH_KEY`
+- `DEPLOY_DATABASE_URL` — the same PostgreSQL connection string used by the target host runtime. The workflow uses it only for `prisma migrate deploy`; it is never printed.
 
 Required GitHub Environment variables:
 
@@ -74,6 +75,8 @@ Your target host still needs the app runtime environment configured outside GitH
 - `AI_COMMAND_CONSOLE_SECURE_COOKIES=true`
 - `AI_COMMAND_CONSOLE_SESSION_MAX_AGE_SECONDS`
 - `AI_COMMAND_CONSOLE_ALERT_WEBHOOK_URL`
+
+Keep the host `DATABASE_URL` and the environment's `DEPLOY_DATABASE_URL` secret pointed at the same database. The deployment workflow applies committed Prisma migrations before it switches the remote release, preventing new code from reaching a database that lacks its required tables.
 
 The build uses Next.js standalone output. Production hosts should start the web process with the guarded standalone command:
 

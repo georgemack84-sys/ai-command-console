@@ -42,6 +42,7 @@ jobs:
       DEPLOY_VALIDATION_PATHS: ${{ vars.DEPLOY_VALIDATION_PATHS }}
       DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_DATABASE_URL: ${{ secrets.DEPLOY_DATABASE_URL }}
 
     steps:
       - name: Confirm legacy release boundary
@@ -124,6 +125,17 @@ jobs:
         env:
           NODE_ENV: production
         run: npm run build
+
+      - name: Apply database migrations
+        if: ${{ steps.metadata.outputs.rollback_release == '' && vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DEPLOY_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DEPLOY_DATABASE_URL must be configured for remote deployments."
+            exit 1
+          fi
+          npx prisma migrate deploy --schema prisma/schema.prisma
 
       - name: Assemble deploy bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}

@@ -23,6 +23,10 @@ assert.equal(legacy.name, 'Legacy Deployment (manual only)');
 assert.ok(legacy.on.workflow_dispatch !== undefined);
 assert.equal(legacy.on.workflow_run, undefined);
 assert.doesNotMatch(legacySource, /head_branch == 'main'/);
+assert.match(legacySource, /DEPLOY_DATABASE_URL/);
+assert.match(legacySource, /name: Apply database migrations/);
+assert.match(legacySource, /npx prisma migrate deploy --schema prisma\/schema\.prisma/);
+assert.match(legacySource, /rollback_release == ''/);
 
 assert.equal(release.name, 'Release Proprium');
 assert.deepEqual(Object.keys(release.on), ['workflow_dispatch']);
