@@ -16,7 +16,7 @@ const { buildSystemSummary, buildHealthSummary, buildWorkloadSummary } = require
 const { getAgentDashboard } = require("./dashboard");
 const { listAlerts, listActiveAlerts, runAlertChecks, acknowledgeAlert, resolveAlert, addAlertNote } = require("./alerts");
 const { listAgentProfiles, getAgentStatus } = require("./agentRuntime");
-const { startAgent, tickAgent, stopAgent } = require("./agentRuntime");
+const { startAgent, tickAgent, stopAgent, pauseAgent, resumeAgent, restartAgent } = require("./agentRuntime");
 const { routeManagerTask } = require("./agentRuntime");
 const { listSchedules, getSchedule, runScheduledTick } = require("./scheduler");
 const { getWatcherStatus, startWatcher, stopWatcher, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules } = require("./watcher");
@@ -829,6 +829,25 @@ async function route(plan, modes = {}) {
     case "agent_stop": {
       const stopped = stopAgent(plan.payload);
       result = [stopped.message, formatAgentStatusBlock(plan.payload, stopped.state)].join("\n\n");
+      break;
+    }
+
+    case "agent_pause": {
+      const paused = pauseAgent(plan.payload);
+      result = [paused.message, formatAgentStatusBlock(plan.payload, paused.state)].join("\n\n");
+      break;
+    }
+
+    case "agent_resume": {
+      const resumed = resumeAgent(plan.payload);
+      result = [resumed.message, formatAgentStatusBlock(plan.payload, resumed.state)].join("\n\n");
+      break;
+    }
+
+    case "agent_restart": {
+      const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+      const restarted = restartAgent(String(payload.agentName || ""), String(payload.goal || ""));
+      result = [restarted.message, formatAgentStatusBlock(String(payload.agentName || ""), restarted.state)].join("\n\n");
       break;
     }
 

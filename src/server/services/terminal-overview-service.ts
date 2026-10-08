@@ -197,6 +197,7 @@ function buildAgentDetails() {
         lastRunAt: runtime?.lastRunAt || null,
         stepCount: Number(runtime?.stepCount || 0),
         maxSteps: Number(runtime?.maxSteps || 0),
+        recovery: runtime?.recovery || null,
       },
       schedule: listSchedules().find((item: Record<string, unknown>) => String(item.agentName) === agentName) || null,
       observability: {

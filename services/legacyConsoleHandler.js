@@ -5,7 +5,7 @@
 // or the narrow services/legacyConsoleCompat.js facade.
 const { buildSystemSummary, buildHealthSummary, buildWorkloadSummary, getAgentDashboard } = require("./dashboard");
 const path = require("path");
-const { startAgent, tickAgent, getAgentStatus, stopAgent, listAgentProfiles, routeManagerTask } = require("./agentRuntime");
+const { startAgent, tickAgent, getAgentStatus, stopAgent, pauseAgent, resumeAgent, restartAgent, listAgentProfiles, routeManagerTask } = require("./agentRuntime");
 const { listTasks, peekNextTask, addTask } = require("./taskQueue");
 const { listSchedules, getSchedule, runScheduledTick } = require("./scheduler");
 const { getWatcherStatus, evaluateRules, startWatcher, stopWatcher, updateWatcherRule, addWatcherRule, removeWatcherRule } = require("./watcher");
@@ -647,6 +647,9 @@ const { executeCommand, executeAction, handleConsoleRequest } = createLegacyCons
   startAgent,
   tickAgent,
   stopAgent,
+  pauseAgent,
+  resumeAgent,
+  restartAgent,
   routeManagerTask,
   formatTasks,
   formatBriefs,
@@ -730,6 +733,9 @@ const { executeCommand, executeAction, handleConsoleRequest } = createLegacyCons
     startAgent,
     tickAgent,
     stopAgent,
+    pauseAgent,
+    resumeAgent,
+    restartAgent,
     routeManagerTask,
     formatTasks,
     formatBriefs,

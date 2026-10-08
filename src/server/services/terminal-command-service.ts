@@ -3,7 +3,7 @@ import type { SessionUser } from "@/src/lib/types";
 
 const require = createRequire(import.meta.url);
 
-const { listAgentProfiles, getAgentStatus, startAgent, tickAgent, stopAgent, routeManagerTask } = require("../../../services/agentRuntime");
+const { listAgentProfiles, getAgentStatus, startAgent, tickAgent, stopAgent, pauseAgent, resumeAgent, restartAgent, routeManagerTask } = require("../../../services/agentRuntime");
 const { listTasks, peekNextTask } = require("../../../services/taskQueue");
 const { buildSystemSummary, buildHealthSummary, buildWorkloadSummary, getAgentDashboard } = require("../../../services/dashboard");
 const { listSchedules, getSchedule, runScheduledTick } = require("../../../services/scheduler");
@@ -22,6 +22,9 @@ const handledCommandPrefixes = [
   "agent:start ",
   "agent:tick ",
   "agent:stop ",
+  "agent:pause ",
+  "agent:resume ",
+  "agent:restart ",
   "manager:route ",
   "brief:list",
   "brief:create ",
@@ -224,6 +227,27 @@ export async function executeTerminalCommand(command: string, actor: CommandActo
   if (trimmed.startsWith("agent:stop ")) {
     const agentName = trimmed.replace("agent:stop ", "").trim();
     const result = stopAgent(agentName);
+    return [result.message, formatAgentStatusBlock(agentName, result.state)].join("\n\n");
+  }
+
+  if (trimmed.startsWith("agent:pause ")) {
+    const agentName = trimmed.replace("agent:pause ", "").trim();
+    const result = pauseAgent(agentName);
+    return [result.message, formatAgentStatusBlock(agentName, result.state)].join("\n\n");
+  }
+
+  if (trimmed.startsWith("agent:resume ")) {
+    const agentName = trimmed.replace("agent:resume ", "").trim();
+    const result = resumeAgent(agentName);
+    return [result.message, formatAgentStatusBlock(agentName, result.state)].join("\n\n");
+  }
+
+  if (trimmed.startsWith("agent:restart ")) {
+    const remainder = trimmed.replace("agent:restart ", "").trim();
+    const firstSpace = remainder.indexOf(" ");
+    const agentName = firstSpace === -1 ? remainder : remainder.slice(0, firstSpace).trim();
+    const goal = firstSpace === -1 ? "" : remainder.slice(firstSpace + 1).trim();
+    const result = restartAgent(agentName, goal);
     return [result.message, formatAgentStatusBlock(agentName, result.state)].join("\n\n");
   }
 

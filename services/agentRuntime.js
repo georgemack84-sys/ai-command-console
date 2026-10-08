@@ -198,7 +198,12 @@ async function startAgent(agentName, goalOverride = "") {
     lastResult: {
       ok: true,
       summary: "Agent initialized."
-    }
+    },
+    recovery: {
+      state: "running",
+      explanation: "Agent started with a fresh bounded run.",
+      recommendedCommand: `agent:tick ${agentName}`,
+    },
   };
 
   saveAgentState(agentName, state);
@@ -232,9 +237,10 @@ async function tickAgent(agentName) {
   const state = loadAgentState(agentName);
 
   if (!state.active) {
+    const recommendedCommand = state.status === "paused" ? `agent:resume ${agentName}` : `agent:start ${agentName}`;
     return {
       ok: false,
-      message: `Agent "${agentName}" is not active. Start it first with agent:start ${agentName}.`
+      message: `Agent "${agentName}" is not active. ${state.status === "paused" ? `Resume it with ${recommendedCommand} to continue the preserved task and plan.` : `Start it with ${recommendedCommand}.`}`
     };
   }
 
@@ -375,6 +381,11 @@ function stopAgent(agentName) {
     ok: true,
     summary: "Agent stopped by user."
   };
+  state.recovery = {
+    state: "stopped",
+    explanation: "The agent is stopped. Its current task remains recorded so a restart can recover it deliberately.",
+    recommendedCommand: `agent:restart ${agentName}`,
+  };
 
   saveAgentState(agentName, state);
   appendAgentHistory(agentName, {
@@ -391,6 +402,94 @@ function stopAgent(agentName) {
   };
 }
 
+function pauseAgent(agentName) {
+  const state = loadAgentState(agentName);
+
+  if (!state.active) {
+    return {
+      ok: false,
+      message: `Agent "${agentName}" is not running and cannot be paused.`,
+      state,
+    };
+  }
+
+  state.active = false;
+  state.status = "paused";
+  state.lastResult = { ok: true, summary: "Agent paused by user." };
+  state.recovery = {
+    state: "paused",
+    explanation: state.currentTask
+      ? "The active task and plan were preserved. Resume continues from the recorded state."
+      : "No task was in flight. Resume returns the agent to its bounded run without creating new work.",
+    recommendedCommand: `agent:resume ${agentName}`,
+  };
+  saveAgentState(agentName, state);
+  appendAgentHistory(agentName, { type: "agent_paused", taskId: state.currentTask?.id || null });
+  logAgentEvent(agentName, { event: "agent_paused", taskId: state.currentTask?.id || null });
+
+  return { ok: true, message: `Agent "${agentName}" paused. ${state.recovery.explanation}`, state };
+}
+
+function resumeAgent(agentName) {
+  const state = loadAgentState(agentName);
+
+  if (state.active) {
+    return { ok: false, message: `Agent "${agentName}" is already running.`, state };
+  }
+  if (state.status !== "paused") {
+    return {
+      ok: false,
+      message: `Agent "${agentName}" is ${state.status || "not paused"}. Use agent:restart ${agentName} to begin a deliberate recovery run.`,
+      state,
+    };
+  }
+
+  state.active = true;
+  state.status = "running";
+  state.recovery = {
+    state: "running",
+    explanation: state.currentTask
+      ? "Recovered the preserved task and plan. Run the next bounded tick when ready."
+      : "Recovered the paused run. Run the next bounded tick when ready.",
+    recommendedCommand: `agent:tick ${agentName}`,
+  };
+  saveAgentState(agentName, state);
+  appendAgentHistory(agentName, { type: "agent_resumed", taskId: state.currentTask?.id || null });
+  logAgentEvent(agentName, { event: "agent_resumed", taskId: state.currentTask?.id || null });
+
+  return { ok: true, message: `Agent "${agentName}" resumed. ${state.recovery.explanation}`, state };
+}
+
+function restartAgent(agentName, goalOverride = "") {
+  const profile = getAgentProfile(agentName);
+  const state = loadAgentState(agentName);
+
+  if (state.active) {
+    return { ok: false, message: `Agent "${agentName}" is already running. Pause or stop it before restarting.`, state };
+  }
+
+  const goal = String(goalOverride || state.goal || profile.defaultGoal || "").trim();
+  state.active = true;
+  state.status = "running";
+  state.goal = goal;
+  state.stepCount = 0;
+  state.maxSteps = Number(profile.maxStepsPerRun || 5);
+  state.lastPlan = buildPlan(goal);
+  state.lastResult = { ok: true, summary: "Agent restarted through the recovery flow." };
+  state.recovery = {
+    state: "running",
+    explanation: state.currentTask
+      ? "Restarted with the claimed task preserved and a fresh bounded plan for its current goal."
+      : "Restarted with a fresh bounded plan. No previously claimed task needed recovery.",
+    recommendedCommand: `agent:tick ${agentName}`,
+  };
+  saveAgentState(agentName, state);
+  appendAgentHistory(agentName, { type: "agent_restarted", taskId: state.currentTask?.id || null, goal });
+  logAgentEvent(agentName, { event: "agent_restarted", taskId: state.currentTask?.id || null, goal });
+
+  return { ok: true, message: `Agent "${agentName}" restarted. ${state.recovery.explanation}`, state };
+}
+
 module.exports = {
   getAgentProfile,
   listAgentProfiles,
@@ -398,5 +497,8 @@ module.exports = {
   startAgent,
   tickAgent,
   getAgentStatus,
-  stopAgent
+  stopAgent,
+  pauseAgent,
+  resumeAgent,
+  restartAgent,
 };

@@ -10,6 +10,9 @@ async function executeLegacyConsoleCommand(rawCommand, options = {}, deps) {
     startAgent,
     tickAgent,
     stopAgent,
+    pauseAgent,
+    resumeAgent,
+    restartAgent,
     routeManagerTask,
     formatTasks,
     formatBriefs,
@@ -86,6 +89,25 @@ async function executeLegacyConsoleCommand(rawCommand, options = {}, deps) {
 
   if (trimmed.startsWith("agent:stop ")) {
     const result = stopAgent(trimmed.replace("agent:stop ", "").trim());
+    return [result.message, formatAgentStatus(result.state)].join("\n\n");
+  }
+
+  if (trimmed.startsWith("agent:pause ")) {
+    const result = pauseAgent(trimmed.replace("agent:pause ", "").trim());
+    return [result.message, formatAgentStatus(result.state)].join("\n\n");
+  }
+
+  if (trimmed.startsWith("agent:resume ")) {
+    const result = resumeAgent(trimmed.replace("agent:resume ", "").trim());
+    return [result.message, formatAgentStatus(result.state)].join("\n\n");
+  }
+
+  if (trimmed.startsWith("agent:restart ")) {
+    const remainder = trimmed.replace("agent:restart ", "").trim();
+    const firstSpace = remainder.indexOf(" ");
+    const agentName = firstSpace === -1 ? remainder : remainder.slice(0, firstSpace).trim();
+    const goal = firstSpace === -1 ? "" : remainder.slice(firstSpace + 1).trim();
+    const result = restartAgent(agentName, goal);
     return [result.message, formatAgentStatus(result.state)].join("\n\n");
   }
 

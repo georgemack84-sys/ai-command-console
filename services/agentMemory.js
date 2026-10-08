@@ -28,6 +28,7 @@ function defaultAgentState(agentName) {
     history: [],
     lastPlan: [],
     lastResult: null,
+    recovery: null,
     notes: [],
   };
 }

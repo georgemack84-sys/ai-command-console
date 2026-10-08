@@ -479,6 +479,23 @@ function getGovernedStructuredCommandPlan(command: string) {
       source: "control",
     };
   }
+  if (trimmed.startsWith("agent:pause ")) {
+    return { type: "single", action: "agent_pause", payload: trimmed.replace("agent:pause ", "").trim(), originalRequest: trimmed, source: "control" };
+  }
+  if (trimmed.startsWith("agent:resume ")) {
+    return { type: "single", action: "agent_resume", payload: trimmed.replace("agent:resume ", "").trim(), originalRequest: trimmed, source: "control" };
+  }
+  if (trimmed.startsWith("agent:restart ")) {
+    const remainder = trimmed.replace("agent:restart ", "").trim();
+    const firstSpace = remainder.indexOf(" ");
+    return {
+      type: "single",
+      action: "agent_restart",
+      payload: { agentName: firstSpace === -1 ? remainder : remainder.slice(0, firstSpace).trim(), goal: firstSpace === -1 ? "" : remainder.slice(firstSpace + 1).trim() },
+      originalRequest: trimmed,
+      source: "control",
+    };
+  }
   if (trimmed === "dashboard:system") {
     return { type: "single", action: "dashboard_system", payload: ".", originalRequest: trimmed, source: "control" };
   }
