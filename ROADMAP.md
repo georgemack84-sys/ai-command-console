@@ -11,7 +11,7 @@ This roadmap turns the current console from a strong single-operator tool into a
 
 ## Phase 1: Reliability and Trust
 
-Status: In progress
+Status: Completed
 
 Goals:
 - Formal audit trail for commands and workflow actions
@@ -24,11 +24,9 @@ Delivered:
 - Structured activity feed sourced from audit events
 - Built-in workflow tests using `node:test`
 - Browser recovery flows for reviews and alerts
-
-Next:
-- Add undo-safe actions where feasible
-- Add route-level tests for console API handlers
-- Add scheduler regression tests
+- Undo-safe policy rollout recovery with stale-state protection
+- Route-level authorization and error-shape coverage for console API handlers
+- Scheduler overlap and terminal-state regression coverage
 
 ## Phase 2: Operator Speed
 
@@ -48,15 +46,19 @@ Delivered:
 
 ## Phase 3: Agent Operations
 
+Status: In progress
+
 Goals:
 - Make each agent observable and manageable as an operational unit
 
-Planned features:
+Delivered:
 - Per-agent run history
 - Goal and workload inspection panels
 - Editable agent runtime configuration
-- Pause/resume/restart with recovery explanations
 - Cross-agent dependency map
+
+Next:
+- Pause/resume/restart controls with explicit recovery explanations
 
 ## Phase 4: Automation and Policy
 
