@@ -211,6 +211,66 @@ describe("watcher service", () => {
     }
   });
 
+  it("previews matching rules without starting schedules or changing watcher state", () => {
+    const startSchedule = vi.fn();
+    const { watcher, restore } = loadWatcherWithMocks(tempRoot, {
+      listTasks: () => [{ agentName: "researcher", status: "queued" }],
+      getSchedule: () => null,
+      startSchedule,
+    });
+
+    try {
+      watcher.saveWatcherState({
+        enabled: true,
+        intervalSeconds: 4,
+        rules: [
+          {
+            name: "researcher_queue_rule",
+            agentName: "researcher",
+            minQueuedTasks: 1,
+            scheduleIntervalSeconds: 6,
+            scheduleMaxCycles: 4,
+            enabled: true,
+          },
+          {
+            name: "disabled_queue_rule",
+            agentName: "writer",
+            minQueuedTasks: 1,
+            scheduleIntervalSeconds: 6,
+            scheduleMaxCycles: 4,
+            enabled: false,
+          },
+        ],
+        history: [{ type: "existing" }],
+      });
+      const before = watcher.getWatcherStatus();
+
+      const preview = watcher.previewRules();
+
+      expect(preview.summary).toEqual({
+        evaluatedRules: 2,
+        matchedRules: 1,
+        schedulesThatWouldStart: 1,
+      });
+      expect(preview.decisions).toEqual([
+        expect.objectContaining({
+          ruleName: "researcher_queue_rule",
+          matched: true,
+          action: "schedule_would_start",
+        }),
+        expect.objectContaining({
+          ruleName: "disabled_queue_rule",
+          matched: false,
+          action: "disabled",
+        }),
+      ]);
+      expect(startSchedule).not.toHaveBeenCalled();
+      expect(watcher.getWatcherStatus()).toEqual(before);
+    } finally {
+      restore();
+    }
+  });
+
   it("normalizes watcher state and trims history to the latest 100 events", () => {
     const { watcher, restore } = loadWatcherWithMocks(tempRoot);
 

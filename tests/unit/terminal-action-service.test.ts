@@ -13,6 +13,7 @@ describe("terminal action service", () => {
   it("recognizes extracted terminal fallback actions", () => {
     expect(canHandleTerminalAction("workflow:create-task")).toBe(true);
     expect(canHandleTerminalAction("watcher:start")).toBe(true);
+    expect(canHandleTerminalAction("watcher:preview")).toBe(true);
     expect(canHandleTerminalAction("job:detail")).toBe(true);
     expect(canHandleTerminalAction("policy:update-automation")).toBe(true);
     expect(canHandleTerminalAction("agent:update-config")).toBe(true);
@@ -49,6 +50,22 @@ describe("terminal action service", () => {
     const watcherStart = await executeTerminalAction({ action: "watcher:start", payload: { intervalSeconds: 7 } }, actor);
     expect(watcherStart.ok).toBe(true);
     expect(watcherStart.output).toBe("Watcher started at 7s interval.");
+
+    const watcherPreview = await executeTerminalAction({ action: "watcher:preview", payload: {} }, actor);
+    expect(watcherPreview).toEqual(
+      expect.objectContaining({
+        ok: true,
+        detail: expect.objectContaining({
+          watcherPreview: expect.objectContaining({
+            summary: expect.objectContaining({
+              evaluatedRules: expect.any(Number),
+              matchedRules: expect.any(Number),
+              schedulesThatWouldStart: expect.any(Number),
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
   it("handles threshold, policy, and agent config actions directly", async () => {
