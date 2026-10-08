@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const originalEnv = { ...process.env };
@@ -11,6 +13,15 @@ describe("env configuration", () => {
   afterEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
+  });
+
+  it("declares every environment schema key exactly once", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/config/env.ts"), "utf8");
+    const match = source.match(/const envSchema = z\.object\(\{([\s\S]*?)\n\}\);/);
+    expect(match).not.toBeNull();
+
+    const keys = [...match![1].matchAll(/^  ([A-Z][A-Z0-9_]+):/gm)].map((entry) => entry[1]);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("uses the development auth secret fallback for local builds", async () => {
