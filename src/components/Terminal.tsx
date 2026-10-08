@@ -116,6 +116,23 @@ type AgentDetail = {
   recentNotes: string[];
 };
 
+type AgentDependencyGraph = {
+  nodes: Array<{
+    agentName: string;
+    upstreamAgents: string[];
+    downstreamAgents: string[];
+  }>;
+  edges: Array<{
+    from: string;
+    to: string;
+    kind: "delegation" | "review_followup";
+    taskIds: string[];
+    queuedTasks: number;
+    claimedTasks: number;
+    completedTasks: number;
+  }>;
+};
+
 type PluginItem = {
   name: string;
   loaded: boolean;
@@ -186,6 +203,7 @@ type Overview = {
   plugins: PluginItem[];
   workload: WorkloadItem[];
   agentDetails: AgentDetail[];
+  agentDependencyGraph: AgentDependencyGraph;
   trust: {
     lastWatcherRunAt: string | null;
     lastWatcherError: string | null;
@@ -766,6 +784,7 @@ const EMPTY_OVERVIEW: Overview = {
   plugins: [],
   workload: [],
   agentDetails: [],
+  agentDependencyGraph: { nodes: [], edges: [] },
   trust: {
     lastWatcherRunAt: null,
     lastWatcherError: null,
@@ -2305,6 +2324,42 @@ export default function Terminal({
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Agent Dependency Map</p>
+                    <p className="mt-1 text-sm text-zinc-400">Delegated work and review follow-ups between agent lanes.</p>
+                  </div>
+                  <span className="text-xs text-zinc-500">{overview.agentDependencyGraph.edges.length} links</span>
+                </div>
+                {overview.agentDependencyGraph.edges.length ? (
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    {overview.agentDependencyGraph.edges.map((edge) => (
+                      <button
+                        key={`${edge.from}:${edge.to}:${edge.kind}`}
+                        type="button"
+                        onClick={() => setSelectedAgentName(edge.to)}
+                        className="rounded-2xl border border-white/10 bg-black/25 p-4 text-left transition hover:border-cyan-300/30 hover:bg-black/40"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-white">{edge.from} <span className="text-cyan-200">→</span> {edge.to}</p>
+                          <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-zinc-400">
+                            {edge.kind === "review_followup" ? "follow-up" : "delegation"}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-xs text-zinc-400">
+                          {edge.taskIds.length} task{edge.taskIds.length === 1 ? "" : "s"} · {edge.queuedTasks} queued · {edge.claimedTasks} claimed · {edge.completedTasks} completed
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-dashed border-white/10 p-4 text-sm text-zinc-500">
+                    No cross-agent dependencies are active. Manager delegation and review follow-ups will appear here.
+                  </div>
+                )}
               </div>
             </Panel>
           ) : null}

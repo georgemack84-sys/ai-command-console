@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { getRuntimePosture } from "@/src/lib/server/runtime";
 import { buildRuntimeWarnings } from "@/src/server/health/runtime-warnings";
+import { buildAgentDependencyGraph } from "@/src/server/services/agent-dependency-graph";
 
 const require = createRequire(import.meta.url);
 
@@ -210,6 +211,15 @@ function buildAgentDetails() {
   });
 }
 
+function buildAgentDependencyOverview() {
+  const agents = listAgentProfiles();
+  return buildAgentDependencyGraph({
+    agentNames: agents.map((agent: Record<string, unknown>) => String(agent.name || "")),
+    tasks: listTasks(),
+    reviews: listReviewItems(),
+  });
+}
+
 function buildTrustOverview() {
   const watcher = getWatcherStatus();
   const reviews = listReviewItems();
@@ -336,6 +346,7 @@ export async function buildTerminalOverviewSnapshot(
     plugins: listPlugins(),
     workload: buildWorkloadSummary(),
     agentDetails: buildAgentDetails(),
+    agentDependencyGraph: buildAgentDependencyOverview(),
     trust: buildTrustOverview(),
     recommendations: buildRecommendationSnapshot({
       health,
