@@ -235,4 +235,45 @@ describe("scheduler service", () => {
       restore();
     }
   });
+
+  it("skips an overlapping tick for the same agent", async () => {
+    let releaseFirstTick: (() => void) | undefined;
+    let markFirstTickStarted: (() => void) | undefined;
+    const firstTickStarted = new Promise<void>((resolve) => {
+      markFirstTickStarted = resolve;
+    });
+    const firstTickCanFinish = new Promise<void>((resolve) => {
+      releaseFirstTick = resolve;
+    });
+    const tickAgent = vi.fn(async () => {
+      markFirstTickStarted?.();
+      await firstTickCanFinish;
+      return { ok: true, result: { summary: "tick complete" } };
+    });
+    const { scheduler, restore } = loadSchedulerWithMocks(tempRoot, { tickAgent });
+
+    try {
+      scheduler.startSchedule("planner", 5, 3);
+      const firstTick = scheduler.runScheduledTick("planner");
+      await firstTickStarted;
+
+      const overlappingTick = await scheduler.runScheduledTick("planner");
+
+      expect(overlappingTick).toEqual(
+        expect.objectContaining({
+          ok: true,
+          skipped: true,
+          message: 'Scheduled tick for "planner" is already in progress.',
+        }),
+      );
+      expect(tickAgent).toHaveBeenCalledTimes(1);
+
+      releaseFirstTick?.();
+      await firstTick;
+      expect(scheduler.getSchedule("planner").cycleCount).toBe(1);
+    } finally {
+      releaseFirstTick?.();
+      restore();
+    }
+  });
 });

@@ -38,6 +38,9 @@ export async function POST(request: Request) {
     const result = await executeTerminalRequest(body, user);
     return NextResponse.json(result, { status: result.ok ? 200 : 400 });
   } catch (error) {
+    if (error instanceof AppError) {
+      return apiError(error, "Command execution failed.");
+    }
     ensureDigestScheduler();
     const user = await getSessionUser();
     const message = error instanceof Error ? error.message : "Command execution failed.";
