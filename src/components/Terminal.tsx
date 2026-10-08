@@ -418,6 +418,21 @@ type Overview = {
       ownerId: string;
       ownerName: string;
       sharedWith: string[];
+      assignedTo: string;
+      assignedById: string;
+      assignedByName: string;
+      status: string;
+      updatedAt: string;
+      createdAt: string;
+    }>;
+    sharedMacros: Array<{
+      id: string;
+      name: string;
+      command: string;
+      ownerId: string;
+      ownerName: string;
+      sharedWith: string[];
+      status: string;
       updatedAt: string;
       createdAt: string;
     }>;
@@ -957,6 +972,7 @@ const EMPTY_OVERVIEW: Overview = {
       sensitiveActionsRequireApproval: true,
     },
     sharedSessions: [],
+    sharedMacros: [],
     handoffs: [],
     approvals: [],
     inbox: [],
@@ -1289,6 +1305,7 @@ export default function Terminal({
   const [macroName, setMacroName] = useState("");
   const [pluginArgs, setPluginArgs] = useState<Record<string, string>>({});
   const [shareTargets, setShareTargets] = useState("team");
+  const [sessionAssigneeDrafts, setSessionAssigneeDrafts] = useState<Record<string, string>>({});
   const [handoffDraft, setHandoffDraft] = useState({ title: "", note: "", assignedTo: "team" });
   const [approvalNotes, setApprovalNotes] = useState<Record<string, string>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -2278,6 +2295,23 @@ export default function Terminal({
     );
   }
 
+  async function publishSharedMacro(macro: Macro) {
+    await runAction(
+      "collaboration:save-shared-macro",
+      {
+        name: macro.name,
+        command: macro.command,
+        sharedWith: shareTargets.split(",").map((item) => item.trim()).filter(Boolean),
+      },
+      `share-macro ${macro.name}`,
+    );
+  }
+
+  function importSharedMacro(macro: Macro) {
+    setMacros((current) => [macro, ...current.filter((item) => item.name !== macro.name)].slice(0, 8));
+    pushToast(setToasts, { id: id(), tone: "success", message: `Imported shared macro ${macro.name}.` });
+  }
+
   const queueChange = previousOverview ? overview.system.queuedTasks - previousOverview.system.queuedTasks : 0;
   const completedChange = previousOverview ? overview.system.completedTasks - previousOverview.system.completedTasks : 0;
 
@@ -2413,14 +2447,17 @@ export default function Terminal({
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {macros.map((macro) => (
-                      <button
+                      <div
                         key={`${macro.name}:${macro.command}`}
-                        type="button"
-                        onClick={() => void executeCommand(macro.command)}
-                        className="max-w-full rounded-full border border-white/10 bg-black/25 px-3 py-2 text-left text-sm text-zinc-200 transition whitespace-normal break-words hover:bg-black/40"
+                        className="flex max-w-full items-center overflow-hidden rounded-full border border-white/10 bg-black/25"
                       >
-                        {macro.name}
-                      </button>
+                        <button type="button" onClick={() => void executeCommand(macro.command)} className="px-3 py-2 text-left text-sm text-zinc-200 transition whitespace-normal break-words hover:bg-black/40">
+                          {macro.name}
+                        </button>
+                        <button type="button" onClick={() => void publishSharedMacro(macro)} className="border-l border-white/10 px-2 py-2 text-xs text-cyan-200 hover:bg-cyan-400/10" title={`Share ${macro.name}`}>
+                          Share
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -4181,20 +4218,63 @@ export default function Terminal({
                   </button>
                   <div className="mt-3 space-y-2">
                     {overview.collaboration.sharedSessions.slice(0, 3).map((session) => (
-                      <button
-                        key={session.id}
-                        type="button"
-                        onClick={() => {
-                          setCommand(session.draftCommand);
-                          setMacros(session.macros);
-                          pushToast(setToasts, { id: id(), tone: "success", message: `Loaded shared session ${session.name}.` });
-                        }}
-                        className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-left"
-                      >
-                        <span className="text-sm text-zinc-100">{session.name}</span>
-                        <span className="text-xs text-zinc-500">{session.ownerName}</span>
-                      </button>
+                      <div key={session.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm text-zinc-100">{session.name}</p>
+                            <p className="mt-1 text-xs text-zinc-500">Owner: {session.ownerName} • Assigned: {session.assignedTo || "unassigned"} • {session.macros.length} macros</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCommand(session.draftCommand);
+                              setMacros(session.macros);
+                              pushToast(setToasts, { id: id(), tone: "success", message: `Loaded shared session ${session.name}.` });
+                            }}
+                            className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-100"
+                          >
+                            Load
+                          </button>
+                        </div>
+                        {session.ownerId === overview.collaboration.currentUser.id || overview.collaboration.permissions.canManageGovernance ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <input
+                              value={sessionAssigneeDrafts[session.id] ?? session.assignedTo ?? "team"}
+                              onChange={(event) => setSessionAssigneeDrafts((current) => ({ ...current, [session.id]: event.target.value }))}
+                              className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs text-white outline-none"
+                              placeholder="user, role, or team"
+                            />
+                            <button type="button" onClick={() => void runAction("collaboration:assign-session", { sessionId: session.id, assignedTo: sessionAssigneeDrafts[session.id] ?? session.assignedTo ?? "team" }, `assign-session ${session.name}`)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-zinc-200">
+                              Assign
+                            </button>
+                            <button type="button" onClick={() => void runAction("collaboration:archive-session", { sessionId: session.id }, `archive-session ${session.name}`)} className="rounded-lg border border-rose-400/20 px-2 py-1 text-xs text-rose-200">
+                              Archive
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     ))}
+                  </div>
+                  <div className="mt-4 border-t border-white/10 pt-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Shared Macro Library</p>
+                    <div className="mt-2 space-y-2">
+                      {overview.collaboration.sharedMacros.length ? overview.collaboration.sharedMacros.slice(0, 5).map((macro) => (
+                        <div key={macro.id} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-zinc-100">{macro.name}</p>
+                            <p className="truncate text-xs text-zinc-500">{macro.command} • {macro.ownerName}</p>
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <button type="button" onClick={() => importSharedMacro({ name: macro.name, command: macro.command })} className="rounded-full border border-cyan-400/20 px-2 py-1 text-xs text-cyan-100">Import</button>
+                            {macro.ownerId === overview.collaboration.currentUser.id || overview.collaboration.permissions.canManageGovernance ? (
+                              <button type="button" onClick={() => void runAction("collaboration:archive-shared-macro", { macroId: macro.id }, `archive-macro ${macro.name}`)} className="rounded-full border border-rose-400/20 px-2 py-1 text-xs text-rose-200">Archive</button>
+                            ) : null}
+                          </div>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-zinc-500">No shared macros yet. Publish one from the console macro shelf.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 

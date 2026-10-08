@@ -106,6 +106,10 @@ const terminalOperationsActions = new Set([
 
 const terminalCollaborationActions = new Set([
   "collaboration:share-session",
+  "collaboration:assign-session",
+  "collaboration:archive-session",
+  "collaboration:save-shared-macro",
+  "collaboration:archive-shared-macro",
   "collaboration:create-handoff",
   "collaboration:close-handoff",
   "collaboration:inbox-mark-read",

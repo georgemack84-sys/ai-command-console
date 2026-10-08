@@ -209,20 +209,100 @@ function appendDigestWorkspaceEvent(workspaceId, event = {}) {
 
 function upsertSharedSession(session) {
   const state = loadCollaborationState();
+  const existing = state.sharedSessions.find((item) => item.id === session.id) || null;
   const next = {
     id: session.id || `shared_session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     name: String(session.name || "").trim(),
     draftCommand: String(session.draftCommand || "").trim(),
     macros: Array.isArray(session.macros) ? session.macros : [],
-    ownerId: session.ownerId || "demo",
-    ownerName: session.ownerName || "Demo User",
+    ownerId: existing?.ownerId || session.ownerId || "demo",
+    ownerName: existing?.ownerName || session.ownerName || "Demo User",
     sharedWith: Array.isArray(session.sharedWith) ? session.sharedWith : ["team"],
+    assignedTo: session.assignedTo || existing?.assignedTo || session.ownerId || "team",
+    assignedById: session.assignedById || existing?.assignedById || session.ownerId || "demo",
+    assignedByName: session.assignedByName || existing?.assignedByName || session.ownerName || "Demo User",
+    status: "active",
     updatedAt: new Date().toISOString(),
-    createdAt: session.createdAt || new Date().toISOString(),
+    createdAt: existing?.createdAt || session.createdAt || new Date().toISOString(),
   };
   state.sharedSessions = [next, ...state.sharedSessions.filter((item) => item.id !== next.id)];
   saveCollaborationState(state);
   return next;
+}
+
+function getSharedSession(sessionId) {
+  return loadCollaborationState().sharedSessions.find((item) => item.id === String(sessionId || "")) || null;
+}
+
+function assignSharedSession(sessionId, assignment = {}) {
+  const state = loadCollaborationState();
+  const index = state.sharedSessions.findIndex((item) => item.id === String(sessionId || ""));
+  if (index === -1) return null;
+  state.sharedSessions[index] = {
+    ...state.sharedSessions[index],
+    assignedTo: String(assignment.assignedTo || "team").trim() || "team",
+    assignedById: assignment.assignedById || "demo",
+    assignedByName: assignment.assignedByName || "Demo User",
+    status: "active",
+    updatedAt: new Date().toISOString(),
+  };
+  saveCollaborationState(state);
+  return state.sharedSessions[index];
+}
+
+function archiveSharedSession(sessionId, archive = {}) {
+  const state = loadCollaborationState();
+  const index = state.sharedSessions.findIndex((item) => item.id === String(sessionId || ""));
+  if (index === -1) return null;
+  state.sharedSessions[index] = {
+    ...state.sharedSessions[index],
+    status: "archived",
+    archivedAt: new Date().toISOString(),
+    archivedById: archive.archivedById || "demo",
+    archivedByName: archive.archivedByName || "Demo User",
+    updatedAt: new Date().toISOString(),
+  };
+  saveCollaborationState(state);
+  return state.sharedSessions[index];
+}
+
+function upsertSharedMacro(macro) {
+  const state = loadCollaborationState();
+  const existing = state.sharedMacros.find((item) => item.id === macro.id) || null;
+  const next = {
+    id: macro.id || `shared_macro_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    name: String(macro.name || "").trim(),
+    command: String(macro.command || "").trim(),
+    ownerId: existing?.ownerId || macro.ownerId || "demo",
+    ownerName: existing?.ownerName || macro.ownerName || "Demo User",
+    sharedWith: Array.isArray(macro.sharedWith) ? macro.sharedWith : ["team"],
+    status: "active",
+    updatedAt: new Date().toISOString(),
+    createdAt: existing?.createdAt || macro.createdAt || new Date().toISOString(),
+  };
+  state.sharedMacros = [next, ...state.sharedMacros.filter((item) => item.id !== next.id)];
+  saveCollaborationState(state);
+  return next;
+}
+
+function getSharedMacro(macroId) {
+  return loadCollaborationState().sharedMacros.find((item) => item.id === String(macroId || "")) || null;
+}
+
+function archiveSharedMacro(macroId, archive = {}) {
+  const state = loadCollaborationState();
+  const index = state.sharedMacros.findIndex((item) => item.id === String(macroId || ""));
+  if (index === -1) return null;
+  state.sharedMacros[index] = {
+    ...state.sharedMacros[index],
+    status: "archived",
+    archivedAt: new Date().toISOString(),
+    archivedById: archive.archivedById || "demo",
+    archivedByName: archive.archivedByName || "Demo User",
+    updatedAt: new Date().toISOString(),
+  };
+  saveCollaborationState(state);
+  return state.sharedMacros[index];
 }
 
 function createHandoff(handoff) {
@@ -328,6 +408,12 @@ module.exports = {
   loadCollaborationState,
   saveCollaborationState,
   upsertSharedSession,
+  getSharedSession,
+  assignSharedSession,
+  archiveSharedSession,
+  upsertSharedMacro,
+  getSharedMacro,
+  archiveSharedMacro,
   createHandoff,
   closeHandoff,
   createApprovalRequest,
