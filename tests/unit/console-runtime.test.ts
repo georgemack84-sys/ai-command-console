@@ -447,6 +447,10 @@ vi.mock("node:module", async (importOriginal) => {
                 "automation-template:save",
                 "automation-template:delete",
                 "automation-template:run",
+                "collaboration:assign-session",
+                "collaboration:archive-session",
+                "collaboration:save-shared-macro",
+                "collaboration:archive-shared-macro",
                 "agent:update-config",
                 "review:approve",
                 "review:create",
@@ -2268,6 +2272,41 @@ describe("console runtime", () => {
       expect.objectContaining({
         ok: true,
         plan: expect.objectContaining({ action: "automation-template:preflight" }),
+      }),
+    );
+  });
+
+  it("publishes a shared macro through the governed collaboration path", async () => {
+    const result = await executeTerminalRequest(
+      {
+        action: "collaboration:save-shared-macro",
+        payload: { name: "Health", command: "dashboard:health", sharedWith: ["team"] },
+      },
+      actor,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: true,
+        plan: expect.objectContaining({ action: "collaboration:save-shared-macro" }),
+      }),
+    );
+  });
+
+  it("requires confirmation before archiving a shared session", async () => {
+    const result = await executeTerminalRequest(
+      {
+        action: "collaboration:archive-session",
+        payload: { sessionId: "session_1" },
+      },
+      actor,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: false,
+        requiresConfirmation: true,
+        plan: expect.objectContaining({ action: "collaboration:archive-session" }),
       }),
     );
   });

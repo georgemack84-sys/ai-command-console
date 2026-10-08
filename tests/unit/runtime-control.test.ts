@@ -171,6 +171,26 @@ describe("runtime control", () => {
     )).toEqual(expect.objectContaining({ decision: "confirm_required" }));
   });
 
+  it("requires governed confirmation for shared session and macro mutations", () => {
+    const policy = runtimeControl.loadControlPolicy();
+    const context = {
+      safeMode: false,
+      dryRun: false,
+      identity: { sourceIdentity: "human", role: "admin", maxExecutionMode: "auto_execute" },
+    };
+
+    for (const action of ["collaboration:assign-session", "collaboration:archive-session", "collaboration:archive-shared-macro"]) {
+      expect(policy.actionCategoryMap[action]).toBe("workflow_control");
+      expect(runtimeControl.reviewPlan({ type: "single", action, payload: {} }, context, policy)).toEqual(
+        expect.objectContaining({ decision: "confirm_required" }),
+      );
+    }
+    expect(policy.actionCategoryMap["collaboration:save-shared-macro"]).toBe("process_control");
+    expect(runtimeControl.reviewPlan({ type: "single", action: "collaboration:save-shared-macro", payload: {} }, context, policy)).toEqual(
+      expect.objectContaining({ decision: "auto_execute" }),
+    );
+  });
+
   it("returns confirmation required for watcher control actions before execution", () => {
     const decision = runtimeControl.reviewPlan(
       { type: "single", action: "watcher:start", payload: { intervalSeconds: 5 } },

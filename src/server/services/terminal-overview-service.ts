@@ -528,8 +528,16 @@ export function buildTerminalCollaborationSnapshot(input: {
 
   const sharedSessions = (Array.isArray(collaborationState.sharedSessions) ? collaborationState.sharedSessions : []).filter(
     (session: Record<string, unknown>) =>
-      session.ownerId === input.user.id ||
-      matchesTargets(Array.isArray(session.sharedWith) ? session.sharedWith.join(",") : session.sharedWith, actorTargets),
+      String(session.status || "active") === "active" &&
+      (session.ownerId === input.user.id ||
+        matchesTargets(session.assignedTo, actorTargets) ||
+        matchesTargets(Array.isArray(session.sharedWith) ? session.sharedWith.join(",") : session.sharedWith, actorTargets)),
+  );
+  const sharedMacros = (Array.isArray(collaborationState.sharedMacros) ? collaborationState.sharedMacros : []).filter(
+    (macro: Record<string, unknown>) =>
+      String(macro.status || "active") === "active" &&
+      (macro.ownerId === input.user.id ||
+        matchesTargets(Array.isArray(macro.sharedWith) ? macro.sharedWith.join(",") : macro.sharedWith, actorTargets)),
   );
 
   return {
@@ -541,6 +549,7 @@ export function buildTerminalCollaborationSnapshot(input: {
       workspaceId: input.user.workspaceId,
     },
     sharedSessions,
+    sharedMacros,
     handoffs: visibleHandoffs,
     digestPreferences: getDigestPreferences(input.user.id),
     digestRuns: listDigestRuns(input.user.id).slice(0, 8),

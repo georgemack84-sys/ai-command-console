@@ -78,8 +78,12 @@ Delivered:
 Goals:
 - Support multiple operators safely
 
+Status: In progress
+
+Delivered:
+- Shared operator sessions and reusable macros with owner/admin controls, assignment, visibility filtering, governed archival, and audit history
+
 Planned features:
-- Shared sessions and macros
 - Ownership and assignment controls
 - Approval gates for sensitive actions
 - Handoff notes and review delegation

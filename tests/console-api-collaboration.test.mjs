@@ -369,3 +369,65 @@ test("digest preferences persist and digest runs capture notification summaries"
     restoreFiles(snapshot);
   }
 });
+
+test("shared sessions and macros respect assignment, audience, and archive visibility", async () => {
+  const snapshot = snapshotFiles(FILES);
+
+  try {
+    resetState();
+    const workspaceId = "workspace_shared_session_visibility";
+    const state = loadCollaborationState();
+    state.sharedSessions = [
+      {
+        id: "session_active",
+        name: "Assigned incident room",
+        draftCommand: "inbox:list",
+        macros: [{ name: "Inbox", command: "inbox:list" }],
+        ownerId: "owner",
+        ownerName: "Owner",
+        sharedWith: ["user:alex"],
+        assignedTo: "user:jamie",
+        status: "active",
+      },
+      {
+        id: "session_archived",
+        name: "Archived room",
+        draftCommand: "help",
+        macros: [],
+        ownerId: "owner",
+        ownerName: "Owner",
+        sharedWith: ["team"],
+        assignedTo: "team",
+        status: "archived",
+      },
+    ];
+    state.sharedMacros = [
+      { id: "macro_active", name: "Health", command: "dashboard:health", ownerId: "owner", ownerName: "Owner", sharedWith: ["user:alex"], status: "active" },
+      { id: "macro_archived", name: "Old health", command: "dashboard:health", ownerId: "owner", ownerName: "Owner", sharedWith: ["team"], status: "archived" },
+    ];
+    saveCollaborationState(state);
+
+    const alex = await handleConsoleRequest(
+      { command: "help" },
+      { userId: "alex", userName: "Alex Editor", userRole: "operator", workspaceId },
+    );
+    assert.deepEqual(alex.overview.collaboration.sharedSessions.map((item) => item.id), ["session_active"]);
+    assert.deepEqual(alex.overview.collaboration.sharedMacros.map((item) => item.id), ["macro_active"]);
+
+    const jamie = await handleConsoleRequest(
+      { command: "help" },
+      { userId: "jamie", userName: "Jamie Lead", userRole: "admin", workspaceId },
+    );
+    assert.deepEqual(jamie.overview.collaboration.sharedSessions.map((item) => item.id), ["session_active"]);
+    assert.deepEqual(jamie.overview.collaboration.sharedMacros, []);
+
+    const unrelated = await handleConsoleRequest(
+      { command: "help" },
+      { userId: "sam", userName: "Sam Operator", userRole: "operator", workspaceId },
+    );
+    assert.deepEqual(unrelated.overview.collaboration.sharedSessions, []);
+    assert.deepEqual(unrelated.overview.collaboration.sharedMacros, []);
+  } finally {
+    restoreFiles(snapshot);
+  }
+});

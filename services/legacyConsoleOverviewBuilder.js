@@ -6,6 +6,27 @@ function extractAlertWorkflowField(alert, key, fallback = null) {
   return fallback;
 }
 
+function buildCollaborationTargets(actor) {
+  const normalize = (value) => String(value || "").trim().toLowerCase();
+  return new Set([
+    normalize(actor.id),
+    normalize(actor.name),
+    normalize(actor.role),
+    `user:${normalize(actor.id)}`,
+    `name:${normalize(actor.name)}`,
+    `role:${normalize(actor.role)}`,
+    "team",
+  ]);
+}
+
+function matchesCollaborationTargets(value, targets) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .some((item) => targets.has(item));
+}
+
 function buildLegacyOverview(options = {}, deps) {
   deps.ensureJobProcessorsRegistered();
   const system = deps.buildSystemSummary();
@@ -21,6 +42,7 @@ function buildLegacyOverview(options = {}, deps) {
   const plugins = deps.listPlugins();
   let collaboration = deps.loadCollaborationState();
   const actor = deps.getActor(options);
+  const collaborationTargets = buildCollaborationTargets(actor);
   const workspace = deps.getResearchWorkspace(options);
   const environmentPolicy = deps.getEnvironmentPolicy(collaboration.governance);
   const ownershipSignals = deps.buildOwnershipSignals(workspace);
@@ -383,7 +405,23 @@ function buildLegacyOverview(options = {}, deps) {
         ...collaboration.governance,
         defaultPolicyPlaybookPresets,
       },
-      sharedSessions: collaboration.sharedSessions.slice(0, 12),
+      sharedSessions: collaboration.sharedSessions
+        .filter(
+          (session) =>
+            String(session.status || "active") === "active" &&
+            (session.ownerId === actor.id ||
+              matchesCollaborationTargets(session.assignedTo, collaborationTargets) ||
+              matchesCollaborationTargets(Array.isArray(session.sharedWith) ? session.sharedWith.join(",") : session.sharedWith, collaborationTargets)),
+        )
+        .slice(0, 12),
+      sharedMacros: (Array.isArray(collaboration.sharedMacros) ? collaboration.sharedMacros : [])
+        .filter(
+          (macro) =>
+            String(macro.status || "active") === "active" &&
+            (macro.ownerId === actor.id ||
+              matchesCollaborationTargets(Array.isArray(macro.sharedWith) ? macro.sharedWith.join(",") : macro.sharedWith, collaborationTargets)),
+        )
+        .slice(0, 12),
       handoffs: collaboration.handoffs.slice(0, 12),
       approvals: collaboration.approvals.slice(0, 12),
       inbox,

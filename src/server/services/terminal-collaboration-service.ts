@@ -7,6 +7,12 @@ const require = createRequire(import.meta.url);
 
 const {
   upsertSharedSession,
+  getSharedSession,
+  assignSharedSession,
+  archiveSharedSession,
+  upsertSharedMacro,
+  getSharedMacro,
+  archiveSharedMacro,
   createHandoff,
   closeHandoff,
   updateInboxItemState,
@@ -20,11 +26,35 @@ const actionSchema = z.discriminatedUnion("action", [
     action: z.literal("collaboration:share-session"),
     payload: z.object({
       id: z.string().optional(),
-      name: z.string().min(1),
-      draftCommand: z.string().default(""),
-      macros: z.array(z.any()).optional().default([]),
-      sharedWith: z.array(z.string()).optional().default(["team"]),
+      name: z.string().min(1).max(80),
+      draftCommand: z.string().max(500).default(""),
+      macros: z.array(z.object({ name: z.string().min(1).max(80), command: z.string().min(1).max(500) })).max(12).optional().default([]),
+      sharedWith: z.array(z.string().min(1).max(120)).max(20).optional().default(["team"]),
     }),
+  }),
+  z.object({
+    action: z.literal("collaboration:assign-session"),
+    payload: z.object({
+      sessionId: z.string().min(1),
+      assignedTo: z.string().min(1).max(120),
+    }),
+  }),
+  z.object({
+    action: z.literal("collaboration:archive-session"),
+    payload: z.object({ sessionId: z.string().min(1) }),
+  }),
+  z.object({
+    action: z.literal("collaboration:save-shared-macro"),
+    payload: z.object({
+      id: z.string().optional(),
+      name: z.string().min(1).max(80),
+      command: z.string().min(1).max(500),
+      sharedWith: z.array(z.string().min(1).max(120)).max(20).optional().default(["team"]),
+    }),
+  }),
+  z.object({
+    action: z.literal("collaboration:archive-shared-macro"),
+    payload: z.object({ macroId: z.string().min(1) }),
   }),
   z.object({
     action: z.literal("collaboration:create-handoff"),
@@ -91,6 +121,21 @@ function findInboxItem(overview: unknown, itemId: string): InboxItem | null {
   return inbox.find((item) => item.id === itemId) || null;
 }
 
+function requireOperator(actor: CollaborationActor) {
+  if (actor.role === "viewer") {
+    throw new AppError(403, "collaboration_forbidden", "Viewer accounts cannot modify shared collaboration resources.");
+  }
+}
+
+function requireOwnerOrAdmin(resource: { ownerId?: string } | null, actor: CollaborationActor, label: string) {
+  if (!resource) {
+    throw new AppError(404, `${label}_not_found`, `${label.replace(/_/g, " ")} not found.`);
+  }
+  if (resource.ownerId !== actor.id && actor.role !== "admin") {
+    throw new AppError(403, "collaboration_forbidden", `Only the owner or an admin can modify this ${label.replace(/_/g, " ")}.`);
+  }
+}
+
 export async function executeTerminalCollaborationAction(
   input: unknown,
   actor: CollaborationActor,
@@ -100,6 +145,9 @@ export async function executeTerminalCollaborationAction(
   const actorName = actor.name || actor.email;
 
   if (parsed.action === "collaboration:share-session") {
+    requireOperator(actor);
+    const existing = parsed.payload.id ? getSharedSession(parsed.payload.id) : null;
+    if (parsed.payload.id) requireOwnerOrAdmin(existing, actor, "shared_session");
     const session = upsertSharedSession({
       id: parsed.payload.id,
       name: parsed.payload.name,
@@ -108,9 +156,59 @@ export async function executeTerminalCollaborationAction(
       ownerId: actor.id,
       ownerName: actorName,
       sharedWith: parsed.payload.sharedWith,
+      assignedTo: existing?.assignedTo || actor.id,
+      assignedById: existing?.assignedById || actor.id,
+      assignedByName: existing?.assignedByName || actorName,
     });
     appendAuditEvent({ type: parsed.action, message: `Shared session ${session.name}.`, payload: { sessionId: session.id, actorId: actor.id } });
     return { action: parsed.action, output: `Shared session "${session.name}".` };
+  }
+
+  if (parsed.action === "collaboration:assign-session") {
+    requireOperator(actor);
+    const existing = getSharedSession(parsed.payload.sessionId);
+    requireOwnerOrAdmin(existing, actor, "shared_session");
+    const session = assignSharedSession(parsed.payload.sessionId, {
+      assignedTo: parsed.payload.assignedTo,
+      assignedById: actor.id,
+      assignedByName: actorName,
+    });
+    appendAuditEvent({ type: parsed.action, message: `Assigned shared session ${session.name} to ${session.assignedTo}.`, payload: { sessionId: session.id, assignedTo: session.assignedTo, actorId: actor.id } });
+    return { action: parsed.action, output: `Assigned "${session.name}" to ${session.assignedTo}.` };
+  }
+
+  if (parsed.action === "collaboration:archive-session") {
+    requireOperator(actor);
+    const existing = getSharedSession(parsed.payload.sessionId);
+    requireOwnerOrAdmin(existing, actor, "shared_session");
+    const session = archiveSharedSession(parsed.payload.sessionId, { archivedById: actor.id, archivedByName: actorName });
+    appendAuditEvent({ type: parsed.action, message: `Archived shared session ${session.name}.`, payload: { sessionId: session.id, actorId: actor.id } });
+    return { action: parsed.action, output: `Archived shared session "${session.name}".` };
+  }
+
+  if (parsed.action === "collaboration:save-shared-macro") {
+    requireOperator(actor);
+    const existing = parsed.payload.id ? getSharedMacro(parsed.payload.id) : null;
+    if (parsed.payload.id) requireOwnerOrAdmin(existing, actor, "shared_macro");
+    const macro = upsertSharedMacro({
+      id: parsed.payload.id,
+      name: parsed.payload.name,
+      command: parsed.payload.command,
+      ownerId: actor.id,
+      ownerName: actorName,
+      sharedWith: parsed.payload.sharedWith,
+    });
+    appendAuditEvent({ type: parsed.action, message: `Saved shared macro ${macro.name}.`, payload: { macroId: macro.id, actorId: actor.id } });
+    return { action: parsed.action, output: `Saved shared macro "${macro.name}".` };
+  }
+
+  if (parsed.action === "collaboration:archive-shared-macro") {
+    requireOperator(actor);
+    const existing = getSharedMacro(parsed.payload.macroId);
+    requireOwnerOrAdmin(existing, actor, "shared_macro");
+    const macro = archiveSharedMacro(parsed.payload.macroId, { archivedById: actor.id, archivedByName: actorName });
+    appendAuditEvent({ type: parsed.action, message: `Archived shared macro ${macro.name}.`, payload: { macroId: macro.id, actorId: actor.id } });
+    return { action: parsed.action, output: `Archived shared macro "${macro.name}".` };
   }
 
   if (parsed.action === "collaboration:create-handoff") {

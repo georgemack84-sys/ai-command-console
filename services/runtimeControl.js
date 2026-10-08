@@ -410,6 +410,16 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 21;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 22) {
+    normalizedLoadedPolicy.actionCategoryMap = {
+      ...(normalizedLoadedPolicy.actionCategoryMap || {}),
+      "collaboration:assign-session": "workflow_control",
+      "collaboration:archive-session": "workflow_control",
+      "collaboration:save-shared-macro": "process_control",
+      "collaboration:archive-shared-macro": "workflow_control",
+    };
+    normalizedLoadedPolicy.version = 22;
+  }
 
   const defaults = createDefaultPolicy();
   return {

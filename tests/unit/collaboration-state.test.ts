@@ -12,6 +12,7 @@ describe("collaboration state helpers", () => {
   it("normalizes malformed collaboration payloads while preserving governance policy merges", () => {
     const normalized = normalizeCollaborationState({
       sharedSessions: "bad",
+      sharedMacros: "bad",
       handoffs: null,
       approvals: {},
       governance: {
@@ -28,6 +29,7 @@ describe("collaboration state helpers", () => {
     });
 
     expect(normalized.sharedSessions).toEqual([]);
+    expect(normalized.sharedMacros).toEqual([]);
     expect(normalized.handoffs).toEqual([]);
     expect(normalized.approvals).toEqual([]);
     expect(normalized.inboxState).toEqual({});
@@ -59,6 +61,7 @@ describe("collaboration state helpers", () => {
         defaultPolicyPlaybookPresets: makeEntries(30, "preset"),
       },
       sharedSessions: makeEntries(140, "session"),
+      sharedMacros: makeEntries(150, "macro"),
       handoffs: makeEntries(130, "handoff"),
       approvals: makeEntries(135, "approval"),
     });
@@ -72,6 +75,7 @@ describe("collaboration state helpers", () => {
     expect(sanitized.governance.workspacePolicyPlaybookRollouts).toHaveLength(100);
     expect(sanitized.governance.defaultPolicyPlaybookPresets).toHaveLength(20);
     expect(sanitized.sharedSessions).toHaveLength(100);
+    expect(sanitized.sharedMacros).toHaveLength(100);
     expect(sanitized.handoffs).toHaveLength(100);
     expect(sanitized.approvals).toHaveLength(100);
   });
