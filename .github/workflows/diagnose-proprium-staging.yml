@@ -45,14 +45,29 @@ jobs:
           echo '## Proprium staging host diagnostics'
           echo
           echo '### Tooling'
-          command -v docker >/dev/null && docker --version || echo 'Docker: unavailable'
-          docker compose version 2>/dev/null || echo 'Docker Compose v2: unavailable'
+          docker_available=false
+          if command -v docker >/dev/null; then
+            docker_available=true
+            docker --version
+            docker compose version 2>/dev/null || echo 'Docker Compose v2: unavailable'
+          else
+            echo 'Docker: unavailable'
+            echo 'Docker Compose v2: unavailable'
+          fi
           echo
           echo '### Docker networks'
-          docker network ls --format '{{.Name}} ({{.Driver}}, {{.Scope}})'
+          if [ "$docker_available" = true ]; then
+            docker network ls --format '{{.Name}} ({{.Driver}}, {{.Scope}})'
+          else
+            echo 'Docker: unavailable'
+          fi
           echo
           echo '### Running Docker containers (names, images, networks only)'
-          docker ps --format '{{.Names}} ({{.Image}}; {{.Networks}})' || true
+          if [ "$docker_available" = true ]; then
+            docker ps --format '{{.Names}} ({{.Image}}; {{.Networks}})' || true
+          else
+            echo 'Docker: unavailable'
+          fi
           echo
           echo '### Listening TCP endpoints'
           if command -v ss >/dev/null; then

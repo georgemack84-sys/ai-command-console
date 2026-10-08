@@ -80,6 +80,8 @@ assert.equal(stagingDiagnostics.name, 'Diagnose Proprium Staging Host');
 assert.deepEqual(Object.keys(stagingDiagnostics.on), ['workflow_dispatch']);
 assert.equal(stagingDiagnostics.jobs.diagnose.environment, 'staging');
 assert.match(stagingDiagnosticsSource, /docker network ls/);
+assert.match(stagingDiagnosticsSource, /docker_available=false/);
+assert.match(stagingDiagnosticsSource, /if \[ "\$docker_available" = true \]/);
 assert.match(stagingDiagnosticsSource, /Listening TCP endpoints/);
 assert.match(stagingDiagnosticsSource, /Reverse-proxy inventory/);
 assert.match(stagingDiagnosticsSource, /Caddyfile/);
