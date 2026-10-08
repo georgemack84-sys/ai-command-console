@@ -180,6 +180,7 @@ jobs:
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_PRISMA_BASELINE: ${{ vars.DEPLOY_PRISMA_BASELINE }}
           DEPLOY_SSH_KEY_FINGERPRINT: ${{ vars.DEPLOY_SSH_KEY_FINGERPRINT }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
@@ -187,6 +188,14 @@ jobs:
           MIGRATION_PATH="${MIGRATION_ROOT}/${{ steps.metadata.outputs.release_version }}"
           MIGRATION_ARCHIVE="ai-command-console-migrations-${{ steps.metadata.outputs.release_version }}.tgz"
           ENVIRONMENT_FILE="${DEPLOY_PATH}/shared/${{ steps.metadata.outputs.target_environment }}.env"
+
+          case "$DEPLOY_PRISMA_BASELINE" in
+            ""|all-current-migrations) ;;
+            *)
+              echo "DEPLOY_PRISMA_BASELINE must be blank or all-current-migrations."
+              exit 1
+              ;;
+          esac
 
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
@@ -207,6 +216,37 @@ jobs:
             rm -f '/tmp/$MIGRATION_ARCHIVE' && \\
             ln -sfn '$ENVIRONMENT_FILE' '$MIGRATION_PATH/.env' && \\
             cd '$MIGRATION_PATH' && \\
+            BASELINE_MODE='$DEPLOY_PRISMA_BASELINE'; \\
+            MIGRATION_LOG=\$(mktemp); \\
+            if node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma >\"\$MIGRATION_LOG\" 2>&1; then \\
+              cat \"\$MIGRATION_LOG\"; \\
+              rm -f \"\$MIGRATION_LOG\"; \\
+              exit 0; \\
+            else \\
+              MIGRATION_STATUS=\$?; \\
+            fi; \\
+            cat \"\$MIGRATION_LOG\"; \\
+            if ! grep -q 'P3005' \"\$MIGRATION_LOG\"; then \\
+              rm -f \"\$MIGRATION_LOG\"; \\
+              exit \"\$MIGRATION_STATUS\"; \\
+            fi; \\
+            rm -f \"\$MIGRATION_LOG\"; \\
+            if [ \"\$BASELINE_MODE\" != 'all-current-migrations' ]; then \\
+              echo 'Prisma migration history is missing for a non-empty database. Review the schema diff, then set DEPLOY_PRISMA_BASELINE=all-current-migrations for one guarded baseline deployment.'; \\
+              exit 1; \\
+            fi; \\
+            set +e; \\
+            node node_modules/prisma/build/index.js migrate diff --exit-code --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma; \\
+            DIFF_STATUS=\$?; \\
+            set -e; \\
+            if [ \"\$DIFF_STATUS\" -ne 0 ]; then \\
+              echo 'Refusing to baseline: the live database schema does not exactly match prisma/schema.prisma.'; \\
+              exit \"\$DIFF_STATUS\"; \\
+            fi; \\
+            for MIGRATION_DIR in prisma/migrations/*; do \\
+              [ -d \"\$MIGRATION_DIR\" ] || continue; \\
+              node node_modules/prisma/build/index.js migrate resolve --applied \"\$(basename \"\$MIGRATION_DIR\")\" --schema prisma/schema.prisma; \\
+            done; \\
             node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma"
 
       - name: Deploy over SSH

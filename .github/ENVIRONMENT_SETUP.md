@@ -34,6 +34,8 @@ Strongly recommended variables:
 - `DEPLOY_RELEASE_RETENTION`
 - `NURU_EDITION_PREPARE_COMMAND` — reviewed host command that runs `npm run nuru:prepare-edition` in the deployed application environment.
 
+`DEPLOY_PRISMA_BASELINE` is a one-time recovery variable, not a routine setting. Leave it unset for normal deployments. If an existing staging database has no Prisma migration history, first let the deployment report `P3005`, verify that the database is expected to match the repository schema, then set the GitHub Environment variable to exactly `all-current-migrations` for one deployment. The workflow performs a read-only schema comparison before recording the existing migrations as applied. Remove the variable immediately after a successful baseline.
+
 ## Production
 
 Recommended behavior:
