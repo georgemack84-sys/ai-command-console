@@ -51,6 +51,7 @@ vi.mock("@/src/server/services/policy-governance-service", () => ({
 import { prisma } from "@/src/server/db/prisma";
 import {
   applyPolicyOverrideToWorkspaces,
+  rollbackPolicyPlaybookRollout,
   savePolicyPlaybook,
 } from "@/src/server/services/policy-governance-service";
 import {
@@ -337,5 +338,20 @@ describe("operations action service", () => {
         workspaceIds: ["workspace_1"],
       }),
     );
+  });
+
+  it("delegates policy rollback to the guarded governance recovery path", async () => {
+    vi.mocked(rollbackPolicyPlaybookRollout).mockResolvedValue({ workspacePolicyOverrides: {} } as never);
+
+    const result = await executeOperationsAction(
+      {
+        action: "collaboration:rollback-approval-policy",
+        payload: { promotionId: "rollout_1" },
+      },
+      actor,
+    );
+
+    expect(result.output).toContain("Rolled back policy rollout rollout_1");
+    expect(rollbackPolicyPlaybookRollout).toHaveBeenCalledWith("rollout_1");
   });
 });

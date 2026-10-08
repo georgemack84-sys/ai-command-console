@@ -161,6 +161,26 @@ function cleanedData<T extends Record<string, unknown>>(value: T) {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== null && item !== undefined)) as T;
 }
 
+function normalizeRolloutOverrideSnapshot(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const override = value as Record<string, unknown>;
+  return {
+    ...sanitizeOverride(override),
+    sourceType: typeof override.sourceType === "string" ? override.sourceType : null,
+    sourcePlaybookId: typeof override.sourcePlaybookId === "string" ? override.sourcePlaybookId : null,
+    updatedById: typeof override.updatedById === "string" ? override.updatedById : null,
+    updatedByName: typeof override.updatedByName === "string" ? override.updatedByName : null,
+  };
+}
+
+function rolloutSnapshotMatchesCurrentOverride(currentOverride: unknown, recordedAfterOverride: unknown) {
+  return JSON.stringify(normalizeRolloutOverrideSnapshot(currentOverride))
+    === JSON.stringify(normalizeRolloutOverrideSnapshot(recordedAfterOverride));
+}
+
 export async function ensurePolicyGovernanceState() {
   await policyPrisma.platformGovernanceSettings.upsert({
     where: { id: "default" },
@@ -597,9 +617,24 @@ export async function rollbackPolicyPlaybookRollout(rolloutId: string) {
   if (!rollout) {
     throw new AppError(404, "policy_rollout_not_found", "Policy rollout not found.");
   }
+  if (rollout.rolledBackAt) {
+    throw new AppError(409, "policy_rollout_already_rolled_back", "Policy rollout has already been rolled back.");
+  }
 
   await policyPrisma.$transaction(async (tx: any) => {
     for (const item of rollout.workspaces) {
+      const currentOverride = await tx.workspacePolicyOverride.findUnique({
+        where: { workspaceId: item.workspaceId },
+      });
+      if (!rolloutSnapshotMatchesCurrentOverride(currentOverride, item.afterOverride)) {
+        throw new AppError(
+          409,
+          "policy_rollout_stale",
+          "Policy rollout rollback is blocked because a workspace override changed after the rollout.",
+          { rolloutId, workspaceId: item.workspaceId },
+        );
+      }
+
       const before = item.beforeOverride && typeof item.beforeOverride === "object"
         ? (item.beforeOverride as Record<string, unknown>)
         : null;
