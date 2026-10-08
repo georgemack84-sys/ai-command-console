@@ -50,17 +50,6 @@ const envSchema = z.object({
   RATE_LIMIT_AUTH_LIMIT: z.string().optional(),
   RATE_LIMIT_SOURCE_LIMIT: z.string().optional(),
   RATE_LIMIT_JOBS_LIMIT: z.string().optional(),
-  RATE_LIMIT_NSI_WRITE_LIMIT: z.string().optional(),
-  RATE_LIMIT_NSI_FETCH_LIMIT: z.string().optional(),
-  RATE_LIMIT_NSI_CANONICAL_ADMISSION_LIMIT: z.string().optional(),
-  RATE_LIMIT_BACKEND: z.enum(["memory", "redis"]).default("memory"),
-  REDIS_URL: z.string().url().optional(),
-  NURU_EGRESS_PROXY_URL: z.string().url().optional(),
-  NURU_EGRESS_PROXY_REQUIRED: z.string().optional(),
-  NURU_AUDIT_SIGNING_PROVIDER: z.enum(["gcp_kms", "local_secret"]).optional(),
-  NURU_AUDIT_SIGNING_PRIVATE_KEY_PKCS8_BASE64: z.string().optional(),
-  NURU_GCP_KMS_CRYPTO_KEY_VERSION: z.string().optional(),
-  NURU_AUDIT_SIGNING_KEY_ID: z.string().optional(),
   FEATURE_FLAGS_ENABLED: z.string().optional(),
 });
 
