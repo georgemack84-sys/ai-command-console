@@ -42,7 +42,6 @@ jobs:
       DEPLOY_VALIDATION_PATHS: ${{ vars.DEPLOY_VALIDATION_PATHS }}
       DEPLOY_RELEASE_RETENTION: ${{ vars.DEPLOY_RELEASE_RETENTION }}
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-      DEPLOY_DATABASE_URL: ${{ secrets.DEPLOY_DATABASE_URL }}
 
     steps:
       - name: Confirm legacy release boundary
@@ -126,16 +125,16 @@ jobs:
           NODE_ENV: production
         run: npm run build
 
-      - name: Apply database migrations
+      - name: Build host migration bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' && vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
-        env:
-          DATABASE_URL: ${{ secrets.DEPLOY_DATABASE_URL }}
+        shell: bash
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DEPLOY_DATABASE_URL must be configured for remote deployments."
-            exit 1
-          fi
-          npx prisma migrate deploy --schema prisma/schema.prisma
+          rm -rf migration-release
+          npm ci --prefix tools/prisma-migration --omit=dev --no-audit --no-fund
+          mkdir -p migration-release
+          cp -R prisma migration-release/prisma
+          cp -R tools/prisma-migration/node_modules migration-release/node_modules
+          tar -czf "ai-command-console-migrations-${{ steps.metadata.outputs.release_version }}.tgz" -C migration-release .
 
       - name: Assemble deploy bundle
         if: ${{ steps.metadata.outputs.rollback_release == '' }}
@@ -172,6 +171,43 @@ jobs:
           name: ai-command-console-release-${{ steps.metadata.outputs.release_version }}
           path: ai-command-console-release-${{ steps.metadata.outputs.release_version }}.tgz
           if-no-files-found: error
+
+      - name: Apply database migrations on deployment host
+        if: ${{ steps.metadata.outputs.rollback_release == '' && vars.DEPLOY_ARTIFACT_ONLY != 'true' }}
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_SSH_KEY_FINGERPRINT: ${{ vars.DEPLOY_SSH_KEY_FINGERPRINT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          MIGRATION_ROOT="${DEPLOY_PATH}/migrations"
+          MIGRATION_PATH="${MIGRATION_ROOT}/${{ steps.metadata.outputs.release_version }}"
+          MIGRATION_ARCHIVE="ai-command-console-migrations-${{ steps.metadata.outputs.release_version }}.tgz"
+          ENVIRONMENT_FILE="${DEPLOY_PATH}/shared/${{ steps.metadata.outputs.target_environment }}.env"
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ACTUAL_KEY_FINGERPRINT="$(ssh-keygen -y -f ~/.ssh/deploy_key | ssh-keygen -lf - | awk '{print $2}')"
+          if [ -n "$DEPLOY_SSH_KEY_FINGERPRINT" ] && [ "$ACTUAL_KEY_FINGERPRINT" != "$DEPLOY_SSH_KEY_FINGERPRINT" ]; then
+            echo "Deployment SSH key fingerprint does not match the configured staging fingerprint."
+            exit 1
+          fi
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" "$MIGRATION_ARCHIVE" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/$MIGRATION_ARCHIVE"
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "\
+            test -f '$ENVIRONMENT_FILE' && \\
+            mkdir -p '$MIGRATION_ROOT' '$MIGRATION_PATH' && \\
+            rm -rf '$MIGRATION_PATH' && \\
+            mkdir -p '$MIGRATION_PATH' && \\
+            tar -xzf '/tmp/$MIGRATION_ARCHIVE' -C '$MIGRATION_PATH' && \\
+            rm -f '/tmp/$MIGRATION_ARCHIVE' && \\
+            ln -sfn '$ENVIRONMENT_FILE' '$MIGRATION_PATH/.env' && \\
+            cd '$MIGRATION_PATH' && \\
+            node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma"
 
       - name: Deploy over SSH
         if: ${{ vars.DEPLOY_ARTIFACT_ONLY != 'true' }}

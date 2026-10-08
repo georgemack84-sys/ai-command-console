@@ -10,15 +10,6 @@ function isTruthy(value) {
   return normalized === "1" || normalized === "true" || normalized === "yes";
 }
 
-function isPostgresConnectionUrl(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "postgresql:" || url.protocol === "postgres:";
-  } catch {
-    return false;
-  }
-}
-
 function validateDeployConfig() {
   const targetEnvironment = readEnv("DEPLOY_TARGET_ENVIRONMENT") || "staging";
   const artifactOnly = isTruthy(readEnv("DEPLOY_ARTIFACT_ONLY"));
@@ -28,7 +19,6 @@ function validateDeployConfig() {
     "DEPLOY_USER",
     "DEPLOY_PATH",
     "DEPLOY_SSH_KEY",
-    "DEPLOY_DATABASE_URL",
   ];
 
   const optionalRecommendedSettings = [
@@ -37,7 +27,6 @@ function validateDeployConfig() {
   ];
 
   const missingRequired = [];
-  const invalidRequired = [];
   const warnings = [];
 
   if (!artifactOnly) {
@@ -45,11 +34,6 @@ function validateDeployConfig() {
       if (!readEnv(setting)) {
         missingRequired.push(setting);
       }
-    }
-
-    const databaseUrl = readEnv("DEPLOY_DATABASE_URL");
-    if (databaseUrl && !isPostgresConnectionUrl(databaseUrl)) {
-      invalidRequired.push("DEPLOY_DATABASE_URL");
     }
   }
 
@@ -63,7 +47,7 @@ function validateDeployConfig() {
     missingRequired.push("DEPLOY_ARTIFACT_ONLY cannot be enabled for production deploys.");
   }
 
-  const ok = missingRequired.length === 0 && invalidRequired.length === 0;
+  const ok = missingRequired.length === 0;
 
   return {
     ok,
@@ -76,9 +60,6 @@ function validateDeployConfig() {
         name: setting,
         configured: Boolean(readEnv(setting)),
         required: !artifactOnly,
-        ...(setting === "DEPLOY_DATABASE_URL" && readEnv(setting)
-          ? { valid: isPostgresConnectionUrl(readEnv(setting)) }
-          : {}),
       })),
     },
     warnings,
@@ -86,10 +67,6 @@ function validateDeployConfig() {
       item.startsWith("DEPLOY_ARTIFACT_ONLY")
         ? item
         : `${item} must be configured for ${targetEnvironment} deployment.`,
-    ).concat(
-      invalidRequired.map(
-        (item) => `${item} must begin with postgresql:// or postgres://; use only the connection-string value, without DATABASE_URL= or quotes.`,
-      ),
     ),
   };
 }

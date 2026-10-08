@@ -23,9 +23,12 @@ assert.equal(legacy.name, 'Legacy Deployment (manual only)');
 assert.ok(legacy.on.workflow_dispatch !== undefined);
 assert.equal(legacy.on.workflow_run, undefined);
 assert.doesNotMatch(legacySource, /head_branch == 'main'/);
-assert.match(legacySource, /DEPLOY_DATABASE_URL/);
-assert.match(legacySource, /name: Apply database migrations/);
-assert.match(legacySource, /npx prisma migrate deploy --schema prisma\/schema\.prisma/);
+assert.match(legacySource, /name: Build host migration bundle/);
+assert.match(legacySource, /name: Apply database migrations on deployment host/);
+assert.match(legacySource, /tools\/prisma-migration/);
+assert.match(legacySource, /shared\/\$\{\{ steps\.metadata\.outputs\.target_environment \}\}\.env/);
+assert.match(legacySource, /node node_modules\/prisma\/build\/index\.js migrate deploy/);
+assert.doesNotMatch(legacySource, /DEPLOY_DATABASE_URL/);
 assert.match(legacySource, /rollback_release == ''/);
 
 assert.equal(release.name, 'Release Proprium');
