@@ -201,6 +201,26 @@ describe("runtime control", () => {
     }
   });
 
+  it("auto-executes self-claim and requires confirmation for ownership release or reassignment", () => {
+    const policy = runtimeControl.loadControlPolicy();
+    const context = {
+      safeMode: false,
+      dryRun: false,
+      identity: { sourceIdentity: "human", role: "admin", maxExecutionMode: "auto_execute" },
+    };
+
+    expect(policy.actionCategoryMap["ownership:claim-item"]).toBe("process_control");
+    expect(runtimeControl.reviewPlan({ type: "single", action: "ownership:claim-item", payload: {} }, context, policy)).toEqual(
+      expect.objectContaining({ decision: "auto_execute" }),
+    );
+    for (const action of ["ownership:release-item", "ownership:assign-item"]) {
+      expect(policy.actionCategoryMap[action]).toBe("workflow_control");
+      expect(runtimeControl.reviewPlan({ type: "single", action, payload: {} }, context, policy)).toEqual(
+        expect.objectContaining({ decision: "confirm_required" }),
+      );
+    }
+  });
+
   it("returns confirmation required for watcher control actions before execution", () => {
     const decision = runtimeControl.reviewPlan(
       { type: "single", action: "watcher:start", payload: { intervalSeconds: 5 } },

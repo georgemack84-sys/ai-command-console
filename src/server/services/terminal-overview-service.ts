@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { getRuntimePosture } from "@/src/lib/server/runtime";
 import { buildRuntimeWarnings } from "@/src/server/health/runtime-warnings";
 import { buildAgentDependencyGraph } from "@/src/server/services/agent-dependency-graph";
+import { prisma } from "@/src/server/db/prisma";
 
 const require = createRequire(import.meta.url);
 
@@ -80,6 +81,56 @@ export async function buildOwnershipSignalsSnapshot(workspaceId: string) {
     briefs as Array<Record<string, unknown>>,
     reports as Array<Record<string, unknown>>,
   );
+}
+
+async function buildOwnershipAssignmentSnapshot(workspaceId: string) {
+  const [{ briefs, reports }, memberships] = await Promise.all([
+    listResearchRecords(workspaceId),
+    prisma.workspaceMember.findMany({
+      where: { workspaceId, user: { status: "active" } },
+      include: { user: { select: { id: true, name: true, email: true, role: true } } },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    }),
+  ]);
+  const members = memberships.map((membership) => ({
+    id: membership.user.id,
+    name: membership.user.name || membership.user.email,
+    email: membership.user.email,
+    role: membership.user.role,
+    membershipRole: membership.role,
+  }));
+  const memberNames = new Map(members.map((member) => [member.id, member.name]));
+  const items = [
+    ...briefs.map((brief) => ({
+      id: String(brief.id),
+      resourceType: "brief" as const,
+      title: String(brief.title || "Untitled brief"),
+      status: String(brief.status || "draft"),
+      ownerId: brief.ownerId ? String(brief.ownerId) : null,
+      ownerName: brief.ownerId ? memberNames.get(String(brief.ownerId)) || "Former workspace member" : null,
+      assignedAgent: brief.assignedAgent ? String(brief.assignedAgent) : null,
+    })),
+    ...reports.map((report) => ({
+      id: String(report.id),
+      resourceType: "report" as const,
+      title: String(report.title || "Untitled report"),
+      status: String(report.status || "draft"),
+      ownerId: report.ownerId ? String(report.ownerId) : null,
+      ownerName: report.ownerId ? memberNames.get(String(report.ownerId)) || "Former workspace member" : null,
+      assignedAgent: null,
+    })),
+  ];
+
+  return {
+    members,
+    items,
+    summary: {
+      total: items.length,
+      assigned: items.filter((item) => item.ownerId).length,
+      unassigned: items.filter((item) => !item.ownerId).length,
+      unavailableOwners: items.filter((item) => item.ownerId && !memberNames.has(item.ownerId)).length,
+    },
+  };
 }
 
 function normalizeTarget(value: unknown) {
@@ -319,7 +370,10 @@ export async function buildTerminalOverviewSnapshot(
   const queue = listTasks();
   const reviews = listReviewItems();
   const schedules = listSchedules();
-  const ownershipSignals = await buildOwnershipSignalsSnapshot(workspaceId);
+  const [ownershipSignals, ownershipAssignments] = await Promise.all([
+    buildOwnershipSignalsSnapshot(workspaceId),
+    buildOwnershipAssignmentSnapshot(workspaceId),
+  ]);
   const collaboration = controlCenterOverview?.collaboration || {};
   const digestEscalations = Array.isArray(collaboration.digestEscalations)
     ? (collaboration.digestEscalations as Array<Record<string, unknown>>)
@@ -361,6 +415,7 @@ export async function buildTerminalOverviewSnapshot(
       approvalPolicyRecommendations,
     }),
     ownershipSignals,
+    ownershipAssignments,
     activity: buildActivityOverview(),
     automation: {
       alertThresholds: alerts.thresholds,

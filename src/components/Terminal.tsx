@@ -258,6 +258,19 @@ type Overview = {
   };
   recommendations: Recommendation[];
   ownershipSignals: OwnershipSignal[];
+  ownershipAssignments: {
+    members: Array<{ id: string; name: string; email: string; role: string; membershipRole: string }>;
+    items: Array<{
+      id: string;
+      resourceType: "brief" | "report";
+      title: string;
+      status: string;
+      ownerId: string | null;
+      ownerName: string | null;
+      assignedAgent: string | null;
+    }>;
+    summary: { total: number; assigned: number; unassigned: number; unavailableOwners: number };
+  };
   activity: ActivityItem[];
   automation: {
     alertThresholds: {
@@ -904,6 +917,11 @@ const EMPTY_OVERVIEW: Overview = {
   },
   recommendations: [],
   ownershipSignals: [],
+  ownershipAssignments: {
+    members: [],
+    items: [],
+    summary: { total: 0, assigned: 0, unassigned: 0, unavailableOwners: 0 },
+  },
   activity: [],
   automation: {
     alertThresholds: {
@@ -1319,6 +1337,7 @@ export default function Terminal({
   const [handoffDraft, setHandoffDraft] = useState({ title: "", note: "", assignedTo: "team" });
   const [handoffNoteDrafts, setHandoffNoteDrafts] = useState<Record<string, string>>({});
   const [handoffAssigneeDrafts, setHandoffAssigneeDrafts] = useState<Record<string, string>>({});
+  const [ownershipDrafts, setOwnershipDrafts] = useState<Record<string, string>>({});
   const [approvalNotes, setApprovalNotes] = useState<Record<string, string>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
@@ -2543,6 +2562,79 @@ export default function Terminal({
                       Workspace assignments look balanced right now.
                     </div>
                   )}
+                </div>
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl bg-black/25 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">Tracked</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{overview.ownershipAssignments.summary.total}</p>
+                    </div>
+                    <div className="rounded-xl bg-black/25 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">Assigned</p>
+                      <p className="mt-1 text-lg font-semibold text-emerald-200">{overview.ownershipAssignments.summary.assigned}</p>
+                    </div>
+                    <div className="rounded-xl bg-black/25 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">Unassigned</p>
+                      <p className="mt-1 text-lg font-semibold text-amber-200">{overview.ownershipAssignments.summary.unassigned}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {overview.ownershipAssignments.items.slice(0, 8).map((item) => {
+                      const draftKey = `${item.resourceType}:${item.id}`;
+                      const isCurrentOwner = item.ownerId === overview.collaboration.currentUser.id;
+                      const canClaim = !item.ownerId && overview.collaboration.currentUser.role !== "viewer";
+                      const canRelease = isCurrentOwner || overview.collaboration.currentUser.role === "admin";
+                      return (
+                        <div key={draftKey} className="rounded-xl border border-white/10 bg-black/25 p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm text-zinc-100">{item.title}</p>
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {item.resourceType} • {item.status} • {item.ownerName || "Unassigned"}
+                                {item.assignedAgent ? ` • ${item.assignedAgent}` : ""}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {canClaim ? (
+                                <button type="button" onClick={() => void runAction("ownership:claim-item", { resourceType: item.resourceType, resourceId: item.id }, `claim-${item.resourceType} ${item.id}`)} className="rounded-lg border border-emerald-400/20 px-2 py-1 text-xs text-emerald-100">
+                                  Claim
+                                </button>
+                              ) : null}
+                              {canRelease ? (
+                                <button type="button" onClick={() => void runAction("ownership:release-item", { resourceType: item.resourceType, resourceId: item.id }, `release-${item.resourceType} ${item.id}`)} className="rounded-lg border border-amber-400/20 px-2 py-1 text-xs text-amber-100">
+                                  Release
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                          {overview.collaboration.currentUser.role === "admin" ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <select
+                                value={ownershipDrafts[draftKey] ?? item.ownerId ?? ""}
+                                onChange={(event) => setOwnershipDrafts((current) => ({ ...current, [draftKey]: event.target.value }))}
+                                className="min-w-48 flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-2 py-1 text-xs text-white outline-none"
+                              >
+                                <option value="">Unassigned</option>
+                                {overview.ownershipAssignments.members.map((member) => (
+                                  <option key={member.id} value={member.id}>{member.name} ({member.role})</option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => void runAction("ownership:assign-item", { resourceType: item.resourceType, resourceId: item.id, ownerId: (ownershipDrafts[draftKey] ?? item.ownerId) || null }, `assign-${item.resourceType} ${item.id}`)}
+                                className="rounded-lg border border-cyan-400/20 px-2 py-1 text-xs text-cyan-100"
+                              >
+                                Assign
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                    {!overview.ownershipAssignments.items.length ? (
+                      <p className="text-sm text-zinc-500">No briefs or reports are available for assignment.</p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
