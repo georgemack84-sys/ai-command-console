@@ -497,6 +497,7 @@ type Overview = {
       command?: string;
       handoffId?: string;
       approvalId?: string;
+      requestedById?: string | null;
       relatedApprovalId?: string;
       kind?: string;
       workspaceId?: string;
@@ -3823,7 +3824,7 @@ export default function Terminal({
                           {item.approvalId && item.status === "pending" ? (
                             <button
                               type="button"
-                              disabled={!overview.collaboration.permissions.canApprove}
+                              disabled={!overview.collaboration.permissions.canApprove || item.requestedById === overview.collaboration.currentUser.id}
                               onClick={() => void runAction("approval:approve", { approvalId: item.approvalId }, `approve-request ${item.approvalId}`)}
                               className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100 disabled:opacity-50"
                             >
@@ -4549,7 +4550,7 @@ export default function Terminal({
                             <div className="mt-3 flex gap-2">
                               <button
                                 type="button"
-                                disabled={!overview.collaboration.permissions.canApprove}
+                                disabled={!overview.collaboration.permissions.canApprove || approval.requestedById === overview.collaboration.currentUser.id}
                                 onClick={() => void runAction("approval:approve", { approvalId: approval.id }, `approve-request ${approval.id}`)}
                                 className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100 disabled:opacity-50"
                               >
@@ -4557,7 +4558,7 @@ export default function Terminal({
                               </button>
                               <button
                                 type="button"
-                                disabled={!overview.collaboration.permissions.canApprove}
+                                disabled={!overview.collaboration.permissions.canApprove || approval.requestedById === overview.collaboration.currentUser.id}
                                 onClick={() =>
                                   void runAction(
                                     "approval:reject",
@@ -4570,6 +4571,9 @@ export default function Terminal({
                                 Reject
                               </button>
                             </div>
+                            {approval.requestedById === overview.collaboration.currentUser.id ? (
+                              <p className="mt-2 text-xs text-amber-200">A different approver or admin must decide this request.</p>
+                            ) : null}
                           </>
                         ) : (
                           <p className="mt-3 text-xs text-zinc-500">
