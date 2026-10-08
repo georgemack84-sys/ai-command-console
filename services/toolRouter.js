@@ -19,7 +19,7 @@ const { listAgentProfiles, getAgentStatus } = require("./agentRuntime");
 const { startAgent, tickAgent, stopAgent, pauseAgent, resumeAgent, restartAgent } = require("./agentRuntime");
 const { routeManagerTask } = require("./agentRuntime");
 const { listSchedules, getSchedule, runScheduledTick } = require("./scheduler");
-const { getWatcherStatus, startWatcher, stopWatcher, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules } = require("./watcher");
+const { getWatcherStatus, startWatcher, stopWatcher, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules, previewRules } = require("./watcher");
 const { getDigestSchedulerStatus } = require("./digestScheduler");
 const { enqueueJob, cancelJob, retryJob, getJob } = require("./jobQueue");
 const { addReviewItemForTask, listReviewItems, approveReviewItem, reviseReviewItem, createFollowupTask } = require("./reviewQueue");
@@ -32,6 +32,12 @@ const { formatOwnershipSignals } = require("./legacyConsoleCollaborationFormatti
 const { appendAuditEvent } = require("./auditTrail");
 const { updateAlertThresholds } = require("./alerts");
 const { updateAutomationPolicy } = require("./automationPolicy");
+const {
+  getAutomationTemplate,
+  preflightAutomationTemplate,
+  saveAutomationTemplate,
+  deleteAutomationTemplate,
+} = require("./automationTemplates");
 const { updateAgentProfile } = require("./agentProfiles");
 const { requireTypeScriptModule } = require("./tsxRuntimeBridge");
 
@@ -227,6 +233,43 @@ function formatReviews(reviews = []) {
   }
 
   return formatBlock("Review Queue", { items: reviews });
+}
+
+function runAutomationTemplateStep(step, actor) {
+  if (step.action === "watcher:preview") {
+    const preview = previewRules();
+    appendAuditEvent({
+      type: "watcher:preview",
+      message: "Previewed watcher automation from a template.",
+      payload: { actorId: actor.id, summary: preview.summary },
+    });
+    return {
+      ok: true,
+      output: `${preview.summary.schedulesThatWouldStart} schedules would start across ${preview.summary.matchedRules} matching rules.`,
+    };
+  }
+
+  if (step.action === "alert:run-checks") {
+    runAlertChecks();
+    appendAuditEvent({
+      type: "alert:run-checks",
+      message: "Ran operational alert checks from an automation template.",
+      payload: { actorId: actor.id },
+    });
+    return { ok: true, output: "Alert checks completed." };
+  }
+
+  if (step.action === "watcher:start") {
+    const state = startWatcher(Number(step.payload?.intervalSeconds || 5));
+    appendAuditEvent({
+      type: "watcher:start",
+      message: `Started watcher at ${state.intervalSeconds}s from an automation template.`,
+      payload: { actorId: actor.id, intervalSeconds: state.intervalSeconds },
+    });
+    return { ok: true, output: `Watcher started at ${state.intervalSeconds}s interval.` };
+  }
+
+  return { ok: false, error: `Unsupported automation template action: ${step.action}` };
 }
 
 async function route(plan, modes = {}) {
@@ -760,6 +803,109 @@ async function route(plan, modes = {}) {
         payload: { ...policy, actorId: getPlanActor(plan).id },
       });
       result = { ok: true, output: "Updated automation policy.", detail: { policy } };
+      break;
+    }
+
+    case "automation-template:preflight": {
+      const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+      const template = payload.templateId ? getAutomationTemplate(String(payload.templateId)) : payload.template;
+      if (!template || typeof template !== "object") {
+        result = { ok: false, error: "Automation template not found." };
+        break;
+      }
+      const preflight = preflightAutomationTemplate(template);
+      appendAuditEvent({
+        type: "automation-template:preflight",
+        message: `Preflighted automation template ${preflight.template.name || preflight.template.id}.`,
+        payload: { actorId: getPlanActor(plan).id, templateId: preflight.template.id, status: preflight.status, summary: preflight.summary },
+      });
+      result = {
+        ok: preflight.ok,
+        output: preflight.ok
+          ? `${preflight.template.name} is ${preflight.status.replace(/_/g, " ")} with ${preflight.summary.stepCount} step${preflight.summary.stepCount === 1 ? "" : "s"}.`
+          : preflight.errors.join(" "),
+        error: preflight.ok ? undefined : preflight.errors.join(" "),
+        detail: { automationTemplatePreflight: preflight },
+      };
+      break;
+    }
+
+    case "automation-template:save": {
+      const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+      try {
+        const template = saveAutomationTemplate(payload.template && typeof payload.template === "object" ? payload.template : payload);
+        appendAuditEvent({
+          type: "automation-template:save",
+          message: `Saved automation template ${template.name}.`,
+          payload: { actorId: getPlanActor(plan).id, templateId: template.id, stepCount: template.steps.length },
+        });
+        result = { ok: true, output: `Saved automation template ${template.name}.`, detail: { automationTemplate: template } };
+      } catch (error) {
+        result = { ok: false, error: error?.message || "Unable to save automation template." };
+      }
+      break;
+    }
+
+    case "automation-template:delete": {
+      const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+      const templateId = String(payload.templateId || "");
+      try {
+        const removed = deleteAutomationTemplate(templateId);
+        appendAuditEvent({
+          type: "automation-template:delete",
+          message: removed ? `Deleted automation template ${templateId}.` : `Automation template not found: ${templateId}.`,
+          payload: { actorId: getPlanActor(plan).id, templateId },
+        });
+        result = removed
+          ? { ok: true, output: "Deleted automation template." }
+          : { ok: false, error: "Automation template not found." };
+      } catch (error) {
+        result = { ok: false, error: error?.message || "Unable to delete automation template." };
+      }
+      break;
+    }
+
+    case "automation-template:run": {
+      const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+      const template = getAutomationTemplate(String(payload.templateId || ""));
+      if (!template) {
+        result = { ok: false, error: "Automation template not found." };
+        break;
+      }
+      const preflight = preflightAutomationTemplate(template);
+      if (!preflight.ok) {
+        result = { ok: false, error: preflight.errors.join(" "), detail: { automationTemplatePreflight: preflight } };
+        break;
+      }
+
+      const actor = getPlanActor(plan);
+      const results = [];
+      for (const step of preflight.template.steps) {
+        const stepResult = runAutomationTemplateStep(step, actor);
+        results.push({ stepId: step.id, action: step.action, ...stepResult });
+        if (!stepResult.ok) {
+          break;
+        }
+      }
+      const failed = results.find((item) => !item.ok);
+      appendAuditEvent({
+        type: "automation-template:run",
+        message: failed
+          ? `Automation template ${template.name} stopped at ${failed.action}.`
+          : `Completed automation template ${template.name}.`,
+        payload: { actorId: actor.id, templateId: template.id, results },
+      });
+      result = failed
+        ? {
+            ok: false,
+            error: `Automation template stopped at ${failed.action}: ${failed.error || "step failed"}`,
+            detail: { automationTemplateRun: { templateId: template.id, status: "failed", results } },
+          }
+        : {
+            ok: true,
+            output: `Completed ${template.name} (${results.length} step${results.length === 1 ? "" : "s"}).`,
+            detail: { automationTemplateRun: { templateId: template.id, status: "completed", results } },
+          };
       break;
     }
 

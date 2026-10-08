@@ -307,6 +307,21 @@ function getGovernedStructuredActionPlan(
     };
   }
 
+  if (
+    action === "automation-template:preflight" ||
+    action === "automation-template:save" ||
+    action === "automation-template:delete" ||
+    action === "automation-template:run"
+  ) {
+    return {
+      type: "single",
+      action,
+      payload: { ...payload },
+      originalRequest: action,
+      source: "control",
+    };
+  }
+
   if (action === "agent:update-config") {
     return {
       type: "single",

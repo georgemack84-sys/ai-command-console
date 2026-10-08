@@ -63,7 +63,7 @@ Delivered:
 Goals:
 - Reduce manual oversight while keeping the system safe
 
-Status: In progress
+Status: Completed
 
 Delivered:
 - Watcher rule editor
@@ -71,9 +71,7 @@ Delivered:
 - Escalation policies for stalled work
 - Auto-remediation for common operational failures
 - Scheduled operational summaries
-
-Next:
-- Visual multi-step automation builder with reusable policy-governed templates
+- Visual multi-step automation builder with reusable policy-governed templates, allowlisted actions, preflight checks, and confirmation-gated runs
 
 ## Phase 5: Collaboration and Governance
 

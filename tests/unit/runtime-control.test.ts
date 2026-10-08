@@ -149,6 +149,28 @@ describe("runtime control", () => {
     );
   });
 
+  it("classifies automation templates as read-only preflight and confirmed execution", () => {
+    const policy = runtimeControl.loadControlPolicy();
+    expect(policy.actionCategoryMap["automation-template:preflight"]).toBe("shell_read");
+    expect(policy.actionCategoryMap["automation-template:run"]).toBe("workflow_control");
+
+    const context = {
+      safeMode: false,
+      dryRun: false,
+      identity: { sourceIdentity: "human", role: "admin", maxExecutionMode: "auto_execute" },
+    };
+    expect(runtimeControl.reviewPlan(
+      { type: "single", action: "automation-template:preflight", payload: { templateId: "preset_operational_readiness" } },
+      context,
+      policy,
+    )).toEqual(expect.objectContaining({ decision: "auto_execute" }));
+    expect(runtimeControl.reviewPlan(
+      { type: "single", action: "automation-template:run", payload: { templateId: "preset_operational_readiness" } },
+      context,
+      policy,
+    )).toEqual(expect.objectContaining({ decision: "confirm_required" }));
+  });
+
   it("returns confirmation required for watcher control actions before execution", () => {
     const decision = runtimeControl.reviewPlan(
       { type: "single", action: "watcher:start", payload: { intervalSeconds: 5 } },

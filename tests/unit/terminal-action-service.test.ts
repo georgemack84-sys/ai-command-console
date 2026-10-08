@@ -16,6 +16,10 @@ describe("terminal action service", () => {
     expect(canHandleTerminalAction("watcher:preview")).toBe(true);
     expect(canHandleTerminalAction("job:detail")).toBe(true);
     expect(canHandleTerminalAction("policy:update-automation")).toBe(true);
+    expect(canHandleTerminalAction("automation-template:preflight")).toBe(true);
+    expect(canHandleTerminalAction("automation-template:save")).toBe(true);
+    expect(canHandleTerminalAction("automation-template:delete")).toBe(true);
+    expect(canHandleTerminalAction("automation-template:run")).toBe(true);
     expect(canHandleTerminalAction("agent:update-config")).toBe(true);
     expect(canHandleTerminalAction("review:approve")).toBe(true);
     expect(canHandleTerminalAction("alert:resolve")).toBe(true);
@@ -89,6 +93,37 @@ describe("terminal action service", () => {
     );
     expect(updated.ok).toBe(true);
     expect(updated.output).toBe("Updated profile for researcher.");
+  });
+
+  it("preflights and runs allowlisted automation templates", async () => {
+    const preflight = await executeTerminalAction(
+      { action: "automation-template:preflight", payload: { templateId: "preset_operational_readiness" } },
+      actor,
+    );
+    expect(preflight).toEqual(
+      expect.objectContaining({
+        ok: true,
+        detail: expect.objectContaining({
+          automationTemplatePreflight: expect.objectContaining({
+            status: "ready_for_confirmation",
+            requiresConfirmation: true,
+          }),
+        }),
+      }),
+    );
+
+    const run = await executeTerminalAction(
+      { action: "automation-template:run", payload: { templateId: "preset_operational_readiness" } },
+      actor,
+    );
+    expect(run).toEqual(
+      expect.objectContaining({
+        ok: true,
+        detail: expect.objectContaining({
+          automationTemplateRun: expect.objectContaining({ status: "completed" }),
+        }),
+      }),
+    );
   });
 
   it("handles review, alert, and plugin actions directly", async () => {

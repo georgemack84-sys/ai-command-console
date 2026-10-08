@@ -444,6 +444,9 @@ vi.mock("node:module", async (importOriginal) => {
                 "watcher:rule-delete",
                 "policy:update-thresholds",
                 "policy:update-automation",
+                "automation-template:save",
+                "automation-template:delete",
+                "automation-template:run",
                 "agent:update-config",
                 "review:approve",
                 "review:create",
@@ -2245,6 +2248,63 @@ describe("console runtime", () => {
         }),
         plan: expect.objectContaining({
           action: "alert:run-checks",
+          finalMode: "auto_execute",
+          reviewStatus: "approved",
+        }),
+      }),
+    );
+  });
+
+  it("auto-executes read-only automation template preflight", async () => {
+    const result = await executeTerminalRequest(
+      {
+        action: "automation-template:preflight",
+        payload: { templateId: "preset_operational_readiness" },
+      },
+      actor,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: true,
+        plan: expect.objectContaining({ action: "automation-template:preflight" }),
+      }),
+    );
+  });
+
+  it("requires confirmation before running an automation template", async () => {
+    const result = await executeTerminalRequest(
+      {
+        action: "automation-template:run",
+        payload: { templateId: "preset_operational_readiness" },
+      },
+      actor,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: false,
+        requiresConfirmation: true,
+        plan: expect.objectContaining({ action: "automation-template:run" }),
+      }),
+    );
+  });
+
+  it("executes a confirmed allowlisted automation template", async () => {
+    const result = await executeTerminalRequest(
+      {
+        action: "automation-template:run",
+        payload: { templateId: "preset_operational_readiness" },
+        confirmed: true,
+      },
+      actor,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: true,
+        plan: expect.objectContaining({
+          action: "automation-template:run",
           finalMode: "auto_execute",
           reviewStatus: "approved",
         }),
