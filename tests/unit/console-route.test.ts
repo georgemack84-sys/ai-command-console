@@ -13,9 +13,15 @@ vi.mock("@/services/digestScheduler", () => ({
   ensureDigestScheduler: vi.fn(),
 }));
 
+vi.mock("@/src/server/auth/permissions", () => ({
+  requireWorkspaceMember: vi.fn(),
+}));
+
 import { GET, POST } from "@/app/api/console/route";
 import { getSessionUser } from "@/src/lib/auth";
 import { executeTerminalRequest, getTerminalOverview } from "@/app/api/console/core";
+import { requireWorkspaceMember } from "@/src/server/auth/permissions";
+import { AppError } from "@/src/server/api/errors";
 
 describe("console route", () => {
   beforeEach(() => {
@@ -162,5 +168,54 @@ describe("console route", () => {
     expect(response.status).toBe(401);
     expect(payload.ok).toBe(false);
     expect(payload.error.code).toBe("unauthorized");
+  });
+
+  it("rejects anonymous console commands with the standard error shape", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue(null);
+
+    const response = await POST(
+      new Request("http://localhost/api/console", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: "help" }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(payload).toEqual(
+      expect.objectContaining({
+        ok: false,
+        error: expect.objectContaining({ code: "unauthorized" }),
+      }),
+    );
+  });
+
+  it("does not execute commands when workspace access is denied", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({
+      id: "user_1",
+      email: "operator@example.com",
+      name: "Operator",
+      role: "operator",
+      status: "active",
+      workspaceId: "workspace_1",
+      workspaceName: "Pulse Workspace",
+    });
+    vi.mocked(requireWorkspaceMember).mockRejectedValue(
+      new AppError(403, "forbidden", "You do not have access to this workspace."),
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/console", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: "help" }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(payload.error.code).toBe("forbidden");
+    expect(executeTerminalRequest).not.toHaveBeenCalled();
   });
 });

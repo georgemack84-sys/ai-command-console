@@ -12,6 +12,7 @@ const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 const SCHEDULER_KEY = "scheduler";
 
 const activeTimers = new Map();
+const activeTicks = new Set();
 
 function ensureSchedulerDir() {
   fs.mkdirSync(path.dirname(SCHEDULER_PATH), { recursive: true });
@@ -202,8 +203,7 @@ function stopSchedule(agentName, reason = "stopped_by_user") {
   return state.schedules[agentName];
 }
 
-async function runScheduledTick(agentName) {
-  assertLegacyAutonomyAllowed("scheduled agent tick");
+async function runScheduledTickInternal(agentName) {
   const startedAt = Date.now();
   const state = loadSchedulerState();
   const schedule = state.schedules[agentName];
@@ -347,6 +347,26 @@ async function runScheduledTick(agentName) {
       message: `Scheduled tick failed for "${agentName}": ${error.message}`,
       schedule: refreshedSchedule
     };
+  }
+}
+
+async function runScheduledTick(agentName) {
+  assertLegacyAutonomyAllowed("scheduled agent tick");
+
+  if (activeTicks.has(agentName)) {
+    return {
+      ok: true,
+      skipped: true,
+      message: `Scheduled tick for "${agentName}" is already in progress.`,
+      schedule: getSchedule(agentName),
+    };
+  }
+
+  activeTicks.add(agentName);
+  try {
+    return await runScheduledTickInternal(agentName);
+  } finally {
+    activeTicks.delete(agentName);
   }
 }
 
