@@ -446,6 +446,21 @@ test("heavy console actions queue background jobs and expose status in overview"
     assert.equal(queued.ok, true);
     assert.match(queued.output, /Queued watcher run/);
     assert.equal(queued.overview.jobs.queued, 1);
+    const admitted = queued.overview.jobs.items.find((job) => job.type === "watcher:run");
+    assert.deepEqual(
+      {
+        actorId: admitted?.actorId,
+        contract: admitted?.admission?.contract,
+        workspaceId: admitted?.admission?.workspaceId,
+        source: admitted?.admission?.source,
+      },
+      {
+        actorId: "alex",
+        contract: "legacy_background_job_v1",
+        workspaceId: "alex",
+        source: "legacy_console",
+      },
+    );
 
     await runPendingJobs();
 
@@ -453,7 +468,9 @@ test("heavy console actions queue background jobs and expose status in overview"
       { command: "help" },
       { userId: "alex", userName: "Alex Editor", userRole: "operator" }
     );
-    assert.ok(refreshed.overview.jobs.items.some((job) => job.type === "watcher:run" && job.status === "completed"));
+    const completed = refreshed.overview.jobs.items.find((job) => job.type === "watcher:run");
+    assert.equal(completed?.status, "completed");
+    assert.ok(completed?.events.some((event) => event.message === "Job processor runtime authority verified."));
   } finally {
     restoreFiles(snapshot);
   }

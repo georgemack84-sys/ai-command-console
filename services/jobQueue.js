@@ -23,6 +23,7 @@ const MIN_JOB_LEASE_MS = 15_000;
 const DEFAULT_MAX_PENDING_JOBS = 100;
 const DEFAULT_MAX_RUNNING_JOBS = 12;
 const MAX_JOB_BATCH_SIZE = 24;
+const LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT = "legacy_background_job_v1";
 const WORKER_INSTANCE_ID = `worker_${process.pid}_${Math.random().toString(36).slice(2, 8)}`;
 
 const processors = new Map();
@@ -278,6 +279,8 @@ function enqueueJob(type, payload = {}, meta = {}) {
     });
   }
 
+  const actorId = meta.actorId || meta.userId || meta.id || null;
+  const actorName = meta.actorName || meta.userName || meta.name || null;
   const traceId = meta.traceId || `jobtrace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const job = {
     id: `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -285,8 +288,8 @@ function enqueueJob(type, payload = {}, meta = {}) {
     type,
     payload,
     status: "queued",
-    actorId: meta.actorId || null,
-    actorName: meta.actorName || null,
+    actorId,
+    actorName,
     admission: meta.admission && typeof meta.admission === "object" ? { ...meta.admission } : null,
     createdAt: new Date().toISOString(),
     startedAt: null,
@@ -309,8 +312,8 @@ function enqueueJob(type, payload = {}, meta = {}) {
       createJobEvent("info", "Job queued.", {
         traceId,
         type,
-        actorId: meta.actorId || null,
-        actorName: meta.actorName || null,
+        actorId,
+        actorName,
       }),
     ],
   };
@@ -319,6 +322,45 @@ function enqueueJob(type, payload = {}, meta = {}) {
     scheduleWorker();
   }
   return serializeJob(job, { full: true });
+}
+
+function createAdmittedJobEnqueuer(source, options = {}) {
+  const normalizedSource = String(source || "").trim();
+  const contract = String(options.contract || LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT).trim();
+  if (!normalizedSource || !contract) {
+    throw new Error("Admitted job enqueuers require a source and admission contract.");
+  }
+
+  return function enqueueAdmittedJob(type, payload = {}, meta = {}) {
+    const jobType = String(type || "").trim();
+    const actorIds = [meta.actorId, meta.userId, meta.id].map((value) => String(value || "").trim()).filter(Boolean);
+    const workspaceIds = [payload?.workspaceId, payload?.workspace, meta.workspaceId]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+    if (new Set(actorIds).size > 1 || new Set(workspaceIds).size > 1) {
+      throw new Error("Admitted job actor and workspace provenance must be internally consistent.");
+    }
+    const actorId = actorIds[0] || "";
+    const workspaceId = workspaceIds[0] || "";
+    if (!jobType || !actorId || !workspaceId) {
+      throw new Error("Admitted jobs require explicit actor and workspace provenance.");
+    }
+
+    return enqueueJob(jobType, payload, {
+      ...meta,
+      actorId,
+      actorName: meta.actorName || meta.userName || meta.name || null,
+      admission: {
+        status: "approved",
+        contract,
+        jobType,
+        workspaceId,
+        actorId,
+        source: normalizedSource,
+        admittedAt: new Date().toISOString(),
+      },
+    });
+  };
 }
 
 function extendJobLease(jobId, workerId, runtimeLimitMs) {
@@ -780,6 +822,8 @@ module.exports = {
   saveJobsState,
   registerJobProcessor,
   enqueueJob,
+  createAdmittedJobEnqueuer,
+  LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT,
   listJobs,
   buildJobMetrics,
   buildQueueHealth,
