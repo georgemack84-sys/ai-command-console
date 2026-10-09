@@ -28,7 +28,11 @@ const {
 } = require("../../../services/jobQueue");
 
 let processorsRegistered = false;
-const TYPED_PROCESSOR_ADMISSION = { requiresAdmission: true, admissionContract: "typed_background_job_v1" };
+const TYPED_PROCESSOR_ADMISSION = {
+  requiresAdmission: true,
+  requiresReviewedExecution: true,
+  admissionContract: "typed_background_job_v1",
+};
 
 export type BackgroundJobType =
   | "workspace:generate-insights"

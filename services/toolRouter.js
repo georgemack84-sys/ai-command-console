@@ -21,7 +21,7 @@ const { routeManagerTask } = require("./agentRuntime");
 const { listSchedules, getSchedule, runScheduledTick } = require("./scheduler");
 const { getWatcherStatus, startWatcher, stopWatcher, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules, previewRules } = require("./watcher");
 const { getDigestSchedulerStatus } = require("./digestScheduler");
-const { enqueueJob, cancelJob, retryJob, getJob } = require("./jobQueue");
+const { enqueueJob, cancelJob, retryJob, getJob, invokeRegisteredJobProcessor } = require("./jobQueue");
 const { addReviewItemForTask, listReviewItems, approveReviewItem, reviseReviewItem, createFollowupTask } = require("./reviewQueue");
 const { listBriefs, listReports } = require("./researchDesk");
 const { listWorkspaceRoutes } = require("./legacyConsoleWorkspaceSupport");
@@ -85,6 +85,20 @@ const JOB_ROUTED_ACTIONS = new Map([
   ["jobs:cancel", "job:cancel"],
   ["jobs:retry", "job:retry"],
 ]);
+
+async function executeReviewedJobProcessor(plan, modes) {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  const execute = injectedBridge && typeof injectedBridge.executeReviewedJobProcessor === "function"
+    ? injectedBridge.executeReviewedJobProcessor
+    : invokeRegisteredJobProcessor;
+  const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+  return execute(String(payload.jobId || ""), {
+    jobType: String(payload.jobType || ""),
+    reviewStatus: plan.reviewStatus,
+    controlApproved: modes.controlApproved === true,
+    executionMode: modes.executionMode,
+  });
+}
 const OPERATIONS_ROUTED_ACTIONS = new Set([
   "approval:approve",
   "approval:reject",
@@ -376,6 +390,10 @@ async function route(plan, modes = {}) {
   let result;
 
   switch (plan.action) {
+    case "jobs:execute-processor":
+      result = await executeReviewedJobProcessor(plan, modes);
+      break;
+
     case "echo":
       result = `Echo: ${plan.payload}`;
       break;

@@ -106,7 +106,9 @@ function registerJobProcessor(type, processor, options = {}) {
   processors.set(type, {
     processor,
     requiresAdmission: options.requiresAdmission === true,
+    requiresReviewedExecution: options.requiresReviewedExecution === true,
     admissionContract: String(options.admissionContract || "typed_background_job_v1"),
+    executeReviewedPlan: typeof options.executeReviewedPlan === "function" ? options.executeReviewedPlan : null,
   });
 }
 
@@ -337,6 +339,104 @@ function extendJobLease(jobId, workerId, runtimeLimitMs) {
   });
 }
 
+function createRuntimeJob(job, currentFull) {
+  return {
+    ...currentFull,
+    traceId: currentFull.traceId || job.traceId || null,
+    workerId: WORKER_INSTANCE_ID,
+    heartbeat(meta = {}) {
+      extendJobLease(job.id, WORKER_INSTANCE_ID, currentFull.runtimeLimitMs || DEFAULT_JOB_RUNTIME_LIMIT_MS);
+      appendJobEvent(job.id, "info", "Job heartbeat recorded.", {
+        traceId: currentFull.traceId || job.traceId || null,
+        workerId: WORKER_INSTANCE_ID,
+        ...meta,
+      });
+    },
+    log(message, meta = {}) {
+      appendJobEvent(job.id, "info", String(message || "Processor event."), meta);
+    },
+  };
+}
+
+async function invokeRegisteredJobProcessor(jobId, authority = {}) {
+  const reviewStatus = String(authority.reviewStatus || "");
+  if (
+    authority.controlApproved !== true ||
+    authority.executionMode !== "auto_execute" ||
+    !["approved", "downgraded", "rewritten", "split"].includes(reviewStatus)
+  ) {
+    throw new Error("Reviewed job processor invocation requires approved runtime authority.");
+  }
+
+  const currentFull = getJob(jobId, { full: true });
+  if (!currentFull || currentFull.status !== "running") {
+    throw new Error("Reviewed job processor invocation requires a running job.");
+  }
+  if (authority.jobType && String(authority.jobType) !== String(currentFull.type || "")) {
+    throw new Error("Reviewed job processor job type does not match the queued job.");
+  }
+
+  const registration = processors.get(currentFull.type);
+  if (!registration?.requiresReviewedExecution || typeof registration.processor !== "function") {
+    throw new Error(`No reviewed processor registered for ${currentFull.type}.`);
+  }
+  const admission = validateProcessorAdmission(currentFull, registration);
+  if (!admission.ok) {
+    throw new Error(`Reviewed job processor admission denied: ${admission.reason}`);
+  }
+
+  appendJobEvent(jobId, "info", "Job processor runtime authority verified.", {
+    code: "job_processor_runtime_authority_verified",
+    reviewStatus,
+    traceId: currentFull.traceId || null,
+  });
+
+  return registration.processor(createRuntimeJob(currentFull, currentFull));
+}
+
+async function executeProcessorThroughReviewedRuntime(currentFull, registration) {
+  const executePlan = registration.executeReviewedPlan || require("./runtimeControl").executeControlledStructuredPlan;
+  const workspaceId = typeof currentFull.payload?.workspaceId === "string"
+    ? currentFull.payload.workspaceId
+    : typeof currentFull.payload?.workspace === "string"
+      ? currentFull.payload.workspace
+      : currentFull.admission?.workspaceId || "";
+  const actor = {
+    id: "system:job-worker",
+    workspaceId,
+    name: "Background job worker",
+    email: "system@local",
+    role: "system",
+  };
+  const controlled = await executePlan(
+    {
+      type: "single",
+      action: "jobs:execute-processor",
+      payload: {
+        jobId: currentFull.id,
+        jobType: currentFull.type,
+        initiatedByActorId: currentFull.actorId || null,
+        initiatedByActorName: currentFull.actorName || null,
+      },
+      originalRequest: `execute background job ${currentFull.type}`,
+      source: "job_worker",
+      meta: {
+        userId: actor.id,
+        workspaceId: actor.workspaceId,
+        userName: actor.name,
+        userEmail: actor.email,
+        userRole: actor.role,
+      },
+    },
+    { actor, identitySource: "system", modes: { confirmed: true } },
+  );
+  const decision = String(controlled?.control?.decision?.decision || "blocked");
+  if (decision !== "auto_execute" || controlled?.ok === false) {
+    throw new Error(controlled?.error || controlled?.control?.decision?.explanation || "Reviewed job processor execution was blocked.");
+  }
+  return controlled.result;
+}
+
 async function runJob(job) {
   const currentFull = getJob(job.id, { full: true });
   if (!currentFull || currentFull.status === "canceled") {
@@ -393,22 +493,7 @@ async function runJob(job) {
   let heartbeatTimer = null;
   try {
     let timeoutId = null;
-    const runtimeJob = {
-      ...job,
-      traceId: currentFull.traceId || job.traceId || null,
-      workerId: WORKER_INSTANCE_ID,
-      heartbeat(meta = {}) {
-        extendJobLease(job.id, WORKER_INSTANCE_ID, currentFull.runtimeLimitMs || DEFAULT_JOB_RUNTIME_LIMIT_MS);
-        appendJobEvent(job.id, "info", "Job heartbeat recorded.", {
-          traceId: currentFull.traceId || job.traceId || null,
-          workerId: WORKER_INSTANCE_ID,
-          ...meta,
-        });
-      },
-      log(message, meta = {}) {
-        appendJobEvent(job.id, "info", String(message || "Processor event."), meta);
-      },
-    };
+    const runtimeJob = createRuntimeJob(job, currentFull);
     heartbeatTimer = setInterval(() => {
       extendJobLease(job.id, WORKER_INSTANCE_ID, currentFull.runtimeLimitMs || DEFAULT_JOB_RUNTIME_LIMIT_MS);
     }, JOB_HEARTBEAT_INTERVAL_MS);
@@ -417,7 +502,10 @@ async function runJob(job) {
         reject(new Error(`Job timed out after ${Number(currentFull.runtimeLimitMs || DEFAULT_JOB_RUNTIME_LIMIT_MS)}ms.`));
       }, Number(currentFull.runtimeLimitMs || DEFAULT_JOB_RUNTIME_LIMIT_MS));
     });
-    const result = await Promise.race([processor(runtimeJob), timeoutPromise]);
+    const processorPromise = registration?.requiresReviewedExecution
+      ? executeProcessorThroughReviewedRuntime(currentFull, registration)
+      : processor(runtimeJob);
+    const result = await Promise.race([processorPromise, timeoutPromise]);
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
@@ -705,6 +793,7 @@ module.exports = {
   runJobWorkerCycle,
   recoverStaleJobs,
   extendJobLease,
+  invokeRegisteredJobProcessor,
   clearJobs,
   getQueueCapacity,
   listLatestFailures,
