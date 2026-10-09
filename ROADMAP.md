@@ -84,9 +84,9 @@ Delivered:
 - Shared operator sessions and reusable macros with owner/admin controls, assignment, visibility filtering, governed archival, and audit history
 - Handoff notes and review delegation with participant authorization, creator/assignee visibility, governed reassignment and closure, and audit history
 - Unified brief and report ownership controls with workspace-member validation, safe self-claim/release, governed admin reassignment, assignment inventory, and audit history
+- Two-person approval gates for sensitive terminal actions with workspace-scoped requests, duplicate suppression, independent approver enforcement, governed execution, and audit history
 
 Planned features:
-- Approval gates for sensitive actions
 - Environment separation for dev, staging, and production
 
 ## Phase 6: Platform Backbone

@@ -1,5 +1,14 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+const approvalGateMocks = vi.hoisted(() => ({
+  approve: vi.fn(),
+  get: vi.fn(),
+  isSensitive: vi.fn(),
+  list: vi.fn(),
+  reject: vi.fn(),
+  request: vi.fn(),
+}));
+
 vi.mock("@/src/server/services/policy-governance-service", () => ({
   getPolicyGovernanceSnapshot: vi.fn(),
   updateGovernanceSettings: vi.fn(),
@@ -19,6 +28,15 @@ vi.mock("@/src/server/services/terminal-collaboration-service", () => ({
 
 vi.mock("@/src/server/services/terminal-digest-service", () => ({
   createTerminalDigest: vi.fn(),
+}));
+
+vi.mock("@/src/server/services/terminal-approval-gate-service", () => ({
+  approveSensitiveActionApproval: approvalGateMocks.approve,
+  getSensitiveApprovalRequest: approvalGateMocks.get,
+  isSensitiveTerminalAction: approvalGateMocks.isSensitive,
+  listSensitiveApprovalRequests: approvalGateMocks.list,
+  rejectSensitiveActionApproval: approvalGateMocks.reject,
+  requestSensitiveActionApproval: approvalGateMocks.request,
 }));
 
 vi.mock("@/src/server/services/terminal-governance-compat-service", () => ({
@@ -793,6 +811,31 @@ describe("console runtime", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    approvalGateMocks.get.mockReturnValue(null);
+    approvalGateMocks.isSensitive.mockReturnValue(false);
+    approvalGateMocks.list.mockReturnValue([]);
+    approvalGateMocks.request.mockReturnValue({
+      created: true,
+      request: {
+        id: "approval_sensitive_1",
+        kind: "terminal-sensitive-action",
+        workspaceId: "workspace_1",
+        environment: "production",
+        action: "watcher:stop",
+        payload: { reason: "maintenance" },
+        label: "Stop the watcher",
+        approverTarget: "role:approver,role:admin",
+        requestedById: actor.id,
+        requestedByName: actor.name,
+        requestedByEmail: actor.email,
+        requestedByRole: actor.role,
+        requiredRole: "approver",
+        risk: "sensitive",
+        requestKey: "request_key_1",
+        status: "pending",
+        createdAt: "2026-04-05T01:00:00.000Z",
+      },
+    });
     vi.mocked(getPolicyGovernanceSnapshot).mockResolvedValue({
       currentEnvironment: "production",
       sensitiveActionsRequireApproval: false,
@@ -2370,6 +2413,66 @@ describe("console runtime", () => {
         plan: expect.objectContaining({ action: "ownership:assign-item" }),
       }),
     );
+  });
+
+  it("queues sensitive actions for an independent approval and executes them after approval", async () => {
+    vi.mocked(getPolicyGovernanceSnapshot).mockResolvedValue({
+      currentEnvironment: "production",
+      sensitiveActionsRequireApproval: true,
+      environmentPolicies: {
+        production: {
+          minimumRoleForApprovals: "approver",
+          minimumRoleForGovernance: "admin",
+        },
+      },
+      workspacePolicyOverrides: {},
+      workspacePolicyPlaybooks: [],
+      workspacePolicyPlaybookRollouts: [],
+      defaultPolicyPlaybookPresets: [],
+      demoScenario: null,
+    } as never);
+    approvalGateMocks.isSensitive.mockImplementation((action: string) => action === "watcher:stop");
+
+    const requested = await executeTerminalRequest(
+      { action: "watcher:stop", payload: { reason: "maintenance" } },
+      actor,
+    );
+    expect(requested).toEqual(
+      expect.objectContaining({
+        ok: true,
+        approvalRequired: true,
+        approvalRequest: expect.objectContaining({ id: "approval_sensitive_1", status: "pending" }),
+      }),
+    );
+    expect(approvalGateMocks.request).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "watcher:stop", actor, environment: "production" }),
+    );
+
+    const pending = {
+      ...approvalGateMocks.request.mock.results[0]!.value.request,
+      requestedById: "operator_2",
+      requestedByName: "Other Operator",
+      requestedByEmail: "other@example.com",
+      requestedByRole: "operator",
+    };
+    approvalGateMocks.get.mockReturnValue(pending);
+    approvalGateMocks.approve.mockImplementation(async (input: { execute: (request: typeof pending) => Promise<Record<string, unknown>> }) => ({
+      request: { ...pending, status: "approved", approvedById: actor.id, approvedByName: actor.name },
+      result: await input.execute(pending),
+    }));
+
+    const approved = await executeTerminalRequest(
+      { action: "approval:approve", payload: { approvalId: pending.id } },
+      actor,
+    );
+    expect(approved).toEqual(
+      expect.objectContaining({
+        ok: true,
+        output: expect.stringContaining("Approved and executed Stop the watcher"),
+        approvalRequest: expect.objectContaining({ status: "approved" }),
+      }),
+    );
+    expect(approvalGateMocks.approve).toHaveBeenCalledTimes(1);
   });
 
   it("requires confirmation before running an automation template", async () => {

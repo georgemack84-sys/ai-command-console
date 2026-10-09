@@ -558,6 +558,7 @@ export function buildTerminalCollaborationSnapshot(input: {
             ? `${String(approval.requestedByName || "Someone")} is waiting on approval for ${String(approval.action || "action")}.${approval.approverTarget ? ` Target: ${String(approval.approverTarget)}.` : ""}`
             : `${String(approval.requestedByName || "Someone")} request is ${String(approval.status || "resolved")}.`,
         approvalId: approval.id,
+        requestedById: approval.requestedById || null,
         approverTarget: approval.approverTarget || null,
         read: Boolean(inboxState[`inbox:${String(approval.id)}`]?.readAt),
         acknowledged: Boolean(inboxState[`inbox:${String(approval.id)}`]?.acknowledgedAt),

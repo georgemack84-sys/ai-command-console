@@ -12,6 +12,14 @@ import {
 import { canHandleTerminalGovernanceCompatAction } from "@/src/server/services/terminal-governance-compat-service";
 import { canHandleTerminalAction, executeTerminalAction } from "@/src/server/services/terminal-action-service";
 import { canHandleTerminalCommand, executeTerminalCommand } from "@/src/server/services/terminal-command-service";
+import {
+  approveSensitiveActionApproval,
+  getSensitiveApprovalRequest,
+  isSensitiveTerminalAction,
+  listSensitiveApprovalRequests,
+  rejectSensitiveActionApproval,
+  requestSensitiveActionApproval,
+} from "@/src/server/services/terminal-approval-gate-service";
 
 const require = createRequire(import.meta.url);
 
@@ -69,6 +77,14 @@ type GovernedStructuredPlan = {
   source: "control";
   overview?: TerminalOverview;
   meta?: Record<string, unknown>;
+};
+
+type TerminalExecutionResult = {
+  ok: boolean;
+  output?: unknown;
+  error?: string;
+  overview?: TerminalOverview | null;
+  [key: string]: unknown;
 };
 
 const terminalOperationsActions = new Set([
@@ -741,8 +757,11 @@ function getExecutableReviewedActionPlan(control: {
   return { ok: true, plan };
 }
 
-function buildTerminalApprovalList(controlCenterOverview: Awaited<ReturnType<typeof buildControlCenterOverview>>) {
-  return controlCenterOverview.collaboration.digestWorkspaceHealth
+function buildTerminalApprovalList(
+  controlCenterOverview: Awaited<ReturnType<typeof buildControlCenterOverview>>,
+  workspaceId: string,
+) {
+  const incidentApprovals = controlCenterOverview.collaboration.digestWorkspaceHealth
     .flatMap((workspace) =>
       (workspace.incidentApprovalHistory || []).map((approval) => ({
         id: approval.id,
@@ -759,13 +778,18 @@ function buildTerminalApprovalList(controlCenterOverview: Awaited<ReturnType<typ
         resolvedAt: approval.resolvedAt,
         createdAt: approval.createdAt,
       })),
-    )
-    .sort((left, right) => {
-      if (left.status === right.status) {
-        return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
-      }
-      return left.status === "pending" ? -1 : 1;
-    });
+    );
+  const sensitiveApprovals = listSensitiveApprovalRequests(workspaceId).map((approval) => ({
+    ...approval,
+    requestedStatus: "sensitive action",
+  }));
+
+  return [...sensitiveApprovals, ...incidentApprovals].sort((left, right) => {
+    if (left.status === right.status) {
+      return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
+    }
+    return left.status === "pending" ? -1 : 1;
+  });
 }
 
 function mergeTerminalGovernance(
@@ -783,7 +807,7 @@ function mergeTerminalGovernance(
       ...(overview.collaboration || {}),
       digestWorkspaceHealth: controlCollaboration.digestWorkspaceHealth,
       digestEscalations: controlCollaboration.digestEscalations,
-      approvals: buildTerminalApprovalList(controlCenterOverview),
+      approvals: buildTerminalApprovalList(controlCenterOverview, user.workspaceId),
       globalOperations: controlCollaboration.globalOperations,
       policyPlaybookAdoption: controlCollaboration.policyPlaybookAdoption,
       incidentApprovalPressure: controlCollaboration.incidentApprovalPressure,
@@ -884,7 +908,8 @@ export async function executeTerminalRequest(
     operatorOverride?: Record<string, unknown>;
   },
   user: ConsoleActor,
-) {
+  internal: { approvedRequestId?: string } = {},
+): Promise<TerminalExecutionResult> {
   const trimmedCommand = String(body.command || "").trim();
   const action = String(body.action || "").trim();
   const actionPayload = body.payload || {};
@@ -924,6 +949,55 @@ export async function executeTerminalRequest(
       error: `Unsupported terminal action: ${body.action}.`,
       overview: await getTerminalOverview(user),
     };
+  }
+
+  if ((action === "approval:approve" || action === "approval:reject") && actionPayload.approvalId) {
+    const approvalId = String(actionPayload.approvalId);
+    const sensitiveApproval = getSensitiveApprovalRequest(approvalId, user.workspaceId);
+    if (sensitiveApproval) {
+      const governance = await getPolicyGovernanceSnapshot();
+      if (action === "approval:reject") {
+        const rejected = rejectSensitiveActionApproval({
+          approvalId,
+          note: String(actionPayload.note || ""),
+          actor: user,
+          governance,
+        });
+        return {
+          ok: true,
+          output: `Rejected sensitive action request ${rejected.id}.`,
+          approvalRequest: rejected,
+          overview: await getTerminalOverview(user),
+        };
+      }
+
+      const approved = await approveSensitiveActionApproval({
+        approvalId,
+        actor: user,
+        governance,
+        execute: (request) => {
+          const requestingActor: ConsoleActor = {
+            id: request.requestedById,
+            workspaceId: request.workspaceId,
+            name: request.requestedByName,
+            email: request.requestedByEmail,
+            role: request.requestedByRole,
+          };
+          return executeTerminalRequest(
+            { action: request.action, payload: request.payload, confirmed: true },
+            requestingActor,
+            { approvedRequestId: request.id },
+          );
+        },
+      });
+      return {
+        ...approved.result,
+        ok: true,
+        output: `Approved and executed ${sensitiveApproval.label}. ${String(approved.result.output || "").trim()}`.trim(),
+        approvalRequest: approved.request,
+        overview: await getTerminalOverview(user),
+      };
+    }
   }
 
   const plannerGovernedActionCommand = action ? getPlannerGovernedActionCommand(action, actionPayload) : null;
@@ -996,6 +1070,29 @@ export async function executeTerminalRequest(
       userEmail: user.email,
       userRole: user.role,
     };
+
+    if (isSensitiveTerminalAction(action) && internal.approvedRequestId === undefined) {
+      const governance = await getPolicyGovernanceSnapshot();
+      if (Boolean(governance.sensitiveActionsRequireApproval)) {
+        const policy = getEnvironmentPolicy(governance, user.workspaceId);
+        const approval = requestSensitiveActionApproval({
+          action,
+          payload: governedStructuredActionPlan.payload as Record<string, unknown>,
+          actor: user,
+          environment: String(policy.currentEnvironment || governance.currentEnvironment || "development"),
+        });
+        return {
+          ok: true,
+          output: approval.created
+            ? `Approval requested for ${action}. Request ID: ${approval.request.id}.`
+            : `Approval is already pending for ${action}. Request ID: ${approval.request.id}.`,
+          approvalRequired: true,
+          approvalRequest: approval.request,
+          plan: governedStructuredActionPlan,
+          overview: await getTerminalOverview(user),
+        };
+      }
+    }
 
     const controlled = await executeControlledStructuredPlan(governedStructuredActionPlan, {
       actor: user,
