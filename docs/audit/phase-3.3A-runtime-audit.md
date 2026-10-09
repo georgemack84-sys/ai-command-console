@@ -20,7 +20,7 @@ Since the initial audit, the console runtime has materially improved:
 
 What remains true:
 
-- the console surface is still `PARTIAL_GOVERNED` overall because read-formatting helpers, legacy `help`, and compatibility paths still exist beside the governed route
+- the console surface now treats `help`, inbox, and trust formatting as explicit read-only exceptions; unsupported or unresolved execution requests fail closed
 - the broader API and worker surfaces outside the console path still include major bypass and partial-unorchestrated paths
 
 ## Audit Method
@@ -75,7 +75,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 | Path Name | Entrypoint | Flow (step-by-step) | Reaches Control | Reaches Planner | Reaches Review | Reaches Router | Reaches Engine | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Console interactive path | `POST /api/console` | `Terminal.tsx` -> `app/api/console/route.ts` -> `executeTerminalRequest()` -> governed candidates use `executeControlledPlan()` / `executeControlledStructuredPlan()` -> reviewed plan -> execution engine -> `toolRouter.route()`; residual fallback branches still handle read-formatting helpers and legacy help | yes | partial | yes | yes | yes | `src/components/Terminal.tsx:931-938`; `app/api/console/route.ts:29-38`; `src/server/services/console-runtime.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | The console path now has a real governed execution lane for most action traffic, but it is not yet the only lane. |
+| Console interactive path | `POST /api/console` | `Terminal.tsx` -> `app/api/console/route.ts` -> `executeTerminalRequest()` -> governed candidates use `executeControlledPlan()` / `executeControlledStructuredPlan()` -> reviewed plan -> execution engine -> `toolRouter.route()`; named read-only help/inbox/trust commands return through a dedicated formatter and unresolved requests fail closed | yes | structured plan | yes | yes | yes | `src/components/Terminal.tsx:931-938`; `app/api/console/route.ts:29-38`; `src/server/services/console-runtime.ts`; `src/server/services/terminal-read-command-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Mutations use the governed execution lane; named formatting commands are explicit read-only exceptions. |
 | Console overview read path | `GET /api/console` | `Terminal.tsx` -> `GET /api/console` -> `getTerminalOverview()` -> typed overview builders | no | no | no | no | no | `src/components/Terminal.tsx:926-929`; `app/api/console/route.ts`; `src/server/services/console-runtime.ts` | Read-only path; scheduler startup no longer depends on a request. |
 | Console stream path | `GET /api/console/stream` | `Terminal.tsx` EventSource -> periodic `getTerminalOverview()` -> SSE payload | no | no | no | no | no | `src/components/Terminal.tsx:1196-1203`; `app/api/console/stream/route.ts` | Read-only stream; it no longer queues digest work every four seconds. |
 | Operations action path | `POST /api/operations/actions` | route auth/workspace check -> `executeGovernedOperationsAction()` -> control/review -> execution engine -> `toolRouter.route()` -> `executeOperationsAction()` | yes | structured plan | yes | yes | yes | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Higher-risk actions stop at `confirm_required`; the client resubmits only after explicit operator confirmation. |
@@ -106,7 +106,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 | Path Name | Classification | Justification | Evidence |
 | --- | --- | --- | --- |
-| Console interactive path | `PARTIAL_GOVERNED` | Most action traffic now proceeds through control/review plus execution engine and router, but the endpoint still contains residual non-governed fallback behavior for some read/helper flows. | `src/server/services/console-runtime.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
+| Console interactive path | `GOVERNED` | Mutations proceed through control/review plus execution engine and router; help, inbox, and trust formatting are named read-only exceptions, and unresolved execution requests fail closed. | `src/server/services/console-runtime.ts`; `src/server/services/terminal-read-command-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
 | Console overview read path | `EXCEPTION` | Read-only overview path; scheduler initialization is isolated in Node instrumentation. | `app/api/console/route.ts`; `src/instrumentation.ts`; `src/instrumentation-node.ts` |
 | Console stream path | `EXCEPTION` | Authenticated read-only SSE delivery; digest startup and queue mutation were removed from the request loop. | `app/api/console/stream/route.ts` |
 | Operations action path | `GOVERNED` | Authenticated operations actions use structured control review, confirmation where required, and engine/router dispatch before the operations service mutates state. | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts`; `services/toolRouter.js` |
@@ -147,35 +147,23 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 ### Remaining High-Risk Paths
 
-1. Console interactive fallback path
-   Residual helper and fallback branches still have weaker admission guarantees than structured action paths.
-2. Legacy enqueue compatibility adapters
-   Compatibility enqueue surfaces are evidence-bound, but they remain an additional maintenance-sensitive admission shape.
-3. Runtime policy migration compatibility
+1. Runtime policy migration compatibility
    Incremental policy migration remains centralized in runtime startup and warrants consolidation as action families grow.
-4. Grouped read-path audit coverage
+2. Grouped read-path audit coverage
    Low-risk read APIs are grouped by shape rather than traced individually, leaving a bounded coverage uncertainty.
 
 ### Remaining Highest-Frequency Risky Paths
 
-1. Console interactive path
-   Main user-facing action path; partially governed but still hybrid.
-2. Legacy enqueue compatibility adapters
-   Older enqueue callers remain a recurring compatibility dependency despite fail-closed admission validation.
-3. Runtime policy migration compatibility
+1. Runtime policy migration compatibility
    Every runtime startup normalizes the historical policy sequence before applying current admission rules.
-4. Grouped read-path audit coverage
+2. Grouped read-path audit coverage
    Common authenticated reads are frequent even though they remain intentional low-risk exceptions.
 
 ### Remaining Easiest Migration Candidates
 
-1. Console interactive fallback path
-   Remaining fallback branches can be inventoried and migrated one bounded action family at a time.
-2. Legacy enqueue compatibility adapters
-   Existing normalization and durable evidence checks provide a clear boundary for consolidating remaining callers.
-3. Runtime policy migration compatibility
+1. Runtime policy migration compatibility
    Historical migrations can be compacted behind fixtures without changing the current canonical policy.
-4. Grouped read-path audit coverage
+2. Grouped read-path audit coverage
    Read-only routes can be enumerated mechanically to replace grouped evidence with route-level evidence.
 
 ### Most Inconsistent Runtime Behaviors
@@ -199,7 +187,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 | Path Name | Current Classification | Priority (high/medium/low/exception) | Reason | Complexity | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Console interactive path | `PARTIAL_GOVERNED` | medium | Major migration work is complete, but residual fallback behavior still deserves cleanup. | Medium | `src/server/services/console-runtime.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
+| Console interactive path | `GOVERNED` | complete | Mutations have governed execution, and the remaining help/inbox/trust paths are named read-only exceptions with fail-closed unresolved requests. | Complete | `src/server/services/console-runtime.ts`; `src/server/services/terminal-read-command-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
 | Operations action path | `GOVERNED` | complete | Structured review, confirmation, engine, and router admission are now enforced. | Complete | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts` |
 | Research action path | `GOVERNED` | complete | Collision-free structured review, confirmation, engine, and router admission are now enforced. | Complete | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts` |
 | Jobs queue management path | `GOVERNED` | complete | Queue mutation admission, confirmation, engine/router dispatch, and target-workspace authorization are enforced. | Complete | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts` |
@@ -225,7 +213,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 The runtime is healthiest where it has an explicit gateway: the console, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs, agent-task, source-refresh, and scheduled-summary API paths. These interactive paths now have confirmed control-to-engine-to-router execution.
 
-The remaining runtime fragmentation is concentrated in residual console helper/fallback branches that do not represent structured action families. The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. Legacy worker registration and enqueue normalization each have dedicated compatibility boundaries. The strongest next runtime cleanup candidates are the residual console fallback and runtime-policy migration boundaries.
+The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. Console help, inbox, and trust formatting have explicit read-only boundaries, while unresolved execution requests fail closed. Legacy worker registration and enqueue normalization each have dedicated compatibility boundaries. The strongest next runtime cleanup candidates are runtime-policy migration and route-level read-path audit coverage.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 
