@@ -46,6 +46,7 @@ const ROUTES_PATH = getWorkspaceDataPath("workspace-user-routes.json");
 const RESEARCH_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-service.ts");
 const RESEARCH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-action-service.ts");
 const RESEARCH_REPORT_MUTATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-report-mutation-service.ts");
+const RESEARCH_BRIEF_MUTATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-brief-mutation-service.ts");
 const DASHBOARD_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "dashboard-action-service.ts");
 const ADMIN_ACCESS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "admin-access-action-service.ts");
 const JOB_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "job-action-service.ts");
@@ -71,6 +72,12 @@ const RESEARCH_REPORT_MUTATION_ROUTED_ACTIONS = new Map([
   ["research:reports-create", "create"],
   ["research:reports-update", "update"],
   ["research:reports-delete", "delete"],
+]);
+const RESEARCH_BRIEF_MUTATION_ROUTED_ACTIONS = new Map([
+  ["research:briefs-create", "create"],
+  ["research:briefs-update", "update"],
+  ["research:briefs-route", "route"],
+  ["research:briefs-delete", "delete"],
 ]);
 const DASHBOARD_ROUTED_ACTIONS = new Map([
   ["dashboard:alert-run-checks", "alert:run-checks"],
@@ -193,6 +200,14 @@ function loadResearchReportMutationService() {
     return injectedBridge.loadResearchReportMutationService();
   }
   return requireTypeScriptModule(RESEARCH_REPORT_MUTATION_SERVICE_PATH, __filename);
+}
+
+function loadResearchBriefMutationService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadResearchBriefMutationService === "function") {
+    return injectedBridge.loadResearchBriefMutationService();
+  }
+  return requireTypeScriptModule(RESEARCH_BRIEF_MUTATION_SERVICE_PATH, __filename);
 }
 
 function loadOperationsActionService() {
@@ -1336,6 +1351,22 @@ async function route(plan, modes = {}) {
           );
         } catch (error) {
           result = { ok: false, error: error?.message || `Research report mutation failed: ${plan.action}` };
+        }
+        break;
+      }
+
+      if (RESEARCH_BRIEF_MUTATION_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const briefService = loadResearchBriefMutationService();
+          result = await briefService.executeResearchBriefMutation(
+            {
+              action: RESEARCH_BRIEF_MUTATION_ROUTED_ACTIONS.get(String(plan.action || "")),
+              payload: plan.payload || {},
+            },
+            getPlanActor(plan),
+          );
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Research brief mutation failed: ${plan.action}` };
         }
         break;
       }

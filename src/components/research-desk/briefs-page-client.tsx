@@ -9,6 +9,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { buttonVariants } from "@/src/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/src/components/ui/card";
 import { SectionCard } from "@/src/components/shared/section-card";
+import { mutateResearchBrief } from "@/src/lib/client/research-brief-actions";
 import { cn } from "@/src/lib/utils";
 import type { ResearchBrief, ResearchBriefStatus, ResearchPriority, SessionUser } from "@/src/lib/types";
 
@@ -130,21 +131,13 @@ export function BriefsPageClient() {
     try {
       setSaving(true);
       setError(null);
-      const response = await fetch("/api/research/briefs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          status: form.queueBrief ? "queued" : "draft",
-          queueBrief: form.queueBrief,
-          tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
-        }),
+      const data = await mutateResearchBrief<NonNullable<BriefResponse["data"]>>("POST", {
+        ...form,
+        status: form.queueBrief ? "queued" : "draft",
+        queueBrief: form.queueBrief,
+        tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
       });
-      const payload = (await response.json()) as BriefResponse;
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error?.message || "Unable to create brief.");
-      }
-      setBriefs(payload.data?.briefs || []);
+      setBriefs(data.briefs || []);
       setForm(EMPTY_FORM);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to create brief.");
@@ -154,44 +147,32 @@ export function BriefsPageClient() {
   }
 
   async function updateBriefStatus(id: string, status: ResearchBriefStatus) {
-    const response = await fetch("/api/research/briefs", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    const payload = (await response.json()) as BriefResponse;
-    if (response.ok && payload.ok) {
-      setBriefs(payload.data?.briefs || []);
-    } else {
-      setError(payload.error?.message || "Unable to update brief.");
+    try {
+      const data = await mutateResearchBrief<NonNullable<BriefResponse["data"]>>("PATCH", { id, status });
+      setBriefs(data.briefs || []);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to update brief.");
     }
   }
 
   async function routeBrief(id: string) {
-    const response = await fetch("/api/research/briefs", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, routeToQueue: true }),
-    });
-    const payload = (await response.json()) as BriefResponse;
-    if (response.ok && payload.ok) {
-      setBriefs(payload.data?.briefs || []);
-    } else {
-      setError(payload.error?.message || "Unable to route brief.");
+    try {
+      const data = await mutateResearchBrief<NonNullable<BriefResponse["data"]>>("PATCH", {
+        id,
+        routeToQueue: true,
+      });
+      setBriefs(data.briefs || []);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to route brief.");
     }
   }
 
   async function deleteBrief(id: string) {
-    const response = await fetch("/api/research/briefs", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ briefId: id }),
-    });
-    const payload = (await response.json()) as BriefResponse;
-    if (response.ok && payload.ok) {
-      setBriefs(payload.data?.briefs || []);
-    } else {
-      setError(payload.error?.message || "Unable to delete brief.");
+    try {
+      const data = await mutateResearchBrief<NonNullable<BriefResponse["data"]>>("DELETE", { briefId: id });
+      setBriefs(data.briefs || []);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to delete brief.");
     }
   }
 
@@ -203,16 +184,15 @@ export function BriefsPageClient() {
       return;
     }
 
-    const response = await fetch("/api/research/briefs", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ownerId: targetOwner.id, ownerName: targetOwner.name }),
-    });
-    const payload = (await response.json()) as BriefResponse;
-    if (response.ok && payload.ok) {
-      setBriefs(payload.data?.briefs || []);
-    } else {
-      setError(payload.error?.message || "Unable to reassign brief.");
+    try {
+      const data = await mutateResearchBrief<NonNullable<BriefResponse["data"]>>("PATCH", {
+        id,
+        ownerId: targetOwner.id,
+        ownerName: targetOwner.name,
+      });
+      setBriefs(data.briefs || []);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to reassign brief.");
     }
   }
 
