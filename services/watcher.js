@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { listTasks } = require("./taskQueue");
-const { getSchedule, startSchedule } = require("./scheduler");
+const { getSchedule } = require("./scheduler");
+const { executeControlledStructuredPlan } = require("./runtimeControl");
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { recordTelemetry } = require("./telemetry");
 const { getAgentsDataPath, getRuntimeLogPath } = require("./runtimePaths");
@@ -12,6 +13,14 @@ const AGENT_LOG_DIR = getRuntimeLogPath("agents");
 const WATCHER_KEY = "watcher";
 
 let watcherTimer = null;
+let watcherEvaluationPromise = null;
+const WATCHER_SYSTEM_ACTOR = Object.freeze({
+  id: "system:watcher",
+  workspaceId: "legacy-global",
+  name: "Watcher",
+  email: "watcher@local",
+  role: "system",
+});
 
 function ensureWatcherDir() {
   fs.mkdirSync(path.dirname(WATCHER_PATH), { recursive: true });
@@ -146,12 +155,12 @@ function shouldStartSchedule(agentName, desiredInterval, desiredMaxCycles) {
 }
 
 function buildRuleDecisions(state, options = {}) {
-  const preview = Boolean(options.preview);
+  const includeDisabled = Boolean(options.includeDisabled);
   const decisions = [];
 
   for (const rule of state.rules) {
     if (!rule || !rule.enabled) {
-      if (preview && rule) {
+      if (includeDisabled && rule) {
         decisions.push({
           ruleName: rule.name,
           agentName: rule.agentName,
@@ -188,29 +197,15 @@ function buildRuleDecisions(state, options = {}) {
           intervalSeconds: Number(rule.scheduleIntervalSeconds || 3),
           maxCycles: Number(rule.scheduleMaxCycles || 3),
         };
-        const schedule = preview
-          ? { enabled: true, cycleCount: 0, ...scheduleInput }
-          : startSchedule(rule.agentName, scheduleInput.intervalSeconds, scheduleInput.maxCycles);
+        const schedule = { enabled: true, cycleCount: 0, ...scheduleInput };
 
-        decision.action = preview ? "schedule_would_start" : "schedule_started";
+        decision.action = "schedule_would_start";
         decision.schedule = {
           enabled: schedule.enabled,
           intervalSeconds: schedule.intervalSeconds,
           maxCycles: schedule.maxCycles,
           cycleCount: schedule.cycleCount
         };
-
-        if (!preview) {
-          logWatcherEvent({
-            event: "watcher_triggered_schedule",
-            ruleName: rule.name,
-            agentName: rule.agentName,
-            queuedCount,
-            minQueuedTasks: rule.minQueuedTasks,
-            scheduleIntervalSeconds: rule.scheduleIntervalSeconds,
-            scheduleMaxCycles: rule.scheduleMaxCycles
-          });
-        }
       } else {
         decision.action = "schedule_already_active_or_valid";
       }
@@ -224,7 +219,7 @@ function buildRuleDecisions(state, options = {}) {
 
 function previewRules() {
   const state = loadWatcherState();
-  const decisions = buildRuleDecisions(state, { preview: true });
+  const decisions = buildRuleDecisions(state, { includeDisabled: true });
 
   return {
     ok: true,
@@ -237,11 +232,81 @@ function previewRules() {
   };
 }
 
-function evaluateRules() {
-  assertLegacyAutonomyAllowed("watcher rule evaluation");
+async function startScheduleThroughGovernedRuntime(decision) {
+  const controlled = await executeControlledStructuredPlan({
+    type: "single",
+    action: "watcher:schedule-start",
+    payload: {
+      ruleName: decision.ruleName,
+      agentName: decision.agentName,
+      intervalSeconds: decision.schedule.intervalSeconds,
+      maxCycles: decision.schedule.maxCycles,
+    },
+    originalRequest: `start schedule for ${decision.agentName} from watcher rule ${decision.ruleName}`,
+    source: "watcher",
+    meta: {
+      userId: WATCHER_SYSTEM_ACTOR.id,
+      workspaceId: WATCHER_SYSTEM_ACTOR.workspaceId,
+      userName: WATCHER_SYSTEM_ACTOR.name,
+      userEmail: WATCHER_SYSTEM_ACTOR.email,
+      userRole: WATCHER_SYSTEM_ACTOR.role,
+    },
+  }, {
+    actor: WATCHER_SYSTEM_ACTOR,
+    identitySource: "system",
+    modes: { confirmed: true },
+  });
+
+  if (!controlled?.ok || !controlled.result?.ok || !controlled.result?.schedule) {
+    throw new Error(
+      controlled?.error ||
+      controlled?.result?.error ||
+      controlled?.control?.decision?.explanation ||
+      `Watcher schedule start was not authorized for ${decision.agentName}.`,
+    );
+  }
+
+  return controlled.result.schedule;
+}
+
+async function executeRuleEvaluation() {
   const startedAt = Date.now();
   const state = loadWatcherState();
   const decisions = buildRuleDecisions(state);
+
+  for (const decision of decisions) {
+    if (decision.action !== "schedule_would_start") {
+      continue;
+    }
+
+    if (!shouldStartSchedule(
+      decision.agentName,
+      decision.schedule.intervalSeconds,
+      decision.schedule.maxCycles,
+    )) {
+      decision.action = "schedule_already_active_or_valid";
+      delete decision.schedule;
+      continue;
+    }
+
+    const schedule = await startScheduleThroughGovernedRuntime(decision);
+    decision.action = "schedule_started";
+    decision.schedule = {
+      enabled: schedule.enabled,
+      intervalSeconds: schedule.intervalSeconds,
+      maxCycles: schedule.maxCycles,
+      cycleCount: schedule.cycleCount,
+    };
+    logWatcherEvent({
+      event: "watcher_triggered_schedule",
+      ruleName: decision.ruleName,
+      agentName: decision.agentName,
+      queuedCount: decision.queuedCount,
+      minQueuedTasks: decision.minQueuedTasks,
+      scheduleIntervalSeconds: schedule.intervalSeconds,
+      scheduleMaxCycles: schedule.maxCycles,
+    });
+  }
 
   state.lastRunAt = new Date().toISOString();
   state.lastError = null;
@@ -275,6 +340,47 @@ function evaluateRules() {
   };
 }
 
+function evaluateRules() {
+  assertLegacyAutonomyAllowed("watcher rule evaluation");
+  if (watcherEvaluationPromise) {
+    return watcherEvaluationPromise;
+  }
+
+  const evaluation = executeRuleEvaluation();
+  watcherEvaluationPromise = evaluation.finally(() => {
+    watcherEvaluationPromise = null;
+  });
+  return watcherEvaluationPromise;
+}
+
+function recordWatcherEvaluationError(error) {
+  const message = error instanceof Error ? error.message : "Watcher evaluation failed.";
+  const current = loadWatcherState();
+  current.lastError = message;
+  current.lastRunAt = new Date().toISOString();
+  current.history.push({
+    timestamp: new Date().toISOString(),
+    type: "watcher_error",
+    error: message
+  });
+  saveWatcherState(current);
+  recordTelemetry({
+    type: "watcher:evaluate",
+    category: "watcher",
+    operation: "evaluate",
+    status: "error",
+    durationMs: 0,
+    meta: {
+      error: message,
+    },
+  });
+
+  logWatcherEvent({
+    event: "watcher_error",
+    error: message
+  });
+}
+
 function attachWatcherInterval() {
   clearWatcherTimer();
 
@@ -284,40 +390,13 @@ function attachWatcherInterval() {
   }
 
   watcherTimer = setInterval(() => {
-    try {
-      const latest = loadWatcherState();
-      if (!latest.enabled) {
-        clearWatcherTimer();
-        return;
-      }
-
-      evaluateRules();
-    } catch (error) {
-      const current = loadWatcherState();
-      current.lastError = error.message;
-      current.lastRunAt = new Date().toISOString();
-      current.history.push({
-        timestamp: new Date().toISOString(),
-        type: "watcher_error",
-        error: error.message
-      });
-      saveWatcherState(current);
-      recordTelemetry({
-        type: "watcher:evaluate",
-        category: "watcher",
-        operation: "evaluate",
-        status: "error",
-        durationMs: 0,
-        meta: {
-          error: error.message,
-        },
-      });
-
-      logWatcherEvent({
-        event: "watcher_error",
-        error: error.message
-      });
+    const latest = loadWatcherState();
+    if (!latest.enabled) {
+      clearWatcherTimer();
+      return;
     }
+
+    void evaluateRules().catch(recordWatcherEvaluationError);
   }, state.intervalSeconds * 1000);
 
   return watcherTimer;

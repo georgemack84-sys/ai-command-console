@@ -242,7 +242,7 @@ export async function executeTerminalAction(
       remediation: payload.remediation || {},
     });
     if (policy.escalation.autoRunWatcherOnPolicySave) {
-      evaluateRules();
+      await evaluateRules();
     }
     if (policy.escalation.autoRunAlertsOnPolicySave) {
       runAlertChecks();
