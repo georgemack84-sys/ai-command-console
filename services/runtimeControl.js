@@ -546,6 +546,13 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 32;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 33) {
+    normalizedLoadedPolicy.actionCategoryMap = {
+      ...(normalizedLoadedPolicy.actionCategoryMap || {}),
+      "research:summaries-run-due": "network_mutation",
+    };
+    normalizedLoadedPolicy.version = 33;
+  }
 
   const defaults = createDefaultPolicy();
   return {
