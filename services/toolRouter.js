@@ -52,6 +52,13 @@ const TERMINAL_DIGEST_SERVICE_PATH = path.join(__dirname, "..", "src", "server",
 const POLICY_GOVERNANCE_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "policy-governance-service.ts");
 const RESEARCH_BRIDGE_GLOBAL = "__AI_COMMAND_CONSOLE_RESEARCH_BRIDGE__";
 const RUNTIME_SERVICE_BRIDGE_GLOBAL = "__AI_COMMAND_CONSOLE_RUNTIME_SERVICE_BRIDGE__";
+const RESEARCH_ROUTED_ACTIONS = new Map([
+  ["research:brief-route", "brief:route"],
+  ["research:review-create", "review:create"],
+  ["research:review-followup", "review:followup"],
+  ["research:report-create", "report:create"],
+  ["research:report-publish", "report:publish"],
+]);
 const OPERATIONS_ROUTED_ACTIONS = new Set([
   "approval:approve",
   "approval:reject",
@@ -1036,6 +1043,26 @@ async function route(plan, modes = {}) {
     }
 
     default:
+      if (RESEARCH_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const researchService = loadResearchActionService();
+          const researchResult = await researchService.executeResearchAction(
+            {
+              action: RESEARCH_ROUTED_ACTIONS.get(String(plan.action || "")),
+              payload: plan.payload || {},
+            },
+            getPlanActor(plan),
+          );
+          result =
+            researchResult && typeof researchResult === "object" && typeof researchResult.output === "string"
+              ? researchResult.output
+              : researchResult;
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Research action failed: ${plan.action}` };
+        }
+        break;
+      }
+
       if (OPERATIONS_ROUTED_ACTIONS.has(String(plan.action || ""))) {
         try {
           const operationsService = loadOperationsActionService();
