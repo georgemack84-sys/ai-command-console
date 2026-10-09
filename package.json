@@ -18,6 +18,7 @@
     "qualify:commit": "node scripts/qualified-commit.cjs",
     "test:qualified-commit-gate": "node --test scripts/qualified-commit-gate.test.cjs",
     "validate:documentation": "node scripts/validate-developer-documentation.cjs",
+    "audit:read-paths": "node scripts/audit-read-paths.cjs",
     "validate:qualification": "node scripts/validate-day-5-qualification.cjs",
     "validate:baseline": "npm run validate:qualification && npm run test:ci-workflow && node scripts/validate-baseline-freeze.cjs",
     "dev": "node scripts/run-next.cjs dev",

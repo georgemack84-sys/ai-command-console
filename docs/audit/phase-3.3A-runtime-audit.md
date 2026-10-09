@@ -147,18 +147,16 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 ### Remaining High-Risk Paths
 
-1. Grouped read-path audit coverage
-   Low-risk read APIs are grouped by shape rather than traced individually, leaving a bounded coverage uncertainty.
+No remaining high-risk runtime paths are known. Every GET-capable API route is mechanically enumerated by `npm run audit:read-paths`; classifications distinguish console reads, versioned observability, operational exceptions, and authenticated reads.
 
 ### Remaining Highest-Frequency Risky Paths
 
-1. Grouped read-path audit coverage
-   Common authenticated reads are frequent even though they remain intentional low-risk exceptions.
+1. Authenticated read APIs
+   These remain frequent low-risk exceptions and are now inventory-backed rather than inferred from grouped route shapes.
 
 ### Remaining Easiest Migration Candidates
 
-1. Grouped read-path audit coverage
-   Read-only routes can be enumerated mechanically to replace grouped evidence with route-level evidence.
+No runtime migration candidates remain from this audit.
 
 ### Most Inconsistent Runtime Behaviors
 
@@ -208,7 +206,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 The runtime is healthiest where it has an explicit gateway: the console, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs, agent-task, source-refresh, and scheduled-summary API paths. These interactive paths now have confirmed control-to-engine-to-router execution.
 
-The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. Console help, inbox, and trust formatting have explicit read-only boundaries, while unresolved execution requests fail closed. Legacy worker registration and enqueue normalization each have dedicated compatibility boundaries. Historical runtime-policy upgrades now have an explicit fixture-tested compatibility boundary. The strongest next runtime cleanup candidate is route-level read-path audit coverage.
+The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. Console help, inbox, and trust formatting have explicit read-only boundaries, while unresolved execution requests fail closed. Legacy worker registration and enqueue normalization each have dedicated compatibility boundaries. Historical runtime-policy upgrades have an explicit fixture-tested compatibility boundary, and GET-capable API reads now have a deterministic route inventory.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 
