@@ -9,10 +9,6 @@ vi.mock("@/app/api/console/core", () => ({
   executeTerminalRequest: vi.fn(),
 }));
 
-vi.mock("@/services/digestScheduler", () => ({
-  ensureDigestScheduler: vi.fn(),
-}));
-
 vi.mock("@/src/server/auth/permissions", () => ({
   requireWorkspaceMember: vi.fn(),
 }));

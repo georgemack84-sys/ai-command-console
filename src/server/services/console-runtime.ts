@@ -27,10 +27,7 @@ import {
 
 const require = createRequire(import.meta.url);
 
-const {
-  queueLegacyDueDigestSweepIfNeeded,
-  formatLegacyConsoleHelp,
-} = require("../../../services/legacyConsoleCompat");
+const { formatLegacyConsoleHelp } = require("../../../services/legacyConsoleCompat");
 const { canApproveInEnvironment, canManageGovernanceInEnvironment, getEnvironmentPolicy } = require("../../../services/permissions");
 const {
   executeControlledPlan,
@@ -1526,11 +1523,4 @@ export async function applyTerminalOperatorRecoveryAction(
     ...result,
     overview: await getTerminalOverview(user),
   };
-}
-
-export function queueTerminalDigestSweep(user: ConsoleActor) {
-  return queueLegacyDueDigestSweepIfNeeded(user.workspaceId, {
-    actorId: user.id,
-    actorName: user.name || user.email,
-  });
 }

@@ -6,16 +6,11 @@ vi.mock("@/src/lib/auth", () => ({
 
 vi.mock("@/app/api/console/core", () => ({
   getTerminalOverview: vi.fn(),
-  queueTerminalDigestSweep: vi.fn(),
-}));
-
-vi.mock("@/services/digestScheduler", () => ({
-  ensureDigestScheduler: vi.fn(),
 }));
 
 import { GET } from "@/app/api/console/stream/route";
 import { getSessionUser } from "@/src/lib/auth";
-import { getTerminalOverview, queueTerminalDigestSweep } from "@/app/api/console/core";
+import { getTerminalOverview } from "@/app/api/console/core";
 
 describe("console stream route", () => {
   beforeEach(() => {
@@ -50,9 +45,6 @@ describe("console stream route", () => {
     const chunk = await reader!.read();
     const text = new TextDecoder().decode(chunk.value);
 
-    expect(queueTerminalDigestSweep).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "user_1", workspaceId: "workspace_1" }),
-    );
     expect(text).toContain('"currentEnvironment":"production"');
     expect(text).not.toContain("[object Promise]");
     await reader!.cancel();

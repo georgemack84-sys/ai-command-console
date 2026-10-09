@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/src/lib/auth";
 import { executeTerminalRequest, getTerminalOverview } from "./core";
-import { ensureDigestScheduler } from "@/services/digestScheduler";
 import { AppError } from "@/src/server/api/errors";
 import { apiError } from "@/src/server/api/response";
 import { requireWorkspaceMember } from "@/src/server/auth/permissions";
@@ -11,7 +10,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    ensureDigestScheduler();
     const user = await getSessionUser();
     if (!user) {
       throw new AppError(401, "unauthorized", "Authentication required.");
@@ -28,7 +26,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    ensureDigestScheduler();
     const user = await getSessionUser();
     if (!user) {
       throw new AppError(401, "unauthorized", "Authentication required.");
@@ -41,7 +38,6 @@ export async function POST(request: Request) {
     if (error instanceof AppError) {
       return apiError(error, "Command execution failed.");
     }
-    ensureDigestScheduler();
     const user = await getSessionUser();
     const message = error instanceof Error ? error.message : "Command execution failed.";
     const status = error instanceof AppError ? error.status : 400;
