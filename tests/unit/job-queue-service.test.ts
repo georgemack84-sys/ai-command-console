@@ -277,4 +277,94 @@ describe("job queue service", () => {
       restore();
     }
   });
+
+  it("routes reviewed processors through a controlled structured plan before invocation", async () => {
+    const { jobQueue, restore } = loadJobQueue(tempRoot);
+
+    try {
+      jobQueue.configureJobQueue({ executionMode: "external" });
+      const processor = vi.fn().mockResolvedValue({ ok: true, reviewed: true });
+      const executeReviewedPlan = vi.fn(async (plan: Record<string, unknown>) => {
+        const payload = plan.payload as { jobId: string; jobType: string };
+        const result = await jobQueue.invokeRegisteredJobProcessor(payload.jobId, {
+          jobType: payload.jobType,
+          reviewStatus: "approved",
+          controlApproved: true,
+          executionMode: "auto_execute",
+        });
+        return {
+          ok: true,
+          result,
+          control: { decision: { decision: "auto_execute" } },
+        };
+      });
+      jobQueue.registerJobProcessor("test:reviewed", processor, {
+        requiresAdmission: true,
+        requiresReviewedExecution: true,
+        admissionContract: "typed_background_job_v1",
+        executeReviewedPlan,
+      });
+      const queued = jobQueue.enqueueJob(
+        "test:reviewed",
+        { workspaceId: "workspace_1" },
+        {
+          actorId: "operator_1",
+          actorName: "Operator",
+          admission: {
+            contract: "typed_background_job_v1",
+            status: "approved",
+            jobType: "test:reviewed",
+            workspaceId: "workspace_1",
+            actorId: "operator_1",
+            source: "test",
+            admittedAt: "2026-10-09T03:00:00.000Z",
+          },
+        },
+      );
+
+      await jobQueue.runPendingJobs();
+
+      expect(executeReviewedPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "jobs:execute-processor",
+          payload: expect.objectContaining({
+            jobId: queued.id,
+            jobType: "test:reviewed",
+            initiatedByActorId: "operator_1",
+            initiatedByActorName: "Operator",
+          }),
+          source: "job_worker",
+          meta: expect.objectContaining({ userId: "system:job-worker", userRole: "system" }),
+        }),
+        expect.objectContaining({ identitySource: "system", modes: { confirmed: true } }),
+      );
+      expect(processor).toHaveBeenCalledOnce();
+      expect(jobQueue.getJob(queued.id, { full: true })).toEqual(
+        expect.objectContaining({
+          status: "completed",
+          result: { ok: true, reviewed: true },
+          events: expect.arrayContaining([
+            expect.objectContaining({
+              message: "Job processor runtime authority verified.",
+              meta: expect.objectContaining({ code: "job_processor_runtime_authority_verified" }),
+            }),
+          ]),
+        }),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it("rejects direct reviewed processor invocation without runtime authority", async () => {
+    const { jobQueue, restore } = loadJobQueue(tempRoot);
+
+    try {
+      await expect(jobQueue.invokeRegisteredJobProcessor("job_missing", {})).rejects.toThrow(
+        /approved runtime authority/i,
+      );
+    } finally {
+      restore();
+    }
+  });
 });

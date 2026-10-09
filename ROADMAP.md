@@ -140,9 +140,11 @@ Delivered in current slice:
 - Added target-workspace authorization before queue mutation while preserving accepted response status and explicit confirmation
 - Added durable admission contracts for all typed background-job processors, with fail-closed type, workspace, actor, provenance, and contract checks before execution
 - Preserved processor admission evidence across SQLite persistence, worker restarts, stale recovery, and retries
+- Routed typed worker execution through a distinct structured control/review plan, execution engine, and tool router before processor invocation
+- Required router-issued runtime authority in addition to durable admission evidence, without recursively re-enqueuing processor work
 
 Next:
-- Route typed worker execution through full control/review admission and migrate legacy job processors onto explicit contracts
+- Migrate legacy job processors onto explicit admission and reviewed-execution contracts
 - Govern autonomous scheduler initiators
 - Refresh the runtime-path audit as each bypass is retired
 
