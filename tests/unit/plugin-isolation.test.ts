@@ -12,7 +12,12 @@ function plugin(name: string, capabilities: string[], run: (context: Record<stri
   return {
     name,
     description: `${name} test plugin`,
-    manifest: { name, version: "1.0.0", capabilities },
+    manifest: {
+      name,
+      version: "1.0.0",
+      hostApiVersion: 1,
+      capabilities: capabilities.map((capability) => ({ name: capability, version: 1 })),
+    },
     run,
   };
 }

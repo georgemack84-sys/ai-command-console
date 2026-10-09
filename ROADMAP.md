@@ -111,9 +111,10 @@ Delivered in current slice:
 - Qualified queued-job continuity, stale-lease recovery, bounded retry, and partial-failure evidence across worker restarts
 - Defined a trusted plugin registry with explicit capability manifests and fail-closed validation
 - Isolated plugin execution behind frozen, least-privilege host contexts with workspace path containment, time limits, and output limits
+- Added versioned plugin host and capability contracts with explicit security evidence, compatibility evidence, and fail-closed admission
 
 Next:
-- Expand the plugin surface only through reviewed capabilities with explicit security and compatibility qualification
+- Phase 6 platform-backbone goals are complete; select the next product roadmap slice before expanding scope
 
 ## Suggested Execution Order
 
