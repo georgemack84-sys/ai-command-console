@@ -35,6 +35,7 @@ type GovernedRouteActionOptions = {
   domain: string;
   source: string;
   normalizeAction?: (action: string) => string;
+  additionalPlanFields?: (input: GovernedRouteActionInput) => Record<string, unknown>;
   executePlan?: ControlledPlanExecutor;
 };
 
@@ -42,6 +43,7 @@ export function createGovernedRouteActionExecutor({
   domain,
   source,
   normalizeAction = (action) => action,
+  additionalPlanFields = () => ({}),
   executePlan = executeControlledStructuredPlan,
 }: GovernedRouteActionOptions) {
   return async function executeGovernedRouteAction(input: GovernedRouteActionInput, actor: GovernedRouteActor) {
@@ -54,6 +56,7 @@ export function createGovernedRouteActionExecutor({
     const payload = input?.payload && typeof input.payload === "object" ? input.payload : {};
     const controlled = await executePlan(
       {
+        ...additionalPlanFields(input),
         type: "single",
         action,
         payload,
