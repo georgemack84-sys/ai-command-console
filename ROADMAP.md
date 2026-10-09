@@ -108,9 +108,9 @@ Delivered in current slice:
 - Enforced role-based permissions and two-person approval gates for sensitive actions
 - Added structured command, watcher, scheduler, and approval telemetry with stable dimensions and latency summaries
 - Kept terminal arguments and approval payloads out of operational telemetry
+- Qualified queued-job continuity, stale-lease recovery, bounded retry, and partial-failure evidence across worker restarts
 
 Next:
-- Qualify background job retry and recovery behavior under restart and partial-failure scenarios
 - Define and test plugin isolation boundaries before expanding the extension surface
 
 ## Suggested Execution Order
