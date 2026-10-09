@@ -219,6 +219,7 @@
     "collaboration:digest-run-due": "process_control"
   },
   "actionPrefixCategoryMap": {
+    "admin:": "workflow_control",
     "dashboard:": "workflow_control",
     "research:": "workflow_control",
     "collaboration:automation-": "process_control",
