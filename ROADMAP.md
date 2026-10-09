@@ -138,9 +138,12 @@ Delivered in current slice:
 - Preserved route-level admin admission, downstream typed-service authorization, explicit confirmation, and response status semantics
 - Routed job creation, cancellation, and retry API mutations through the governed runtime with collision-free `jobs:*` action IDs
 - Added target-workspace authorization before queue mutation while preserving accepted response status and explicit confirmation
+- Added durable admission contracts for all typed background-job processors, with fail-closed type, workspace, actor, provenance, and contract checks before execution
+- Preserved processor admission evidence across SQLite persistence, worker restarts, stale recovery, and retries
 
 Next:
-- Govern worker processor admission and autonomous scheduler initiators
+- Route typed worker execution through full control/review admission and migrate legacy job processors onto explicit contracts
+- Govern autonomous scheduler initiators
 - Refresh the runtime-path audit as each bypass is retired
 
 ## Suggested Execution Order

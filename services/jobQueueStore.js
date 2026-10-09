@@ -62,6 +62,7 @@ function initializeJobStore() {
       status TEXT NOT NULL,
       actor_id TEXT,
       actor_name TEXT,
+      admission_json TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       started_at TEXT,
@@ -93,6 +94,10 @@ function initializeJobStore() {
     );
     CREATE INDEX IF NOT EXISTS idx_job_worker_heartbeats_at ON job_worker_heartbeats(heartbeat_at DESC);
   `);
+  const jobColumns = new Set(database.prepare("PRAGMA table_info(jobs)").all().map((column) => column.name));
+  if (!jobColumns.has("admission_json")) {
+    database.exec("ALTER TABLE jobs ADD COLUMN admission_json TEXT");
+  }
 
   statements = {
     countJobs: database.prepare("SELECT COUNT(*) AS count FROM jobs"),
@@ -101,7 +106,7 @@ function initializeJobStore() {
     recentJobs: database.prepare("SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?"),
     listJobSummaries: database.prepare(`
       SELECT
-        id, trace_id, type, status, actor_id, actor_name, created_at, updated_at, started_at, completed_at,
+        id, trace_id, type, status, actor_id, actor_name, admission_json, created_at, updated_at, started_at, completed_at,
         worker_id, last_heartbeat_at, lease_expires_at, error, attempts, max_attempts, retry_count,
         retry_delay_ms, runtime_limit_ms, next_retry_at, canceled_at, event_count, latest_event_json, events_json
       FROM jobs
@@ -110,7 +115,7 @@ function initializeJobStore() {
     `),
     recentJobSummaries: database.prepare(`
       SELECT
-        id, trace_id, type, status, actor_id, actor_name, created_at, updated_at, started_at, completed_at,
+        id, trace_id, type, status, actor_id, actor_name, admission_json, created_at, updated_at, started_at, completed_at,
         worker_id, last_heartbeat_at, lease_expires_at, error, attempts, max_attempts, retry_count,
         retry_delay_ms, runtime_limit_ms, next_retry_at, canceled_at, event_count, latest_event_json, events_json
       FROM jobs
@@ -186,12 +191,12 @@ function initializeJobStore() {
     `),
     upsertJob: database.prepare(`
       INSERT INTO jobs (
-        id, trace_id, type, payload_json, status, actor_id, actor_name, created_at, updated_at,
+        id, trace_id, type, payload_json, status, actor_id, actor_name, admission_json, created_at, updated_at,
         started_at, completed_at, worker_id, last_heartbeat_at, lease_expires_at, result_json,
         error, attempts, max_attempts, retry_count, retry_delay_ms, runtime_limit_ms,
         next_retry_at, canceled_at, event_count, latest_event_json, events_json
       ) VALUES (
-        @id, @traceId, @type, @payloadJson, @status, @actorId, @actorName, @createdAt, @updatedAt,
+        @id, @traceId, @type, @payloadJson, @status, @actorId, @actorName, @admissionJson, @createdAt, @updatedAt,
         @startedAt, @completedAt, @workerId, @lastHeartbeatAt, @leaseExpiresAt, @resultJson,
         @error, @attempts, @maxAttempts, @retryCount, @retryDelayMs, @runtimeLimitMs,
         @nextRetryAt, @canceledAt, @eventCount, @latestEventJson, @eventsJson
@@ -203,6 +208,7 @@ function initializeJobStore() {
         status = excluded.status,
         actor_id = excluded.actor_id,
         actor_name = excluded.actor_name,
+        admission_json = excluded.admission_json,
         created_at = excluded.created_at,
         updated_at = excluded.updated_at,
         started_at = excluded.started_at,
@@ -256,6 +262,7 @@ function mapJobToRecord(job) {
     status: String(job.status || "queued"),
     actorId: job.actorId || null,
     actorName: job.actorName || null,
+    admissionJson: job.admission && typeof job.admission === "object" ? JSON.stringify(job.admission) : null,
     createdAt: job.createdAt || new Date().toISOString(),
     updatedAt: job.updatedAt || new Date().toISOString(),
     startedAt: job.startedAt || null,
@@ -291,6 +298,7 @@ function mapRowToJob(row) {
     status: row.status,
     actorId: row.actor_id || null,
     actorName: row.actor_name || null,
+    admission: row.admission_json ? safeJsonParse(row.admission_json, null) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     startedAt: row.started_at || null,
@@ -326,6 +334,7 @@ function mapSummaryRowToJob(row) {
     status: row.status,
     actorId: row.actor_id || null,
     actorName: row.actor_name || null,
+    admission: row.admission_json ? safeJsonParse(row.admission_json, null) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     startedAt: row.started_at || null,

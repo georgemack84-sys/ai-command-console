@@ -43,6 +43,7 @@ describe("job action service", () => {
       "workspace:generate-insights",
       { workspaceId: "workspace_2" },
       { actorId: "user_1", actorName: "Operator" },
+      { admissionSource: "governed_jobs_api" },
     );
     expect(trackEvent).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: "workspace_2" }));
     expect(result).toEqual({ data: { job: { id: "job_1", traceId: "trace_1" } }, status: 202 });
