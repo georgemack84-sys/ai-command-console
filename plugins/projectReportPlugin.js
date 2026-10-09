@@ -1,39 +1,26 @@
-const fs = require("fs");
-const path = require("path");
-
-module.exports = {
+module.exports = Object.freeze({
   name: "projectReportPlugin",
   description: "Creates a lightweight project report from the current directory or a provided path.",
+  manifest: Object.freeze({
+    name: "projectReportPlugin",
+    version: "1.0.0",
+    capabilities: Object.freeze(["workspace.list"]),
+  }),
 
   async run(context = {}) {
-    let targetDir = process.cwd();
-
-    if (context.pluginArg) {
-      const possiblePath = path.resolve(context.pluginArg);
-      if (fs.existsSync(/* turbopackIgnore: true */ possiblePath)) {
-        targetDir = possiblePath;
-      } else {
-        return `Project report failed: path not found: ${possiblePath}`;
-      }
-    }
-
-    // The plugin deliberately inspects an operator-selected directory at runtime.
-    const entries = fs.readdirSync(/* turbopackIgnore: true */ targetDir, { withFileTypes: true });
-
-    const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-    const files = entries.filter((e) => e.isFile()).map((e) => e.name);
+    const report = context.capabilities.listWorkspaceDirectory(context.pluginArg || ".");
 
     return [
       "=== Project Report Plugin ===",
-      `Target: ${targetDir}`,
-      `Directories: ${dirs.length}`,
-      `Files: ${files.length}`,
+      `Target: ${report.path}`,
+      `Directories: ${report.directories.length}`,
+      `Files: ${report.files.length}`,
       "",
       "Folders:",
-      ...(dirs.length ? dirs.map((d) => `- ${d}`) : ["- None"]),
+      ...(report.directories.length ? report.directories.map((directory) => `- ${directory}`) : ["- None"]),
       "",
       "Files:",
-      ...(files.length ? files.map((f) => `- ${f}`) : ["- None"]),
+      ...(report.files.length ? report.files.map((file) => `- ${file}`) : ["- None"]),
     ].join("\n");
   },
-};
+});

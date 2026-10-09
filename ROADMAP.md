@@ -109,9 +109,11 @@ Delivered in current slice:
 - Added structured command, watcher, scheduler, and approval telemetry with stable dimensions and latency summaries
 - Kept terminal arguments and approval payloads out of operational telemetry
 - Qualified queued-job continuity, stale-lease recovery, bounded retry, and partial-failure evidence across worker restarts
+- Defined a trusted plugin registry with explicit capability manifests and fail-closed validation
+- Isolated plugin execution behind frozen, least-privilege host contexts with workspace path containment, time limits, and output limits
 
 Next:
-- Define and test plugin isolation boundaries before expanding the extension surface
+- Expand the plugin surface only through reviewed capabilities with explicit security and compatibility qualification
 
 ## Suggested Execution Order
 
