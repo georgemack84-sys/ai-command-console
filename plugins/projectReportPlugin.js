@@ -4,7 +4,8 @@ module.exports = Object.freeze({
   manifest: Object.freeze({
     name: "projectReportPlugin",
     version: "1.0.0",
-    capabilities: Object.freeze(["workspace.list"]),
+    hostApiVersion: 1,
+    capabilities: Object.freeze([Object.freeze({ name: "workspace.list", version: 1 })]),
   }),
 
   async run(context = {}) {

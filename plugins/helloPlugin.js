@@ -4,6 +4,7 @@ module.exports = Object.freeze({
   manifest: Object.freeze({
     name: "helloPlugin",
     version: "1.0.0",
+    hostApiVersion: 1,
     capabilities: Object.freeze([]),
   }),
 
