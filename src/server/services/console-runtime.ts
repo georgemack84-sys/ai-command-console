@@ -3,12 +3,7 @@ import type { SessionUser } from "@/src/lib/types";
 import { buildControlCenterOverview } from "@/src/server/services/control-center-service";
 import { getPolicyGovernanceSnapshot } from "@/src/server/services/policy-governance-service";
 import { buildTerminalCollaborationSnapshot, buildTerminalOverviewSnapshot } from "@/src/server/services/terminal-overview-service";
-import {
-  formatTerminalInboxDigest,
-  formatTerminalInboxHistory,
-  formatTerminalInboxList,
-  formatTerminalTrustReport,
-} from "@/src/server/services/terminal-collaboration-read-service";
+import { canHandleTerminalReadCommand, executeTerminalReadCommand } from "@/src/server/services/terminal-read-command-service";
 import { canHandleTerminalGovernanceCompatAction } from "@/src/server/services/terminal-governance-compat-service";
 import { canHandleTerminalAction, executeTerminalAction } from "@/src/server/services/terminal-action-service";
 import { canHandleTerminalCommand, executeTerminalCommand } from "@/src/server/services/terminal-command-service";
@@ -27,7 +22,6 @@ import {
 
 const require = createRequire(import.meta.url);
 
-const { formatLegacyConsoleHelp } = require("../../../services/legacyConsoleCompat");
 const { canApproveInEnvironment, canManageGovernanceInEnvironment, getEnvironmentPolicy } = require("../../../services/permissions");
 const {
   executeControlledPlan,
@@ -142,7 +136,6 @@ const terminalOwnershipActions = new Set([
   "ownership:assign-item",
 ]);
 
-const legacyTerminalFallbackCommands = new Set(["help"]);
 const plannerGovernedTerminalCommands = new Set(["plugins", "whyblocked", "diagnose"]);
 const plannerGovernedTerminalCommandPatterns = [
   /^run\s+plugin\s+\S+(?:\s+[\s\S]+)?$/i,
@@ -924,11 +917,7 @@ export async function executeTerminalRequest(
     Boolean(trimmedCommand) &&
     (canHandleTerminalCommand(trimmedCommand) ||
       canUsePlannerGovernedTerminalPath(trimmedCommand) ||
-      trimmedCommand === "inbox:list" ||
-      trimmedCommand === "inbox:digest" ||
-      trimmedCommand === "inbox:history" ||
-      trimmedCommand === "trust:report" ||
-      legacyTerminalFallbackCommands.has(trimmedCommand));
+      canHandleTerminalReadCommand(trimmedCommand));
   const hasSupportedAction =
     Boolean(body.action) &&
     (terminalOperationsActions.has(String(body.action)) ||
@@ -1323,31 +1312,13 @@ export async function executeTerminalRequest(
     };
   }
 
-  if (
-    trimmedCommand === "inbox:list" ||
-    trimmedCommand === "inbox:digest" ||
-    trimmedCommand === "inbox:history" ||
-    trimmedCommand === "trust:report"
-  ) {
+  if (canHandleTerminalReadCommand(trimmedCommand)) {
     const overview = await getTerminalOverview(user);
-    if (trimmedCommand === "inbox:list") {
-      return { ok: true, output: formatTerminalInboxList(overview), control: null, overview };
-    }
-    if (trimmedCommand === "inbox:digest") {
-      return { ok: true, output: formatTerminalInboxDigest(overview), control: null, overview };
-    }
-    if (trimmedCommand === "trust:report") {
-      return { ok: true, output: formatTerminalTrustReport(overview), control: null, overview };
-    }
-    return { ok: true, output: formatTerminalInboxHistory(overview), control: null, overview };
-  }
-
-  if (legacyTerminalFallbackCommands.has(trimmedCommand)) {
     return {
       ok: true,
-      output: formatLegacyConsoleHelp(),
+      output: executeTerminalReadCommand(trimmedCommand, overview),
       control: null,
-      overview: await getTerminalOverview(user),
+      overview,
     };
   }
 
@@ -1424,25 +1395,6 @@ export async function executeTerminalRequest(
     };
   }
 
-  if (
-    trimmedCommand === "inbox:list" ||
-    trimmedCommand === "inbox:digest" ||
-    trimmedCommand === "inbox:history" ||
-    trimmedCommand === "trust:report"
-  ) {
-    const overview = await getTerminalOverview(user);
-    if (trimmedCommand === "inbox:list") {
-      return { ok: true, output: formatTerminalInboxList(overview), control, overview };
-    }
-    if (trimmedCommand === "inbox:digest") {
-      return { ok: true, output: formatTerminalInboxDigest(overview), control, overview };
-    }
-    if (trimmedCommand === "trust:report") {
-      return { ok: true, output: formatTerminalTrustReport(overview), control, overview };
-    }
-    return { ok: true, output: formatTerminalInboxHistory(overview), control, overview };
-  }
-
   if (reviewedAction && canHandleTerminalAction(reviewedAction)) {
     const result = await executeTerminalAction(
       {
@@ -1475,10 +1427,10 @@ export async function executeTerminalRequest(
     };
   }
 
-  emitLearningObservation(user, body, { control, review: control.review, plan: control.plan }, "executed");
+  emitLearningObservation(user, body, { control, review: control.review, plan: control.plan }, "blocked");
   return {
-    ok: true,
-    output: formatLegacyConsoleHelp(),
+    ok: false,
+    error: "Reviewed terminal request did not resolve to an executable command or action.",
     control,
     review: control.review,
     overview: await getTerminalOverview(user),
