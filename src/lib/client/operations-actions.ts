@@ -1,13 +1,18 @@
 type OperationsActionResponse = {
   action: string;
-  output: string | null;
+  output: unknown;
+  requiresConfirmation?: boolean;
 };
 
-export async function postOperationsAction(action: string, payload: Record<string, unknown>) {
+export async function postOperationsAction(
+  action: string,
+  payload: Record<string, unknown>,
+  options: { confirmed?: boolean } = {},
+): Promise<OperationsActionResponse> {
   const response = await fetch("/api/operations/actions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, payload }),
+    body: JSON.stringify({ action, payload, confirmed: Boolean(options.confirmed) }),
   });
 
   const result = (await response.json()) as {
@@ -24,5 +29,14 @@ export async function postOperationsAction(action: string, payload: Record<strin
     throw new Error(message);
   }
 
-  return result.data ?? { action, output: null };
+  const data = result.data ?? { action, output: null };
+  if (data.requiresConfirmation && !options.confirmed) {
+    const explanation = typeof data.output === "string" ? data.output : "This operation requires confirmation.";
+    if (typeof window === "undefined" || !window.confirm(explanation)) {
+      throw new Error("Operation cancelled before confirmation.");
+    }
+    return postOperationsAction(action, payload, { confirmed: true });
+  }
+
+  return data;
 }
