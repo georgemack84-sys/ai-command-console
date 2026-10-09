@@ -96,6 +96,7 @@ const {
 const { buildLegacyRecommendations } = require("./legacyConsoleRecommendations");
 const { buildLegacyOverview } = require("./legacyConsoleOverviewBuilder");
 const { createLegacyConsoleRequestHandlers } = require("./legacyConsoleRequestHandlers");
+const { createLegacyJobProcessorBootstrap } = require("./legacyJobProcessorBootstrap");
 const { initializeExecutionOrchestration } = require("./stepController");
 const {
   classifyStep,
@@ -479,63 +480,20 @@ function formatPlugins(plugins) {
     .join("\n\n");
 }
 
-function ensureJobProcessorsRegistered() {
-  if (ensureJobProcessorsRegistered.ready) {
-    return;
-  }
-
-  initializeExecutionOrchestration({ bootstrap: "in_process_console" });
-
-  const governedLegacyProcessor = {
-    requiresAdmission: true,
-    requiresReviewedExecution: true,
-    admissionContract: LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT,
-  };
-
-  registerJobProcessor("watcher:run", async () => evaluateRules(), governedLegacyProcessor);
-  registerJobProcessor("alerts:run", async () => runAlertChecks(), governedLegacyProcessor);
-  registerJobProcessor("plugin:run", async (job) =>
-    runPlugin(String(job.payload?.name || ""), {
-      input: `run plugin ${String(job.payload?.name || "")}`.trim(),
-      pluginArg: String(job.payload?.pluginArg || ""),
-    }),
-    governedLegacyProcessor,
-  );
-  registerJobProcessor("brief:route", async (job) => {
-    const result = queueBriefToTaskFor(String(job.payload?.workspace || "demo"), String(job.payload?.briefId || ""));
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
-    return result;
-  }, governedLegacyProcessor);
-  registerJobProcessor(
-    "report:create",
-    async (job) => createReportDraft(String(job.payload?.workspace || "demo"), job.payload || {}),
-    governedLegacyProcessor,
-  );
-  registerJobProcessor("report:publish", async (job) => {
-    const result = publishReportRecordFor(String(job.payload?.workspace || "demo"), String(job.payload?.reportId || ""));
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
-    return result;
-  }, governedLegacyProcessor);
-  registerJobProcessor("digest:run-due", async (job) => {
-    const workspace = String(job.payload?.workspace || "demo");
-    try {
-      return runDueDigestsForWorkspace(workspace, getLegacyDigestDeps());
-    } catch (error) {
-      updateDigestWorkspaceState(workspace, {
-        lastSweepRunAt: new Date().toISOString(),
-        lastSweepError: error instanceof Error ? error.message : "Digest sweep failed.",
-      });
-      throw error;
-    }
-  }, governedLegacyProcessor);
-  ensureJobProcessorsRegistered.ready = true;
-}
-
-ensureJobProcessorsRegistered.ready = false;
+const ensureJobProcessorsRegistered = createLegacyJobProcessorBootstrap({
+  initializeExecutionOrchestration,
+  registerJobProcessor,
+  admissionContract: LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT,
+  evaluateRules,
+  runAlertChecks,
+  runPlugin,
+  queueBriefToTaskFor,
+  createReportDraft,
+  publishReportRecordFor,
+  runDueDigestsForWorkspace,
+  getLegacyDigestDeps,
+  updateDigestWorkspaceState,
+});
 
 function readRecentManagerEvents(limit = 10) {
   return listAuditEvents(limit).map((entry) => ({

@@ -91,7 +91,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Research reports CRUD path | `/api/research/reports` | read-only GET -> typed list service; POST/PATCH/DELETE -> collision-free `research:reports-*` plan -> control/review -> engine -> router -> typed workspace-authorized mutation service | mutations yes | structured mutation plans | mutations yes | mutations yes | mutations yes | `app/api/research/reports/route.ts`; `src/server/services/governed-research-report-mutation-service.ts`; `src/server/services/research-report-mutation-service.ts`; `services/toolRouter.js` | Reads remain a direct exception; all mutations require explicit confirmation and preserve ownership, analytics, transaction, and response semantics. |
 | Scheduled summary generation path | `POST /api/research/summaries/run-due` | route auth/workspace check -> confirmed `research:summaries-run-due` network plan -> control/review -> engine -> router -> typed schedule selection and summary/report generation | yes | structured plan | yes | yes | yes | `app/api/research/summaries/run-due/route.ts`; `src/server/services/governed-scheduled-summary-action-service.ts`; `src/server/services/scheduled-summary-action-service.ts`; `services/toolRouter.js` | Explicit browser confirmation acknowledges AI/network side effects before typed workspace-authorized generation. |
 | Legacy console compatibility path | `services/consoleApi.js` / `legacyConsoleHandler.handleConsoleRequest()` | compatibility export -> risk-preserving `legacy-console:*` structured plan -> control/review -> execution engine -> tool router -> source-authorized compatibility handler | yes | structured plan | yes | yes | yes | `services/consoleApi.js`; `services/legacyConsoleHandler.js`; `services/legacyConsoleRequestHandlers.js`; `services/toolRouter.js` | Legacy formatting and approval behavior are preserved, but direct handler invocation is now contained behind reviewed router authority. |
-| External worker processor path | `npm run worker:jobs` | worker loop -> persisted job -> durable admission validation -> `jobs:execute-processor` structured review -> execution engine -> tool router -> registered typed or legacy processor | worker only | structured worker plan | worker only | worker only | worker only | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` | Every registered processor requires matching durable evidence and router-issued runtime authority. |
+| External worker processor path | `npm run worker:jobs` | worker loop -> persisted job -> durable admission validation -> `jobs:execute-processor` structured review -> execution engine -> tool router -> registered typed or legacy processor | worker only | structured worker plan | worker only | worker only | worker only | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyJobProcessorBootstrap.js`; `services/jobQueue.js`; `services/toolRouter.js` | Every registered processor requires matching durable evidence and router-issued runtime authority. |
 | Digest scheduler autonomous path | `ensureDigestScheduler()` timer | Node instrumentation startup -> timer -> system-authored structured plan -> control/review -> engine -> router -> admitted `digest:run-due` enqueue -> reviewed worker invocation | yes | structured plan and structured worker plan | yes | yes | yes | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js`; `services/jobQueue.js` | Both autonomous initiation and processor execution use governed runtime boundaries; production remains gated by the legacy-autonomy policy. |
 | Watcher autonomous path | `startWatcher()` timer | `startWatcher()` -> single-flight `evaluateRules()` -> system-authored `watcher:schedule-start` -> control/review -> execution engine -> tool router -> `startSchedule()` | yes | structured plan | yes | yes | yes | `services/watcher.js`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js`; `services/scheduler.js` | Rule previews remain read-only; matched rules require watcher system authority before schedule creation. |
 | Scheduler autonomous path | `startSchedule()` timer | `startSchedule()` -> timer -> single-flight `runScheduledTick()` -> system-authored `scheduler:agent-tick` -> control/review -> execution engine -> tool router -> agent activation/tick | yes | structured plan | yes | yes | yes | `services/scheduler.js`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js`; `services/agentRuntime.js` | Recurring ticks preserve cycle limits and recovery behavior while requiring scheduler system authority. |
@@ -122,7 +122,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Research reports CRUD path | `GOVERNED` | POST/PATCH/DELETE use collision-free structured plans, explicit confirmation, engine/router admission, and downstream typed workspace/ownership authorization; GET remains read-only. | `app/api/research/reports/route.ts`; `src/server/services/governed-research-report-mutation-service.ts`; `src/server/services/research-report-mutation-service.ts`; `services/toolRouter.js` |
 | Scheduled summary generation path | `GOVERNED` | Due-schedule selection and summary/report generation require explicit network-side-effect confirmation, structured review, engine/router admission, and typed workspace authorization. | `app/api/research/summaries/run-due/route.ts`; `src/server/services/governed-scheduled-summary-action-service.ts`; `src/server/services/scheduled-summary-action-service.ts`; `services/toolRouter.js` |
 | Legacy console compatibility path | `GOVERNED` | Requests retain their original risk category, traverse structured control/review and engine/router execution, and can enter the legacy handler only from the source-authorized router adapter. | `services/legacyConsoleHandler.js`; `services/legacyConsoleRequestHandlers.js`; `services/toolRouter.js`; `tests/unit/legacy-console-governed-routing.test.ts` |
-| External worker processor path | `GOVERNED` | Typed and legacy processors require matching durable admission and router-issued runtime authority before invocation. | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` |
+| External worker processor path | `GOVERNED` | Typed and legacy processors require matching durable admission and router-issued runtime authority before invocation; legacy registration is isolated in a dedicated bootstrap module. | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyJobProcessorBootstrap.js`; `services/jobQueue.js`; `services/toolRouter.js` |
 | Digest scheduler autonomous path | `GOVERNED` | Node startup is isolated from read requests, and each workspace enqueue passes through system-identity control/review before governed worker execution. | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js`; `services/jobQueue.js` |
 | Watcher autonomous path | `GOVERNED` | Matched rules submit a system-authored structured plan through control/review/engine/router; the router accepts schedule creation only from the watcher system identity. | `services/watcher.js`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
 | Scheduler autonomous path | `GOVERNED` | Recurring ticks submit system-authored structured plans through control/review/engine/router; direct router execution requires the scheduler system identity. | `services/scheduler.js`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
@@ -145,43 +145,37 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 ## STEP 6 — RISK SUMMARY
 
-### Top 5 High-Risk Paths
+### Remaining High-Risk Paths
 
 1. Console interactive fallback path
    Residual helper and fallback branches still have weaker admission guarantees than structured action paths.
-2. Legacy processor bootstrap ownership
-   Protected execution is governed, but processor registration still originates in the compatibility handler.
-3. Legacy enqueue compatibility adapters
+2. Legacy enqueue compatibility adapters
    Compatibility enqueue surfaces are evidence-bound, but they remain an additional maintenance-sensitive admission shape.
-4. Runtime policy migration compatibility
+3. Runtime policy migration compatibility
    Incremental policy migration remains centralized in runtime startup and warrants consolidation as action families grow.
-5. Grouped read-path audit coverage
+4. Grouped read-path audit coverage
    Low-risk read APIs are grouped by shape rather than traced individually, leaving a bounded coverage uncertainty.
 
-### Top 5 Highest-Frequency Risky Paths
+### Remaining Highest-Frequency Risky Paths
 
 1. Console interactive path
    Main user-facing action path; partially governed but still hybrid.
-2. Legacy processor bootstrap ownership
-   Compatibility-owned registration remains a frequent dependency of queued execution startup.
-3. Legacy enqueue compatibility adapters
+2. Legacy enqueue compatibility adapters
    Older enqueue callers remain a recurring compatibility dependency despite fail-closed admission validation.
-4. Runtime policy migration compatibility
+3. Runtime policy migration compatibility
    Every runtime startup normalizes the historical policy sequence before applying current admission rules.
-5. Grouped read-path audit coverage
+4. Grouped read-path audit coverage
    Common authenticated reads are frequent even though they remain intentional low-risk exceptions.
 
-### Top 5 Easiest Migration Candidates
+### Remaining Easiest Migration Candidates
 
 1. Console interactive fallback path
    Remaining fallback branches can be inventoried and migrated one bounded action family at a time.
-2. Legacy processor bootstrap ownership
-   Registration can move to an explicit worker bootstrap module without changing admitted execution contracts.
-3. Legacy enqueue compatibility adapters
+2. Legacy enqueue compatibility adapters
    Existing normalization and durable evidence checks provide a clear boundary for consolidating remaining callers.
-4. Runtime policy migration compatibility
+3. Runtime policy migration compatibility
    Historical migrations can be compacted behind fixtures without changing the current canonical policy.
-5. Grouped read-path audit coverage
+4. Grouped read-path audit coverage
    Read-only routes can be enumerated mechanically to replace grouped evidence with route-level evidence.
 
 ### Most Inconsistent Runtime Behaviors
@@ -189,7 +183,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 - The shared controlled-plan helper now serves console, operations, research, dashboard, admin, jobs API, research brief/report mutations, insight generation, and worker processor paths.
 - Synchronous and queued insight generation now share explicit confirmation, typed workspace authorization, and reviewed engine/router admission; queued processing retains a second durable worker boundary.
 - Typed and legacy background jobs now persist and enforce processor admission evidence. Legacy enqueue adapters normalize old and new actor shapes and fail closed unless actor, workspace, source, and contract provenance are explicit.
-- Processor registration remains centralized in `ensureJobProcessorsRegistered()`, but queued legacy work cannot invoke a protected processor without matching persisted evidence and a fresh reviewed runtime authority decision.
+- Legacy processor registration is isolated in `services/legacyJobProcessorBootstrap.js`, while queued legacy work cannot invoke a protected processor without matching persisted evidence and a fresh reviewed runtime authority decision.
 - Console and control-center read endpoints no longer start the scheduler or queue digest work; Node instrumentation owns startup and the SSE loop is read-only.
 - Watcher rule previews remain read-only, while matched-rule schedule starts now traverse a single-flight system-authored control/review/engine/router path and fail closed on authority mismatch.
 - Recurring agent schedule ticks now traverse a single-flight scheduler system plan and fail closed before agent activation when control or router authority rejects execution.
@@ -211,7 +205,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Jobs queue management path | `GOVERNED` | complete | Queue mutation admission, confirmation, engine/router dispatch, and target-workspace authorization are enforced. | Complete | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts` |
 | Insights direct path | `GOVERNED` | complete | Explicit confirmation, structured review, engine/router admission, typed workspace authorization, and existing analytics/alert semantics are enforced. | Complete | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `services/toolRouter.js` |
 | Insights queued path | `GOVERNED` | complete | Interactive admission and durable worker execution each traverse their governed boundary while preserving queue and analytics semantics. | Complete | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` |
-| External worker processor path | `GOVERNED` | complete | Typed and legacy execution is admission-bound and routed through review/engine/router before processor invocation. | Complete | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` |
+| External worker processor path | `GOVERNED` | complete | Typed and legacy execution is admission-bound and routed through review/engine/router before processor invocation; legacy registration has dedicated bootstrap ownership. | Complete | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyJobProcessorBootstrap.js`; `services/jobQueue.js`; `services/toolRouter.js` |
 | Source refresh path | `GOVERNED` | complete | Manager and rate checks, network-side-effect confirmation, engine/router admission, typed source authorization, and reviewed worker execution are enforced. | Complete | `app/api/sources/refresh/route.ts`; `src/server/services/governed-source-refresh-action-service.ts`; `src/server/services/source-refresh-action-service.ts`; `services/toolRouter.js`; `src/server/jobs/background-jobs.ts` |
 | Admin privileged mutation path | `GOVERNED` | complete | Admin admission, confirmation, structured review, engine/router dispatch, and typed-service authorization are enforced. | Complete | `app/api/admin/access/route.ts`; `src/server/services/governed-admin-access-action-service.ts` |
 | Dashboard action path | `GOVERNED` | complete | Workspace membership, structured review, explicit confirmation, engine, and router admission are enforced. | Complete | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts` |
@@ -242,5 +236,4 @@ Paths that can remain exception-only are operational health/readiness probes and
 Remaining uncertainty:
 
 - Insight queue admission and processor execution now both traverse control/review/engine/router; operational verification should continue to confirm that durable evidence survives external worker restarts.
-- Legacy job processor registration still lives in the compatibility handler, so bootstrap ownership should eventually move to an explicit worker module even though admission and reviewed invocation now fail closed.
 - Some low-risk read APIs were grouped rather than traced one-by-one when they followed the same `auth + service read` shape and did not initiate meaningful execution.
