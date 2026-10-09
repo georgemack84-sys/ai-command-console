@@ -44,6 +44,7 @@ const { requireTypeScriptModule } = require("./tsxRuntimeBridge");
 const ROUTES_PATH = getWorkspaceDataPath("workspace-user-routes.json");
 const RESEARCH_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-service.ts");
 const RESEARCH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-action-service.ts");
+const DASHBOARD_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "dashboard-action-service.ts");
 const OPERATIONS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "operations-action-service.ts");
 const TERMINAL_COLLABORATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-collaboration-service.ts");
 const TERMINAL_OWNERSHIP_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-ownership-service.ts");
@@ -58,6 +59,11 @@ const RESEARCH_ROUTED_ACTIONS = new Map([
   ["research:review-followup", "review:followup"],
   ["research:report-create", "report:create"],
   ["research:report-publish", "report:publish"],
+]);
+const DASHBOARD_ROUTED_ACTIONS = new Map([
+  ["dashboard:alert-run-checks", "alert:run-checks"],
+  ["dashboard:alert-acknowledge", "alert:acknowledge"],
+  ["dashboard:workspace-generate-summary", "workspace:generate-summary"],
 ]);
 const OPERATIONS_ROUTED_ACTIONS = new Set([
   "approval:approve",
@@ -140,6 +146,14 @@ function loadOperationsActionService() {
     return injectedBridge.loadOperationsActionService();
   }
   return requireTypeScriptModule(OPERATIONS_ACTION_SERVICE_PATH, __filename);
+}
+
+function loadDashboardActionService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadDashboardActionService === "function") {
+    return injectedBridge.loadDashboardActionService();
+  }
+  return requireTypeScriptModule(DASHBOARD_ACTION_SERVICE_PATH, __filename);
 }
 
 function loadTerminalCollaborationService() {
@@ -1043,6 +1057,26 @@ async function route(plan, modes = {}) {
     }
 
     default:
+      if (DASHBOARD_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const dashboardService = loadDashboardActionService();
+          const dashboardResult = await dashboardService.executeDashboardAction(
+            {
+              action: DASHBOARD_ROUTED_ACTIONS.get(String(plan.action || "")),
+              payload: plan.payload || {},
+            },
+            getPlanActor(plan),
+          );
+          result =
+            dashboardResult && typeof dashboardResult === "object" && typeof dashboardResult.output === "string"
+              ? dashboardResult.output
+              : dashboardResult;
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Dashboard action failed: ${plan.action}` };
+        }
+        break;
+      }
+
       if (RESEARCH_ROUTED_ACTIONS.has(String(plan.action || ""))) {
         try {
           const researchService = loadResearchActionService();

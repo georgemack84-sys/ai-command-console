@@ -11,6 +11,7 @@ Since the initial audit, the console runtime has materially improved:
 - structured console actions now route through `control -> reviewed plan -> execution engine -> toolRouter` for terminal actions, operations actions, collaboration actions, digest actions, and governance-compat actions
 - the operations actions API now uses the same reviewed execution path, preserves route-level authentication and workspace membership checks, normalizes workspace aliases, and returns confirmation evidence before dispatching higher-risk work
 - the research actions API now assigns collision-free `research:*` action IDs and uses the shared governed route adapter before typed research-service dispatch
+- the dashboard actions API now enforces workspace membership, assigns collision-free `dashboard:*` action IDs, and uses the governed runtime before typed dashboard-service dispatch
 - governance updates are now confirmation-gated through the governed path instead of auto-executing as plain process control
 - the old post-review direct-dispatch branches in `src/server/services/console-runtime.ts` for operations, collaboration, digest, and governance-compat handling have been removed
 
@@ -51,7 +52,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Console stream / SSE overview loop | `app/api/console/stream/route.ts` | API / SSE | `app/api/console/stream/route.ts:13-45`, `49-76` | Poll-like stream with digest sweep side effect. |
 | Operations actions API | `app/api/operations/actions/route.ts` | API | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts` | Governed action admission with an explicit confirmation retry. |
 | Research actions API | `app/api/research/actions/route.ts` | API | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts` | Governed action admission with an explicit confirmation retry. |
-| Dashboard actions API | `app/api/dashboard/actions/route.ts` | API | `app/api/dashboard/actions/route.ts:6-15` | Direct action execution service. |
+| Dashboard actions API | `app/api/dashboard/actions/route.ts` | API | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts` | Governed action admission with workspace membership and an explicit confirmation retry. |
 | Jobs API | `app/api/jobs/route.ts` | API | `app/api/jobs/route.ts:42-125` | Queues and manages background jobs. |
 | Insights API | `app/api/insights/route.ts` | API | `app/api/insights/route.ts:15-64` | Has both direct execution and queued execution paths. |
 | Agent tasks API | `app/api/agents/tasks/route.ts` | API | `app/api/agents/tasks/route.ts:16-67` | Creates tasks and can queue `agent:execute`. |
@@ -76,7 +77,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Console stream path | `GET /api/console/stream` | `Terminal.tsx` EventSource -> `ensureDigestScheduler()` -> loop -> `queueTerminalDigestSweep()` -> `queueLegacyDueDigestSweepIfNeeded()` -> enqueue `digest:run-due` job -> `getTerminalOverview()` for stream payload | no | no | no | no | no | `src/components/Terminal.tsx:1196-1203`; `app/api/console/stream/route.ts:13-76`; `src/server/services/console-runtime.ts:486-490`; `services/legacyConsoleOperationsSupport.js:98-151` | Mixed read/write path. Downstream `digest:run-due` processor registration is only partially verified. |
 | Operations action path | `POST /api/operations/actions` | route auth/workspace check -> `executeGovernedOperationsAction()` -> control/review -> execution engine -> `toolRouter.route()` -> `executeOperationsAction()` | yes | structured plan | yes | yes | yes | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Higher-risk actions stop at `confirm_required`; the client resubmits only after explicit operator confirmation. |
 | Research action path | `POST /api/research/actions` | route auth/workspace check -> internal `research:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeResearchAction()` | yes | structured plan | yes | yes | yes | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Internal IDs prevent collisions with legacy console handlers; typed service authorization remains downstream. |
-| Dashboard action path | `POST /api/dashboard/actions` | route -> `executeDashboardAction()` -> direct Prisma writes or `queueBackgroundJob()` | no | no | no | no | no | `app/api/dashboard/actions/route.ts:6-15`; `src/server/services/dashboard-action-service.ts:29-128` | One branch queues jobs; others mutate state directly. |
+| Dashboard action path | `POST /api/dashboard/actions` | route auth/workspace check -> internal `dashboard:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeDashboardAction()` | yes | structured plan | yes | yes | yes | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Internal IDs avoid legacy alert/workspace handler collisions; typed service workspace checks remain downstream. |
 | Jobs queue management path | `POST /api/jobs` | route -> `queueBackgroundJob()` / `cancelBackgroundJob()` / `retryBackgroundJob()` -> `ensureBackgroundJobProcessors()` -> `enqueueJob()` or job state mutation | no | no | no | no | no | `app/api/jobs/route.ts:68-125`; `src/server/jobs/background-jobs.ts:60-279`; `services/jobQueue.js:104-126`, `559-565` | Uses queue infrastructure, but not control/review/router/engine. |
 | Insights direct path | `POST /api/insights` with `async=false` | route -> `generateWorkspaceInsights()` -> Prisma reads/writes -> optional alert creation | no | no | no | no | no | `app/api/insights/route.ts:54-63`; `src/server/services/insight-service.ts:5-70` | Direct execution path. |
 | Insights queued path | `POST /api/insights` with `async=true` | route -> `queueBackgroundJob("workspace:generate-insights")` -> worker cycle -> registered processor -> `generateWorkspaceInsights()` | no | no | no | no | no | `app/api/insights/route.ts:39-51`; `src/server/jobs/background-jobs.ts:72-92`; `services/jobQueue.js:559-565` | Queue-managed, but bypasses governed runtime. |
@@ -107,7 +108,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | Console stream path | `PARTIAL_UNORCHESTRATED` | The stream path is mainly read-only, but it enqueues digest work on a timer without going through control/review. | `app/api/console/stream/route.ts:31-76`; `services/legacyConsoleOperationsSupport.js:98-151` |
 | Operations action path | `GOVERNED` | Authenticated operations actions use structured control review, confirmation where required, and engine/router dispatch before the operations service mutates state. | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts`; `services/toolRouter.js` |
 | Research action path | `GOVERNED` | Authenticated research actions use collision-free structured plans, explicit confirmation, and engine/router dispatch before typed service mutations. | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts`; `services/toolRouter.js` |
-| Dashboard action path | `BYPASS` | Direct state mutation or direct queue request without control/review. | `app/api/dashboard/actions/route.ts:6-15`; `src/server/services/dashboard-action-service.ts:29-128` |
+| Dashboard action path | `GOVERNED` | Authenticated workspace members use collision-free structured plans, explicit confirmation, and engine/router dispatch before typed service mutation or queueing. | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts`; `services/toolRouter.js` |
 | Jobs queue management path | `PARTIAL_UNORCHESTRATED` | Uses queue infrastructure and processors, but bypasses control/review/router/engine. | `app/api/jobs/route.ts:68-125`; `src/server/jobs/background-jobs.ts:60-279`; `services/jobQueue.js:559-565` |
 | Insights direct path | `BYPASS` | Direct generation and optional alert creation with no governed runtime. | `app/api/insights/route.ts:54-63`; `src/server/services/insight-service.ts:5-70` |
 | Insights queued path | `PARTIAL_UNORCHESTRATED` | Queue-managed execution, but no control/review/router/engine. | `app/api/insights/route.ts:39-51`; `src/server/jobs/background-jobs.ts:72-92` |
@@ -159,8 +160,8 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
    Network mutation through queued worker path without runtime governance.
 4. Admin privileged mutation path
    Broad authority with direct service mutation path.
-5. Dashboard action path
-   User-facing mutations still bypass control and review.
+5. Scheduled summary generation path
+   User-triggerable generation still executes outside the governed runtime.
 
 ### Top 5 Highest-Frequency Risky Paths
 
@@ -170,23 +171,23 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
    Main user-facing action path; partially governed but still hybrid.
 3. Jobs queue management path
    Central control-center and platform UI integration.
-4. Dashboard action path
-   User-facing dashboard mutation path.
-5. Admin privileged mutation path
+4. Admin privileged mutation path
    User-facing privileged mutation path.
+5. Scheduled summary generation path
+   Direct generation path used by recurring research workflows.
 
 ### Top 5 Easiest Migration Candidates
 
-1. Dashboard action path
-   Small action surface and limited action classes.
-2. Source refresh path
+1. Source refresh path
    Single queued mutation type with clear contract.
-3. Jobs queue management path
+2. Jobs queue management path
    Shared queue boundary already exists and can host reviewed job contracts.
-4. Legacy console compatibility path
+3. Legacy console compatibility path
    Similar request vocabulary to the console path, but still exits through legacy direct handlers.
-5. Admin privileged mutation path
+4. Admin privileged mutation path
    Existing role checks and typed actions provide a clear admission boundary.
+5. Scheduled summary generation path
+   Typed input and a narrow service boundary make reviewed dispatch practical.
 
 ### Most Inconsistent Runtime Behaviors
 
@@ -207,7 +208,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | External worker processor path | `PARTIAL_UNORCHESTRATED` | high | High-risk autonomous execution path. | High | `scripts/job-worker.ts:10-39`; `src/server/jobs/background-jobs.ts:60-199` |
 | Source refresh path | `PARTIAL_UNORCHESTRATED` | high | Network mutation and background execution. | Medium | `src/server/services/source-service.ts:83-146`; `src/server/jobs/background-jobs.ts:131-166` |
 | Admin privileged mutation path | `BYPASS` | high | Broad authority and policy mutation. | Medium | `app/api/admin/access/route.ts:132-191` |
-| Dashboard action path | `BYPASS` | medium | Smaller surface, meaningful value, easier cleanup. | Low | `src/server/services/dashboard-action-service.ts:29-128` |
+| Dashboard action path | `GOVERNED` | complete | Workspace membership, structured review, explicit confirmation, engine, and router admission are enforced. | Complete | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts` |
 | Research briefs CRUD path | `BYPASS` | medium | Moderate mutation scope, but straightforward service surface. | Medium | `app/api/research/briefs/route.ts:56-133` |
 | Research reports CRUD path | `BYPASS` | medium | Similar to briefs CRUD; direct service path. | Medium | `app/api/research/reports/route.ts:51-113` |
 | Scheduled summary generation path | `BYPASS` | medium | Mixed generation path with direct execution; should eventually align with queued/reviewed path. | Medium | `app/api/research/summaries/run-due/route.ts:29-89` |
@@ -224,11 +225,11 @@ The runtime is healthiest where it has an explicit gateway: the console action p
 
 The runtime is most fragmented in three places:
 
-1. Remaining typed mutation APIs (`dashboard`, `admin`) that bypass the governed runtime.
+1. Remaining privileged and typed mutation APIs (`admin` and related CRUD routes) that bypass the governed runtime.
 2. Queue/worker execution paths that have solid processor infrastructure but no control/review boundary.
 3. Legacy autonomous loops (`digest scheduler`, `watcher`, `scheduler`) that can start meaningful work without the modern control stack.
 
-The console, operations, and research action paths are now unified. The strongest next migration candidates are the remaining structured action APIs (`dashboard`, `admin`) and the queue boundary in `background-jobs.ts`.
+The console, operations, research, and dashboard action paths are now unified. The strongest next migration candidates are the privileged admin mutation API and the queue boundary in `background-jobs.ts`.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 
