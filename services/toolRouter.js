@@ -48,6 +48,7 @@ const RESEARCH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server",
 const DASHBOARD_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "dashboard-action-service.ts");
 const ADMIN_ACCESS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "admin-access-action-service.ts");
 const JOB_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "job-action-service.ts");
+const AGENT_TASK_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "agent-task-action-service.ts");
 const OPERATIONS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "operations-action-service.ts");
 const TERMINAL_COLLABORATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-collaboration-service.ts");
 const TERMINAL_OWNERSHIP_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-ownership-service.ts");
@@ -86,6 +87,7 @@ const JOB_ROUTED_ACTIONS = new Map([
   ["jobs:cancel", "job:cancel"],
   ["jobs:retry", "job:retry"],
 ]);
+const AGENT_TASK_ROUTED_ACTIONS = new Set(["agent-tasks:create"]);
 
 async function executeReviewedJobProcessor(plan, modes) {
   const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
@@ -205,6 +207,14 @@ function loadJobActionService() {
     return injectedBridge.loadJobActionService();
   }
   return requireTypeScriptModule(JOB_ACTION_SERVICE_PATH, __filename);
+}
+
+function loadAgentTaskActionService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadAgentTaskActionService === "function") {
+    return injectedBridge.loadAgentTaskActionService();
+  }
+  return requireTypeScriptModule(AGENT_TASK_ACTION_SERVICE_PATH, __filename);
 }
 
 function loadTerminalCollaborationService() {
@@ -1180,6 +1190,19 @@ async function route(plan, modes = {}) {
           );
         } catch (error) {
           result = { ok: false, error: error?.message || `Job action failed: ${plan.action}` };
+        }
+        break;
+      }
+
+      if (AGENT_TASK_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const agentTaskService = loadAgentTaskActionService();
+          result = await agentTaskService.executeAgentTaskAction(
+            plan.payload && typeof plan.payload === "object" ? plan.payload : {},
+            getPlanActor(plan),
+          );
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Agent task action failed: ${plan.action}` };
         }
         break;
       }
