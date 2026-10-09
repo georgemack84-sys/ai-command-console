@@ -102,13 +102,13 @@ Planned features:
 Delivered in current slice:
 - Introduced a SQLite-backed document store for operational state
 - Migrated queue and review persistence onto the shared store
+- Migrated alerts, scheduler, watcher, and collaboration persistence onto the shared store
 - Preserved legacy JSON write-through compatibility during the transition
-- Updated workflow tests to cover the new persistence layer safely
+- Qualified legacy import, SQLite restart durability, database precedence, and production mirror behavior across operational stores
+- Enforced role-based permissions and two-person approval gates for sensitive actions
 
 Next:
-- Migrate alerts, scheduler, watcher, and collaboration state to SQLite
 - Add structured telemetry around command, watcher, and approval latency
-- Start enforcing role-based permissions on sensitive actions
 
 ## Suggested Execution Order
 
