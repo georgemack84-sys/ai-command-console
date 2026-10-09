@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const originalEnv = { ...process.env };
 
 const schedulerPath = require.resolve("../../services/scheduler.js");
+const runtimeControlPath = require.resolve("../../services/runtimeControl.js");
 const agentRuntimePath = require.resolve("../../services/agentRuntime.js");
 const agentMemoryPath = require.resolve("../../services/agentMemory.js");
 const telemetryPath = require.resolve("../../services/telemetry.js");
@@ -25,13 +26,26 @@ function loadSchedulerWithMocks(tempRoot: string, options?: {
   saveAgentState?: (agentName: string, state: Record<string, unknown>) => unknown;
   appendAgentHistory?: (agentName: string, entry: Record<string, unknown>) => void;
   recordTelemetry?: (payload: unknown) => void;
+  executeControlledStructuredPlan?: (plan: Record<string, unknown>, options: Record<string, unknown>) => Promise<Record<string, unknown>>;
 }) {
   process.env = { ...originalEnv, AI_COMMAND_CONSOLE_DATA_ROOT: tempRoot };
 
   const originalScheduler = require.cache[schedulerPath];
+  const originalRuntimeControl = require.cache[runtimeControlPath];
   const originalRuntime = require.cache[agentRuntimePath];
   const originalMemory = require.cache[agentMemoryPath];
   const originalTelemetry = require.cache[telemetryPath];
+  let executeRoutedTick: ((agentName: string) => Promise<Record<string, unknown>>) | null = null;
+  const executeControlledStructuredPlan = vi.fn(
+    options?.executeControlledStructuredPlan ||
+    (async (plan: Record<string, unknown>) => ({
+      ok: true,
+      result: {
+        ok: true,
+        scheduledTick: await executeRoutedTick?.(String((plan.payload as { agentName?: string }).agentName || "")),
+      },
+    })),
+  );
 
   require.cache[agentRuntimePath] = {
     id: agentRuntimePath,
@@ -60,17 +74,25 @@ function loadSchedulerWithMocks(tempRoot: string, options?: {
       recordTelemetry: options?.recordTelemetry || (() => {}),
     },
   };
+  require.cache[runtimeControlPath] = {
+    id: runtimeControlPath,
+    filename: runtimeControlPath,
+    loaded: true,
+    exports: { executeControlledStructuredPlan },
+  };
 
   delete require.cache[schedulerPath];
   delete require.cache[stateDatabasePath];
   delete require.cache[runtimePathsPath];
 
   const scheduler = require("../../services/scheduler.js");
+  executeRoutedTick = scheduler.executeScheduledTickFromRouter;
   const stateDatabase = require("../../services/stateDatabase.js");
 
   return {
     scheduler,
     stateDatabase,
+    executeControlledStructuredPlan,
     restore() {
       scheduler.stopSchedule?.("planner", "test_cleanup");
       scheduler.stopSchedule?.("researcher", "test_cleanup");
@@ -83,6 +105,8 @@ function loadSchedulerWithMocks(tempRoot: string, options?: {
       else delete require.cache[schedulerPath];
       if (originalRuntime) require.cache[agentRuntimePath] = originalRuntime;
       else delete require.cache[agentRuntimePath];
+      if (originalRuntimeControl) require.cache[runtimeControlPath] = originalRuntimeControl;
+      else delete require.cache[runtimeControlPath];
       if (originalMemory) require.cache[agentMemoryPath] = originalMemory;
       else delete require.cache[agentMemoryPath];
       if (originalTelemetry) require.cache[telemetryPath] = originalTelemetry;
@@ -126,6 +150,34 @@ describe("scheduler service", () => {
             agentName: "planner",
             reason: "missing_schedule",
           }),
+        }),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it("submits scheduled ticks as a governed scheduler system action", async () => {
+    const { scheduler, executeControlledStructuredPlan, restore } = loadSchedulerWithMocks(tempRoot);
+
+    try {
+      await scheduler.runScheduledTick("planner");
+
+      expect(executeControlledStructuredPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "scheduler:agent-tick",
+          source: "agent_scheduler",
+          payload: { agentName: "planner" },
+          meta: expect.objectContaining({
+            userId: "system:agent-scheduler",
+            workspaceId: "legacy-global",
+            userRole: "system",
+          }),
+        }),
+        expect.objectContaining({
+          actor: expect.objectContaining({ id: "system:agent-scheduler", role: "system" }),
+          identitySource: "system",
+          modes: { confirmed: true },
         }),
       );
     } finally {
@@ -207,6 +259,35 @@ describe("scheduler service", () => {
           }),
         }),
       );
+    } finally {
+      restore();
+    }
+  });
+
+  it("records a control rejection without invoking the agent runtime", async () => {
+    const tickAgent = vi.fn();
+    const recordTelemetry = vi.fn();
+    const { scheduler, restore } = loadSchedulerWithMocks(tempRoot, {
+      tickAgent,
+      recordTelemetry,
+      executeControlledStructuredPlan: async () => ({ ok: false, error: "scheduler authority rejected" }),
+    });
+
+    try {
+      scheduler.startSchedule("planner", 5, 3);
+      const result = await scheduler.runScheduledTick("planner");
+
+      expect(result).toEqual(expect.objectContaining({
+        ok: false,
+        message: 'Scheduled tick failed for "planner": scheduler authority rejected',
+      }));
+      expect(tickAgent).not.toHaveBeenCalled();
+      expect(scheduler.getSchedule("planner").lastError).toBe("scheduler authority rejected");
+      expect(recordTelemetry).toHaveBeenCalledWith(expect.objectContaining({
+        type: "scheduler:tick",
+        status: "error",
+        meta: expect.objectContaining({ reason: "control_rejected" }),
+      }));
     } finally {
       restore();
     }

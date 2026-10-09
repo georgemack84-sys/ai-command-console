@@ -18,7 +18,7 @@ const { listAlerts, listActiveAlerts, runAlertChecks, acknowledgeAlert, resolveA
 const { listAgentProfiles, getAgentStatus } = require("./agentRuntime");
 const { startAgent, tickAgent, stopAgent, pauseAgent, resumeAgent, restartAgent } = require("./agentRuntime");
 const { routeManagerTask } = require("./agentRuntime");
-const { listSchedules, getSchedule, startSchedule, runScheduledTick } = require("./scheduler");
+const { listSchedules, getSchedule, startSchedule, runScheduledTick, executeScheduledTickFromRouter } = require("./scheduler");
 const { getWatcherStatus, startWatcher, stopWatcher, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules, previewRules } = require("./watcher");
 const { getDigestSchedulerStatus } = require("./digestScheduler");
 const { createAdmittedJobEnqueuer, cancelJob, retryJob, getJob, invokeRegisteredJobProcessor } = require("./jobQueue");
@@ -1059,6 +1059,29 @@ async function route(plan, modes = {}) {
       result = [scheduledResult.message, scheduledResult.schedule ? formatSchedule(scheduledResult.schedule) : null]
         .filter(Boolean)
         .join("\n\n");
+      break;
+    }
+
+    case "scheduler:agent-tick": {
+      const actor = getPlanActor(plan);
+      if (
+        String(plan.source || "") !== "agent_scheduler" ||
+        actor.id !== "system:agent-scheduler" ||
+        actor.role !== "system"
+      ) {
+        result = { ok: false, error: "Scheduled agent ticks require scheduler system authority." };
+        break;
+      }
+      const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+      const agentName = String(payload.agentName || "").trim();
+      if (!agentName) {
+        result = { ok: false, error: "Scheduled agent tick requires an agent name." };
+        break;
+      }
+      result = {
+        ok: true,
+        scheduledTick: await executeScheduledTickFromRouter(agentName),
+      };
       break;
     }
 

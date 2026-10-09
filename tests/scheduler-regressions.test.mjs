@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const schedulerModulePath = require.resolve("../services/scheduler");
 const agentRuntimePath = require.resolve("../services/agentRuntime");
 const agentMemoryPath = require.resolve("../services/agentMemory");
+const runtimeControlPath = require.resolve("../services/runtimeControl");
 
 const { saveSchedulerState, loadSchedulerState } = require("../services/scheduler");
 
@@ -17,6 +18,8 @@ function withSchedulerMocks({ runtimeMock, memoryMock }) {
   const originalScheduler = require.cache[schedulerModulePath];
   const originalRuntime = require.cache[agentRuntimePath];
   const originalMemory = require.cache[agentMemoryPath];
+  const originalRuntimeControl = require.cache[runtimeControlPath];
+  let executeRoutedTick = null;
 
   require.cache[agentRuntimePath] = {
     id: agentRuntimePath,
@@ -30,9 +33,24 @@ function withSchedulerMocks({ runtimeMock, memoryMock }) {
     loaded: true,
     exports: memoryMock,
   };
+  require.cache[runtimeControlPath] = {
+    id: runtimeControlPath,
+    filename: runtimeControlPath,
+    loaded: true,
+    exports: {
+      executeControlledStructuredPlan: async (plan) => ({
+        ok: true,
+        result: {
+          ok: true,
+          scheduledTick: await executeRoutedTick(String(plan.payload?.agentName || "")),
+        },
+      }),
+    },
+  };
   delete require.cache[schedulerModulePath];
 
   const scheduler = require("../services/scheduler");
+  executeRoutedTick = scheduler.executeScheduledTickFromRouter;
 
   return {
     scheduler,
@@ -50,6 +68,11 @@ function withSchedulerMocks({ runtimeMock, memoryMock }) {
         require.cache[agentMemoryPath] = originalMemory;
       } else {
         delete require.cache[agentMemoryPath];
+      }
+      if (originalRuntimeControl) {
+        require.cache[runtimeControlPath] = originalRuntimeControl;
+      } else {
+        delete require.cache[runtimeControlPath];
       }
     },
   };
