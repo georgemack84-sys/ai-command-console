@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { postJobAction } from "@/src/lib/client/job-actions";
+import { mutateResearchReport } from "@/src/lib/client/research-report-actions";
 import { postScheduledSummaryAction } from "@/src/lib/client/scheduled-summary-actions";
 import type { ResearchBrief, ResearchReport, SessionUser } from "@/src/lib/types";
 
@@ -567,22 +568,14 @@ export function ResearchDeskDashboard() {
     try {
       setSavingSummary(true);
       setSummaryNotice(null);
-      const response = await fetch("/api/research/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          briefId: targetBrief.id,
-          title: triageSummary.title,
-          format: "briefing",
-          excerpt: triageSummary.lines[0],
-          keyFindings: triageSummary.lines.slice(1),
-          status: "draft",
-        }),
+      await mutateResearchReport("POST", {
+        briefId: targetBrief.id,
+        title: triageSummary.title,
+        format: "briefing",
+        excerpt: triageSummary.lines[0],
+        keyFindings: triageSummary.lines.slice(1),
+        status: "draft",
       });
-      const payload = (await response.json()) as { ok: boolean; error?: { message?: string } };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error?.message || "Unable to save summary report.");
-      }
       setSummaryNotice(`Saved draft report on brief "${targetBrief.title}".`);
     } catch (error) {
       setSummaryNotice(error instanceof Error ? error.message : "Unable to save summary report.");

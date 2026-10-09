@@ -45,6 +45,7 @@ const { requireTypeScriptModule } = require("./tsxRuntimeBridge");
 const ROUTES_PATH = getWorkspaceDataPath("workspace-user-routes.json");
 const RESEARCH_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-service.ts");
 const RESEARCH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-action-service.ts");
+const RESEARCH_REPORT_MUTATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-report-mutation-service.ts");
 const DASHBOARD_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "dashboard-action-service.ts");
 const ADMIN_ACCESS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "admin-access-action-service.ts");
 const JOB_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "job-action-service.ts");
@@ -65,6 +66,11 @@ const RESEARCH_ROUTED_ACTIONS = new Map([
   ["research:review-followup", "review:followup"],
   ["research:report-create", "report:create"],
   ["research:report-publish", "report:publish"],
+]);
+const RESEARCH_REPORT_MUTATION_ROUTED_ACTIONS = new Map([
+  ["research:reports-create", "create"],
+  ["research:reports-update", "update"],
+  ["research:reports-delete", "delete"],
 ]);
 const DASHBOARD_ROUTED_ACTIONS = new Map([
   ["dashboard:alert-run-checks", "alert:run-checks"],
@@ -179,6 +185,14 @@ function loadResearchActionService() {
     return injectedBridge.loadResearchActionService();
   }
   return requireTypeScriptModule(RESEARCH_ACTION_SERVICE_PATH, __filename);
+}
+
+function loadResearchReportMutationService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadResearchReportMutationService === "function") {
+    return injectedBridge.loadResearchReportMutationService();
+  }
+  return requireTypeScriptModule(RESEARCH_REPORT_MUTATION_SERVICE_PATH, __filename);
 }
 
 function loadOperationsActionService() {
@@ -1306,6 +1320,22 @@ async function route(plan, modes = {}) {
               : researchResult;
         } catch (error) {
           result = { ok: false, error: error?.message || `Research action failed: ${plan.action}` };
+        }
+        break;
+      }
+
+      if (RESEARCH_REPORT_MUTATION_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const reportService = loadResearchReportMutationService();
+          result = await reportService.executeResearchReportMutation(
+            {
+              action: RESEARCH_REPORT_MUTATION_ROUTED_ACTIONS.get(String(plan.action || "")),
+              payload: plan.payload || {},
+            },
+            getPlanActor(plan),
+          );
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Research report mutation failed: ${plan.action}` };
         }
         break;
       }
