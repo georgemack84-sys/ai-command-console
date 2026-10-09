@@ -1160,6 +1160,14 @@ async function route(plan, modes = {}) {
     }
 
     default:
+      if (String(plan.action || "").startsWith("legacy-console:")) {
+        result = {
+          ok: true,
+          legacyConsoleResponse: await require("./legacyConsoleHandler").executeLegacyConsoleRequestFromRouter(plan),
+        };
+        break;
+      }
+
       if (JOB_ROUTED_ACTIONS.has(String(plan.action || ""))) {
         try {
           const jobService = loadJobActionService();

@@ -122,6 +122,16 @@
     }
   },
   "actionCategoryMap": {
+    "legacy-console:shell_read": "shell_read",
+    "legacy-console:file_read": "file_read",
+    "legacy-console:process_control": "process_control",
+    "legacy-console:agent_control": "agent_control",
+    "legacy-console:workflow_control": "workflow_control",
+    "legacy-console:network_mutation": "network_mutation",
+    "legacy-console:plugin_action": "plugin_action",
+    "legacy-console:shell_mutation": "shell_mutation",
+    "legacy-console:file_write": "file_write",
+    "legacy-console:credential_access": "credential_access",
     "echo": "shell_read",
     "diagnose_environment": "shell_read",
     "diagnose_path": "shell_read",
@@ -221,6 +231,16 @@
     "collaboration:digest-run-due": "process_control"
   },
   "actionPrefixCategoryMap": {
+    "legacy-console:shell_read:": "shell_read",
+    "legacy-console:file_read:": "file_read",
+    "legacy-console:process_control:": "process_control",
+    "legacy-console:agent_control:": "agent_control",
+    "legacy-console:workflow_control:": "workflow_control",
+    "legacy-console:network_mutation:": "network_mutation",
+    "legacy-console:plugin_action:": "plugin_action",
+    "legacy-console:shell_mutation:": "shell_mutation",
+    "legacy-console:file_write:": "file_write",
+    "legacy-console:credential_access:": "credential_access",
     "admin:": "workflow_control",
     "dashboard:": "workflow_control",
     "jobs:": "process_control",
