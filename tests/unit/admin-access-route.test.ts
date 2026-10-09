@@ -16,6 +16,10 @@ vi.mock("@/src/server/services/admin-service", () => ({
   revokeAdminWorkspaceInvite: vi.fn(),
 }));
 
+vi.mock("@/src/server/services/governed-admin-access-action-service", () => ({
+  executeGovernedAdminAccessAction: vi.fn(),
+}));
+
 vi.mock("@/src/server/services/control-center-service", () => ({
   saveControlCenterGovernance: vi.fn((value) => value),
   saveControlCenterWorkspacePolicy: vi.fn((_workspaceId, policyOverride, reset) =>
@@ -106,6 +110,7 @@ vi.mock("@/src/server/services/admin-access-runtime", () => ({
 
 import { GET, PATCH } from "@/app/api/admin/access/route";
 import { getSessionUser } from "@/src/lib/auth";
+import { executeGovernedAdminAccessAction } from "@/src/server/services/governed-admin-access-action-service";
 import {
   createAdminWorkspaceInvite,
   listAdminAccessPayload,
@@ -119,6 +124,62 @@ import { saveControlCenterGovernance, saveControlCenterWorkspacePolicy } from "@
 describe("admin access route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(executeGovernedAdminAccessAction).mockImplementation(async (input, user) => {
+      const body = input as Record<string, unknown>;
+      if (body.type === "workspace-invite") {
+        return {
+          data: {
+            invite: await createAdminWorkspaceInvite({
+              workspaceId: String(body.workspaceId),
+              email: body.email as string | null | undefined,
+              createdById: user.id,
+            }),
+          },
+          status: 201,
+        } as never;
+      }
+      if (body.type === "user-workspace") {
+        return {
+          data: { workspace: await moveUserToWorkspace(String(body.userId), String(body.workspaceId)) },
+        } as never;
+      }
+      if (body.type === "workspace-rename") {
+        return {
+          data: { workspace: await renameWorkspace(String(body.workspaceId), String(body.workspaceName)) },
+        } as never;
+      }
+      if (body.type === "workspace-policy") {
+        return {
+          data: {
+            governance: await saveControlCenterWorkspacePolicy(
+              String(body.workspaceId),
+              body.policyOverride as Record<string, unknown> | undefined,
+              body.reset as boolean | undefined,
+              user,
+            ),
+          },
+        } as never;
+      }
+      if (body.type === "governance") {
+        return {
+          data: {
+            governance: await saveControlCenterGovernance(body.governance as Record<string, unknown>),
+          },
+        } as never;
+      }
+      if (body.type === "ai-summary-check") {
+        return {
+          data: {
+            summaryCheck: await runAdminAiSummaryCheck({
+              workspaceId: String(body.workspaceId || user.workspaceId),
+              requestedById: user.id,
+              forceFallback: body.forceFallback as boolean | undefined,
+            }),
+          },
+        } as never;
+      }
+      throw new Error(`Unexpected admin action: ${String(body.type)}`);
+    });
   });
 
   it("returns users, workspaces, and invites for admins", async () => {
@@ -435,5 +496,34 @@ describe("admin access route", () => {
       requestedById: "admin_1",
       forceFallback: true,
     });
+  });
+
+  it("returns confirmation evidence without dispatching the admin mutation", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({
+      id: "admin_1",
+      email: "admin@example.com",
+      name: "Admin",
+      role: "admin",
+      status: "active",
+      workspaceId: "workspace_1",
+      workspaceName: "Pulse Workspace",
+    });
+    vi.mocked(executeGovernedAdminAccessAction).mockResolvedValueOnce({
+      action: "user-status",
+      output: "Control review requires confirmation before execution.",
+      requiresConfirmation: true,
+    } as never);
+
+    const response = await PATCH(
+      new Request("http://localhost/api/admin/access", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "user-status", userId: "user_2", status: "disabled" }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.requiresConfirmation).toBe(true);
   });
 });

@@ -11,6 +11,7 @@ import { EventEntry } from "@/src/components/ui/event-entry";
 import { MetricTile } from "@/src/components/ui/metric-tile";
 import { SignalEntry } from "@/src/components/ui/signal-entry";
 import { SurfacePanel, SurfacePanelHeader } from "@/src/components/ui/surface-panel";
+import { patchAdminAccess } from "@/src/lib/client/admin-access-actions";
 import { postOperationsAction } from "@/src/lib/client/operations-actions";
 
 type AdminUser = {
@@ -915,13 +916,8 @@ export function PlatformControlCenterClient() {
       },
     };
 
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "governance", governance: nextGovernance }),
-    });
-    const result = (await response.json()) as { ok?: boolean; error?: string };
-    if (!response.ok) {
+    const result = await patchAdminAccess({ type: "governance", governance: nextGovernance });
+    if (!result.ok) {
       setError(result.error || `Unable to save ${environment} defaults.`);
       return;
     }
@@ -1014,13 +1010,10 @@ export function PlatformControlCenterClient() {
 
   async function saveWorkspacePolicyOverride(workspaceId: string) {
     const override = workspacePolicyDrafts[workspaceId] || {};
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "workspace-policy", workspaceId, policyOverride: override }),
-    });
-    const result = (await response.json()) as { error?: string; governance?: PlatformPayload["overview"]["collaboration"]["governance"] };
-    if (!response.ok || !result.governance) {
+    const result = await patchAdminAccess<{
+      governance?: PlatformPayload["overview"]["collaboration"]["governance"];
+    }>({ type: "workspace-policy", workspaceId, policyOverride: override });
+    if (!result.ok || !result.data?.governance) {
       setError(result.error || "Unable to save workspace override.");
       return;
     }
@@ -1029,13 +1022,10 @@ export function PlatformControlCenterClient() {
   }
 
   async function resetWorkspacePolicyOverride(workspaceId: string) {
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "workspace-policy", workspaceId, reset: true }),
-    });
-    const result = (await response.json()) as { error?: string; governance?: PlatformPayload["overview"]["collaboration"]["governance"] };
-    if (!response.ok || !result.governance) {
+    const result = await patchAdminAccess<{
+      governance?: PlatformPayload["overview"]["collaboration"]["governance"];
+    }>({ type: "workspace-policy", workspaceId, reset: true });
+    if (!result.ok || !result.data?.governance) {
       setError(result.error || "Unable to reset workspace override.");
       return;
     }
@@ -1044,13 +1034,8 @@ export function PlatformControlCenterClient() {
   }
 
   async function updateAdminUserRole(userId: string, role: AdminUser["role"]) {
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "user-role", userId, role }),
-    });
-    const result = (await response.json()) as { error?: string };
-    if (!response.ok) {
+    const result = await patchAdminAccess({ type: "user-role", userId, role });
+    if (!result.ok) {
       setError(result.error || "Unable to update user role.");
       return;
     }
@@ -1059,13 +1044,8 @@ export function PlatformControlCenterClient() {
   }
 
   async function updateAdminUserStatus(userId: string, status: AdminUser["status"]) {
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "user-status", userId, status }),
-    });
-    const result = (await response.json()) as { error?: string };
-    if (!response.ok) {
+    const result = await patchAdminAccess({ type: "user-status", userId, status });
+    if (!result.ok) {
       setError(result.error || "Unable to update user status.");
       return;
     }
@@ -1075,13 +1055,13 @@ export function PlatformControlCenterClient() {
 
   async function updateAdminUserWorkspace(userId: string, workspaceId: string) {
     const workspace = adminWorkspaces.find((item) => item.id === workspaceId);
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "user-workspace", userId, workspaceId, workspaceName: workspace?.name || workspaceId }),
+    const result = await patchAdminAccess({
+      type: "user-workspace",
+      userId,
+      workspaceId,
+      workspaceName: workspace?.name || workspaceId,
     });
-    const result = (await response.json()) as { error?: string };
-    if (!response.ok) {
+    if (!result.ok) {
       setError(result.error || "Unable to move user workspace.");
       return;
     }
@@ -1095,13 +1075,8 @@ export function PlatformControlCenterClient() {
       setError("Workspace name cannot be empty.");
       return;
     }
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "workspace-rename", workspaceId, workspaceName: name }),
-    });
-    const result = (await response.json()) as { error?: string };
-    if (!response.ok) {
+    const result = await patchAdminAccess({ type: "workspace-rename", workspaceId, workspaceName: name });
+    if (!result.ok) {
       setError(result.error || "Unable to rename workspace.");
       return;
     }
@@ -1111,18 +1086,13 @@ export function PlatformControlCenterClient() {
 
   async function createAdminInvite(workspaceId: string) {
     const workspace = adminWorkspaces.find((item) => item.id === workspaceId);
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "workspace-invite",
-        workspaceId,
-        workspaceName: workspace?.name || workspaceId,
-        email: (inviteDrafts[workspaceId] || "").trim() || null,
-      }),
+    const result = await patchAdminAccess({
+      type: "workspace-invite",
+      workspaceId,
+      workspaceName: workspace?.name || workspaceId,
+      email: (inviteDrafts[workspaceId] || "").trim() || null,
     });
-    const result = (await response.json()) as { error?: string };
-    if (!response.ok) {
+    if (!result.ok) {
       setError(result.error || "Unable to create workspace invite.");
       return;
     }
@@ -1132,13 +1102,8 @@ export function PlatformControlCenterClient() {
   }
 
   async function revokeAdminInvite(token: string) {
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "workspace-invite-revoke", token }),
-    });
-    const result = (await response.json()) as { error?: string };
-    if (!response.ok) {
+    const result = await patchAdminAccess({ type: "workspace-invite-revoke", token });
+    if (!result.ok) {
       setError(result.error || "Unable to revoke invite.");
       return;
     }
@@ -1148,20 +1113,11 @@ export function PlatformControlCenterClient() {
 
   async function runAdminSummaryCheck() {
     setSummaryCheckRunning(true);
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "ai-summary-check" }),
-    });
-    const result = (await response.json()) as {
-      ok?: boolean;
-      data?: { summaryCheck?: AdminSummaryCheckResult };
-      error?: { message?: string };
-    };
+    const result = await patchAdminAccess<{ summaryCheck?: AdminSummaryCheckResult }>({ type: "ai-summary-check" });
     setSummaryCheckRunning(false);
 
-    if (!response.ok || !result.data?.summaryCheck) {
-      setError(result.error?.message || "Unable to run AI summary check.");
+    if (!result.ok || !result.data?.summaryCheck) {
+      setError(result.error || "Unable to run AI summary check.");
       return;
     }
 
@@ -1172,20 +1128,14 @@ export function PlatformControlCenterClient() {
 
   async function runAdminFallbackDrill() {
     setSummaryCheckRunning(true);
-    const response = await fetch("/api/admin/access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "ai-summary-check", forceFallback: true }),
+    const result = await patchAdminAccess<{ summaryCheck?: AdminSummaryCheckResult }>({
+      type: "ai-summary-check",
+      forceFallback: true,
     });
-    const result = (await response.json()) as {
-      ok?: boolean;
-      data?: { summaryCheck?: AdminSummaryCheckResult };
-      error?: { message?: string };
-    };
     setSummaryCheckRunning(false);
 
-    if (!response.ok || !result.data?.summaryCheck) {
-      setError(result.error?.message || "Unable to run AI fallback drill.");
+    if (!result.ok || !result.data?.summaryCheck) {
+      setError(result.error || "Unable to run AI fallback drill.");
       return;
     }
 

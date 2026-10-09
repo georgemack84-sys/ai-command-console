@@ -45,6 +45,7 @@ const ROUTES_PATH = getWorkspaceDataPath("workspace-user-routes.json");
 const RESEARCH_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-service.ts");
 const RESEARCH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-action-service.ts");
 const DASHBOARD_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "dashboard-action-service.ts");
+const ADMIN_ACCESS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "admin-access-action-service.ts");
 const OPERATIONS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "operations-action-service.ts");
 const TERMINAL_COLLABORATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-collaboration-service.ts");
 const TERMINAL_OWNERSHIP_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-ownership-service.ts");
@@ -64,6 +65,17 @@ const DASHBOARD_ROUTED_ACTIONS = new Map([
   ["dashboard:alert-run-checks", "alert:run-checks"],
   ["dashboard:alert-acknowledge", "alert:acknowledge"],
   ["dashboard:workspace-generate-summary", "workspace:generate-summary"],
+]);
+const ADMIN_ACCESS_ROUTED_ACTIONS = new Map([
+  ["admin:user-role", "user-role"],
+  ["admin:user-status", "user-status"],
+  ["admin:user-workspace", "user-workspace"],
+  ["admin:workspace-rename", "workspace-rename"],
+  ["admin:workspace-invite", "workspace-invite"],
+  ["admin:workspace-invite-revoke", "workspace-invite-revoke"],
+  ["admin:workspace-policy", "workspace-policy"],
+  ["admin:governance", "governance"],
+  ["admin:ai-summary-check", "ai-summary-check"],
 ]);
 const OPERATIONS_ROUTED_ACTIONS = new Set([
   "approval:approve",
@@ -154,6 +166,14 @@ function loadDashboardActionService() {
     return injectedBridge.loadDashboardActionService();
   }
   return requireTypeScriptModule(DASHBOARD_ACTION_SERVICE_PATH, __filename);
+}
+
+function loadAdminAccessActionService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadAdminAccessActionService === "function") {
+    return injectedBridge.loadAdminAccessActionService();
+  }
+  return requireTypeScriptModule(ADMIN_ACCESS_ACTION_SERVICE_PATH, __filename);
 }
 
 function loadTerminalCollaborationService() {
@@ -1057,6 +1077,23 @@ async function route(plan, modes = {}) {
     }
 
     default:
+      if (ADMIN_ACCESS_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const adminService = loadAdminAccessActionService();
+          const adminResult = await adminService.executeAdminAccessAction(
+            {
+              ...((plan.payload && typeof plan.payload === "object" ? plan.payload : {})),
+              type: ADMIN_ACCESS_ROUTED_ACTIONS.get(String(plan.action || "")),
+            },
+            getPlanActor(plan),
+          );
+          result = adminResult;
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Admin action failed: ${plan.action}` };
+        }
+        break;
+      }
+
       if (DASHBOARD_ROUTED_ACTIONS.has(String(plan.action || ""))) {
         try {
           const dashboardService = loadDashboardActionService();

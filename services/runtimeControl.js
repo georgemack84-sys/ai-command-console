@@ -452,6 +452,13 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 26;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 27) {
+    normalizedLoadedPolicy.actionPrefixCategoryMap = {
+      ...(normalizedLoadedPolicy.actionPrefixCategoryMap || {}),
+      "admin:": "workflow_control",
+    };
+    normalizedLoadedPolicy.version = 27;
+  }
 
   const defaults = createDefaultPolicy();
   return {

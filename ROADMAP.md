@@ -134,9 +134,10 @@ Delivered in current slice:
 - Preserved explicit client confirmation for research mutations and kept typed service authorization in the execution path
 - Routed dashboard action API mutations through the governed runtime with collision-free `dashboard:*` action IDs
 - Added secure workspace-membership admission and explicit client confirmation for dashboard mutations
+- Routed all privileged admin access mutations through the governed runtime with collision-free `admin:*` action IDs
+- Preserved route-level admin admission, downstream typed-service authorization, explicit confirmation, and response status semantics
 
 Next:
-- Govern admin mutation APIs
 - Govern job queue mutation APIs and autonomous scheduler initiators
 - Refresh the runtime-path audit as each bypass is retired
 
