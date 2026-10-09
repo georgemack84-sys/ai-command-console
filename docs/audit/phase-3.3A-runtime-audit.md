@@ -147,23 +147,17 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 ### Remaining High-Risk Paths
 
-1. Runtime policy migration compatibility
-   Incremental policy migration remains centralized in runtime startup and warrants consolidation as action families grow.
-2. Grouped read-path audit coverage
+1. Grouped read-path audit coverage
    Low-risk read APIs are grouped by shape rather than traced individually, leaving a bounded coverage uncertainty.
 
 ### Remaining Highest-Frequency Risky Paths
 
-1. Runtime policy migration compatibility
-   Every runtime startup normalizes the historical policy sequence before applying current admission rules.
-2. Grouped read-path audit coverage
+1. Grouped read-path audit coverage
    Common authenticated reads are frequent even though they remain intentional low-risk exceptions.
 
 ### Remaining Easiest Migration Candidates
 
-1. Runtime policy migration compatibility
-   Historical migrations can be compacted behind fixtures without changing the current canonical policy.
-2. Grouped read-path audit coverage
+1. Grouped read-path audit coverage
    Read-only routes can be enumerated mechanically to replace grouped evidence with route-level evidence.
 
 ### Most Inconsistent Runtime Behaviors
@@ -188,6 +182,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Path Name | Current Classification | Priority (high/medium/low/exception) | Reason | Complexity | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Console interactive path | `GOVERNED` | complete | Mutations have governed execution, and the remaining help/inbox/trust paths are named read-only exceptions with fail-closed unresolved requests. | Complete | `src/server/services/console-runtime.ts`; `src/server/services/terminal-read-command-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
+| Runtime policy migration compatibility | `GOVERNED` | complete | Historical policy upgrades are isolated behind a dedicated compatibility boundary and fixture-tested through the current canonical policy version. | Complete | `services/runtimePolicyMigrations.js`; `services/runtimeControl.js`; `tests/unit/runtime-policy-migrations.test.ts` |
 | Operations action path | `GOVERNED` | complete | Structured review, confirmation, engine, and router admission are now enforced. | Complete | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts` |
 | Research action path | `GOVERNED` | complete | Collision-free structured review, confirmation, engine, and router admission are now enforced. | Complete | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts` |
 | Jobs queue management path | `GOVERNED` | complete | Queue mutation admission, confirmation, engine/router dispatch, and target-workspace authorization are enforced. | Complete | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts` |
@@ -213,7 +208,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 The runtime is healthiest where it has an explicit gateway: the console, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs, agent-task, source-refresh, and scheduled-summary API paths. These interactive paths now have confirmed control-to-engine-to-router execution.
 
-The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. Console help, inbox, and trust formatting have explicit read-only boundaries, while unresolved execution requests fail closed. Legacy worker registration and enqueue normalization each have dedicated compatibility boundaries. The strongest next runtime cleanup candidates are runtime-policy migration and route-level read-path audit coverage.
+The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. Console help, inbox, and trust formatting have explicit read-only boundaries, while unresolved execution requests fail closed. Legacy worker registration and enqueue normalization each have dedicated compatibility boundaries. Historical runtime-policy upgrades now have an explicit fixture-tested compatibility boundary. The strongest next runtime cleanup candidate is route-level read-path audit coverage.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 

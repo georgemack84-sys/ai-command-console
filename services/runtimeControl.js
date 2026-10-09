@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { loadJsonDocument } = require("./documentStore");
+const { applyRuntimePolicyMigrations } = require("./runtimePolicyMigrations");
 const { createPlan } = require("./planner");
 const { appendAuditEvent } = require("./auditTrail");
 const {
@@ -116,7 +117,7 @@ function normalizeStrictModeConfig(strictMode = {}) {
 }
 
 function mergePolicyWithDefaults(loadedPolicy = {}) {
-  const normalizedLoadedPolicy = { ...(loadedPolicy || {}) };
+  const normalizedLoadedPolicy = applyRuntimePolicyMigrations(loadedPolicy, { normalizeStrictModeConfig });
   if (
     Number(normalizedLoadedPolicy.version || 1) < 2 &&
     normalizedLoadedPolicy.actionCategoryMap?.list_plugins === "plugin_action"
