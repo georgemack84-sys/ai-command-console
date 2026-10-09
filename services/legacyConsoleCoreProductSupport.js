@@ -18,7 +18,9 @@ function runPolicyAction(action, payload, deps) {
     });
 
     if (policy.escalation.autoRunWatcherOnPolicySave) {
-      deps.evaluateRules();
+      void Promise.resolve(deps.evaluateRules()).catch(() => {
+        // The legacy compatibility path has no async response channel.
+      });
     }
     if (policy.escalation.autoRunAlertsOnPolicySave) {
       deps.runAlertChecks();

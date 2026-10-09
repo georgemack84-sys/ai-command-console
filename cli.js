@@ -1073,7 +1073,7 @@ async function handleCommand(input) {
 
   if (trimmed === "watcher:run") {
     try {
-      const result = evaluateRules();
+      const result = await evaluateRules();
       console.log("Watcher evaluation complete.");
       console.log(JSON.stringify(result.decisions, null, 2));
       console.log(formatWatcher(result.state));

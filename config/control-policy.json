@@ -177,6 +177,7 @@
     "watcher:stop": "workflow_control",
     "watcher:rule-upsert": "workflow_control",
     "watcher:rule-delete": "workflow_control",
+    "watcher:schedule-start": "workflow_control",
     "alert:acknowledge": "workflow_control",
     "alert:resolve": "workflow_control",
     "alert:note": "workflow_control",

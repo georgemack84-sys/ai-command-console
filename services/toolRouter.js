@@ -18,7 +18,7 @@ const { listAlerts, listActiveAlerts, runAlertChecks, acknowledgeAlert, resolveA
 const { listAgentProfiles, getAgentStatus } = require("./agentRuntime");
 const { startAgent, tickAgent, stopAgent, pauseAgent, resumeAgent, restartAgent } = require("./agentRuntime");
 const { routeManagerTask } = require("./agentRuntime");
-const { listSchedules, getSchedule, runScheduledTick } = require("./scheduler");
+const { listSchedules, getSchedule, startSchedule, runScheduledTick } = require("./scheduler");
 const { getWatcherStatus, startWatcher, stopWatcher, updateWatcherRule, addWatcherRule, removeWatcherRule, evaluateRules, previewRules } = require("./watcher");
 const { getDigestSchedulerStatus } = require("./digestScheduler");
 const { createAdmittedJobEnqueuer, cancelJob, retryJob, getJob, invokeRegisteredJobProcessor } = require("./jobQueue");
@@ -888,7 +888,7 @@ async function route(plan, modes = {}) {
         remediation: payload.remediation || {},
       });
       if (policy.escalation?.autoRunWatcherOnPolicySave) {
-        evaluateRules();
+        await evaluateRules();
       }
       if (policy.escalation?.autoRunAlertsOnPolicySave) {
         runAlertChecks();
@@ -1028,6 +1028,31 @@ async function route(plan, modes = {}) {
     case "watcher_status":
       result = formatWatcher(getWatcherStatus());
       break;
+
+    case "watcher:schedule-start": {
+      const actor = getPlanActor(plan);
+      if (
+        String(plan.source || "") !== "watcher" ||
+        actor.id !== "system:watcher" ||
+        actor.role !== "system"
+      ) {
+        result = { ok: false, error: "Watcher schedule starts require watcher system authority." };
+        break;
+      }
+      const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+      const agentName = String(payload.agentName || "").trim();
+      if (!agentName) {
+        result = { ok: false, error: "Watcher schedule start requires an agent name." };
+        break;
+      }
+      const schedule = startSchedule(
+        agentName,
+        Number(payload.intervalSeconds || 3),
+        Number(payload.maxCycles || 3),
+      );
+      result = { ok: true, schedule };
+      break;
+    }
 
     case "schedule_run": {
       const scheduledResult = await runScheduledTick(plan.payload);

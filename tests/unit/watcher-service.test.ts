@@ -10,6 +10,7 @@ const originalEnv = { ...process.env };
 const watcherPath = require.resolve("../../services/watcher.js");
 const taskQueuePath = require.resolve("../../services/taskQueue.js");
 const schedulerPath = require.resolve("../../services/scheduler.js");
+const runtimeControlPath = require.resolve("../../services/runtimeControl.js");
 const telemetryPath = require.resolve("../../services/telemetry.js");
 const stateDatabasePath = require.resolve("../../services/stateDatabase.js");
 const runtimePathsPath = require.resolve("../../services/runtimePaths.js");
@@ -21,7 +22,7 @@ function createTempRoot() {
 function loadWatcherWithMocks(tempRoot: string, options?: {
   listTasks?: () => Array<Record<string, unknown>>;
   getSchedule?: (agentName: string) => unknown;
-  startSchedule?: (agentName: string, intervalSeconds: number, maxCycles: number) => unknown;
+  executeControlledStructuredPlan?: (plan: Record<string, unknown>, options: Record<string, unknown>) => Promise<Record<string, unknown>>;
   recordTelemetry?: (payload: unknown) => void;
 }) {
   process.env = { ...originalEnv, AI_COMMAND_CONSOLE_DATA_ROOT: tempRoot };
@@ -29,6 +30,7 @@ function loadWatcherWithMocks(tempRoot: string, options?: {
   const originalWatcher = require.cache[watcherPath];
   const originalTaskQueue = require.cache[taskQueuePath];
   const originalScheduler = require.cache[schedulerPath];
+  const originalRuntimeControl = require.cache[runtimeControlPath];
   const originalTelemetry = require.cache[telemetryPath];
 
   require.cache[taskQueuePath] = {
@@ -45,13 +47,30 @@ function loadWatcherWithMocks(tempRoot: string, options?: {
     loaded: true,
     exports: {
       getSchedule: options?.getSchedule || (() => null),
-      startSchedule: options?.startSchedule || ((agentName: string, intervalSeconds: number, maxCycles: number) => ({
-        agentName,
-        enabled: true,
-        intervalSeconds,
-        maxCycles,
-        cycleCount: 0,
-      })),
+    },
+  };
+  require.cache[runtimeControlPath] = {
+    id: runtimeControlPath,
+    filename: runtimeControlPath,
+    loaded: true,
+    exports: {
+      executeControlledStructuredPlan:
+        options?.executeControlledStructuredPlan ||
+        (async (plan: Record<string, unknown>) => {
+          const payload = plan.payload as { intervalSeconds?: number; maxCycles?: number };
+          return {
+            ok: true,
+            result: {
+              ok: true,
+              schedule: {
+                enabled: true,
+                intervalSeconds: payload.intervalSeconds,
+                maxCycles: payload.maxCycles,
+                cycleCount: 0,
+              },
+            },
+          };
+        }),
     },
   };
   require.cache[telemetryPath] = {
@@ -86,6 +105,8 @@ function loadWatcherWithMocks(tempRoot: string, options?: {
       else delete require.cache[taskQueuePath];
       if (originalScheduler) require.cache[schedulerPath] = originalScheduler;
       else delete require.cache[schedulerPath];
+      if (originalRuntimeControl) require.cache[runtimeControlPath] = originalRuntimeControl;
+      else delete require.cache[runtimeControlPath];
       if (originalTelemetry) require.cache[telemetryPath] = originalTelemetry;
       else delete require.cache[telemetryPath];
     },
@@ -106,13 +127,18 @@ describe("watcher service", () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  it("starts schedules for matching queue rules and records telemetry", () => {
-    const startSchedule = vi.fn((agentName: string, intervalSeconds: number, maxCycles: number) => ({
-      agentName,
-      enabled: true,
-      intervalSeconds,
-      maxCycles,
-      cycleCount: 0,
+  it("starts schedules for matching queue rules through governed system execution", async () => {
+    const executeControlledStructuredPlan = vi.fn(async (plan: Record<string, unknown>) => ({
+      ok: true,
+      result: {
+        ok: true,
+        schedule: {
+          enabled: true,
+          intervalSeconds: (plan.payload as { intervalSeconds: number }).intervalSeconds,
+          maxCycles: (plan.payload as { maxCycles: number }).maxCycles,
+          cycleCount: 0,
+        },
+      },
     }));
     const recordTelemetry = vi.fn();
     const { watcher, restore } = loadWatcherWithMocks(tempRoot, {
@@ -121,7 +147,7 @@ describe("watcher service", () => {
         { agentName: "researcher", status: "queued" },
       ],
       getSchedule: () => null,
-      startSchedule,
+      executeControlledStructuredPlan,
       recordTelemetry,
     });
 
@@ -142,7 +168,7 @@ describe("watcher service", () => {
         history: [],
       });
 
-      const result = watcher.evaluateRules();
+      const result = await watcher.evaluateRules();
 
       expect(result.ok).toBe(true);
       expect(result.decisions).toEqual([
@@ -152,7 +178,28 @@ describe("watcher service", () => {
           action: "schedule_started",
         }),
       ]);
-      expect(startSchedule).toHaveBeenCalledWith("researcher", 6, 4);
+      expect(executeControlledStructuredPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "watcher:schedule-start",
+          source: "watcher",
+          payload: expect.objectContaining({
+            ruleName: "research_queue_rule",
+            agentName: "researcher",
+            intervalSeconds: 6,
+            maxCycles: 4,
+          }),
+          meta: expect.objectContaining({
+            userId: "system:watcher",
+            workspaceId: "legacy-global",
+            userRole: "system",
+          }),
+        }),
+        expect.objectContaining({
+          actor: expect.objectContaining({ id: "system:watcher", role: "system" }),
+          identitySource: "system",
+          modes: { confirmed: true },
+        }),
+      );
       expect(recordTelemetry).toHaveBeenCalledWith(
         expect.objectContaining({
           type: "watcher:evaluate",
@@ -168,8 +215,8 @@ describe("watcher service", () => {
     }
   });
 
-  it("does not start a new schedule when an enabled schedule is still valid", () => {
-    const startSchedule = vi.fn();
+  it("does not start a new schedule when an enabled schedule is still valid", async () => {
+    const executeControlledStructuredPlan = vi.fn();
     const { watcher, restore } = loadWatcherWithMocks(tempRoot, {
       listTasks: () => [{ agentName: "planner", status: "queued" }],
       getSchedule: () => ({
@@ -177,7 +224,7 @@ describe("watcher service", () => {
         cycleCount: 1,
         maxCycles: 3,
       }),
-      startSchedule,
+      executeControlledStructuredPlan,
     });
 
     try {
@@ -197,7 +244,7 @@ describe("watcher service", () => {
         history: [],
       });
 
-      const result = watcher.evaluateRules();
+      const result = await watcher.evaluateRules();
 
       expect(result.decisions).toEqual([
         expect.objectContaining({
@@ -205,18 +252,18 @@ describe("watcher service", () => {
           action: "schedule_already_active_or_valid",
         }),
       ]);
-      expect(startSchedule).not.toHaveBeenCalled();
+      expect(executeControlledStructuredPlan).not.toHaveBeenCalled();
     } finally {
       restore();
     }
   });
 
   it("previews matching rules without starting schedules or changing watcher state", () => {
-    const startSchedule = vi.fn();
+    const executeControlledStructuredPlan = vi.fn();
     const { watcher, restore } = loadWatcherWithMocks(tempRoot, {
       listTasks: () => [{ agentName: "researcher", status: "queued" }],
       getSchedule: () => null,
-      startSchedule,
+      executeControlledStructuredPlan,
     });
 
     try {
@@ -264,7 +311,7 @@ describe("watcher service", () => {
           action: "disabled",
         }),
       ]);
-      expect(startSchedule).not.toHaveBeenCalled();
+      expect(executeControlledStructuredPlan).not.toHaveBeenCalled();
       expect(watcher.getWatcherStatus()).toEqual(before);
     } finally {
       restore();
@@ -291,14 +338,12 @@ describe("watcher service", () => {
     }
   });
 
-  it("captures interval errors into watcher state and telemetry", () => {
+  it("captures interval errors into watcher state and telemetry", async () => {
     const recordTelemetry = vi.fn();
     const { watcher, restore } = loadWatcherWithMocks(tempRoot, {
       listTasks: () => [{ agentName: "researcher", status: "queued" }],
       getSchedule: () => null,
-      startSchedule: () => {
-        throw new Error("scheduler unavailable");
-      },
+      executeControlledStructuredPlan: async () => ({ ok: false, error: "scheduler unavailable" }),
       recordTelemetry,
     });
 
@@ -320,7 +365,7 @@ describe("watcher service", () => {
       });
 
       watcher.startWatcher(2);
-      vi.advanceTimersByTime(2000);
+      await vi.advanceTimersByTimeAsync(2000);
 
       const state = watcher.getWatcherStatus();
       expect(state.lastError).toBe("scheduler unavailable");
@@ -339,6 +384,105 @@ describe("watcher service", () => {
           }),
         }),
       );
+    } finally {
+      restore();
+    }
+  });
+
+  it("coalesces overlapping watcher evaluations into one governed schedule start", async () => {
+    let resolveExecution: ((value: Record<string, unknown>) => void) | null = null;
+    const executeControlledStructuredPlan = vi.fn(() => new Promise<Record<string, unknown>>((resolve) => {
+      resolveExecution = resolve;
+    }));
+    const { watcher, restore } = loadWatcherWithMocks(tempRoot, {
+      listTasks: () => [{ agentName: "researcher", status: "queued" }],
+      getSchedule: () => null,
+      executeControlledStructuredPlan,
+    });
+
+    try {
+      watcher.saveWatcherState({
+        enabled: true,
+        intervalSeconds: 2,
+        rules: [{
+          name: "researcher_queue_rule",
+          agentName: "researcher",
+          minQueuedTasks: 1,
+          scheduleIntervalSeconds: 3,
+          scheduleMaxCycles: 3,
+          enabled: true,
+        }],
+        history: [],
+      });
+
+      const first = watcher.evaluateRules();
+      const second = watcher.evaluateRules();
+
+      expect(second).toBe(first);
+      expect(executeControlledStructuredPlan).toHaveBeenCalledTimes(1);
+      resolveExecution?.({
+        ok: true,
+        result: {
+          ok: true,
+          schedule: { enabled: true, intervalSeconds: 3, maxCycles: 3, cycleCount: 0 },
+        },
+      });
+      await expect(first).resolves.toEqual(expect.objectContaining({ ok: true }));
+    } finally {
+      restore();
+    }
+  });
+
+  it("starts only one schedule when multiple matching rules target the same agent", async () => {
+    let activeSchedule: Record<string, unknown> | null = null;
+    const executeControlledStructuredPlan = vi.fn(async (plan: Record<string, unknown>) => {
+      const payload = plan.payload as { intervalSeconds: number; maxCycles: number };
+      activeSchedule = {
+        enabled: true,
+        intervalSeconds: payload.intervalSeconds,
+        maxCycles: payload.maxCycles,
+        cycleCount: 0,
+      };
+      return { ok: true, result: { ok: true, schedule: activeSchedule } };
+    });
+    const { watcher, restore } = loadWatcherWithMocks(tempRoot, {
+      listTasks: () => [{ agentName: "researcher", status: "queued" }],
+      getSchedule: () => activeSchedule,
+      executeControlledStructuredPlan,
+    });
+
+    try {
+      watcher.saveWatcherState({
+        enabled: true,
+        intervalSeconds: 2,
+        rules: [
+          {
+            name: "researcher_queue_rule_one",
+            agentName: "researcher",
+            minQueuedTasks: 1,
+            scheduleIntervalSeconds: 3,
+            scheduleMaxCycles: 3,
+            enabled: true,
+          },
+          {
+            name: "researcher_queue_rule_two",
+            agentName: "researcher",
+            minQueuedTasks: 1,
+            scheduleIntervalSeconds: 5,
+            scheduleMaxCycles: 2,
+            enabled: true,
+          },
+        ],
+        history: [],
+      });
+
+      const result = await watcher.evaluateRules();
+
+      expect(executeControlledStructuredPlan).toHaveBeenCalledTimes(1);
+      expect(result.decisions.map((decision: { action: string }) => decision.action)).toEqual([
+        "schedule_started",
+        "schedule_already_active_or_valid",
+      ]);
     } finally {
       restore();
     }
