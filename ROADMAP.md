@@ -114,7 +114,26 @@ Delivered in current slice:
 - Added versioned plugin host and capability contracts with explicit security evidence, compatibility evidence, and fail-closed admission
 
 Next:
-- Phase 6 platform-backbone goals are complete; select the next product roadmap slice before expanding scope
+- Phase 6 platform-backbone goals are complete
+
+## Phase 7: Unified Governed Runtime
+
+Goals:
+- Make control, review, execution-engine, and router admission the only mutation path across interactive APIs
+- Preserve explicit confirmation and authorization at public route boundaries
+- Eliminate direct mutation bypasses incrementally with route-level regression evidence
+- Keep read-only and operational probe exceptions explicit and documented
+
+Delivered in current slice:
+- Routed operations API actions through control review, the execution engine, and the tool router
+- Normalized workspace action aliases before governed routing
+- Preserved authenticated workspace membership checks at the route boundary
+- Added an explicit client confirmation round trip for confirmation-required operations
+
+Next:
+- Govern research and dashboard action APIs
+- Govern job queue mutation APIs and autonomous scheduler initiators
+- Refresh the runtime-path audit as each bypass is retired
 
 ## Suggested Execution Order
 
