@@ -9,6 +9,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { buttonVariants } from "@/src/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/src/components/ui/card";
 import { SectionCard } from "@/src/components/shared/section-card";
+import { mutateResearchReport } from "@/src/lib/client/research-report-actions";
 import { cn } from "@/src/lib/utils";
 import type { ResearchBrief, ResearchReport, SessionUser } from "@/src/lib/types";
 
@@ -151,20 +152,12 @@ export function ReportsPageClient() {
     try {
       setSaving(true);
       setError(null);
-      const response = await fetch("/api/research/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          status: "draft",
-          keyFindings: form.keyFindings.split("\n").map((item) => item.trim()).filter(Boolean),
-        }),
+      const data = await mutateResearchReport<NonNullable<ReportsResponse["data"]>>("POST", {
+        ...form,
+        status: "draft",
+        keyFindings: form.keyFindings.split("\n").map((item) => item.trim()).filter(Boolean),
       });
-      const payload = (await response.json()) as ReportsResponse;
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error?.message || "Unable to create report.");
-      }
-      setReports(payload.data?.reports || []);
+      setReports(data.reports || []);
       setForm((current) => ({ ...EMPTY_FORM, briefId: current.briefId }));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to create report.");
@@ -174,30 +167,20 @@ export function ReportsPageClient() {
   }
 
   async function updateReportStatus(id: string, status: ResearchReport["status"]) {
-    const response = await fetch("/api/research/reports", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    const payload = (await response.json()) as ReportsResponse;
-    if (response.ok && payload.ok) {
-      setReports(payload.data?.reports || []);
-    } else {
-      setError(payload.error?.message || "Unable to update report.");
+    try {
+      const data = await mutateResearchReport<NonNullable<ReportsResponse["data"]>>("PATCH", { id, status });
+      setReports(data.reports || []);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to update report.");
     }
   }
 
   async function deleteReport(id: string) {
-    const response = await fetch("/api/research/reports", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reportId: id }),
-    });
-    const payload = (await response.json()) as ReportsResponse;
-    if (response.ok && payload.ok) {
-      setReports(payload.data?.reports || []);
-    } else {
-      setError(payload.error?.message || "Unable to delete report.");
+    try {
+      const data = await mutateResearchReport<NonNullable<ReportsResponse["data"]>>("DELETE", { reportId: id });
+      setReports(data.reports || []);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to delete report.");
     }
   }
 
@@ -209,16 +192,15 @@ export function ReportsPageClient() {
       return;
     }
 
-    const response = await fetch("/api/research/reports", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ownerId: targetOwner.id, ownerName: targetOwner.name }),
-    });
-    const payload = (await response.json()) as ReportsResponse;
-    if (response.ok && payload.ok) {
-      setReports(payload.data?.reports || []);
-    } else {
-      setError(payload.error?.message || "Unable to reassign report.");
+    try {
+      const data = await mutateResearchReport<NonNullable<ReportsResponse["data"]>>("PATCH", {
+        id,
+        ownerId: targetOwner.id,
+        ownerName: targetOwner.name,
+      });
+      setReports(data.reports || []);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to reassign report.");
     }
   }
 
