@@ -122,6 +122,7 @@
     }
   },
   "actionCategoryMap": {
+    "sources:refresh": "network_mutation",
     "legacy-console:shell_read": "shell_read",
     "legacy-console:file_read": "file_read",
     "legacy-console:process_control": "process_control",
