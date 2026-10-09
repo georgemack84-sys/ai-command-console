@@ -27,6 +27,7 @@ import { Button, buttonVariants } from "@/src/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { SectionShell } from "@/src/components/ui/section-shell";
 import { postDashboardAction } from "@/src/lib/client/dashboard-actions";
+import { postInsightGenerationAction } from "@/src/lib/client/insight-actions";
 import { cn } from "@/src/lib/utils";
 import type { DashboardSnapshot } from "@/src/types/platform";
 
@@ -381,18 +382,10 @@ export function ProductDashboard() {
   async function queueInsightGeneration() {
     setInsightJobState({ status: "running", message: "Queueing AI insight generation..." });
     try {
-      const response = await fetch("/api/insights", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ async: true }),
-      });
-      const payload = (await response.json()) as { ok?: boolean; data?: { job?: { id?: string } }; error?: { message?: string } };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error?.message || "Unable to queue insight generation.");
-      }
+      const result = await postInsightGenerationAction<{ job?: { id?: string } }>({ async: true });
       setInsightJobState({
         status: "done",
-        message: `Queued job ${payload.data?.job?.id || ""} for background insight generation.`,
+        message: `Queued job ${result.job?.id || ""} for background insight generation.`,
       });
     } catch (error) {
       setInsightJobState({

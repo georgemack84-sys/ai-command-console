@@ -2,14 +2,13 @@ import { getSessionUser } from "@/src/lib/auth";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { AppError } from "@/src/server/api/errors";
 import { getWorkspaceSnapshot } from "@/src/server/services/workspace-service";
-import { generateWorkspaceInsights } from "@/src/server/services/insight-service";
-import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
 import { z } from "zod";
-import { trackEvent } from "@/src/server/observability/analytics";
 import { requireWorkspaceViewer, requireWorkspaceMember } from "@/src/server/auth/permissions";
+import { executeGovernedInsightGenerationAction } from "@/src/server/services/governed-insight-generation-action-service";
 
 const postSchema = z.object({
   async: z.boolean().optional(),
+  confirmed: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -36,31 +35,19 @@ export async function POST(request: Request) {
 
     await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     const body = postSchema.parse(await request.json().catch(() => ({})));
-    if (body.async) {
-      const job = queueBackgroundJob(
-        "workspace:generate-insights",
-        { workspaceId: user.workspaceId },
-        { actorId: user.id, actorName: user.name },
-      );
-      trackEvent({
-        event: "insight_generation_requested",
-        actorId: user.id,
-        workspaceId: user.workspaceId,
-        properties: { jobId: job.id },
-      });
-      return apiSuccess({ job }, { status: 202 });
+    const result = await executeGovernedInsightGenerationAction(
+      {
+        action: body.async ? "generate-queued" : "generate-direct",
+        payload: body,
+        confirmed: body.confirmed,
+      },
+      user,
+    );
+    if (result.requiresConfirmation || result.simulated) {
+      return apiSuccess(result);
     }
-
-    const insights = await generateWorkspaceInsights(user.workspaceId);
-    if (insights.length) {
-      trackEvent({
-        event: "insight_generated",
-        actorId: user.id,
-        workspaceId: user.workspaceId,
-        properties: { count: insights.length },
-      });
-    }
-    return apiSuccess({ insights }, { status: 201 });
+    const actionResult = result as unknown as { data: unknown; status?: number };
+    return apiSuccess(actionResult.data, actionResult.status ? { status: actionResult.status } : undefined);
   } catch (error) {
     return apiError(error, "Unable to generate insights.");
   }

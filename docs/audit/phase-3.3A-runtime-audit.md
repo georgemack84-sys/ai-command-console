@@ -57,7 +57,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Research actions API | `app/api/research/actions/route.ts` | API | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts` | Governed action admission with an explicit confirmation retry. |
 | Dashboard actions API | `app/api/dashboard/actions/route.ts` | API | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts` | Governed action admission with workspace membership and an explicit confirmation retry. |
 | Jobs API | `app/api/jobs/route.ts` | API | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts` | Governed queue creation, cancellation, and retry with explicit confirmation and target-workspace authorization. |
-| Insights API | `app/api/insights/route.ts` | API | `app/api/insights/route.ts:15-64` | Has both direct execution and queued execution paths. |
+| Insights API | `app/api/insights/route.ts` | API | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts` | Read-only listing plus governed synchronous and queued generation paths. |
 | Agent tasks API | `app/api/agents/tasks/route.ts` | API | `app/api/agents/tasks/route.ts:16-67` | Creates tasks and can queue `agent:execute`. |
 | Source refresh API | `app/api/sources/refresh/route.ts` | API | `app/api/sources/refresh/route.ts:13-31` | Queues background source refresh. |
 | Research briefs CRUD API | `app/api/research/briefs/route.ts` | API | `app/api/research/briefs/route.ts`; `src/server/services/governed-research-brief-mutation-service.ts` | Read-only listing plus governed create, update, routing, reassignment, and delete mutations. |
@@ -83,8 +83,8 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Dashboard action path | `POST /api/dashboard/actions` | route auth/workspace check -> internal `dashboard:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeDashboardAction()` | yes | structured plan | yes | yes | yes | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Internal IDs avoid legacy alert/workspace handler collisions; typed service workspace checks remain downstream. |
 | Admin privileged mutation path | `PATCH /api/admin/access` | route admin check -> internal `admin:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeAdminAccessAction()` -> typed admin/control-center service | yes | structured plan | yes | yes | yes | `app/api/admin/access/route.ts`; `src/server/services/governed-admin-access-action-service.ts`; `src/server/services/admin-access-action-service.ts`; `services/toolRouter.js` | All nine mutation types use collision-free IDs; confirmation, admin authorization, actor propagation, and response status semantics are preserved. |
 | Jobs queue management path | `POST /api/jobs` | route auth/workspace/rate checks -> internal `jobs:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeJobAction()` -> target-workspace authorization -> queue mutation | yes | structured plan | yes | yes | yes | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts`; `services/toolRouter.js` | Governs API admission and queue mutation; asynchronous worker processor execution is tracked separately. |
-| Insights direct path | `POST /api/insights` with `async=false` | route -> `generateWorkspaceInsights()` -> Prisma reads/writes -> optional alert creation | no | no | no | no | no | `app/api/insights/route.ts:54-63`; `src/server/services/insight-service.ts:5-70` | Direct execution path. |
-| Insights queued path | `POST /api/insights` with `async=true` | route -> typed queue admission -> worker contract validation -> `jobs:execute-processor` control/review -> engine -> router -> registered processor -> `generateWorkspaceInsights()` | worker only | structured worker plan | worker only | worker only | worker only | `app/api/insights/route.ts:39-51`; `src/server/jobs/background-jobs.ts`; `services/jobQueue.js`; `services/toolRouter.js` | Processor execution is governed; the initiating route still bypasses control/review. |
+| Insights direct path | `POST /api/insights` with `async=false` | route auth/workspace check -> confirmed `research:insights-generate-direct` plan -> control/review -> engine -> router -> typed generation service -> optional alert creation | yes | structured plan | yes | yes | yes | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `services/toolRouter.js` | Explicit client confirmation precedes typed synchronous generation; GET remains read-only. |
+| Insights queued path | `POST /api/insights` with `async=true` | route auth/workspace check -> confirmed `research:insights-generate-queued` plan -> control/review -> engine -> router -> typed admitted enqueue -> worker contract validation -> reviewed processor invocation -> `generateWorkspaceInsights()` | yes | structured API and worker plans | yes | yes | yes | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` | Both interactive queue admission and processor execution now traverse governed boundaries. |
 | Agent task creation and queued execution path | `POST /api/agents/tasks` | route auth/workspace/feature check -> internal `agent-tasks:create` action -> control/review -> engine -> router -> typed task creation and optional admitted `agent:execute` enqueue -> reviewed worker invocation | yes | structured API and worker plans | yes | yes | yes | `app/api/agents/tasks/route.ts`; `src/server/services/governed-agent-task-action-service.ts`; `src/server/services/agent-task-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` | Both initial task mutation and optional processor execution now have explicit governed boundaries and workspace authorization. |
 | Source refresh path | `POST /api/sources/refresh` | route auth/manager/rate checks -> confirmed `sources:refresh` network plan -> control/review -> engine -> router -> typed source authorization and admitted enqueue -> reviewed worker invocation -> `refreshSourceByConnector()` | yes | structured API and worker plans | yes | yes | yes | `app/api/sources/refresh/route.ts`; `src/server/services/governed-source-refresh-action-service.ts`; `src/server/services/source-refresh-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` | Explicit user confirmation acknowledges network side effects before queue admission; connector execution retains durable worker admission. |
 | Research briefs CRUD path | `/api/research/briefs` | read-only GET -> typed list service; POST/PATCH/DELETE -> collision-free `research:briefs-*` plan -> control/review -> engine -> router -> typed workspace-authorized mutation service; route action delegates to the existing typed research action workflow | mutations yes | structured mutation plans | mutations yes | mutations yes | mutations yes | `app/api/research/briefs/route.ts`; `src/server/services/governed-research-brief-mutation-service.ts`; `src/server/services/research-brief-mutation-service.ts`; `services/toolRouter.js` | Reads remain a direct exception; create, update, reassignment, routing, and delete require explicit confirmation while preserving ownership, analytics, queueing, and response semantics. |
@@ -114,8 +114,8 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Dashboard action path | `GOVERNED` | Authenticated workspace members use collision-free structured plans, explicit confirmation, and engine/router dispatch before typed service mutation or queueing. | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts`; `services/toolRouter.js` |
 | Admin privileged mutation path | `GOVERNED` | Route-level admin checks, collision-free structured plans, explicit confirmation, engine/router admission, and downstream typed-service authorization are enforced for all privileged mutations. | `app/api/admin/access/route.ts`; `src/server/services/governed-admin-access-action-service.ts`; `src/server/services/admin-access-action-service.ts`; `services/toolRouter.js` |
 | Jobs queue management path | `GOVERNED` | Queue creation, cancellation, and retry use structured review, explicit confirmation, engine/router admission, and target-workspace authorization before mutation. | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts`; `services/toolRouter.js` |
-| Insights direct path | `BYPASS` | Direct generation and optional alert creation with no governed runtime. | `app/api/insights/route.ts:54-63`; `src/server/services/insight-service.ts:5-70` |
-| Insights queued path | `PARTIAL_GOVERNED` | Typed processor execution traverses control/review/engine/router, but the initiating route remains a bypass. | `app/api/insights/route.ts:39-51`; `src/server/jobs/background-jobs.ts`; `services/jobQueue.js`; `services/toolRouter.js` |
+| Insights direct path | `GOVERNED` | Synchronous generation requires explicit confirmation and traverses structured control/review plus engine/router dispatch before typed workspace-authorized generation. | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `services/toolRouter.js` |
+| Insights queued path | `GOVERNED` | Queue admission and later processor invocation each traverse structured review, engine/router dispatch, typed workspace authorization, and durable admission validation. | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` |
 | Agent task creation and queued execution path | `GOVERNED` | Task creation and optional queue admission traverse structured control/review and engine/router dispatch before the already-governed typed worker executes. | `app/api/agents/tasks/route.ts`; `src/server/services/governed-agent-task-action-service.ts`; `src/server/services/agent-task-action-service.ts`; `services/toolRouter.js`; `src/server/jobs/background-jobs.ts` |
 | Source refresh path | `GOVERNED` | Manager-authorized refresh requests require explicit network-side-effect confirmation and traverse control/review plus engine/router admission before the already-governed worker executes. | `app/api/sources/refresh/route.ts`; `src/server/services/governed-source-refresh-action-service.ts`; `src/server/services/source-refresh-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` |
 | Research briefs CRUD path | `GOVERNED` | POST/PATCH/DELETE use collision-free structured plans, explicit confirmation, engine/router admission, and downstream typed workspace/ownership authorization; GET remains read-only. | `app/api/research/briefs/route.ts`; `src/server/services/governed-research-brief-mutation-service.ts`; `src/server/services/research-brief-mutation-service.ts`; `services/toolRouter.js` |
@@ -147,47 +147,47 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 ### Top 5 High-Risk Paths
 
-1. Insights direct path
-   Synchronous insight generation and optional alert mutation still bypass the governed runtime.
-2. Insights queued path
-   Worker execution is governed, but asynchronous queue initiation still bypasses interactive runtime review.
-3. Console interactive fallback path
+1. Console interactive fallback path
    Residual helper and fallback branches still have weaker admission guarantees than structured action paths.
-4. Legacy processor bootstrap ownership
+2. Legacy processor bootstrap ownership
    Protected execution is governed, but processor registration still originates in the compatibility handler.
-5. Legacy enqueue compatibility adapters
+3. Legacy enqueue compatibility adapters
    Compatibility enqueue surfaces are evidence-bound, but they remain an additional maintenance-sensitive admission shape.
+4. Runtime policy migration compatibility
+   Incremental policy migration remains centralized in runtime startup and warrants consolidation as action families grow.
+5. Grouped read-path audit coverage
+   Low-risk read APIs are grouped by shape rather than traced individually, leaving a bounded coverage uncertainty.
 
 ### Top 5 Highest-Frequency Risky Paths
 
 1. Console interactive path
    Main user-facing action path; partially governed but still hybrid.
-2. Insights queued path
-   Frequently triggered asynchronous insight work still enters the queue before interactive runtime review.
-3. Insights direct path
-   Synchronous insight generation remains a user-facing direct execution path.
-4. Legacy processor bootstrap ownership
+2. Legacy processor bootstrap ownership
    Compatibility-owned registration remains a frequent dependency of queued execution startup.
-5. Legacy enqueue compatibility adapters
+3. Legacy enqueue compatibility adapters
    Older enqueue callers remain a recurring compatibility dependency despite fail-closed admission validation.
+4. Runtime policy migration compatibility
+   Every runtime startup normalizes the historical policy sequence before applying current admission rules.
+5. Grouped read-path audit coverage
+   Common authenticated reads are frequent even though they remain intentional low-risk exceptions.
 
 ### Top 5 Easiest Migration Candidates
 
-1. Insights queued path
-   Typed input and an existing governed worker boundary make route admission a bounded next step.
-2. Insights direct path
-   The synchronous/queued branch is already explicit and can be split behind a typed action boundary.
-3. Console interactive fallback path
+1. Console interactive fallback path
    Remaining fallback branches can be inventoried and migrated one bounded action family at a time.
-4. Legacy processor bootstrap ownership
+2. Legacy processor bootstrap ownership
    Registration can move to an explicit worker bootstrap module without changing admitted execution contracts.
-5. Legacy enqueue compatibility adapters
+3. Legacy enqueue compatibility adapters
    Existing normalization and durable evidence checks provide a clear boundary for consolidating remaining callers.
+4. Runtime policy migration compatibility
+   Historical migrations can be compacted behind fixtures without changing the current canonical policy.
+5. Grouped read-path audit coverage
+   Read-only routes can be enumerated mechanically to replace grouped evidence with route-level evidence.
 
 ### Most Inconsistent Runtime Behaviors
 
-- The shared controlled-plan helper now serves console, operations, research, dashboard, admin, jobs API, research brief/report mutations, and worker processor paths, while remaining direct generation paths still bypass it.
-- Governed interactive APIs coexist with direct generation and partially governed queue initiators, producing inconsistent admission guarantees by entrypoint.
+- The shared controlled-plan helper now serves console, operations, research, dashboard, admin, jobs API, research brief/report mutations, insight generation, and worker processor paths.
+- Synchronous and queued insight generation now share explicit confirmation, typed workspace authorization, and reviewed engine/router admission; queued processing retains a second durable worker boundary.
 - Typed and legacy background jobs now persist and enforce processor admission evidence. Legacy enqueue adapters normalize old and new actor shapes and fail closed unless actor, workspace, source, and contract provenance are explicit.
 - Processor registration remains centralized in `ensureJobProcessorsRegistered()`, but queued legacy work cannot invoke a protected processor without matching persisted evidence and a fresh reviewed runtime authority decision.
 - Console and control-center read endpoints no longer start the scheduler or queue digest work; Node instrumentation owns startup and the SSE loop is read-only.
@@ -199,6 +199,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 - Scheduled summary generation now requires explicit network-side-effect confirmation before reviewed engine/router admission and typed workspace-authorized AI/report generation.
 - Research report create, update, reassignment, and delete mutations now require explicit confirmation before reviewed engine/router admission and typed workspace/ownership authorization; report reads remain direct and read-only.
 - Research brief create, update, reassignment, routing, and delete mutations now require explicit confirmation before reviewed engine/router admission and typed workspace/ownership authorization; brief reads remain direct and read-only.
+- Synchronous and queued insight generation now require explicit confirmation before reviewed engine/router admission; queued execution also retains durable admission and reviewed processor invocation.
 
 ## STEP 7 — MIGRATION PRIORITIES
 
@@ -208,6 +209,8 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Operations action path | `GOVERNED` | complete | Structured review, confirmation, engine, and router admission are now enforced. | Complete | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts` |
 | Research action path | `GOVERNED` | complete | Collision-free structured review, confirmation, engine, and router admission are now enforced. | Complete | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts` |
 | Jobs queue management path | `GOVERNED` | complete | Queue mutation admission, confirmation, engine/router dispatch, and target-workspace authorization are enforced. | Complete | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts` |
+| Insights direct path | `GOVERNED` | complete | Explicit confirmation, structured review, engine/router admission, typed workspace authorization, and existing analytics/alert semantics are enforced. | Complete | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `services/toolRouter.js` |
+| Insights queued path | `GOVERNED` | complete | Interactive admission and durable worker execution each traverse their governed boundary while preserving queue and analytics semantics. | Complete | `app/api/insights/route.ts`; `src/server/services/governed-insight-generation-action-service.ts`; `src/server/services/insight-generation-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` |
 | External worker processor path | `GOVERNED` | complete | Typed and legacy execution is admission-bound and routed through review/engine/router before processor invocation. | Complete | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` |
 | Source refresh path | `GOVERNED` | complete | Manager and rate checks, network-side-effect confirmation, engine/router admission, typed source authorization, and reviewed worker execution are enforced. | Complete | `app/api/sources/refresh/route.ts`; `src/server/services/governed-source-refresh-action-service.ts`; `src/server/services/source-refresh-action-service.ts`; `services/toolRouter.js`; `src/server/jobs/background-jobs.ts` |
 | Admin privileged mutation path | `GOVERNED` | complete | Admin admission, confirmation, structured review, engine/router dispatch, and typed-service authorization are enforced. | Complete | `app/api/admin/access/route.ts`; `src/server/services/governed-admin-access-action-service.ts` |
@@ -226,18 +229,18 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 ## STEP 8 — SUMMARY
 
-The runtime is healthiest where it has an explicit gateway: the console, operations, research actions and brief/report mutations, dashboard, admin, jobs, agent-task, source-refresh, and scheduled-summary API paths. These interactive paths now have confirmed control-to-engine-to-router execution.
+The runtime is healthiest where it has an explicit gateway: the console, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs, agent-task, source-refresh, and scheduled-summary API paths. These interactive paths now have confirmed control-to-engine-to-router execution.
 
-The runtime is most fragmented in two places:
+The remaining runtime fragmentation is concentrated in two places:
 
-1. Remaining generation APIs that bypass the governed runtime.
-2. Remaining queue initiators that can admit governed worker execution without first traversing the full interactive control path.
-The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. The strongest next runtime migration candidates are the remaining insights initiators and residual console/worker bootstrap cleanup.
+1. Residual console helper/fallback branches that do not represent structured action families.
+2. Compatibility-owned worker registration and legacy enqueue adapters that are governed but retain historical ownership boundaries.
+The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. The strongest next runtime cleanup candidates are the residual console fallback and worker bootstrap ownership boundaries.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 
 Remaining uncertainty:
 
-- Typed queue processor execution now traverses control/review/engine/router, but the insights queue initiator is not yet governed.
+- Insight queue admission and processor execution now both traverse control/review/engine/router; operational verification should continue to confirm that durable evidence survives external worker restarts.
 - Legacy job processor registration still lives in the compatibility handler, so bootstrap ownership should eventually move to an explicit worker module even though admission and reviewed invocation now fail closed.
 - Some low-risk read APIs were grouped rather than traced one-by-one when they followed the same `auth + service read` shape and did not initiate meaningful execution.
