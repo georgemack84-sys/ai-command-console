@@ -20,7 +20,6 @@ const { loadAutomationPolicy, updateAutomationPolicy } = require("./automationPo
 const { buildTelemetrySummary, recordTelemetry } = require("./telemetry");
 const {
   registerJobProcessor,
-  createAdmittedJobEnqueuer,
   LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT,
   listJobs,
   buildJobMetrics,
@@ -28,7 +27,8 @@ const {
   retryJob,
   getJob,
 } = require("./jobQueue");
-const enqueueJob = createAdmittedJobEnqueuer("legacy_console");
+const { createLegacyJobEnqueueAdapter } = require("./legacyJobEnqueueAdapter");
+const enqueueJob = createLegacyJobEnqueueAdapter();
 const {
   normalizeRole,
   canUseConsoleAction,

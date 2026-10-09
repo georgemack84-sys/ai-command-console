@@ -14,7 +14,7 @@ Since the initial audit, the console runtime has materially improved:
 - the dashboard actions API now enforces workspace membership, assigns collision-free `dashboard:*` action IDs, and uses the governed runtime before typed dashboard-service dispatch
 - the admin access API now preserves route-level admin admission while routing all privileged mutations through collision-free `admin:*` action IDs, control review, the execution engine, and typed admin-service dispatch
 - the jobs API now routes queue creation, cancellation, and retry through collision-free `jobs:*` action IDs and revalidates the target workspace before typed queue mutation; worker processor execution remains a separately assessed path
-- all typed and legacy processors now require durable admission evidence and a distinct `jobs:execute-processor` control/review/engine/router pass before invocation; legacy enqueue adapters add explicit actor, workspace, source, and contract provenance
+- all typed and legacy processors now require durable admission evidence and a distinct `jobs:execute-processor` control/review/engine/router pass before invocation; the dedicated legacy enqueue adapter normalizes explicit actor, workspace, source, and contract provenance
 - governance updates are now confirmation-gated through the governed path instead of auto-executing as plain process control
 - the old post-review direct-dispatch branches in `src/server/services/console-runtime.ts` for operations, collaboration, digest, and governance-compat handling have been removed
 
@@ -182,7 +182,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 - The shared controlled-plan helper now serves console, operations, research, dashboard, admin, jobs API, research brief/report mutations, insight generation, and worker processor paths.
 - Synchronous and queued insight generation now share explicit confirmation, typed workspace authorization, and reviewed engine/router admission; queued processing retains a second durable worker boundary.
-- Typed and legacy background jobs now persist and enforce processor admission evidence. Legacy enqueue adapters normalize old and new actor shapes and fail closed unless actor, workspace, source, and contract provenance are explicit.
+- Typed and legacy background jobs now persist and enforce processor admission evidence. `services/legacyJobEnqueueAdapter.js` normalizes old and new actor shapes before the queue fails closed unless actor, workspace, source, and contract provenance are explicit.
 - Legacy processor registration is isolated in `services/legacyJobProcessorBootstrap.js`, while queued legacy work cannot invoke a protected processor without matching persisted evidence and a fresh reviewed runtime authority decision.
 - Console and control-center read endpoints no longer start the scheduler or queue digest work; Node instrumentation owns startup and the SSE loop is read-only.
 - Watcher rule previews remain read-only, while matched-rule schedule starts now traverse a single-flight system-authored control/review/engine/router path and fail closed on authority mismatch.
@@ -225,11 +225,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 The runtime is healthiest where it has an explicit gateway: the console, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs, agent-task, source-refresh, and scheduled-summary API paths. These interactive paths now have confirmed control-to-engine-to-router execution.
 
-The remaining runtime fragmentation is concentrated in two places:
-
-1. Residual console helper/fallback branches that do not represent structured action families.
-2. Compatibility-owned worker registration and legacy enqueue adapters that are governed but retain historical ownership boundaries.
-The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. The strongest next runtime cleanup candidates are the residual console fallback and worker bootstrap ownership boundaries.
+The remaining runtime fragmentation is concentrated in residual console helper/fallback branches that do not represent structured action families. The console, legacy console compatibility adapter, operations, research actions and brief/report mutations, insight generation, dashboard, admin, jobs API, agent-task API, source-refresh API, scheduled-summary API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. Legacy worker registration and enqueue normalization each have dedicated compatibility boundaries. The strongest next runtime cleanup candidates are the residual console fallback and runtime-policy migration boundaries.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 
