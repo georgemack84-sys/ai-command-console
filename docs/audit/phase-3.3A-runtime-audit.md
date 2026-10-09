@@ -90,7 +90,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Research briefs CRUD path | `/api/research/briefs` | route -> `createBrief()` / `updateBrief()` / `deleteBrief()` direct Prisma; optional `PATCH routeToQueue` -> `executeResearchAction("brief:route")` | no | no | no | no | no | `app/api/research/briefs/route.ts:56-133`; `src/server/services/research-service.ts:72-143`; `src/server/services/research-action-service.ts:74-104` | Mostly direct mutations; one subpath delegates to research action service. |
 | Research reports CRUD path | `/api/research/reports` | route -> `createReport()` / `updateReport()` / `deleteReport()` direct Prisma transaction path | no | no | no | no | no | `app/api/research/reports/route.ts:51-113`; `src/server/services/research-service.ts:145-224` | Direct mutation path. |
 | Scheduled summary generation path | `POST /api/research/summaries/run-due` | route -> `isScheduleDue()` filter -> `createSummaryReportForView()` or `generateSummaryForView()` | no | no | no | no | no | `app/api/research/summaries/run-due/route.ts:29-89`; `src/server/services/summary-service.ts:39-192` | Direct generation path, not queued and not governed. |
-| Legacy console compatibility path | `services/consoleApi.js` / `legacyConsoleHandler.handleConsoleRequest()` | compatibility export -> `createLegacyConsoleRequestHandlers()` -> `reviewControlRequest()` -> direct legacy command/action handlers and job queue helpers | yes | no | yes | no | no | `services/consoleApi.js:1-5`; `services/legacyConsoleHandler.js:635-713`; `services/legacyConsoleRequestHandlers.js:78-249` | Confirmed governed wrapper, but still dispatches legacy direct handlers after review. External callers inside repo are unverified. |
+| Legacy console compatibility path | `services/consoleApi.js` / `legacyConsoleHandler.handleConsoleRequest()` | compatibility export -> risk-preserving `legacy-console:*` structured plan -> control/review -> execution engine -> tool router -> source-authorized compatibility handler | yes | structured plan | yes | yes | yes | `services/consoleApi.js`; `services/legacyConsoleHandler.js`; `services/legacyConsoleRequestHandlers.js`; `services/toolRouter.js` | Legacy formatting and approval behavior are preserved, but direct handler invocation is now contained behind reviewed router authority. |
 | External worker processor path | `npm run worker:jobs` | worker loop -> persisted job -> durable admission validation -> `jobs:execute-processor` structured review -> execution engine -> tool router -> registered typed or legacy processor | worker only | structured worker plan | worker only | worker only | worker only | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` | Every registered processor requires matching durable evidence and router-issued runtime authority. |
 | Digest scheduler autonomous path | `ensureDigestScheduler()` timer | Node instrumentation startup -> timer -> system-authored structured plan -> control/review -> engine -> router -> admitted `digest:run-due` enqueue -> reviewed worker invocation | yes | structured plan and structured worker plan | yes | yes | yes | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js`; `services/jobQueue.js` | Both autonomous initiation and processor execution use governed runtime boundaries; production remains gated by the legacy-autonomy policy. |
 | Watcher autonomous path | `startWatcher()` timer | `startWatcher()` -> single-flight `evaluateRules()` -> system-authored `watcher:schedule-start` -> control/review -> execution engine -> tool router -> `startSchedule()` | yes | structured plan | yes | yes | yes | `services/watcher.js`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js`; `services/scheduler.js` | Rule previews remain read-only; matched rules require watcher system authority before schedule creation. |
@@ -100,7 +100,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 ### Internal Target-Architecture Helper With No Confirmed Entrypoint
 
-The only confirmed full `control -> planner -> review/intervention -> engine -> router` helper is `executeControlledPlan()` in `services/runtimeControl.js:940-979`. A repo-wide search found no caller during this audit. This helper is therefore closest to the target architecture, but it is not counted as a confirmed runtime entrypoint.
+`executeControlledPlan()` and `executeControlledStructuredPlan()` are the shared `control -> review/intervention -> engine -> router` gateways. Interactive services, autonomous initiators, worker processors, and the legacy compatibility adapter now call the structured helper directly where they already own a typed plan.
 
 ## STEP 3 — CLASSIFICATION TABLE
 
@@ -121,7 +121,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | Research briefs CRUD path | `BYPASS` | Direct Prisma-backed CRUD path; one sub-branch routes to the research action service, which is also bypass. | `app/api/research/briefs/route.ts:56-133`; `src/server/services/research-service.ts:72-143` |
 | Research reports CRUD path | `BYPASS` | Direct Prisma-backed CRUD path with no governed runtime layers. | `app/api/research/reports/route.ts:51-113`; `src/server/services/research-service.ts:145-224` |
 | Scheduled summary generation path | `BYPASS` | Directly performs summary/report generation without queue governance or runtime control. | `app/api/research/summaries/run-due/route.ts:29-89`; `src/server/services/summary-service.ts:39-192` |
-| Legacy console compatibility path | `PARTIAL_GOVERNED` | It enters `reviewControlRequest()`, but then branches into legacy direct handlers instead of planner/router/engine. | `services/legacyConsoleHandler.js:635-713`; `services/legacyConsoleRequestHandlers.js:78-249` |
+| Legacy console compatibility path | `GOVERNED` | Requests retain their original risk category, traverse structured control/review and engine/router execution, and can enter the legacy handler only from the source-authorized router adapter. | `services/legacyConsoleHandler.js`; `services/legacyConsoleRequestHandlers.js`; `services/toolRouter.js`; `tests/unit/legacy-console-governed-routing.test.ts` |
 | External worker processor path | `GOVERNED` | Typed and legacy processors require matching durable admission and router-issued runtime authority before invocation. | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` |
 | Digest scheduler autonomous path | `GOVERNED` | Node startup is isolated from read requests, and each workspace enqueue passes through system-identity control/review before governed worker execution. | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js`; `services/jobQueue.js` |
 | Watcher autonomous path | `GOVERNED` | Matched rules submit a system-authored structured plan through control/review/engine/router; the router accepts schedule creation only from the watcher system identity. | `services/watcher.js`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
@@ -157,8 +157,8 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
    Direct report mutation still bypasses control, review, engine, and router layers.
 4. Research briefs CRUD path
    Common research mutations still execute through a direct service path.
-5. Legacy console compatibility path
-   Reviewed requests can still exit through direct legacy handlers instead of engine/router execution.
+5. Agent task queue initiation path
+   Task creation and immediate queue admission remain outside the full governed runtime even though processor execution is reviewed.
 
 ### Top 5 Highest-Frequency Risky Paths
 
@@ -177,8 +177,8 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 
 1. Source refresh path
    Single queued mutation type with clear contract.
-2. Legacy console compatibility path
-   Similar request vocabulary to the console path, but still exits through legacy direct handlers.
+2. Agent task queue initiation path
+   Typed input and an existing governed worker boundary make route admission a bounded next step.
 3. Scheduled summary generation path
    Typed input and a narrow service boundary make reviewed dispatch practical.
 4. Research reports CRUD path
@@ -195,6 +195,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 - Console and control-center read endpoints no longer start the scheduler or queue digest work; Node instrumentation owns startup and the SSE loop is read-only.
 - Watcher rule previews remain read-only, while matched-rule schedule starts now traverse a single-flight system-authored control/review/engine/router path and fail closed on authority mismatch.
 - Recurring agent schedule ticks now traverse a single-flight scheduler system plan and fail closed before agent activation when control or router authority rejects execution.
+- Legacy console compatibility requests now retain their original risk class while traversing structured control/review, the execution engine, and a source-authorized router adapter before existing formatting or approval handlers run.
 
 ## STEP 7 — MIGRATION PRIORITIES
 
@@ -214,6 +215,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | Digest scheduler autonomous path | `GOVERNED` | complete | Startup is isolated to Node instrumentation and system-authored enqueue plans traverse control/review/engine/router. | Complete | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js` |
 | Watcher autonomous path | `GOVERNED` | complete | Matched rules use system-authored structured plans, watcher-only router authority, and single-flight execution; previews remain read-only. | Complete | `services/watcher.js`; `services/toolRouter.js`; `tests/unit/governed-watcher-routing.test.ts` |
 | Scheduler autonomous path | `GOVERNED` | complete | Recurring ticks use system-authored structured plans, scheduler-only router authority, and existing per-agent single-flight execution. | Complete | `services/scheduler.js`; `services/toolRouter.js`; `tests/unit/governed-scheduler-routing.test.ts` |
+| Legacy console compatibility path | `GOVERNED` | complete | Risk-preserving wrapper plans require control/review, engine execution, and source-authorized router dispatch while preserving legacy responses and approvals. | Complete | `services/legacyConsoleHandler.js`; `services/toolRouter.js`; `tests/unit/legacy-console-governed-routing.test.ts` |
 | Console overview read path | `EXCEPTION` | exception | Primarily read-only; can remain outside main action runtime if side effects are separated. | Low | `app/api/console/route.ts:12-24` |
 | Health / readiness path | `EXCEPTION` | exception | Operational probes should stay outside action runtime. | Low | `app/api/health/route.ts:1-48`; `app/api/ready/route.ts:1-46` |
 | Auth/session path | `EXCEPTION` | exception | Auth bootstrap belongs outside governed action runtime. | Low | `app/api/auth/login/route.ts:1-31`; `app/api/auth/signup/route.ts:1-51` |
@@ -222,13 +224,11 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 
 The runtime is healthiest where it has an explicit gateway: the console, operations, research, dashboard, admin, and jobs API action paths. These interactive paths now have confirmed control-to-engine-to-router execution.
 
-The runtime is most fragmented in three places:
+The runtime is most fragmented in two places:
 
 1. Remaining typed CRUD and generation APIs that bypass the governed runtime.
 2. Queue initiators that can admit governed worker execution without first traversing the full interactive control path.
-3. The legacy console compatibility lane, whose reviewed requests can still exit through direct handlers rather than the modern engine/router stack.
-
-The console, operations, research, dashboard, admin, jobs API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. The strongest next runtime migration candidates are the legacy console compatibility lane, direct research CRUD, and scheduled-generation paths.
+The console, legacy console compatibility adapter, operations, research, dashboard, admin, jobs API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. The strongest next runtime migration candidates are direct research CRUD, scheduled-generation paths, and the remaining typed queue initiators.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 

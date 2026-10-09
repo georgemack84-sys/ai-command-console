@@ -49,10 +49,13 @@ test("console handler returns help output and records an audit event", async () 
     assert.equal(result.ok, true);
     assert.match(result.output, /Available Commands/);
     assert.ok(Array.isArray(result.overview.activity));
+    assert.equal(result.control.decision.decision, "auto_execute");
 
-    const events = listAuditEvents(1);
-    assert.equal(events[0].type, "command");
-    assert.match(events[0].message, /Executed console command/);
+    const events = listAuditEvents(10);
+    const commandEvent = events.find((event) => event.type === "command");
+    assert.ok(commandEvent);
+    assert.match(commandEvent.message, /Executed console command/);
+    assert.ok(events.some((event) => event.type === "execution_orchestration"));
   } finally {
     restoreFiles(snapshot);
   }
@@ -76,8 +79,9 @@ test("workflow:create-task creates queue work through the same handler used by t
     assert.match(result.output, /Map the release workflow/);
     assert.ok(loadQueue().tasks.some((item) => item.description === "Map the release workflow"));
 
-    const events = listAuditEvents(1);
-    assert.equal(events[0].type, "workflow:create-task");
+    const events = listAuditEvents(10);
+    assert.ok(events.some((event) => event.type === "workflow:create-task"));
+    assert.ok(events.some((event) => event.type === "execution_orchestration"));
   } finally {
     restoreFiles(snapshot);
   }

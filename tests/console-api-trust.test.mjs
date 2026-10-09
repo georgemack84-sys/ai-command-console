@@ -4103,4 +4103,3 @@ test("high-confidence approval recommendations can auto-promote when the environ
     restoreFiles(snapshot);
   }
 });
-

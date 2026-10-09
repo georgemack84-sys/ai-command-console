@@ -441,6 +441,16 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
   if (Number(normalizedLoadedPolicy.version || 1) < 25) {
     normalizedLoadedPolicy.actionPrefixCategoryMap = {
       ...(normalizedLoadedPolicy.actionPrefixCategoryMap || {}),
+      "legacy-console:shell_read:": "shell_read",
+      "legacy-console:file_read:": "file_read",
+      "legacy-console:process_control:": "process_control",
+      "legacy-console:agent_control:": "agent_control",
+      "legacy-console:workflow_control:": "workflow_control",
+      "legacy-console:network_mutation:": "network_mutation",
+      "legacy-console:plugin_action:": "plugin_action",
+      "legacy-console:shell_mutation:": "shell_mutation",
+      "legacy-console:file_write:": "file_write",
+      "legacy-console:credential_access:": "credential_access",
       "research:": "workflow_control",
     };
     normalizedLoadedPolicy.version = 25;
@@ -465,6 +475,62 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
       "jobs:": "process_control",
     };
     normalizedLoadedPolicy.version = 28;
+  }
+  if (Number(normalizedLoadedPolicy.version || 1) < 30) {
+    normalizedLoadedPolicy.actionCategoryMap = {
+      ...(normalizedLoadedPolicy.actionCategoryMap || {}),
+      agent_pause: "agent_control",
+      agent_resume: "agent_control",
+      agent_restart: "agent_control",
+      "automation-template:preflight": "shell_read",
+      "automation-template:save": "workflow_control",
+      "automation-template:delete": "workflow_control",
+      "automation-template:run": "workflow_control",
+      "collaboration:assign-session": "workflow_control",
+      "collaboration:archive-session": "workflow_control",
+      "collaboration:save-shared-macro": "process_control",
+      "collaboration:archive-shared-macro": "workflow_control",
+      "collaboration:add-handoff-note": "process_control",
+      "collaboration:delegate-handoff": "workflow_control",
+      "collaboration:close-handoff": "workflow_control",
+      "ownership:claim-item": "process_control",
+      "ownership:release-item": "workflow_control",
+      "ownership:assign-item": "workflow_control",
+      "legacy-console:shell_read": "shell_read",
+      "legacy-console:file_read": "file_read",
+      "legacy-console:process_control": "process_control",
+      "legacy-console:agent_control": "agent_control",
+      "legacy-console:workflow_control": "workflow_control",
+      "legacy-console:network_mutation": "network_mutation",
+      "legacy-console:plugin_action": "plugin_action",
+      "legacy-console:shell_mutation": "shell_mutation",
+      "legacy-console:file_write": "file_write",
+      "legacy-console:credential_access": "credential_access",
+    };
+    normalizedLoadedPolicy.actionPrefixCategoryMap = {
+      ...(normalizedLoadedPolicy.actionPrefixCategoryMap || {}),
+      "legacy-console:shell_read:": "shell_read",
+      "legacy-console:file_read:": "file_read",
+      "legacy-console:process_control:": "process_control",
+      "legacy-console:agent_control:": "agent_control",
+      "legacy-console:workflow_control:": "workflow_control",
+      "legacy-console:network_mutation:": "network_mutation",
+      "legacy-console:plugin_action:": "plugin_action",
+      "legacy-console:shell_mutation:": "shell_mutation",
+      "legacy-console:file_write:": "file_write",
+      "legacy-console:credential_access:": "credential_access",
+      "research:": "workflow_control",
+      "dashboard:": "workflow_control",
+      "admin:": "workflow_control",
+      "jobs:": "process_control",
+    };
+    normalizedLoadedPolicy.commandPrefixCategoryMap = {
+      ...(normalizedLoadedPolicy.commandPrefixCategoryMap || {}),
+      "agent:pause ": "agent_control",
+      "agent:resume ": "agent_control",
+      "agent:restart ": "agent_control",
+    };
+    normalizedLoadedPolicy.version = 30;
   }
 
   const defaults = createDefaultPolicy();

@@ -97,7 +97,11 @@ const { buildLegacyRecommendations } = require("./legacyConsoleRecommendations")
 const { buildLegacyOverview } = require("./legacyConsoleOverviewBuilder");
 const { createLegacyConsoleRequestHandlers } = require("./legacyConsoleRequestHandlers");
 const { initializeExecutionOrchestration } = require("./stepController");
-const { reviewRequest: reviewControlRequest } = require("./runtimeControl");
+const {
+  classifyStep,
+  executeControlledStructuredPlan,
+  reviewRequest: reviewControlRequest,
+} = require("./runtimeControl");
 const {
   generateWorkspaceIncidentSummary,
   defaultIncidentChecklist,
@@ -654,7 +658,7 @@ const governanceCompatActions = new Set([
   "collaboration:extend-approval-recommendation-cooldown",
 ]);
 
-const { executeCommand, executeAction, handleConsoleRequest } = createLegacyConsoleRequestHandlers({
+const legacyConsoleRequestHandlers = createLegacyConsoleRequestHandlers({
   ensureJobProcessorsRegistered,
   executeLegacyConsoleCommand,
   getResearchWorkspace,
@@ -935,9 +939,146 @@ const { executeCommand, executeAction, handleConsoleRequest } = createLegacyCons
   }),
 });
 
+function buildGovernedLegacyConsolePlan(body = {}, options = {}) {
+  const actor = getActor(options);
+  const action = body && body.action ? String(body.action) : "";
+  const command = action ? "" : String(body?.command || "");
+  const classification = classifyStep(action ? { action } : { command: command || "help" });
+  const operation = action || command.trim().split(/\s+/, 1)[0] || "help";
+  const sideEffectClass = classification.actionClass === "read"
+    ? "pure_read"
+    : classification.actionClass === "network"
+      ? "network_call"
+      : classification.actionClass === "execute"
+        ? "external_write"
+        : "local_write";
+
+  return {
+    type: "single",
+    action: `legacy-console:${classification.category}:${operation}`,
+    actionClass: classification.actionClass,
+    sideEffectClass,
+    // The wrapper itself is an acknowledged transport adapter. The nested
+    // compatibility review remains authoritative for the requested operation.
+    reviewAcknowledged: true,
+    payload: {
+      body: body && typeof body === "object" ? body : {},
+      options: options && typeof options === "object" ? options : {},
+    },
+    originalRequest: action || command || "help",
+    source: "legacy_console_compat",
+    meta: {
+      userId: actor.id,
+      workspaceId: actor.workspaceId,
+      userName: actor.name,
+      userEmail: actor.name,
+      userRole: actor.role,
+    },
+  };
+}
+
+async function executeLegacyConsoleRequestFromRouter(plan = {}) {
+  if (String(plan.source || "") !== "legacy_console_compat") {
+    return { ok: false, error: "Legacy console dispatch requires compatibility-lane authority." };
+  }
+
+  const payload = plan.payload && typeof plan.payload === "object" ? plan.payload : {};
+  const body = payload.body && typeof payload.body === "object" ? payload.body : {};
+  const suppliedOptions = payload.options && typeof payload.options === "object" ? payload.options : {};
+  const meta = plan.meta && typeof plan.meta === "object" ? plan.meta : {};
+  const options = {
+    ...suppliedOptions,
+    userId: String(meta.userId || ""),
+    workspaceId: String(meta.workspaceId || ""),
+    userName: String(meta.userName || ""),
+    userRole: String(meta.userRole || ""),
+  };
+
+  return legacyConsoleRequestHandlers.handleConsoleRequest(body, options);
+}
+
+async function handleConsoleRequest(body, options = {}) {
+  const actor = getActor(options);
+  const requestedAction = body && body.action ? String(body.action) : "";
+  if (requestedAction) {
+    const governance = loadCollaborationState().governance;
+    if (
+      !canUseConsoleAction(actor.role, requestedAction) ||
+      (requestedAction.startsWith("approval:") && !canApproveInEnvironment(actor.role, governance)) ||
+      (governanceCompatActions.has(requestedAction) && !canManageGovernanceInEnvironment(actor.role, governance))
+    ) {
+      const control = await reviewControlRequest(body, actor, {
+        identitySource: "human",
+        planQuality: "structured_native",
+        workspaceId: actor.workspaceId,
+        modes: {
+          safe: Boolean(options.safe),
+          dryRun: Boolean(options.dryRun),
+          confirmed: Boolean(options.confirmed || options.bypassApproval),
+        },
+      });
+      recordTelemetry({
+        type: requestedAction,
+        status: "error",
+        durationMs: 0,
+        actorId: actor.id,
+        meta: { reason: "forbidden", role: actor.role },
+      });
+      return {
+        ok: false,
+        error: `Role "${actor.role}" is not allowed to perform ${requestedAction}.`,
+        control,
+        overview: buildOverview(options),
+      };
+    }
+  }
+  const plan = buildGovernedLegacyConsolePlan(body, options);
+  const governed = await executeControlledStructuredPlan(plan, {
+    actor,
+    identitySource: "human",
+    modes: {
+      safe: Boolean(options.safe),
+      dryRun: Boolean(options.dryRun),
+      // Legacy action requests already run their compatibility approval checks
+      // inside the routed handler. Confirm this outer transport envelope so the
+      // engine can reach that existing decision point without changing it.
+      confirmed: Boolean(body?.action || options.confirmed || options.bypassApproval),
+    },
+  });
+
+  if (governed.result && typeof governed.result === "object") {
+    const response = governed.result.legacyConsoleResponse && typeof governed.result.legacyConsoleResponse === "object"
+      ? governed.result.legacyConsoleResponse
+      : governed.result;
+    if (String(response.error || "").startsWith("Unknown action:")) {
+      throw new Error(response.error);
+    }
+    return {
+      ...response,
+      control: governed.control,
+    };
+  }
+
+  const decision = governed.control?.decision?.decision;
+  if (String(governed.error || "").startsWith("Unknown action:")) {
+    throw new Error(governed.error);
+  }
+  return {
+    ok: decision === "simulate",
+    ...(decision === "simulate"
+      ? { output: governed.control?.decision?.explanation || "Request simulated." }
+      : { error: governed.error || governed.control?.decision?.explanation || "Legacy console request was not authorized." }),
+    control: governed.control,
+    plan: governed.plan,
+    ...(decision === "confirm_required" ? { requiresConfirmation: true } : {}),
+    overview: buildOverview(options),
+  };
+}
+
 module.exports = {
   buildOverview,
   handleConsoleRequest,
+  executeLegacyConsoleRequestFromRouter,
   queueDueDigestSweepIfNeeded,
   formatLegacyConsoleHelp,
 };
