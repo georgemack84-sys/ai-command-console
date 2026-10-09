@@ -78,16 +78,14 @@ Delivered:
 Goals:
 - Support multiple operators safely
 
-Status: In progress
+Status: Complete
 
 Delivered:
 - Shared operator sessions and reusable macros with owner/admin controls, assignment, visibility filtering, governed archival, and audit history
 - Handoff notes and review delegation with participant authorization, creator/assignee visibility, governed reassignment and closure, and audit history
 - Unified brief and report ownership controls with workspace-member validation, safe self-claim/release, governed admin reassignment, assignment inventory, and audit history
 - Two-person approval gates for sensitive terminal actions with workspace-scoped requests, duplicate suppression, independent approver enforcement, governed execution, and audit history
-
-Planned features:
-- Environment separation for dev, staging, and production
+- Explicit development, staging, and production isolation with workspace-bound execution, environment-scoped approvals, stale-approval rejection, and cross-environment mutation guards
 
 ## Phase 6: Platform Backbone
 

@@ -2475,6 +2475,27 @@ describe("console runtime", () => {
     expect(approvalGateMocks.approve).toHaveBeenCalledTimes(1);
   });
 
+  it("blocks a terminal action that targets another operational environment", async () => {
+    vi.mocked(getPolicyGovernanceSnapshot).mockResolvedValue({
+      currentEnvironment: "development",
+      sensitiveActionsRequireApproval: true,
+      environmentPolicies: {},
+      workspacePolicyOverrides: { [actor.workspaceId]: { environment: "staging" } },
+      workspacePolicyPlaybooks: [],
+      workspacePolicyPlaybookRollouts: [],
+      defaultPolicyPlaybookPresets: [],
+      demoScenario: null,
+    } as never);
+
+    await expect(
+      executeTerminalRequest(
+        { action: "watcher:stop", payload: { reason: "maintenance", targetEnvironment: "production" } },
+        actor,
+      ),
+    ).rejects.toMatchObject({ code: "environment_boundary_violation", status: 409 });
+    expect(approvalGateMocks.request).not.toHaveBeenCalled();
+  });
+
   it("requires confirmation before running an automation template", async () => {
     const result = await executeTerminalRequest(
       {
