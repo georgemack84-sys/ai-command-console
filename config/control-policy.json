@@ -221,6 +221,7 @@
   "actionPrefixCategoryMap": {
     "admin:": "workflow_control",
     "dashboard:": "workflow_control",
+    "jobs:": "process_control",
     "research:": "workflow_control",
     "collaboration:automation-": "process_control",
     "brief:": "workflow_control",

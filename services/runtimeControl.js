@@ -459,6 +459,13 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 27;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 28) {
+    normalizedLoadedPolicy.actionPrefixCategoryMap = {
+      ...(normalizedLoadedPolicy.actionPrefixCategoryMap || {}),
+      "jobs:": "process_control",
+    };
+    normalizedLoadedPolicy.version = 28;
+  }
 
   const defaults = createDefaultPolicy();
   return {

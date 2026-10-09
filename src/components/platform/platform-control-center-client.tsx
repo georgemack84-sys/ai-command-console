@@ -12,6 +12,7 @@ import { MetricTile } from "@/src/components/ui/metric-tile";
 import { SignalEntry } from "@/src/components/ui/signal-entry";
 import { SurfacePanel, SurfacePanelHeader } from "@/src/components/ui/surface-panel";
 import { patchAdminAccess } from "@/src/lib/client/admin-access-actions";
+import { postJobAction } from "@/src/lib/client/job-actions";
 import { postOperationsAction } from "@/src/lib/client/operations-actions";
 
 type AdminUser = {
@@ -1151,38 +1152,25 @@ export function PlatformControlCenterClient() {
     }
 
     setOperatorCheckRunning(kind);
-    const response = await fetch("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        kind === "summary"
-          ? {
-              type: "workspace:generate-summary",
-              view: {
-                name: "Platform operator summary check",
-                filter: "all",
-                sort: "recent",
-                freshnessHours: 72,
-              },
-            }
-          : kind === "failure"
-            ? {
-                type: "workspace:failure-drill",
-              }
-            : {
-                type: "workspace:generate-insights",
-              },
-      ),
-    });
-    const result = (await response.json()) as {
-      ok?: boolean;
-      data?: { job?: OperatorCheckJob };
-      error?: { message?: string };
-    };
+    const result = await postJobAction<{ job?: OperatorCheckJob }>(
+      kind === "summary"
+        ? {
+            type: "workspace:generate-summary",
+            view: {
+              name: "Platform operator summary check",
+              filter: "all",
+              sort: "recent",
+              freshnessHours: 72,
+            },
+          }
+        : kind === "failure"
+          ? { type: "workspace:failure-drill" }
+          : { type: "workspace:generate-insights" },
+    );
     setOperatorCheckRunning(null);
 
-    if (!response.ok || !result.data?.job) {
-      setError(result.error?.message || "Unable to queue operator check.");
+    if (!result.ok || !result.data?.job) {
+      setError(result.error || "Unable to queue operator check.");
       return;
     }
 
@@ -1198,15 +1186,9 @@ export function PlatformControlCenterClient() {
   }
 
   async function managePlatformJob(type: "job:cancel" | "job:retry", jobId: string, success: string) {
-    const response = await fetch("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, jobId }),
-    });
-    const result = (await response.json()) as { error?: { message?: string } };
-
-    if (!response.ok) {
-      setError(result.error?.message || "Unable to update job.");
+    const result = await postJobAction({ type, jobId });
+    if (!result.ok) {
+      setError(result.error || "Unable to update job.");
       return;
     }
 
