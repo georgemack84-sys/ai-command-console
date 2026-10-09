@@ -5,6 +5,7 @@ function getResearchWorkspace(options = {}) {
 function getActor(options = {}, deps) {
   return {
     id: String(options.userId || "demo"),
+    workspaceId: String(options.workspaceId || options.userId || "demo"),
     name: String(options.userName || "Demo User"),
     role: deps.normalizeRole(options.userRole, options.userId ? "operator" : "admin"),
   };

@@ -172,6 +172,78 @@ describe("job queue service", () => {
     }
   });
 
+  it("persists modern user identity aliases as the initiating job actor", () => {
+    const { jobQueue, restore } = loadJobQueue(tempRoot);
+
+    try {
+      jobQueue.configureJobQueue({ executionMode: "external" });
+      const queued = jobQueue.enqueueJob("test:identity", {}, {
+        userId: "operator_1",
+        userName: "Operator One",
+      });
+
+      expect(queued).toEqual(expect.objectContaining({
+        actorId: "operator_1",
+        actorName: "Operator One",
+      }));
+      expect(queued.events).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          message: "Job queued.",
+          meta: expect.objectContaining({ actorId: "operator_1", actorName: "Operator One" }),
+        }),
+      ]));
+    } finally {
+      restore();
+    }
+  });
+
+  it("creates durable legacy admission evidence only with explicit actor and workspace provenance", () => {
+    const { jobQueue, restore } = loadJobQueue(tempRoot);
+
+    try {
+      jobQueue.configureJobQueue({ executionMode: "external" });
+      const enqueueAdmitted = jobQueue.createAdmittedJobEnqueuer("terminal_command_service");
+
+      expect(() => enqueueAdmitted("watcher:run", {}, { userId: "operator_1" })).toThrow(
+        /actor and workspace provenance/i,
+      );
+      expect(() => enqueueAdmitted("watcher:run", {}, { workspaceId: "workspace_1" })).toThrow(
+        /actor and workspace provenance/i,
+      );
+      expect(() => enqueueAdmitted(
+        "brief:route",
+        { workspace: "workspace_2" },
+        { userId: "operator_1", workspaceId: "workspace_1" },
+      )).toThrow(/internally consistent/i);
+      expect(() => enqueueAdmitted(
+        "watcher:run",
+        {},
+        { actorId: "operator_2", userId: "operator_1", workspaceId: "workspace_1" },
+      )).toThrow(/internally consistent/i);
+
+      const queued = enqueueAdmitted("watcher:run", {}, {
+        userId: "operator_1",
+        userName: "Operator One",
+        workspaceId: "workspace_1",
+      });
+      expect(queued).toEqual(expect.objectContaining({
+        actorId: "operator_1",
+        actorName: "Operator One",
+        admission: expect.objectContaining({
+          contract: "legacy_background_job_v1",
+          status: "approved",
+          jobType: "watcher:run",
+          workspaceId: "workspace_1",
+          actorId: "operator_1",
+          source: "terminal_command_service",
+        }),
+      }));
+      expect(Number.isFinite(new Date(queued.admission.admittedAt).getTime())).toBe(true);
+    } finally {
+      restore();
+    }
+  });
+
   it("fails closed before a protected processor runs without admission evidence", async () => {
     const { jobQueue, restore } = loadJobQueue(tempRoot);
 

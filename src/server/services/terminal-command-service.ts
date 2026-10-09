@@ -9,7 +9,8 @@ const { buildSystemSummary, buildHealthSummary, buildWorkloadSummary, getAgentDa
 const { listSchedules, getSchedule, runScheduledTick } = require("../../../services/scheduler");
 const { getWatcherStatus } = require("../../../services/watcher");
 const { addReviewItemForTask, listReviewItems } = require("../../../services/reviewQueue");
-const { enqueueJob } = require("../../../services/jobQueue");
+const { createAdmittedJobEnqueuer } = require("../../../services/jobQueue");
+const enqueueJob = createAdmittedJobEnqueuer("terminal_command_service");
 const { listAlerts, listActiveAlerts } = require("../../../services/alerts");
 const { getDigestSchedulerStatus } = require("../../../services/digestScheduler");
 const { listPlugins } = require("../../../services/pluginLoader");

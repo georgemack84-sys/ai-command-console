@@ -18,7 +18,17 @@ const { loadAgentState } = require("./agentMemory");
 const { readAgentProfile, updateAgentProfile } = require("./agentProfiles");
 const { loadAutomationPolicy, updateAutomationPolicy } = require("./automationPolicy");
 const { buildTelemetrySummary, recordTelemetry } = require("./telemetry");
-const { registerJobProcessor, enqueueJob, listJobs, buildJobMetrics, cancelJob, retryJob, getJob } = require("./jobQueue");
+const {
+  registerJobProcessor,
+  createAdmittedJobEnqueuer,
+  LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT,
+  listJobs,
+  buildJobMetrics,
+  cancelJob,
+  retryJob,
+  getJob,
+} = require("./jobQueue");
+const enqueueJob = createAdmittedJobEnqueuer("legacy_console");
 const {
   normalizeRole,
   canUseConsoleAction,
@@ -472,13 +482,20 @@ function ensureJobProcessorsRegistered() {
 
   initializeExecutionOrchestration({ bootstrap: "in_process_console" });
 
-  registerJobProcessor("watcher:run", async () => evaluateRules());
-  registerJobProcessor("alerts:run", async () => runAlertChecks());
+  const governedLegacyProcessor = {
+    requiresAdmission: true,
+    requiresReviewedExecution: true,
+    admissionContract: LEGACY_BACKGROUND_JOB_ADMISSION_CONTRACT,
+  };
+
+  registerJobProcessor("watcher:run", async () => evaluateRules(), governedLegacyProcessor);
+  registerJobProcessor("alerts:run", async () => runAlertChecks(), governedLegacyProcessor);
   registerJobProcessor("plugin:run", async (job) =>
     runPlugin(String(job.payload?.name || ""), {
       input: `run plugin ${String(job.payload?.name || "")}`.trim(),
       pluginArg: String(job.payload?.pluginArg || ""),
-    })
+    }),
+    governedLegacyProcessor,
   );
   registerJobProcessor("brief:route", async (job) => {
     const result = queueBriefToTaskFor(String(job.payload?.workspace || "demo"), String(job.payload?.briefId || ""));
@@ -486,9 +503,11 @@ function ensureJobProcessorsRegistered() {
       throw new Error(result.error);
     }
     return result;
-  });
-  registerJobProcessor("report:create", async (job) =>
-    createReportDraft(String(job.payload?.workspace || "demo"), job.payload || {})
+  }, governedLegacyProcessor);
+  registerJobProcessor(
+    "report:create",
+    async (job) => createReportDraft(String(job.payload?.workspace || "demo"), job.payload || {}),
+    governedLegacyProcessor,
   );
   registerJobProcessor("report:publish", async (job) => {
     const result = publishReportRecordFor(String(job.payload?.workspace || "demo"), String(job.payload?.reportId || ""));
@@ -496,7 +515,7 @@ function ensureJobProcessorsRegistered() {
       throw new Error(result.error);
     }
     return result;
-  });
+  }, governedLegacyProcessor);
   registerJobProcessor("digest:run-due", async (job) => {
     const workspace = String(job.payload?.workspace || "demo");
     try {
@@ -508,7 +527,7 @@ function ensureJobProcessorsRegistered() {
       });
       throw error;
     }
-  });
+  }, governedLegacyProcessor);
   ensureJobProcessorsRegistered.ready = true;
 }
 
