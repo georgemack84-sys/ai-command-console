@@ -132,9 +132,11 @@ Delivered in current slice:
 - Routed research action API mutations through the shared governed route adapter
 - Assigned collision-free internal `research:*` action IDs before engine/router dispatch
 - Preserved explicit client confirmation for research mutations and kept typed service authorization in the execution path
+- Routed dashboard action API mutations through the governed runtime with collision-free `dashboard:*` action IDs
+- Added secure workspace-membership admission and explicit client confirmation for dashboard mutations
 
 Next:
-- Govern dashboard and admin mutation APIs
+- Govern admin mutation APIs
 - Govern job queue mutation APIs and autonomous scheduler initiators
 - Refresh the runtime-path audit as each bypass is retired
 
