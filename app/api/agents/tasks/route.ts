@@ -2,15 +2,16 @@ import { z } from "zod";
 import { getSessionUser } from "@/src/lib/auth";
 import { apiError, apiSuccess } from "@/src/server/api/response";
 import { AppError } from "@/src/server/api/errors";
-import { createAgentTask, listAgentTasks } from "@/src/server/agents/agent-service";
-import { queueBackgroundJob } from "@/src/server/jobs/background-jobs";
+import { listAgentTasks } from "@/src/server/agents/agent-service";
 import { isFeatureEnabled } from "@/src/server/feature-flags/feature-flag-service";
 import { requireWorkspaceMember } from "@/src/server/auth/permissions";
+import { executeGovernedAgentTaskAction } from "@/src/server/services/governed-agent-task-action-service";
 
 const createSchema = z.object({
   type: z.string().min(1),
   input: z.record(z.string(), z.unknown()).optional(),
   runNow: z.boolean().optional(),
+  confirmed: z.boolean().optional(),
 });
 
 export async function GET(request: Request) {
@@ -44,23 +45,12 @@ export async function POST(request: Request) {
     }
 
     const body = createSchema.parse(await request.json());
-    const task = await createAgentTask({
-      workspaceId: user.workspaceId,
-      type: body.type,
-      requestedById: user.id,
-      input: body.input ?? null,
-    });
-
-    let job = null;
-    if (body.runNow) {
-      job = queueBackgroundJob(
-        "agent:execute",
-        { taskId: task.id, workspaceId: user.workspaceId },
-        { actorId: user.id, actorName: user.name },
-      );
+    const result = await executeGovernedAgentTaskAction(body, user);
+    if (result.requiresConfirmation || result.simulated) {
+      return apiSuccess(result);
     }
-
-    return apiSuccess({ task, job }, { status: 201 });
+    const actionResult = result as unknown as { data: unknown; status?: number };
+    return apiSuccess(actionResult.data, actionResult.status ? { status: actionResult.status } : undefined);
   } catch (error) {
     return apiError(error, "Unable to create agent task.");
   }

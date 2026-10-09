@@ -85,7 +85,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Jobs queue management path | `POST /api/jobs` | route auth/workspace/rate checks -> internal `jobs:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeJobAction()` -> target-workspace authorization -> queue mutation | yes | structured plan | yes | yes | yes | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts`; `services/toolRouter.js` | Governs API admission and queue mutation; asynchronous worker processor execution is tracked separately. |
 | Insights direct path | `POST /api/insights` with `async=false` | route -> `generateWorkspaceInsights()` -> Prisma reads/writes -> optional alert creation | no | no | no | no | no | `app/api/insights/route.ts:54-63`; `src/server/services/insight-service.ts:5-70` | Direct execution path. |
 | Insights queued path | `POST /api/insights` with `async=true` | route -> typed queue admission -> worker contract validation -> `jobs:execute-processor` control/review -> engine -> router -> registered processor -> `generateWorkspaceInsights()` | worker only | structured worker plan | worker only | worker only | worker only | `app/api/insights/route.ts:39-51`; `src/server/jobs/background-jobs.ts`; `services/jobQueue.js`; `services/toolRouter.js` | Processor execution is governed; the initiating route still bypasses control/review. |
-| Agent task queued execution path | `POST /api/agents/tasks` with `runNow=true` | route -> typed queue admission -> worker contract validation -> reviewed engine/router dispatch -> registered processor -> `startAgentExecution()` / `completeAgentExecution()` | worker only | structured worker plan | worker only | worker only | worker only | `app/api/agents/tasks/route.ts:33-63`; `src/server/jobs/background-jobs.ts`; `services/jobQueue.js`; `services/toolRouter.js` | Processor execution is governed; initial task creation and queueing remain outside the full runtime. |
+| Agent task creation and queued execution path | `POST /api/agents/tasks` | route auth/workspace/feature check -> internal `agent-tasks:create` action -> control/review -> engine -> router -> typed task creation and optional admitted `agent:execute` enqueue -> reviewed worker invocation | yes | structured API and worker plans | yes | yes | yes | `app/api/agents/tasks/route.ts`; `src/server/services/governed-agent-task-action-service.ts`; `src/server/services/agent-task-action-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` | Both initial task mutation and optional processor execution now have explicit governed boundaries and workspace authorization. |
 | Source refresh path | `POST /api/sources/refresh` | route -> typed queue admission -> worker contract validation -> reviewed engine/router dispatch -> registered processor -> `refreshSourceByConnector()` | worker only | structured worker plan | worker only | worker only | worker only | `app/api/sources/refresh/route.ts:13-31`; `src/server/services/source-service.ts`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` | The connector mutation executes after worker runtime review, but the initiating route still bypasses governance. |
 | Research briefs CRUD path | `/api/research/briefs` | route -> `createBrief()` / `updateBrief()` / `deleteBrief()` direct Prisma; optional `PATCH routeToQueue` -> `executeResearchAction("brief:route")` | no | no | no | no | no | `app/api/research/briefs/route.ts:56-133`; `src/server/services/research-service.ts:72-143`; `src/server/services/research-action-service.ts:74-104` | Mostly direct mutations; one subpath delegates to research action service. |
 | Research reports CRUD path | `/api/research/reports` | route -> `createReport()` / `updateReport()` / `deleteReport()` direct Prisma transaction path | no | no | no | no | no | `app/api/research/reports/route.ts:51-113`; `src/server/services/research-service.ts:145-224` | Direct mutation path. |
@@ -116,7 +116,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Jobs queue management path | `GOVERNED` | Queue creation, cancellation, and retry use structured review, explicit confirmation, engine/router admission, and target-workspace authorization before mutation. | `app/api/jobs/route.ts`; `src/server/services/governed-job-action-service.ts`; `src/server/services/job-action-service.ts`; `services/toolRouter.js` |
 | Insights direct path | `BYPASS` | Direct generation and optional alert creation with no governed runtime. | `app/api/insights/route.ts:54-63`; `src/server/services/insight-service.ts:5-70` |
 | Insights queued path | `PARTIAL_GOVERNED` | Typed processor execution traverses control/review/engine/router, but the initiating route remains a bypass. | `app/api/insights/route.ts:39-51`; `src/server/jobs/background-jobs.ts`; `services/jobQueue.js`; `services/toolRouter.js` |
-| Agent task queued execution path | `PARTIAL_GOVERNED` | Typed processor execution is governed, while task creation and queue initiation remain outside the full runtime. | `app/api/agents/tasks/route.ts:54-63`; `src/server/jobs/background-jobs.ts`; `services/jobQueue.js` |
+| Agent task creation and queued execution path | `GOVERNED` | Task creation and optional queue admission traverse structured control/review and engine/router dispatch before the already-governed typed worker executes. | `app/api/agents/tasks/route.ts`; `src/server/services/governed-agent-task-action-service.ts`; `src/server/services/agent-task-action-service.ts`; `services/toolRouter.js`; `src/server/jobs/background-jobs.ts` |
 | Source refresh path | `PARTIAL_GOVERNED` | Connector processing traverses reviewed worker execution, while the initiating route still bypasses control/review. | `app/api/sources/refresh/route.ts:13-31`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` |
 | Research briefs CRUD path | `BYPASS` | Direct Prisma-backed CRUD path; one sub-branch routes to the research action service, which is also bypass. | `app/api/research/briefs/route.ts:56-133`; `src/server/services/research-service.ts:72-143` |
 | Research reports CRUD path | `BYPASS` | Direct Prisma-backed CRUD path with no governed runtime layers. | `app/api/research/reports/route.ts:51-113`; `src/server/services/research-service.ts:145-224` |
@@ -157,8 +157,8 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
    Direct report mutation still bypasses control, review, engine, and router layers.
 4. Research briefs CRUD path
    Common research mutations still execute through a direct service path.
-5. Agent task queue initiation path
-   Task creation and immediate queue admission remain outside the full governed runtime even though processor execution is reviewed.
+5. Insights direct path
+   Synchronous insight generation and optional alert mutation still bypass the governed runtime.
 
 ### Top 5 Highest-Frequency Risky Paths
 
@@ -177,14 +177,14 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 
 1. Source refresh path
    Single queued mutation type with clear contract.
-2. Agent task queue initiation path
-   Typed input and an existing governed worker boundary make route admission a bounded next step.
-3. Scheduled summary generation path
+2. Scheduled summary generation path
    Typed input and a narrow service boundary make reviewed dispatch practical.
-4. Research reports CRUD path
+3. Research reports CRUD path
    Direct typed mutations have a clear route-to-service boundary.
-5. Research briefs CRUD path
+4. Research briefs CRUD path
    Direct typed mutations have a clear route-to-service boundary.
+5. Insights queued path
+   Typed input and an existing governed worker boundary make route admission a bounded next step.
 
 ### Most Inconsistent Runtime Behaviors
 
@@ -196,6 +196,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 - Watcher rule previews remain read-only, while matched-rule schedule starts now traverse a single-flight system-authored control/review/engine/router path and fail closed on authority mismatch.
 - Recurring agent schedule ticks now traverse a single-flight scheduler system plan and fail closed before agent activation when control or router authority rejects execution.
 - Legacy console compatibility requests now retain their original risk class while traversing structured control/review, the execution engine, and a source-authorized router adapter before existing formatting or approval handlers run.
+- Agent task creation and optional immediate execution now traverse a collision-free structured plan before typed workspace-scoped mutation and admitted worker processing.
 
 ## STEP 7 — MIGRATION PRIORITIES
 
@@ -216,19 +217,20 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Watcher autonomous path | `GOVERNED` | complete | Matched rules use system-authored structured plans, watcher-only router authority, and single-flight execution; previews remain read-only. | Complete | `services/watcher.js`; `services/toolRouter.js`; `tests/unit/governed-watcher-routing.test.ts` |
 | Scheduler autonomous path | `GOVERNED` | complete | Recurring ticks use system-authored structured plans, scheduler-only router authority, and existing per-agent single-flight execution. | Complete | `services/scheduler.js`; `services/toolRouter.js`; `tests/unit/governed-scheduler-routing.test.ts` |
 | Legacy console compatibility path | `GOVERNED` | complete | Risk-preserving wrapper plans require control/review, engine execution, and source-authorized router dispatch while preserving legacy responses and approvals. | Complete | `services/legacyConsoleHandler.js`; `services/toolRouter.js`; `tests/unit/legacy-console-governed-routing.test.ts` |
+| Agent task creation and queued execution path | `GOVERNED` | complete | Authenticated task creation and optional enqueue use collision-free review/engine/router admission, typed workspace authorization, and governed worker execution. | Complete | `app/api/agents/tasks/route.ts`; `src/server/services/governed-agent-task-action-service.ts`; `src/server/services/agent-task-action-service.ts`; `services/toolRouter.js`; `tests/unit/governed-agent-task-routing.test.ts` |
 | Console overview read path | `EXCEPTION` | exception | Primarily read-only; can remain outside main action runtime if side effects are separated. | Low | `app/api/console/route.ts:12-24` |
 | Health / readiness path | `EXCEPTION` | exception | Operational probes should stay outside action runtime. | Low | `app/api/health/route.ts:1-48`; `app/api/ready/route.ts:1-46` |
 | Auth/session path | `EXCEPTION` | exception | Auth bootstrap belongs outside governed action runtime. | Low | `app/api/auth/login/route.ts:1-31`; `app/api/auth/signup/route.ts:1-51` |
 
 ## STEP 8 — SUMMARY
 
-The runtime is healthiest where it has an explicit gateway: the console, operations, research, dashboard, admin, and jobs API action paths. These interactive paths now have confirmed control-to-engine-to-router execution.
+The runtime is healthiest where it has an explicit gateway: the console, operations, research, dashboard, admin, jobs, and agent-task API action paths. These interactive paths now have confirmed control-to-engine-to-router execution.
 
 The runtime is most fragmented in two places:
 
 1. Remaining typed CRUD and generation APIs that bypass the governed runtime.
-2. Queue initiators that can admit governed worker execution without first traversing the full interactive control path.
-The console, legacy console compatibility adapter, operations, research, dashboard, admin, jobs API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. The strongest next runtime migration candidates are direct research CRUD, scheduled-generation paths, and the remaining typed queue initiators.
+2. Remaining queue initiators that can admit governed worker execution without first traversing the full interactive control path.
+The console, legacy console compatibility adapter, operations, research, dashboard, admin, jobs API, agent-task API, watcher initiation, scheduled agent ticks, and typed and legacy worker execution paths are now unified. The strongest next runtime migration candidates are source refresh, direct research CRUD, scheduled-generation paths, and the remaining typed queue initiators.
 
 Paths that can remain exception-only are operational health/readiness probes and auth/session bootstrap endpoints. They are explicit, low-risk, and operationally necessary outside the action runtime.
 
