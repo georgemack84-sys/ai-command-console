@@ -603,6 +603,7 @@ export async function buildControlCenterOverview(user: SessionUser) {
         errors: jobs.failed,
         avgCommandLatencyMs: 0,
         avgWatcherLatencyMs: 0,
+        avgApprovalLatencyMs: 0,
         avgSchedulerLatencyMs: jobs.metrics.avgRunTimeMs,
       },
       byType: Array.from(activityTypeCounts.entries()).map(([type, count]) => ({ type, count })),

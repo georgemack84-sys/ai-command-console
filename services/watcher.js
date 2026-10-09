@@ -258,6 +258,8 @@ function evaluateRules() {
   saveWatcherState(state);
   recordTelemetry({
     type: "watcher:evaluate",
+    category: "watcher",
+    operation: "evaluate",
     status: "ok",
     durationMs: Date.now() - startedAt,
     meta: {
@@ -302,6 +304,8 @@ function attachWatcherInterval() {
       saveWatcherState(current);
       recordTelemetry({
         type: "watcher:evaluate",
+        category: "watcher",
+        operation: "evaluate",
         status: "error",
         durationMs: 0,
         meta: {
@@ -349,6 +353,8 @@ function startWatcher(intervalSeconds = 5) {
   });
   recordTelemetry({
     type: "watcher:start",
+    category: "watcher",
+    operation: "start",
     status: "ok",
     durationMs: Date.now() - startedAt,
     meta: {
@@ -381,6 +387,8 @@ function stopWatcher(reason = "stopped_by_user") {
   });
   recordTelemetry({
     type: "watcher:stop",
+    category: "watcher",
+    operation: "stop",
     status: "ok",
     durationMs: Date.now() - startedAt,
     meta: {

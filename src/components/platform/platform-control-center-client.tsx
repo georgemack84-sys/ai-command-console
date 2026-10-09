@@ -253,6 +253,7 @@ type PlatformPayload = {
         errors: number;
         avgCommandLatencyMs: number;
         avgWatcherLatencyMs: number;
+        avgApprovalLatencyMs: number;
         avgSchedulerLatencyMs: number;
       };
       byType: Array<{

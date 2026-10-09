@@ -106,9 +106,12 @@ Delivered in current slice:
 - Preserved legacy JSON write-through compatibility during the transition
 - Qualified legacy import, SQLite restart durability, database precedence, and production mirror behavior across operational stores
 - Enforced role-based permissions and two-person approval gates for sensitive actions
+- Added structured command, watcher, scheduler, and approval telemetry with stable dimensions and latency summaries
+- Kept terminal arguments and approval payloads out of operational telemetry
 
 Next:
-- Add structured telemetry around command, watcher, and approval latency
+- Qualify background job retry and recovery behavior under restart and partial-failure scenarios
+- Define and test plugin isolation boundaries before expanding the extension surface
 
 ## Suggested Execution Order
 

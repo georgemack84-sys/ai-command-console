@@ -10,6 +10,7 @@ const collaborationPath = require.resolve("../../services/collaboration.js");
 const stateDatabasePath = require.resolve("../../services/stateDatabase.js");
 const runtimePathsPath = require.resolve("../../services/runtimePaths.js");
 const auditTrailPath = require.resolve("../../services/auditTrail.js");
+const telemetryPath = require.resolve("../../services/telemetry.js");
 
 const requester = { id: "operator_1", workspaceId: "workspace_1", name: "Operator", email: "operator@example.com", role: "operator" as const };
 const approver = { id: "approver_1", workspaceId: "workspace_1", name: "Approver", email: "approver@example.com", role: "approver" as const };
@@ -28,14 +29,14 @@ describe("terminal sensitive approval gates", () => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-command-console-approval-gates-"));
     process.env = { ...originalEnv, AI_COMMAND_CONSOLE_DATA_ROOT: tempRoot };
     vi.resetModules();
-    [collaborationPath, stateDatabasePath, runtimePathsPath, auditTrailPath].forEach((modulePath) => delete require.cache[modulePath]);
+    [collaborationPath, stateDatabasePath, runtimePathsPath, auditTrailPath, telemetryPath].forEach((modulePath) => delete require.cache[modulePath]);
     service = await import("@/src/server/services/terminal-approval-gate-service");
     stateDatabase = require("../../services/stateDatabase.js");
   });
 
   afterEach(() => {
     stateDatabase.closeDatabase();
-    [collaborationPath, stateDatabasePath, runtimePathsPath, auditTrailPath].forEach((modulePath) => delete require.cache[modulePath]);
+    [collaborationPath, stateDatabasePath, runtimePathsPath, auditTrailPath, telemetryPath].forEach((modulePath) => delete require.cache[modulePath]);
     process.env = { ...originalEnv };
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
@@ -134,6 +135,46 @@ describe("terminal sensitive approval gates", () => {
     expect(rejected).toEqual(
       expect.objectContaining({ status: "rejected", rejectedById: approver.id, rejectionNote: "Keep the template for the audit window." }),
     );
+  });
+
+  it("records request-to-decision latency with workspace and environment dimensions", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-09T01:00:00.000Z"));
+    try {
+      const { request } = service.requestSensitiveActionApproval({
+        action: "watcher:stop",
+        payload: { reason: "maintenance" },
+        actor: requester,
+        environment: "production",
+      });
+      vi.advanceTimersByTime(1_250);
+      await service.approveSensitiveActionApproval({
+        approvalId: request.id,
+        actor: approver,
+        governance,
+        execute: async () => ({ ok: true }),
+      });
+
+      const telemetry = require("../../services/telemetry.js").buildTelemetrySummary();
+      expect(telemetry.totals.avgApprovalLatencyMs).toBe(1_250);
+      expect(telemetry.recent).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "approval:decision",
+            category: "approval",
+            operation: "watcher:stop",
+            status: "approved",
+            durationMs: 1_250,
+            workspaceId: requester.workspaceId,
+            environment: "production",
+            correlationId: request.id,
+          }),
+        ]),
+      );
+      expect(JSON.stringify(telemetry.recent)).not.toContain("maintenance");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("isolates duplicate requests and decisions by environment", async () => {

@@ -62,14 +62,16 @@ const actor = {
 };
 
 const mockEnqueueJob = vi.fn();
+const mockRecordTelemetry = vi.fn();
 
 describe("terminal command service", () => {
   beforeEach(() => {
     mockEnqueueJob.mockReset();
+    mockRecordTelemetry.mockReset();
     mockEnqueueJob
       .mockReturnValueOnce({ id: "job_alerts_1" })
       .mockReturnValueOnce({ id: "job_plugin_1" });
-    __setTerminalCommandDepsForTest({ enqueueJob: mockEnqueueJob });
+    __setTerminalCommandDepsForTest({ enqueueJob: mockEnqueueJob, recordTelemetry: mockRecordTelemetry });
   });
 
   afterEach(() => {
@@ -92,6 +94,31 @@ describe("terminal command service", () => {
 
     expect(alerts).toContain("Alerts");
     expect(active).toContain("Active Alerts");
+    expect(mockRecordTelemetry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "command",
+        category: "terminal",
+        operation: "alerts:list",
+        status: "ok",
+        actorId: actor.id,
+        workspaceId: actor.workspaceId,
+      }),
+    );
+    expect(JSON.stringify(mockRecordTelemetry.mock.calls)).not.toContain("operator@example.com");
+  });
+
+  it("records failed commands without including command arguments", async () => {
+    await expect(executeTerminalCommand("unsupported secret-value", actor)).rejects.toThrow("Unsupported terminal command");
+
+    expect(mockRecordTelemetry).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "command",
+        operation: "unsupported",
+        status: "error",
+        meta: { errorName: "Error" },
+      }),
+    );
+    expect(JSON.stringify(mockRecordTelemetry.mock.calls.at(-1))).not.toContain("secret-value");
   });
 
   it("renders digest health from the scheduler and active alert state", async () => {

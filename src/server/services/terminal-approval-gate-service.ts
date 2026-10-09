@@ -18,6 +18,7 @@ const {
 } = require("../../../services/collaboration");
 const { appendAuditEvent } = require("../../../services/auditTrail");
 const { canApproveInEnvironment } = require("../../../services/permissions");
+const { recordTelemetry } = require("../../../services/telemetry");
 
 type ApprovalActor = Pick<SessionUser, "id" | "workspaceId" | "name" | "email" | "role">;
 
@@ -100,6 +101,19 @@ function isSensitiveRequest(value: unknown): value is SensitiveApprovalRequest {
   );
 }
 
+function approvalLatencyMs(request: SensitiveApprovalRequest) {
+  const createdAt = new Date(request.createdAt).getTime();
+  return Number.isFinite(createdAt) ? Math.max(0, Date.now() - createdAt) : 0;
+}
+
+function recordApprovalTelemetry(event: Record<string, unknown>) {
+  try {
+    recordTelemetry(event);
+  } catch {
+    // Approval decisions must remain available if observability storage is degraded.
+  }
+}
+
 export function isSensitiveTerminalAction(action: string) {
   return SENSITIVE_ACTION_LABELS.has(String(action || ""));
 }
@@ -143,6 +157,17 @@ export function requestSensitiveActionApproval(input: {
     (request: SensitiveApprovalRequest) => request.status === "pending" && request.requestKey === requestKey,
   );
   if (existing) {
+    recordApprovalTelemetry({
+      type: "approval:request",
+      category: "approval",
+      operation: input.action,
+      status: "deduplicated",
+      durationMs: 0,
+      actorId: input.actor.id,
+      workspaceId: input.actor.workspaceId,
+      environment,
+      correlationId: existing.id,
+    });
     return { request: existing, created: false };
   }
 
@@ -173,6 +198,17 @@ export function requestSensitiveActionApproval(input: {
       environment,
       action: input.action,
     },
+  });
+  recordApprovalTelemetry({
+    type: "approval:request",
+    category: "approval",
+    operation: input.action,
+    status: "pending",
+    durationMs: 0,
+    actorId: input.actor.id,
+    workspaceId: input.actor.workspaceId,
+    environment,
+    correlationId: request.id,
   });
   return { request, created: true };
 }
@@ -221,6 +257,17 @@ export function rejectSensitiveActionApproval(input: {
     summary: note,
     payload: { approvalId: request.id, actorId: input.actor.id, workspaceId: input.actor.workspaceId, action: request.action },
   });
+  recordApprovalTelemetry({
+    type: "approval:decision",
+    category: "approval",
+    operation: request.action,
+    status: "rejected",
+    durationMs: approvalLatencyMs(request),
+    actorId: input.actor.id,
+    workspaceId: input.actor.workspaceId,
+    environment: request.environment,
+    correlationId: request.id,
+  });
   return resolved;
 }
 
@@ -237,6 +284,18 @@ export async function approveSensitiveActionApproval<T extends { ok?: boolean; e
       lastExecutionAttemptAt: new Date().toISOString(),
       lastExecutionError: result.error || "Approved action execution failed.",
     });
+    recordApprovalTelemetry({
+      type: "approval:execution",
+      category: "approval",
+      operation: request.action,
+      status: "error",
+      durationMs: approvalLatencyMs(request),
+      actorId: input.actor.id,
+      workspaceId: input.actor.workspaceId,
+      environment: request.environment,
+      correlationId: request.id,
+      meta: { errorName: "ApprovedActionExecutionError" },
+    });
     throw new AppError(409, "sensitive_approval_execution_failed", result.error || "Approved action execution failed.");
   }
 
@@ -250,6 +309,17 @@ export async function approveSensitiveActionApproval<T extends { ok?: boolean; e
     type: "approval:approve",
     message: `Approved and executed sensitive action request ${request.id}.`,
     payload: { approvalId: request.id, actorId: input.actor.id, workspaceId: input.actor.workspaceId, action: request.action },
+  });
+  recordApprovalTelemetry({
+    type: "approval:decision",
+    category: "approval",
+    operation: request.action,
+    status: "approved",
+    durationMs: approvalLatencyMs(request),
+    actorId: input.actor.id,
+    workspaceId: input.actor.workspaceId,
+    environment: request.environment,
+    correlationId: request.id,
   });
   return { request: resolved, result };
 }

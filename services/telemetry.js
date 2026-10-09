@@ -39,9 +39,14 @@ function recordTelemetry(event) {
     id: `telemetry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     timestamp: new Date().toISOString(),
     type: String(event.type || "unknown"),
+    category: event.category ? String(event.category) : null,
+    operation: event.operation ? String(event.operation) : null,
     status: String(event.status || "ok"),
     durationMs: Number.isFinite(Number(event.durationMs)) ? Math.max(0, Number(event.durationMs)) : 0,
     actorId: event.actorId || null,
+    workspaceId: event.workspaceId || null,
+    environment: event.environment || null,
+    correlationId: event.correlationId || null,
     meta: event.meta && typeof event.meta === "object" ? event.meta : {},
   };
   state.events.push(entry);
@@ -72,6 +77,11 @@ function buildTelemetrySummary(limit = 40) {
       approvals: approvals.length,
       avgCommandLatencyMs: average(commands.map((event) => event.durationMs || 0)),
       avgWatcherLatencyMs: average(watcherRuns.map((event) => event.durationMs || 0)),
+      avgApprovalLatencyMs: average(
+        approvals
+          .filter((event) => event.type === "approval:decision")
+          .map((event) => event.durationMs || 0)
+      ),
       avgSchedulerLatencyMs: average(schedulerRuns.map((event) => event.durationMs || 0)),
     },
     recent: reversed.slice(0, 12),
