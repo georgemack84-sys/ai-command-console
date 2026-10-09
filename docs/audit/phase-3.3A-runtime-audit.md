@@ -64,7 +64,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Research reports CRUD API | `app/api/research/reports/route.ts` | API | `app/api/research/reports/route.ts:41-113` | Direct Prisma-backed mutations. |
 | Scheduled summary run API | `app/api/research/summaries/run-due/route.ts` | API | `app/api/research/summaries/run-due/route.ts:29-89` | Directly generates summaries/reports. |
 | Admin access mutation API | `app/api/admin/access/route.ts` | API | `app/api/admin/access/route.ts`; `src/server/services/governed-admin-access-action-service.ts` | Governed privileged mutations with explicit confirmation and typed-service authorization. |
-| Control center overview API | `app/api/control-center/overview/route.ts` | API | `app/api/control-center/overview/route.ts:10-21` | Read path; also calls `ensureDigestScheduler()`. |
+| Control center overview API | `app/api/control-center/overview/route.ts` | API | `app/api/control-center/overview/route.ts` | Read-only overview path; scheduler startup is isolated in Node instrumentation. |
 | Digest scheduler loop | `services/digestScheduler.js` | Autonomous service initiator | `services/digestScheduler.js:20-45`, `70-84` | Confirmed timer-based background initiator. |
 | Watcher loop | `services/watcher.js` | Autonomous service initiator | `services/watcher.js:147-235`, `238-321` | Confirmed timer-based rule evaluator. |
 | Scheduler loop | `services/scheduler.js` | Autonomous service initiator | `services/scheduler.js:204-347`, `351-409` | Confirmed timer-based schedule runner. |
@@ -76,8 +76,8 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Path Name | Entrypoint | Flow (step-by-step) | Reaches Control | Reaches Planner | Reaches Review | Reaches Router | Reaches Engine | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Console interactive path | `POST /api/console` | `Terminal.tsx` -> `app/api/console/route.ts` -> `executeTerminalRequest()` -> governed candidates use `executeControlledPlan()` / `executeControlledStructuredPlan()` -> reviewed plan -> execution engine -> `toolRouter.route()`; residual fallback branches still handle read-formatting helpers and legacy help | yes | partial | yes | yes | yes | `src/components/Terminal.tsx:931-938`; `app/api/console/route.ts:29-38`; `src/server/services/console-runtime.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | The console path now has a real governed execution lane for most action traffic, but it is not yet the only lane. |
-| Console overview read path | `GET /api/console` | `Terminal.tsx` -> `GET /api/console` -> `ensureDigestScheduler()` -> `getTerminalOverview()` -> typed overview builders | no | no | no | no | no | `src/components/Terminal.tsx:926-929`; `app/api/console/route.ts:12-24`; `src/server/services/console-runtime.ts:165-214`; `services/digestScheduler.js:70-84` | Read path, but scheduler initialization is a side effect. |
-| Console stream path | `GET /api/console/stream` | `Terminal.tsx` EventSource -> `ensureDigestScheduler()` -> loop -> `queueTerminalDigestSweep()` -> `queueLegacyDueDigestSweepIfNeeded()` -> enqueue `digest:run-due` job -> `getTerminalOverview()` for stream payload | no | no | no | no | no | `src/components/Terminal.tsx:1196-1203`; `app/api/console/stream/route.ts:13-76`; `src/server/services/console-runtime.ts:486-490`; `services/legacyConsoleOperationsSupport.js:98-151` | Mixed read/write path. Downstream `digest:run-due` processor registration is only partially verified. |
+| Console overview read path | `GET /api/console` | `Terminal.tsx` -> `GET /api/console` -> `getTerminalOverview()` -> typed overview builders | no | no | no | no | no | `src/components/Terminal.tsx:926-929`; `app/api/console/route.ts`; `src/server/services/console-runtime.ts` | Read-only path; scheduler startup no longer depends on a request. |
+| Console stream path | `GET /api/console/stream` | `Terminal.tsx` EventSource -> periodic `getTerminalOverview()` -> SSE payload | no | no | no | no | no | `src/components/Terminal.tsx:1196-1203`; `app/api/console/stream/route.ts` | Read-only stream; it no longer queues digest work every four seconds. |
 | Operations action path | `POST /api/operations/actions` | route auth/workspace check -> `executeGovernedOperationsAction()` -> control/review -> execution engine -> `toolRouter.route()` -> `executeOperationsAction()` | yes | structured plan | yes | yes | yes | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Higher-risk actions stop at `confirm_required`; the client resubmits only after explicit operator confirmation. |
 | Research action path | `POST /api/research/actions` | route auth/workspace check -> internal `research:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeResearchAction()` | yes | structured plan | yes | yes | yes | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Internal IDs prevent collisions with legacy console handlers; typed service authorization remains downstream. |
 | Dashboard action path | `POST /api/dashboard/actions` | route auth/workspace check -> internal `dashboard:*` action -> control/review -> execution engine -> `toolRouter.route()` -> `executeDashboardAction()` | yes | structured plan | yes | yes | yes | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` | Internal IDs avoid legacy alert/workspace handler collisions; typed service workspace checks remain downstream. |
@@ -92,7 +92,7 @@ Where a link could not be confirmed by reading files, it is marked `partial`, `u
 | Scheduled summary generation path | `POST /api/research/summaries/run-due` | route -> `isScheduleDue()` filter -> `createSummaryReportForView()` or `generateSummaryForView()` | no | no | no | no | no | `app/api/research/summaries/run-due/route.ts:29-89`; `src/server/services/summary-service.ts:39-192` | Direct generation path, not queued and not governed. |
 | Legacy console compatibility path | `services/consoleApi.js` / `legacyConsoleHandler.handleConsoleRequest()` | compatibility export -> `createLegacyConsoleRequestHandlers()` -> `reviewControlRequest()` -> direct legacy command/action handlers and job queue helpers | yes | no | yes | no | no | `services/consoleApi.js:1-5`; `services/legacyConsoleHandler.js:635-713`; `services/legacyConsoleRequestHandlers.js:78-249` | Confirmed governed wrapper, but still dispatches legacy direct handlers after review. External callers inside repo are unverified. |
 | External worker processor path | `npm run worker:jobs` | worker loop -> persisted job -> durable admission validation -> `jobs:execute-processor` structured review -> execution engine -> tool router -> registered typed or legacy processor | worker only | structured worker plan | worker only | worker only | worker only | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` | Every registered processor requires matching durable evidence and router-issued runtime authority. |
-| Digest scheduler autonomous path | `ensureDigestScheduler()` timer | API GET/stream or control-center overview -> `ensureDigestScheduler()` -> timer -> `runDigestSchedulerSweep()` -> admitted `digest:run-due` enqueue -> reviewed worker invocation | worker only | structured worker plan | worker only | worker only | worker only | `services/digestScheduler.js:20-45`, `70-84`; `services/legacyConsoleOperationsSupport.js:98-151`; `services/legacyConsoleHandler.js`; `services/jobQueue.js` | Processor execution is governed, but the autonomous timer still initiates queue mutation without an interactive control/review pass. |
+| Digest scheduler autonomous path | `ensureDigestScheduler()` timer | Node instrumentation startup -> timer -> system-authored structured plan -> control/review -> engine -> router -> admitted `digest:run-due` enqueue -> reviewed worker invocation | yes | structured plan and structured worker plan | yes | yes | yes | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js`; `services/jobQueue.js` | Both autonomous initiation and processor execution use governed runtime boundaries; production remains gated by the legacy-autonomy policy. |
 | Watcher autonomous path | `startWatcher()` timer | `startWatcher()` -> timer -> `evaluateRules()` -> `startSchedule()` | no | no | no | no | no | `services/watcher.js:147-235`, `238-321`; `services/scheduler.js:379-409` | Autonomous orchestration path without control/review. |
 | Scheduler autonomous path | `startSchedule()` timer | `startSchedule()` -> timer -> `runScheduledTick()` -> `resumeAgentForScheduler()` -> `tickAgent()` | no | no | no | no | no | `services/scheduler.js:204-409` | Autonomous execution path without control/review. |
 | Health / readiness path | `GET /api/health`, `GET /api/ready` | route -> configure queue health -> db check / runtime warnings -> structured status response | no | no | no | no | no | `app/api/health/route.ts:1-48`; `app/api/ready/route.ts:1-46` | Operational probes; low-risk. |
@@ -108,7 +108,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | --- | --- | --- | --- |
 | Console interactive path | `PARTIAL_GOVERNED` | Most action traffic now proceeds through control/review plus execution engine and router, but the endpoint still contains residual non-governed fallback behavior for some read/helper flows. | `src/server/services/console-runtime.ts`; `services/runtimeControl.js`; `services/executionEngine.js`; `services/toolRouter.js` |
 | Console overview read path | `EXCEPTION` | Read-oriented overview path. Side effect is scheduler initialization, which is operational rather than direct user mutation. | `app/api/console/route.ts:12-24`; `services/digestScheduler.js:70-84` |
-| Console stream path | `PARTIAL_UNORCHESTRATED` | The stream path is mainly read-only, but it enqueues digest work on a timer without going through control/review. | `app/api/console/stream/route.ts:31-76`; `services/legacyConsoleOperationsSupport.js:98-151` |
+| Console stream path | `EXCEPTION` | Authenticated read-only SSE delivery; digest startup and queue mutation were removed from the request loop. | `app/api/console/stream/route.ts` |
 | Operations action path | `GOVERNED` | Authenticated operations actions use structured control review, confirmation where required, and engine/router dispatch before the operations service mutates state. | `app/api/operations/actions/route.ts`; `src/server/services/governed-operations-action-service.ts`; `services/toolRouter.js` |
 | Research action path | `GOVERNED` | Authenticated research actions use collision-free structured plans, explicit confirmation, and engine/router dispatch before typed service mutations. | `app/api/research/actions/route.ts`; `src/server/services/governed-research-action-service.ts`; `services/toolRouter.js` |
 | Dashboard action path | `GOVERNED` | Authenticated workspace members use collision-free structured plans, explicit confirmation, and engine/router dispatch before typed service mutation or queueing. | `app/api/dashboard/actions/route.ts`; `src/server/services/governed-dashboard-action-service.ts`; `services/toolRouter.js` |
@@ -123,7 +123,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | Scheduled summary generation path | `BYPASS` | Directly performs summary/report generation without queue governance or runtime control. | `app/api/research/summaries/run-due/route.ts:29-89`; `src/server/services/summary-service.ts:39-192` |
 | Legacy console compatibility path | `PARTIAL_GOVERNED` | It enters `reviewControlRequest()`, but then branches into legacy direct handlers instead of planner/router/engine. | `services/legacyConsoleHandler.js:635-713`; `services/legacyConsoleRequestHandlers.js:78-249` |
 | External worker processor path | `GOVERNED` | Typed and legacy processors require matching durable admission and router-issued runtime authority before invocation. | `scripts/job-worker.ts`; `src/server/jobs/background-jobs.ts`; `services/legacyConsoleHandler.js`; `services/jobQueue.js`; `services/toolRouter.js` |
-| Digest scheduler autonomous path | `PARTIAL_UNORCHESTRATED` | Autonomous initiator queues admitted work without an interactive control/review pass; downstream processor execution is governed. | `services/digestScheduler.js:20-45`, `70-84`; `services/legacyConsoleOperationsSupport.js:98-151`; `services/legacyConsoleHandler.js`; `services/jobQueue.js` |
+| Digest scheduler autonomous path | `GOVERNED` | Node startup is isolated from read requests, and each workspace enqueue passes through system-identity control/review before governed worker execution. | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js`; `services/jobQueue.js` |
 | Watcher autonomous path | `PARTIAL_UNORCHESTRATED` | Autonomous rule engine starts schedules directly, without governed runtime layers. | `services/watcher.js:147-235`, `238-321` |
 | Scheduler autonomous path | `PARTIAL_UNORCHESTRATED` | Autonomous schedule ticks call agent runtime directly, without governed runtime layers. | `services/scheduler.js:204-409` |
 | Health / readiness path | `EXCEPTION` | Operational health/readiness probes are intentionally outside the governed runtime and are low-risk. | `app/api/health/route.ts:1-48`; `app/api/ready/route.ts:1-46` |
@@ -137,7 +137,6 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | Source refresh path | `app/api/sources/refresh/route.ts` -> worker processor | Govern the initiating route | High | Medium | The connector mutation now executes through reviewed worker runtime dispatch, but the route can still enqueue without control/review. | Unify the initiating route because it authorizes network mutation. | `app/api/sources/refresh/route.ts:13-31`; `src/server/jobs/background-jobs.ts`; `services/toolRouter.js` |
 | Watcher -> scheduler path | `services/watcher.js` -> `services/scheduler.js` | Control, planner, review/intervention, router, engine | High | Medium | Legacy autonomous coordination loop. | Audit and constrain before any broader automation work; likely needs staged unification. | `services/watcher.js:147-235`, `238-321`; `services/scheduler.js:204-409` |
 | Scheduler -> agent tick path | `services/scheduler.js` -> `services/agentRuntime.js` | Control, planner, review/intervention, router, engine | High | Medium | Legacy scheduling/runtime flow predates current control stack. | Treat as a later but high-risk unification track. | `services/scheduler.js:204-409`; `services/agentRuntime.js:230-280` |
-| Console stream digest sweep path | `app/api/console/stream/route.ts` | Control, review/intervention, explicit queue governance | Medium | High | Keeps dashboard stream current and opportunistically queues due digests. | Separate read streaming from side-effecting digest queueing, or wrap queue request in control/review. | `app/api/console/stream/route.ts:31-76`; `services/legacyConsoleOperationsSupport.js:98-151` |
 
 ## STEP 5 — EXCEPTION REGISTER
 
@@ -146,7 +145,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | Health probe path | `app/api/health/route.ts` | Operational health/readiness probe; returns status only. | yes | Runtime/db/job health checks; no domain mutation. | `app/api/health/route.ts:1-48` | Queue configuration call is operational setup, not domain execution. |
 | Readiness probe path | `app/api/ready/route.ts` | Operational readiness probe; explicit startup validation endpoint. | yes | Read-only status plus feature-flag bootstrap. | `app/api/ready/route.ts:1-46` | `ensureDefaultFeatureFlags()` mutates defaults, but this is startup/bootstrap behavior rather than user-directed domain execution. |
 | Auth/session bootstrap path | `app/api/auth/*`, `app/api/auth/session` | Authentication/session lifecycle is outside the target runtime request-to-execution architecture. | yes | Rate limiting, schema validation, auth helpers. | `app/api/auth/login/route.ts:1-31`; `app/api/auth/signup/route.ts:1-51`; `app/api/auth/logout/route.ts:1-10`; `app/api/auth/session/route.ts:1-10` | Keep separate from action runtime. |
-| Console overview read path | `GET /api/console` | Primary purpose is read-only overview delivery. | yes, if side effects are split out later | Auth + workspace membership checks. | `app/api/console/route.ts:12-24` | The embedded `ensureDigestScheduler()` side effect makes this exception less clean than health/auth paths. |
+| Console overview read path | `GET /api/console` | Read-only overview delivery. | yes | Auth + workspace membership checks; scheduler startup is isolated elsewhere. | `app/api/console/route.ts` | Clean read exception after moving scheduler startup to Node instrumentation. |
 
 ## STEP 6 — RISK SUMMARY
 
@@ -165,16 +164,16 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 
 ### Top 5 Highest-Frequency Risky Paths
 
-1. Console stream digest sweep path
-   High-frequency SSE loop; side-effecting queue request on a timer.
-2. Console interactive path
+1. Console interactive path
    Main user-facing action path; partially governed but still hybrid.
-3. Scheduled summary generation path
+2. Scheduled summary generation path
    Direct generation path used by recurring research workflows.
-4. Source refresh path
+3. Source refresh path
    User-triggerable network work enters an ungoverned queue path.
-5. Research briefs CRUD path
+4. Research briefs CRUD path
    Common desk mutations still use a direct Prisma-backed service path.
+5. Research reports CRUD path
+   Common report mutations still use a direct Prisma-backed service path.
 
 ### Top 5 Easiest Migration Candidates
 
@@ -195,7 +194,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 - Governed interactive APIs coexist with direct CRUD and autonomous job initiators, producing inconsistent admission guarantees by entrypoint.
 - Typed and legacy background jobs now persist and enforce processor admission evidence. Legacy enqueue adapters normalize old and new actor shapes and fail closed unless actor, workspace, source, and contract provenance are explicit.
 - Processor registration remains centralized in `ensureJobProcessorsRegistered()`, but queued legacy work cannot invoke a protected processor without matching persisted evidence and a fresh reviewed runtime authority decision.
-- Some read endpoints (`GET /api/console`, `GET /api/console/stream`, `GET /api/control-center/overview`) trigger scheduler setup or queue side effects even though they are primarily read surfaces.
+- Console and control-center read endpoints no longer start the scheduler or queue digest work; Node instrumentation owns startup and the SSE loop is read-only.
 
 ## STEP 7 — MIGRATION PRIORITIES
 
@@ -212,7 +211,7 @@ The only confirmed full `control -> planner -> review/intervention -> engine -> 
 | Research briefs CRUD path | `BYPASS` | medium | Moderate mutation scope, but straightforward service surface. | Medium | `app/api/research/briefs/route.ts:56-133` |
 | Research reports CRUD path | `BYPASS` | medium | Similar to briefs CRUD; direct service path. | Medium | `app/api/research/reports/route.ts:51-113` |
 | Scheduled summary generation path | `BYPASS` | medium | Mixed generation path with direct execution; should eventually align with queued/reviewed path. | Medium | `app/api/research/summaries/run-due/route.ts:29-89` |
-| Console stream digest sweep path | `PARTIAL_UNORCHESTRATED` | medium | High-frequency but narrower blast radius than privileged action paths. | Medium | `app/api/console/stream/route.ts:31-76` |
+| Digest scheduler autonomous path | `GOVERNED` | complete | Startup is isolated to Node instrumentation and system-authored enqueue plans traverse control/review/engine/router. | Complete | `src/instrumentation.ts`; `src/instrumentation-node.ts`; `services/digestScheduler.js`; `services/toolRouter.js` |
 | Watcher autonomous path | `PARTIAL_UNORCHESTRATED` | medium | High-risk, but deeper legacy rewiring required. | High | `services/watcher.js:147-321` |
 | Scheduler autonomous path | `PARTIAL_UNORCHESTRATED` | medium | Deep legacy agent runtime coupling. | High | `services/scheduler.js:204-409` |
 | Console overview read path | `EXCEPTION` | exception | Primarily read-only; can remain outside main action runtime if side effects are separated. | Low | `app/api/console/route.ts:12-24` |
@@ -227,7 +226,7 @@ The runtime is most fragmented in three places:
 
 1. Remaining typed CRUD and generation APIs that bypass the governed runtime.
 2. Queue initiators that can admit governed worker execution without first traversing the full interactive control path.
-3. Legacy autonomous loops (`digest scheduler`, `watcher`, `scheduler`) that can start meaningful work without the modern control stack.
+3. Remaining legacy autonomous watcher and agent scheduler loops that can start meaningful work without the modern control stack.
 
 The console, operations, research, dashboard, admin, jobs API, and typed and legacy worker execution paths are now unified. The strongest next migration candidates are autonomous initiators, followed by direct research CRUD and scheduled-generation paths.
 

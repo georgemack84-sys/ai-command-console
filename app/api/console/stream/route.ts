@@ -1,6 +1,5 @@
-import { getTerminalOverview, queueTerminalDigestSweep } from "../core";
+import { getTerminalOverview } from "../core";
 import { getSessionUser } from "@/src/lib/auth";
-import { ensureDigestScheduler } from "@/services/digestScheduler";
 import { requireWorkspaceMember } from "@/src/server/auth/permissions";
 
 export const runtime = "nodejs";
@@ -11,7 +10,6 @@ function encodeEvent(data: unknown, event = "message") {
 }
 
 export async function GET() {
-  ensureDigestScheduler();
   const user = await getSessionUser();
   if (!user) {
     return new Response("Authentication required.", { status: 401 });
@@ -45,8 +43,6 @@ export async function GET() {
           return;
         }
         pushing = true;
-
-        queueTerminalDigestSweep(context);
 
         try {
           const overview = await getTerminalOverview(context);

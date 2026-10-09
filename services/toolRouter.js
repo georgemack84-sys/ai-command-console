@@ -1272,7 +1272,11 @@ async function route(plan, modes = {}) {
           actorId: actor.id,
           actorName: actor.name || actor.email,
         });
-        result = job ? `Queued digest sweep as ${job.id}.` : "No digest sweep was queued.";
+        result = String(plan.source || "") === "digest_scheduler"
+          ? { ok: true, queued: Boolean(job), jobId: job?.id || null }
+          : job
+            ? `Queued digest sweep as ${job.id}.`
+            : "No digest sweep was queued.";
         break;
       }
 

@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const originalEnv = { ...process.env };
 
 const digestSchedulerPath = require.resolve("../../services/digestScheduler.js");
-const legacyConsoleCompatPath = require.resolve("../../services/legacyConsoleCompat.js");
+const runtimeControlPath = require.resolve("../../services/runtimeControl.js");
 const workspaceDocumentsPath = require.resolve("../../services/workspaceDocuments.js");
 const digestSchedulerStatePath = require.resolve("../../services/digestSchedulerState.js");
 const runtimePathsPath = require.resolve("../../services/runtimePaths.js");
@@ -19,22 +19,25 @@ function createTempRoot() {
 
 function loadDigestScheduler(tempRoot: string, options?: {
   users?: Array<Record<string, unknown>>;
-  queueLegacyDueDigestSweepIfNeeded?: (workspaceId: string, actor: Record<string, unknown>) => { id: string } | null;
+  executeControlledStructuredPlan?: (plan: Record<string, unknown>, options: Record<string, unknown>) => Promise<Record<string, unknown>>;
 }) {
   process.env = { ...originalEnv, AI_COMMAND_CONSOLE_DATA_ROOT: tempRoot };
 
   const originalScheduler = require.cache[digestSchedulerPath];
-  const originalCompat = require.cache[legacyConsoleCompatPath];
+  const originalRuntimeControl = require.cache[runtimeControlPath];
   const originalWorkspaceDocs = require.cache[workspaceDocumentsPath];
 
-  require.cache[legacyConsoleCompatPath] = {
-    id: legacyConsoleCompatPath,
-    filename: legacyConsoleCompatPath,
+  require.cache[runtimeControlPath] = {
+    id: runtimeControlPath,
+    filename: runtimeControlPath,
     loaded: true,
     exports: {
-      queueLegacyDueDigestSweepIfNeeded:
-        options?.queueLegacyDueDigestSweepIfNeeded ||
-        ((workspaceId: string) => ({ id: `job_${workspaceId}` })),
+      executeControlledStructuredPlan:
+        options?.executeControlledStructuredPlan ||
+        (async (plan: Record<string, unknown>) => ({
+          ok: true,
+          result: { queued: true, jobId: `job_${(plan.meta as { workspaceId?: string })?.workspaceId}` },
+        })),
     },
   };
   require.cache[workspaceDocumentsPath] = {
@@ -63,8 +66,8 @@ function loadDigestScheduler(tempRoot: string, options?: {
       delete require.cache[runtimePathsPath];
       if (originalScheduler) require.cache[digestSchedulerPath] = originalScheduler;
       else delete require.cache[digestSchedulerPath];
-      if (originalCompat) require.cache[legacyConsoleCompatPath] = originalCompat;
-      else delete require.cache[legacyConsoleCompatPath];
+      if (originalRuntimeControl) require.cache[runtimeControlPath] = originalRuntimeControl;
+      else delete require.cache[runtimeControlPath];
       if (originalWorkspaceDocs) require.cache[workspaceDocumentsPath] = originalWorkspaceDocs;
       else delete require.cache[workspaceDocumentsPath];
     },
@@ -86,7 +89,10 @@ describe("digest scheduler service", () => {
   });
 
   it("queues at most one job per active workspace during a sweep", async () => {
-    const queueLegacyDueDigestSweepIfNeeded = vi.fn((workspaceId: string) => ({ id: `job_${workspaceId}` }));
+    const executeControlledStructuredPlan = vi.fn(async (plan: Record<string, unknown>) => ({
+      ok: true,
+      result: { queued: true, jobId: `job_${(plan.meta as { workspaceId?: string }).workspaceId}` },
+    }));
     const { digestScheduler, digestSchedulerState, restore } = loadDigestScheduler(tempRoot, {
       users: [
         { id: "u1", workspaceId: "alpha", status: "active" },
@@ -94,7 +100,7 @@ describe("digest scheduler service", () => {
         { id: "u3", workspaceId: "beta", status: "active" },
         { id: "u4", workspaceId: "gamma", status: "disabled" },
       ],
-      queueLegacyDueDigestSweepIfNeeded,
+      executeControlledStructuredPlan,
     });
 
     try {
@@ -106,7 +112,23 @@ describe("digest scheduler service", () => {
         queuedJobCount: 2,
         queuedJobIds: ["job_alpha", "job_beta"],
       });
-      expect(queueLegacyDueDigestSweepIfNeeded).toHaveBeenCalledTimes(2);
+      expect(executeControlledStructuredPlan).toHaveBeenCalledTimes(2);
+      expect(executeControlledStructuredPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "collaboration:digest-run-due",
+          source: "digest_scheduler",
+          meta: expect.objectContaining({
+            userId: "system:digest-scheduler",
+            workspaceId: "alpha",
+            userRole: "system",
+          }),
+        }),
+        expect.objectContaining({
+          actor: expect.objectContaining({ id: "system:digest-scheduler", workspaceId: "alpha" }),
+          identitySource: "system",
+          modes: { confirmed: true },
+        }),
+      );
       expect(digestSchedulerState.getDigestSchedulerStatus().lastResult).toEqual(result);
     } finally {
       restore();
@@ -116,9 +138,7 @@ describe("digest scheduler service", () => {
   it("records failures into digest scheduler state", async () => {
     const { digestScheduler, digestSchedulerState, restore } = loadDigestScheduler(tempRoot, {
       users: [{ id: "u1", workspaceId: "alpha", status: "active" }],
-      queueLegacyDueDigestSweepIfNeeded: () => {
-        throw new Error("queue unavailable");
-      },
+      executeControlledStructuredPlan: async () => ({ ok: false, error: "queue unavailable" }),
     });
 
     try {
@@ -137,11 +157,37 @@ describe("digest scheduler service", () => {
     }
   });
 
+  it("coalesces overlapping sweeps into one governed execution", async () => {
+    let resolveExecution: ((value: Record<string, unknown>) => void) | null = null;
+    const executeControlledStructuredPlan = vi.fn(() => new Promise<Record<string, unknown>>((resolve) => {
+      resolveExecution = resolve;
+    }));
+    const { digestScheduler, restore } = loadDigestScheduler(tempRoot, {
+      users: [{ id: "u1", workspaceId: "alpha", status: "active" }],
+      executeControlledStructuredPlan,
+    });
+
+    try {
+      const first = digestScheduler.runDigestSchedulerSweep();
+      const second = digestScheduler.runDigestSchedulerSweep();
+
+      expect(second).toBe(first);
+      expect(executeControlledStructuredPlan).toHaveBeenCalledTimes(1);
+      resolveExecution?.({ ok: true, result: { queued: true, jobId: "job_alpha" } });
+      await expect(first).resolves.toEqual(expect.objectContaining({ queuedJobIds: ["job_alpha"] }));
+    } finally {
+      restore();
+    }
+  });
+
   it("enforces the minimum interval and stops cleanly", async () => {
-    const queueLegacyDueDigestSweepIfNeeded = vi.fn((workspaceId: string) => ({ id: `job_${workspaceId}` }));
+    const executeControlledStructuredPlan = vi.fn(async (plan: Record<string, unknown>) => ({
+      ok: true,
+      result: { queued: true, jobId: `job_${(plan.meta as { workspaceId?: string }).workspaceId}` },
+    }));
     const { digestScheduler, digestSchedulerState, restore } = loadDigestScheduler(tempRoot, {
       users: [{ id: "u1", workspaceId: "alpha", status: "active" }],
-      queueLegacyDueDigestSweepIfNeeded,
+      executeControlledStructuredPlan,
     });
 
     try {
@@ -154,12 +200,12 @@ describe("digest scheduler service", () => {
       );
 
       await vi.advanceTimersByTimeAsync(10_000);
-      expect(queueLegacyDueDigestSweepIfNeeded).toHaveBeenCalledTimes(1);
+      expect(executeControlledStructuredPlan).toHaveBeenCalledTimes(1);
       expect(digestSchedulerState.getDigestSchedulerStatus().lastRunAt).toBeTruthy();
 
       digestScheduler.stopDigestScheduler();
       await vi.advanceTimersByTimeAsync(20_000);
-      expect(queueLegacyDueDigestSweepIfNeeded).toHaveBeenCalledTimes(1);
+      expect(executeControlledStructuredPlan).toHaveBeenCalledTimes(1);
       expect(digestSchedulerState.getDigestSchedulerStatus().enabled).toBe(false);
     } finally {
       restore();
