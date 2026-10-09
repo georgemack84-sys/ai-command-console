@@ -102,8 +102,43 @@ function saveJobsState(state) {
   return loadJobsState();
 }
 
-function registerJobProcessor(type, processor) {
-  processors.set(type, processor);
+function registerJobProcessor(type, processor, options = {}) {
+  processors.set(type, {
+    processor,
+    requiresAdmission: options.requiresAdmission === true,
+    admissionContract: String(options.admissionContract || "typed_background_job_v1"),
+  });
+}
+
+function validateProcessorAdmission(job, registration) {
+  if (!registration?.requiresAdmission) {
+    return { ok: true };
+  }
+  const admission = job?.admission && typeof job.admission === "object" ? job.admission : null;
+  if (!admission) {
+    return { ok: false, reason: "Processor admission evidence is missing." };
+  }
+  if (admission.status !== "approved" || admission.contract !== registration.admissionContract) {
+    return { ok: false, reason: "Processor admission evidence is not approved for this contract." };
+  }
+  if (!String(admission.source || "").trim() || !Number.isFinite(new Date(admission.admittedAt || "").getTime())) {
+    return { ok: false, reason: "Processor admission provenance is incomplete." };
+  }
+  if (String(admission.jobType || "") !== String(job.type || "")) {
+    return { ok: false, reason: "Processor admission job type does not match the queued job." };
+  }
+  const payloadWorkspaceId = typeof job.payload?.workspaceId === "string"
+    ? job.payload.workspaceId
+    : typeof job.payload?.workspace === "string"
+      ? job.payload.workspace
+      : null;
+  if (payloadWorkspaceId && String(admission.workspaceId || "") !== payloadWorkspaceId) {
+    return { ok: false, reason: "Processor admission workspace does not match the queued job." };
+  }
+  if (job.actorId && String(admission.actorId || "") !== String(job.actorId)) {
+    return { ok: false, reason: "Processor admission actor does not match the queued job." };
+  }
+  return { ok: true };
 }
 
 function configureJobQueue(options = {}) {
@@ -250,6 +285,7 @@ function enqueueJob(type, payload = {}, meta = {}) {
     status: "queued",
     actorId: meta.actorId || null,
     actorName: meta.actorName || null,
+    admission: meta.admission && typeof meta.admission === "object" ? { ...meta.admission } : null,
     createdAt: new Date().toISOString(),
     startedAt: null,
     completedAt: null,
@@ -307,7 +343,8 @@ async function runJob(job) {
     return;
   }
 
-  const processor = processors.get(job.type);
+  const registration = processors.get(job.type);
+  const processor = typeof registration === "function" ? registration : registration?.processor;
   if (!processor) {
     updateJob(job.id, (current) => ({
       ...current,
@@ -317,6 +354,23 @@ async function runJob(job) {
       error: `No processor registered for ${job.type}.`,
     }));
     appendJobEvent(job.id, "error", `No processor registered for ${job.type}.`);
+    return;
+  }
+
+  const admission = validateProcessorAdmission(currentFull, registration);
+  if (!admission.ok) {
+    updateJob(job.id, (current) => ({
+      ...current,
+      status: "failed",
+      startedAt: current.startedAt || new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      error: `Job processor admission denied: ${admission.reason}`,
+    }));
+    appendJobEvent(job.id, "error", "Job processor admission denied.", {
+      code: "job_processor_admission_denied",
+      reason: admission.reason,
+      traceId: currentFull.traceId || job.traceId || null,
+    });
     return;
   }
 

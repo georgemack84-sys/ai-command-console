@@ -46,6 +46,7 @@ test("recoverStaleJobs reschedules stale running jobs", () => {
 });
 
 test("buildQueueHealth reports stale running pressure", () => {
+  configureJobQueue({ executionMode: "external" });
   const job = enqueueJob("workspace:generate-summary", { workspaceId: "workspace_1" }, {});
 
   updateJob(job.id, (current) => ({
@@ -60,7 +61,7 @@ test("buildQueueHealth reports stale running pressure", () => {
   const health = buildQueueHealth();
 
   assert.equal(health.running, 1);
-  assert.equal(health.activeWorkers, 1);
+  assert.equal(health.activeWorkers, 0);
   assert.equal(health.staleRunning, 1);
   assert.equal(health.unhealthy, true);
 });

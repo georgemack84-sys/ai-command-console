@@ -93,6 +93,37 @@ describe("background job restart and partial-failure recovery", () => {
     expect(restarted.jobQueue.listJobs(20).filter((job: { id: string }) => job.id === queued.id)).toHaveLength(1);
   });
 
+  it("preserves processor admission evidence across a restart", async () => {
+    const admission = {
+      contract: "typed_background_job_v1",
+      status: "approved",
+      jobType: "test:restart-protected",
+      workspaceId: "workspace_1",
+      actorId: "operator_1",
+      source: "test",
+      admittedAt: "2026-10-09T02:00:00.000Z",
+    };
+    const first = openRuntime();
+    const queued = first.jobQueue.enqueueJob(
+      "test:restart-protected",
+      { workspaceId: "workspace_1" },
+      { actorId: "operator_1", admission },
+    );
+
+    const restarted = restartRuntime(first);
+    const processor = vi.fn().mockResolvedValue({ ok: true });
+    restarted.jobQueue.registerJobProcessor("test:restart-protected", processor, {
+      requiresAdmission: true,
+      admissionContract: "typed_background_job_v1",
+    });
+    await restarted.jobQueue.runJobWorkerCycle();
+
+    expect(processor).toHaveBeenCalledOnce();
+    expect(restarted.jobQueue.getJob(queued.id, { full: true })).toEqual(
+      expect.objectContaining({ status: "completed", admission }),
+    );
+  });
+
   it("recovers an expired running lease after restart and resumes when the retry window opens", async () => {
     const first = openRuntime();
     const queued = first.jobQueue.enqueueJob(

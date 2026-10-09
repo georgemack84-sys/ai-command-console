@@ -171,4 +171,110 @@ describe("job queue service", () => {
       restore();
     }
   });
+
+  it("fails closed before a protected processor runs without admission evidence", async () => {
+    const { jobQueue, restore } = loadJobQueue(tempRoot);
+
+    try {
+      jobQueue.configureJobQueue({ executionMode: "external" });
+      const processor = vi.fn();
+      jobQueue.registerJobProcessor("test:protected", processor, {
+        requiresAdmission: true,
+        admissionContract: "typed_background_job_v1",
+      });
+      const queued = jobQueue.enqueueJob(
+        "test:protected",
+        { workspaceId: "workspace_1" },
+        { actorId: "operator_1" },
+      );
+
+      await jobQueue.runPendingJobs();
+
+      const failed = jobQueue.getJob(queued.id, { full: true });
+      expect(processor).not.toHaveBeenCalled();
+      expect(failed).toEqual(expect.objectContaining({ status: "failed", attempts: 0 }));
+      expect(failed.error).toMatch(/processor admission denied/i);
+      expect(failed.events).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          message: "Job processor admission denied.",
+          meta: expect.objectContaining({ code: "job_processor_admission_denied" }),
+        }),
+      ]));
+    } finally {
+      restore();
+    }
+  });
+
+  it("runs a protected processor only when persisted admission matches type, workspace, and actor", async () => {
+    const { jobQueue, restore } = loadJobQueue(tempRoot);
+
+    try {
+      jobQueue.configureJobQueue({ executionMode: "external" });
+      const processor = vi.fn().mockResolvedValue({ ok: true });
+      jobQueue.registerJobProcessor("test:protected", processor, {
+        requiresAdmission: true,
+        admissionContract: "typed_background_job_v1",
+      });
+      const admission = {
+        contract: "typed_background_job_v1",
+        status: "approved",
+        jobType: "test:protected",
+        workspaceId: "workspace_1",
+        actorId: "operator_1",
+        source: "test",
+        admittedAt: "2026-10-09T00:00:00.000Z",
+      };
+      const queued = jobQueue.enqueueJob(
+        "test:protected",
+        { workspaceId: "workspace_1" },
+        { actorId: "operator_1", admission },
+      );
+
+      await jobQueue.runPendingJobs();
+
+      const completed = jobQueue.getJob(queued.id, { full: true });
+      expect(processor).toHaveBeenCalledOnce();
+      expect(completed).toEqual(expect.objectContaining({ status: "completed", admission }));
+    } finally {
+      restore();
+    }
+  });
+
+  it("rejects protected processor admission when its workspace does not match the queued payload", async () => {
+    const { jobQueue, restore } = loadJobQueue(tempRoot);
+
+    try {
+      jobQueue.configureJobQueue({ executionMode: "external" });
+      const processor = vi.fn();
+      jobQueue.registerJobProcessor("test:protected", processor, {
+        requiresAdmission: true,
+        admissionContract: "typed_background_job_v1",
+      });
+      const queued = jobQueue.enqueueJob(
+        "test:protected",
+        { workspaceId: "workspace_1" },
+        {
+          actorId: "operator_1",
+          admission: {
+            contract: "typed_background_job_v1",
+            status: "approved",
+            jobType: "test:protected",
+            workspaceId: "workspace_2",
+            actorId: "operator_1",
+            source: "test",
+            admittedAt: "2026-10-09T00:00:00.000Z",
+          },
+        },
+      );
+
+      await jobQueue.runPendingJobs();
+
+      const failed = jobQueue.getJob(queued.id, { full: true });
+      expect(processor).not.toHaveBeenCalled();
+      expect(failed).toEqual(expect.objectContaining({ status: "failed", attempts: 0 }));
+      expect(failed.error).toMatch(/workspace does not match/i);
+    } finally {
+      restore();
+    }
+  });
 });

@@ -28,6 +28,7 @@ const {
 } = require("../../../services/jobQueue");
 
 let processorsRegistered = false;
+const TYPED_PROCESSOR_ADMISSION = { requiresAdmission: true, admissionContract: "typed_background_job_v1" };
 
 export type BackgroundJobType =
   | "workspace:generate-insights"
@@ -35,6 +36,28 @@ export type BackgroundJobType =
   | "workspace:failure-drill"
   | "source:refresh"
   | "agent:execute";
+
+export function buildBackgroundJobAdmission(
+  type: BackgroundJobType,
+  payload: Record<string, unknown>,
+  actor?: { actorId?: string },
+  source = "typed_background_job_service",
+) {
+  return {
+    contract: "typed_background_job_v1",
+    status: "approved",
+    jobType: type,
+    workspaceId:
+      typeof payload.workspaceId === "string"
+        ? payload.workspaceId
+        : typeof payload.workspace === "string"
+          ? payload.workspace
+          : null,
+    actorId: actor?.actorId || null,
+    source,
+    admittedAt: new Date().toISOString(),
+  };
+}
 
 function buildBackgroundJobDiagnostics(limit = 20) {
   const health = buildQueueHealth(limit);
@@ -89,7 +112,7 @@ export function ensureBackgroundJobProcessors() {
       captureException(error, { jobType: "workspace:generate-insights", workspaceId: job.payload.workspaceId });
       throw error;
     }
-  });
+  }, TYPED_PROCESSOR_ADMISSION);
 
   registerJobProcessor(
     "workspace:generate-summary",
@@ -115,6 +138,7 @@ export function ensureBackgroundJobProcessors() {
         throw error;
       }
     },
+    TYPED_PROCESSOR_ADMISSION,
   );
 
   registerJobProcessor(
@@ -126,6 +150,7 @@ export function ensureBackgroundJobProcessors() {
       });
       throw new Error("Intentional failure drill triggered for operator recovery.");
     },
+    TYPED_PROCESSOR_ADMISSION,
   );
 
   registerJobProcessor(
@@ -163,6 +188,7 @@ export function ensureBackgroundJobProcessors() {
         throw error;
       }
     },
+    TYPED_PROCESSOR_ADMISSION,
   );
 
   registerJobProcessor(
@@ -194,6 +220,7 @@ export function ensureBackgroundJobProcessors() {
         throw error;
       }
     },
+    TYPED_PROCESSOR_ADMISSION,
   );
 
   processorsRegistered = true;
@@ -203,13 +230,14 @@ export function queueBackgroundJob(
   type: BackgroundJobType,
   payload: Record<string, unknown>,
   actor?: { actorId?: string; actorName?: string; traceId?: string },
-  options?: { maxAttempts?: number; retryDelayMs?: number; runtimeLimitMs?: number },
+  options?: { maxAttempts?: number; retryDelayMs?: number; runtimeLimitMs?: number; admissionSource?: string },
 ) {
   ensureBackgroundJobProcessors();
   const traceId = actor?.traceId || createTraceId("job");
+  const admission = buildBackgroundJobAdmission(type, payload, actor, options?.admissionSource);
   let job;
   try {
-    job = enqueueJob(type, payload, { ...(actor || {}), ...(options || {}), traceId });
+    job = enqueueJob(type, payload, { ...(actor || {}), ...(options || {}), traceId, admission });
   } catch (error) {
     if (error instanceof QueueSaturationError || ((error as { code?: string } | null)?.code === "job_queue_saturated")) {
       recordRuntimeDiagnostic({

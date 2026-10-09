@@ -64,7 +64,12 @@ export async function executeJobAction(input: unknown, actor: JobActor) {
     body.type === "workspace:generate-summary"
       ? { workspaceId, view: body.view as SavedTriageView }
       : { workspaceId };
-  const job = queueBackgroundJob(body.type, payload, { actorId: actor.id, actorName: actor.name });
+  const job = queueBackgroundJob(
+    body.type,
+    payload,
+    { actorId: actor.id, actorName: actor.name },
+    { admissionSource: "governed_jobs_api" },
+  );
 
   if (body.type === "workspace:generate-insights") {
     trackEvent({
