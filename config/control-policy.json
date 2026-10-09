@@ -178,6 +178,7 @@
     "watcher:rule-upsert": "workflow_control",
     "watcher:rule-delete": "workflow_control",
     "watcher:schedule-start": "workflow_control",
+    "scheduler:agent-tick": "agent_control",
     "alert:acknowledge": "workflow_control",
     "alert:resolve": "workflow_control",
     "alert:note": "workflow_control",

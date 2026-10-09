@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { tickAgent, startAgent } = require("./agentRuntime");
+const { executeControlledStructuredPlan } = require("./runtimeControl");
 const { loadAgentState, saveAgentState, appendAgentHistory } = require("./agentMemory");
 const { loadDocument, saveDocument } = require("./stateDatabase");
 const { recordTelemetry } = require("./telemetry");
@@ -13,6 +14,13 @@ const SCHEDULER_KEY = "scheduler";
 
 const activeTimers = new Map();
 const activeTicks = new Set();
+const SCHEDULER_SYSTEM_ACTOR = Object.freeze({
+  id: "system:agent-scheduler",
+  workspaceId: "legacy-global",
+  name: "Agent Scheduler",
+  email: "agent-scheduler@local",
+  role: "system",
+});
 
 function ensureSchedulerDir() {
   fs.mkdirSync(path.dirname(SCHEDULER_PATH), { recursive: true });
@@ -203,7 +211,7 @@ function stopSchedule(agentName, reason = "stopped_by_user") {
   return state.schedules[agentName];
 }
 
-async function runScheduledTickInternal(agentName) {
+async function executeScheduledTickFromRouter(agentName) {
   const startedAt = Date.now();
   const state = loadSchedulerState();
   const schedule = state.schedules[agentName];
@@ -350,6 +358,32 @@ async function runScheduledTickInternal(agentName) {
   }
 }
 
+function recordControlledTickFailure(agentName, message, reason) {
+  const state = loadSchedulerState();
+  const schedule = state.schedules[agentName] || null;
+  if (schedule) {
+    schedule.lastError = message;
+    schedule.updatedAt = new Date().toISOString();
+    state.schedules[agentName] = schedule;
+    saveSchedulerState(state);
+  }
+  logSchedulerEvent(agentName, {
+    event: "schedule_control_error",
+    error: message,
+  });
+  recordTelemetry({
+    type: "scheduler:tick",
+    status: "error",
+    durationMs: 0,
+    meta: { agentName, reason, error: message },
+  });
+  return {
+    ok: false,
+    message: `Scheduled tick failed for "${agentName}": ${message}`,
+    schedule,
+  };
+}
+
 async function runScheduledTick(agentName) {
   assertLegacyAutonomyAllowed("scheduled agent tick");
 
@@ -364,7 +398,36 @@ async function runScheduledTick(agentName) {
 
   activeTicks.add(agentName);
   try {
-    return await runScheduledTickInternal(agentName);
+    const controlled = await executeControlledStructuredPlan({
+      type: "single",
+      action: "scheduler:agent-tick",
+      payload: { agentName },
+      originalRequest: `run scheduled tick for agent ${agentName}`,
+      source: "agent_scheduler",
+      meta: {
+        userId: SCHEDULER_SYSTEM_ACTOR.id,
+        workspaceId: SCHEDULER_SYSTEM_ACTOR.workspaceId,
+        userName: SCHEDULER_SYSTEM_ACTOR.name,
+        userEmail: SCHEDULER_SYSTEM_ACTOR.email,
+        userRole: SCHEDULER_SYSTEM_ACTOR.role,
+      },
+    }, {
+      actor: SCHEDULER_SYSTEM_ACTOR,
+      identitySource: "system",
+      modes: { confirmed: true },
+    });
+    if (!controlled?.ok || !controlled.result?.ok || !controlled.result?.scheduledTick) {
+      const message =
+        controlled?.error ||
+        controlled?.result?.error ||
+        controlled?.control?.decision?.explanation ||
+        `Scheduled tick was not authorized for "${agentName}".`;
+      return recordControlledTickFailure(agentName, message, "control_rejected");
+    }
+    return controlled.result.scheduledTick;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Scheduled tick control failed.";
+    return recordControlledTickFailure(agentName, message, "control_exception");
   } finally {
     activeTicks.delete(agentName);
   }
@@ -439,5 +502,6 @@ module.exports = {
   setSchedule,
   startSchedule,
   stopSchedule,
-  runScheduledTick
+  runScheduledTick,
+  executeScheduledTickFromRouter,
 };
