@@ -50,6 +50,7 @@ const ADMIN_ACCESS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "serv
 const JOB_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "job-action-service.ts");
 const AGENT_TASK_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "agent-task-action-service.ts");
 const SOURCE_REFRESH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "source-refresh-action-service.ts");
+const SCHEDULED_SUMMARY_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "scheduled-summary-action-service.ts");
 const OPERATIONS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "operations-action-service.ts");
 const TERMINAL_COLLABORATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-collaboration-service.ts");
 const TERMINAL_OWNERSHIP_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-ownership-service.ts");
@@ -90,6 +91,7 @@ const JOB_ROUTED_ACTIONS = new Map([
 ]);
 const AGENT_TASK_ROUTED_ACTIONS = new Set(["agent-tasks:create"]);
 const SOURCE_REFRESH_ROUTED_ACTIONS = new Set(["sources:refresh"]);
+const SCHEDULED_SUMMARY_ROUTED_ACTIONS = new Set(["research:summaries-run-due"]);
 
 async function executeReviewedJobProcessor(plan, modes) {
   const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
@@ -225,6 +227,14 @@ function loadSourceRefreshActionService() {
     return injectedBridge.loadSourceRefreshActionService();
   }
   return requireTypeScriptModule(SOURCE_REFRESH_ACTION_SERVICE_PATH, __filename);
+}
+
+function loadScheduledSummaryActionService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadScheduledSummaryActionService === "function") {
+    return injectedBridge.loadScheduledSummaryActionService();
+  }
+  return requireTypeScriptModule(SCHEDULED_SUMMARY_ACTION_SERVICE_PATH, __filename);
 }
 
 function loadTerminalCollaborationService() {
@@ -1226,6 +1236,19 @@ async function route(plan, modes = {}) {
           );
         } catch (error) {
           result = { ok: false, error: error?.message || `Source refresh action failed: ${plan.action}` };
+        }
+        break;
+      }
+
+      if (SCHEDULED_SUMMARY_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const scheduledSummaryService = loadScheduledSummaryActionService();
+          result = await scheduledSummaryService.executeScheduledSummaryAction(
+            plan.payload && typeof plan.payload === "object" ? plan.payload : {},
+            getPlanActor(plan),
+          );
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Scheduled summary action failed: ${plan.action}` };
         }
         break;
       }

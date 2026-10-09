@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { postJobAction } from "@/src/lib/client/job-actions";
+import { postScheduledSummaryAction } from "@/src/lib/client/scheduled-summary-actions";
 import type { ResearchBrief, ResearchReport, SessionUser } from "@/src/lib/types";
 
 const TRIAGE_FILTER_KEY = "research-desk.triage-filter";
@@ -631,30 +632,23 @@ export function ResearchDeskDashboard() {
   runScheduleRef.current = async (schedule: SummarySchedule) => {
     setRunningScheduleId(schedule.id);
     try {
-      const response = await fetch("/api/research/summaries/run-due", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          views: savedViews,
-          schedules,
-          scheduleId: schedule.id,
-        }),
-      });
-      const payload = (await response.json()) as {
-        ok?: boolean;
-        error?: string;
+      const result = await postScheduledSummaryAction<{
         schedules?: SummarySchedule[];
         generated?: Array<{ title: string; destination: string }>;
-      };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Unable to run scheduled summary.");
+      }>({
+        views: savedViews,
+        schedules,
+        scheduleId: schedule.id,
+      });
+      if (!result.ok) {
+        throw new Error(result.error || "Unable to run scheduled summary.");
       }
-      if (Array.isArray(payload.schedules)) {
-        setSchedules(payload.schedules);
-        void persistResearchDeskPreferences(savedViews, payload.schedules);
+      if (Array.isArray(result.data?.schedules)) {
+        setSchedules(result.data.schedules);
+        void persistResearchDeskPreferences(savedViews, result.data.schedules);
       }
       await reloadDeskData();
-      const generated = payload.generated || [];
+      const generated = result.data?.generated || [];
       if (generated.length) {
         const latest = generated[0];
         setSummaryNotice(
