@@ -478,6 +478,7 @@ type Overview = {
       action: string;
       payload: Record<string, unknown>;
       label: string;
+      environment?: string;
       requestedById: string;
       requestedByName: string;
       status: string;
@@ -4535,7 +4536,14 @@ export default function Terminal({
                     {overview.collaboration.approvals.slice(0, 4).map((approval) => (
                       <div key={approval.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm text-zinc-100">{approval.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-zinc-100">{approval.label}</span>
+                            {approval.environment ? (
+                              <span className="rounded-full border border-sky-500/25 bg-sky-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-sky-200">
+                                {approval.environment}
+                              </span>
+                            ) : null}
+                          </div>
                           <span className={`rounded-full border px-2 py-1 text-[11px] ${toneClass(approval.status)}`}>{approval.status}</span>
                         </div>
                         <p className="mt-2 text-xs text-zinc-400">{approval.requestedByName} requested {approval.action}</p>

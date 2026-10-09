@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { AppError } from "@/src/server/api/errors";
 import type { SessionUser } from "@/src/lib/types";
+import {
+  assertTerminalEnvironmentBoundary,
+  normalizeOperationalEnvironment,
+  requireOperationalEnvironment,
+} from "@/src/server/services/terminal-environment-boundary-service";
 
 const require = createRequire(import.meta.url);
 const {
@@ -75,9 +80,15 @@ function stableValue(value: unknown): unknown {
   return value;
 }
 
-function buildRequestKey(workspaceId: string, actorId: string, action: string, payload: Record<string, unknown>) {
+function buildRequestKey(
+  workspaceId: string,
+  environment: string,
+  actorId: string,
+  action: string,
+  payload: Record<string, unknown>,
+) {
   return createHash("sha256")
-    .update(JSON.stringify(stableValue({ workspaceId, actorId, action, payload })))
+    .update(JSON.stringify(stableValue({ workspaceId, environment, actorId, action, payload })))
     .digest("hex");
 }
 
@@ -93,12 +104,15 @@ export function isSensitiveTerminalAction(action: string) {
   return SENSITIVE_ACTION_LABELS.has(String(action || ""));
 }
 
-export function listSensitiveApprovalRequests(workspaceId: string): SensitiveApprovalRequest[] {
+export function listSensitiveApprovalRequests(workspaceId: string, environment?: string): SensitiveApprovalRequest[] {
   const state = loadCollaborationState();
+  const normalizedEnvironment = environment ? normalizeOperationalEnvironment(environment) : null;
   return (Array.isArray(state.approvals) ? state.approvals : [])
     .filter(
       (request: unknown): request is SensitiveApprovalRequest =>
-        isSensitiveRequest(request) && request.workspaceId === workspaceId,
+        isSensitiveRequest(request) &&
+        request.workspaceId === workspaceId &&
+        (!normalizedEnvironment || normalizeOperationalEnvironment(request.environment) === normalizedEnvironment),
     )
     .sort((left: SensitiveApprovalRequest, right: SensitiveApprovalRequest) =>
       new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
@@ -123,8 +137,9 @@ export function requestSensitiveActionApproval(input: {
     throw new AppError(403, "approval_gate_forbidden", "Viewer accounts cannot request sensitive actions.");
   }
 
-  const requestKey = buildRequestKey(input.actor.workspaceId, input.actor.id, input.action, input.payload);
-  const existing = listSensitiveApprovalRequests(input.actor.workspaceId).find(
+  const environment = requireOperationalEnvironment(input.environment);
+  const requestKey = buildRequestKey(input.actor.workspaceId, environment, input.actor.id, input.action, input.payload);
+  const existing = listSensitiveApprovalRequests(input.actor.workspaceId, environment).find(
     (request: SensitiveApprovalRequest) => request.status === "pending" && request.requestKey === requestKey,
   );
   if (existing) {
@@ -134,7 +149,7 @@ export function requestSensitiveActionApproval(input: {
   const request = createApprovalRequest({
     kind: "terminal-sensitive-action",
     workspaceId: input.actor.workspaceId,
-    environment: input.environment,
+    environment,
     action: input.action,
     payload: input.payload,
     label: SENSITIVE_ACTION_LABELS.get(input.action) || input.action,
@@ -155,7 +170,7 @@ export function requestSensitiveActionApproval(input: {
       approvalId: request.id,
       actorId: input.actor.id,
       workspaceId: input.actor.workspaceId,
-      environment: input.environment,
+      environment,
       action: input.action,
     },
   });
@@ -176,6 +191,13 @@ function requirePendingDecision(approvalId: string, actor: ApprovalActor, govern
   if (!canApproveInEnvironment(actor.role, governance, actor.workspaceId)) {
     throw new AppError(403, "sensitive_approval_forbidden", "An approver or admin must decide this sensitive action.");
   }
+  assertTerminalEnvironmentBoundary({
+    action: request.action,
+    payload: request.payload,
+    workspaceId: actor.workspaceId,
+    governance,
+    approvedEnvironment: request.environment,
+  });
   return request;
 }
 

@@ -20,6 +20,10 @@ import {
   rejectSensitiveActionApproval,
   requestSensitiveActionApproval,
 } from "@/src/server/services/terminal-approval-gate-service";
+import {
+  assertTerminalEnvironmentBoundary,
+  resolveWorkspaceEnvironment,
+} from "@/src/server/services/terminal-environment-boundary-service";
 
 const require = createRequire(import.meta.url);
 
@@ -760,8 +764,10 @@ function getExecutableReviewedActionPlan(control: {
 function buildTerminalApprovalList(
   controlCenterOverview: Awaited<ReturnType<typeof buildControlCenterOverview>>,
   workspaceId: string,
+  environment: string,
 ) {
   const incidentApprovals = controlCenterOverview.collaboration.digestWorkspaceHealth
+    .filter((workspace) => String(workspace.incidentPolicy?.environment || environment) === environment)
     .flatMap((workspace) =>
       (workspace.incidentApprovalHistory || []).map((approval) => ({
         id: approval.id,
@@ -779,7 +785,7 @@ function buildTerminalApprovalList(
         createdAt: approval.createdAt,
       })),
     );
-  const sensitiveApprovals = listSensitiveApprovalRequests(workspaceId).map((approval) => ({
+  const sensitiveApprovals = listSensitiveApprovalRequests(workspaceId, environment).map((approval) => ({
     ...approval,
     requestedStatus: "sensitive action",
   }));
@@ -799,6 +805,7 @@ function mergeTerminalGovernance(
   user: ConsoleActor,
 ) {
   const policy = getEnvironmentPolicy(governance, user.workspaceId);
+  const workspaceEnvironment = resolveWorkspaceEnvironment(governance, user.workspaceId);
   const controlCollaboration = controlCenterOverview.collaboration;
 
   return {
@@ -807,7 +814,7 @@ function mergeTerminalGovernance(
       ...(overview.collaboration || {}),
       digestWorkspaceHealth: controlCollaboration.digestWorkspaceHealth,
       digestEscalations: controlCollaboration.digestEscalations,
-      approvals: buildTerminalApprovalList(controlCenterOverview, user.workspaceId),
+      approvals: buildTerminalApprovalList(controlCenterOverview, user.workspaceId, workspaceEnvironment),
       globalOperations: controlCollaboration.globalOperations,
       policyPlaybookAdoption: controlCollaboration.policyPlaybookAdoption,
       incidentApprovalPressure: controlCollaboration.incidentApprovalPressure,
@@ -826,7 +833,8 @@ function mergeTerminalGovernance(
       appliedApprovalPolicies: controlCollaboration.appliedApprovalPolicies,
       governance: {
         ...(overview.collaboration?.governance || {}),
-        currentEnvironment: governance.currentEnvironment,
+        currentEnvironment: workspaceEnvironment,
+        platformEnvironment: governance.currentEnvironment,
         sensitiveActionsRequireApproval: Boolean(governance.sensitiveActionsRequireApproval),
         environmentPolicies: governance.environmentPolicies || {},
         workspacePolicyOverrides: governance.workspacePolicyOverrides || {},
@@ -839,7 +847,7 @@ function mergeTerminalGovernance(
         ...(overview.collaboration?.permissions || {}),
         canApprove: Boolean(canApproveInEnvironment(user.role, governance, user.workspaceId)),
         canManageGovernance: Boolean(canManageGovernanceInEnvironment(user.role, governance)),
-        currentEnvironment: governance.currentEnvironment,
+        currentEnvironment: workspaceEnvironment,
         minimumRoleForCommands: String(policy.minimumRoleForCommands || "operator"),
         minimumRoleForApprovals: String(policy.minimumRoleForApprovals || "approver"),
         minimumRoleForGovernance: String(policy.minimumRoleForGovernance || "admin"),
@@ -1063,23 +1071,32 @@ export async function executeTerminalRequest(
     if (governedStructuredActionPlan.action === "collaboration:digest-generate") {
       governedStructuredActionPlan.overview = await getTerminalOverview(user);
     }
+    const governance = await getPolicyGovernanceSnapshot();
+    const environmentBoundary = assertTerminalEnvironmentBoundary({
+      action,
+      payload: actionPayload,
+      workspaceId: user.workspaceId,
+      governance,
+      approvedEnvironment: internal.approvedRequestId
+        ? getSensitiveApprovalRequest(internal.approvedRequestId, user.workspaceId)?.environment
+        : undefined,
+    });
     governedStructuredActionPlan.meta = {
       userId: user.id,
       workspaceId: user.workspaceId,
       userName: user.name || user.email,
       userEmail: user.email,
       userRole: user.role,
+      environment: environmentBoundary.workspaceEnvironment,
     };
 
     if (isSensitiveTerminalAction(action) && internal.approvedRequestId === undefined) {
-      const governance = await getPolicyGovernanceSnapshot();
       if (Boolean(governance.sensitiveActionsRequireApproval)) {
-        const policy = getEnvironmentPolicy(governance, user.workspaceId);
         const approval = requestSensitiveActionApproval({
           action,
           payload: governedStructuredActionPlan.payload as Record<string, unknown>,
           actor: user,
-          environment: String(policy.currentEnvironment || governance.currentEnvironment || "development"),
+          environment: environmentBoundary.workspaceEnvironment,
         });
         return {
           ok: true,

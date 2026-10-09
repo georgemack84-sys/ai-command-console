@@ -135,4 +135,33 @@ describe("terminal sensitive approval gates", () => {
       expect.objectContaining({ status: "rejected", rejectedById: approver.id, rejectionNote: "Keep the template for the audit window." }),
     );
   });
+
+  it("isolates duplicate requests and decisions by environment", async () => {
+    const staging = service.requestSensitiveActionApproval({
+      action: "watcher:stop",
+      payload: { reason: "maintenance" },
+      actor: requester,
+      environment: "staging",
+    });
+    const production = service.requestSensitiveActionApproval({
+      action: "watcher:stop",
+      payload: { reason: "maintenance" },
+      actor: requester,
+      environment: "production",
+    });
+
+    expect(production.request.id).not.toBe(staging.request.id);
+    expect(service.listSensitiveApprovalRequests(requester.workspaceId, "staging")).toEqual([
+      expect.objectContaining({ id: staging.request.id, environment: "staging" }),
+    ]);
+
+    await expect(
+      service.approveSensitiveActionApproval({
+        approvalId: staging.request.id,
+        actor: approver,
+        governance,
+        execute: async () => ({ ok: true }),
+      }),
+    ).rejects.toMatchObject({ code: "approval_environment_changed", status: 409 });
+  });
 });
