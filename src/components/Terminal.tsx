@@ -311,6 +311,7 @@ type Overview = {
       approvals: number;
       avgCommandLatencyMs: number;
       avgWatcherLatencyMs: number;
+      avgApprovalLatencyMs: number;
       avgSchedulerLatencyMs: number;
     };
     recent: Array<{
@@ -957,6 +958,7 @@ const EMPTY_OVERVIEW: Overview = {
       approvals: 0,
       avgCommandLatencyMs: 0,
       avgWatcherLatencyMs: 0,
+      avgApprovalLatencyMs: 0,
       avgSchedulerLatencyMs: 0,
     },
     recent: [],
@@ -4635,6 +4637,14 @@ export default function Terminal({
                   <div className="rounded-xl bg-zinc-950/70 p-3">
                     <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Cmd Avg</p>
                     <p className="mt-2 text-lg font-semibold text-white">{overview.telemetry.totals.avgCommandLatencyMs}ms</p>
+                  </div>
+                  <div className="rounded-xl bg-zinc-950/70 p-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Watcher Avg</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{overview.telemetry.totals.avgWatcherLatencyMs}ms</p>
+                  </div>
+                  <div className="rounded-xl bg-zinc-950/70 p-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Approval Avg</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{overview.telemetry.totals.avgApprovalLatencyMs}ms</p>
                   </div>
                   <div className="rounded-xl bg-zinc-950/70 p-3">
                     <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Sched Avg</p>

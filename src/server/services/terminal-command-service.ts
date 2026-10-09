@@ -13,6 +13,7 @@ const { enqueueJob } = require("../../../services/jobQueue");
 const { listAlerts, listActiveAlerts } = require("../../../services/alerts");
 const { getDigestSchedulerStatus } = require("../../../services/digestScheduler");
 const { listPlugins } = require("../../../services/pluginLoader");
+const { recordTelemetry } = require("../../../services/telemetry");
 
 type CommandActor = Pick<SessionUser, "id" | "workspaceId" | "name" | "email" | "role">;
 
@@ -56,6 +57,7 @@ const handledCommandPrefixes = [
 
 const defaultRuntimeDeps = {
   enqueueJob,
+  recordTelemetry,
 };
 
 const runtimeDeps = { ...defaultRuntimeDeps };
@@ -195,7 +197,7 @@ export function canHandleTerminalCommand(command: string) {
   return handledCommandPrefixes.some((prefix) => trimmed === prefix || trimmed.startsWith(prefix));
 }
 
-export async function executeTerminalCommand(command: string, actor: CommandActor) {
+async function executeTerminalCommandInternal(command: string, actor: CommandActor) {
   const trimmed = String(command || "").trim();
 
   if (trimmed === "agents:list") {
@@ -455,6 +457,52 @@ export async function executeTerminalCommand(command: string, actor: CommandActo
   }
 
   throw new Error(`Unsupported terminal command: ${trimmed}`);
+}
+
+function getCommandOperation(command: string) {
+  const [operation = "unknown"] = String(command || "").trim().split(/\s+/, 1);
+  return operation.toLowerCase();
+}
+
+function recordCommandTelemetry(event: Record<string, unknown>) {
+  try {
+    runtimeDeps.recordTelemetry(event);
+  } catch {
+    // Telemetry must never change the command outcome.
+  }
+}
+
+export async function executeTerminalCommand(command: string, actor: CommandActor) {
+  const startedAt = Date.now();
+  const operation = getCommandOperation(command);
+
+  try {
+    const output = await executeTerminalCommandInternal(command, actor);
+    recordCommandTelemetry({
+      type: "command",
+      category: "terminal",
+      operation,
+      status: "ok",
+      durationMs: Date.now() - startedAt,
+      actorId: actor.id,
+      workspaceId: actor.workspaceId,
+    });
+    return output;
+  } catch (error) {
+    recordCommandTelemetry({
+      type: "command",
+      category: "terminal",
+      operation,
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      actorId: actor.id,
+      workspaceId: actor.workspaceId,
+      meta: {
+        errorName: error instanceof Error ? error.name : "Error",
+      },
+    });
+    throw error;
+  }
 }
 
 export function __setTerminalCommandDepsForTest(overrides: Partial<typeof defaultRuntimeDeps>) {
