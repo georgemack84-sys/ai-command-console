@@ -438,6 +438,13 @@ function mergePolicyWithDefaults(loadedPolicy = {}) {
     };
     normalizedLoadedPolicy.version = 24;
   }
+  if (Number(normalizedLoadedPolicy.version || 1) < 25) {
+    normalizedLoadedPolicy.actionPrefixCategoryMap = {
+      ...(normalizedLoadedPolicy.actionPrefixCategoryMap || {}),
+      "research:": "workflow_control",
+    };
+    normalizedLoadedPolicy.version = 25;
+  }
 
   const defaults = createDefaultPolicy();
   return {

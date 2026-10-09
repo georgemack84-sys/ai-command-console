@@ -129,9 +129,12 @@ Delivered in current slice:
 - Normalized workspace action aliases before governed routing
 - Preserved authenticated workspace membership checks at the route boundary
 - Added an explicit client confirmation round trip for confirmation-required operations
+- Routed research action API mutations through the shared governed route adapter
+- Assigned collision-free internal `research:*` action IDs before engine/router dispatch
+- Preserved explicit client confirmation for research mutations and kept typed service authorization in the execution path
 
 Next:
-- Govern research and dashboard action APIs
+- Govern dashboard and admin mutation APIs
 - Govern job queue mutation APIs and autonomous scheduler initiators
 - Refresh the runtime-path audit as each bypass is retired
 
