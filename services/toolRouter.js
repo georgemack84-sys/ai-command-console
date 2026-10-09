@@ -46,6 +46,7 @@ const RESEARCH_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "servi
 const RESEARCH_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "research-action-service.ts");
 const DASHBOARD_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "dashboard-action-service.ts");
 const ADMIN_ACCESS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "admin-access-action-service.ts");
+const JOB_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "job-action-service.ts");
 const OPERATIONS_ACTION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "operations-action-service.ts");
 const TERMINAL_COLLABORATION_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-collaboration-service.ts");
 const TERMINAL_OWNERSHIP_SERVICE_PATH = path.join(__dirname, "..", "src", "server", "services", "terminal-ownership-service.ts");
@@ -76,6 +77,13 @@ const ADMIN_ACCESS_ROUTED_ACTIONS = new Map([
   ["admin:workspace-policy", "workspace-policy"],
   ["admin:governance", "governance"],
   ["admin:ai-summary-check", "ai-summary-check"],
+]);
+const JOB_ROUTED_ACTIONS = new Map([
+  ["jobs:workspace-generate-insights", "workspace:generate-insights"],
+  ["jobs:workspace-failure-drill", "workspace:failure-drill"],
+  ["jobs:workspace-generate-summary", "workspace:generate-summary"],
+  ["jobs:cancel", "job:cancel"],
+  ["jobs:retry", "job:retry"],
 ]);
 const OPERATIONS_ROUTED_ACTIONS = new Set([
   "approval:approve",
@@ -174,6 +182,14 @@ function loadAdminAccessActionService() {
     return injectedBridge.loadAdminAccessActionService();
   }
   return requireTypeScriptModule(ADMIN_ACCESS_ACTION_SERVICE_PATH, __filename);
+}
+
+function loadJobActionService() {
+  const injectedBridge = globalThis[RUNTIME_SERVICE_BRIDGE_GLOBAL];
+  if (injectedBridge && typeof injectedBridge.loadJobActionService === "function") {
+    return injectedBridge.loadJobActionService();
+  }
+  return requireTypeScriptModule(JOB_ACTION_SERVICE_PATH, __filename);
 }
 
 function loadTerminalCollaborationService() {
@@ -1077,6 +1093,22 @@ async function route(plan, modes = {}) {
     }
 
     default:
+      if (JOB_ROUTED_ACTIONS.has(String(plan.action || ""))) {
+        try {
+          const jobService = loadJobActionService();
+          result = await jobService.executeJobAction(
+            {
+              ...((plan.payload && typeof plan.payload === "object" ? plan.payload : {})),
+              type: JOB_ROUTED_ACTIONS.get(String(plan.action || "")),
+            },
+            getPlanActor(plan),
+          );
+        } catch (error) {
+          result = { ok: false, error: error?.message || `Job action failed: ${plan.action}` };
+        }
+        break;
+      }
+
       if (ADMIN_ACCESS_ROUTED_ACTIONS.has(String(plan.action || ""))) {
         try {
           const adminService = loadAdminAccessActionService();

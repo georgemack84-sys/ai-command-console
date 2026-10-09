@@ -136,9 +136,11 @@ Delivered in current slice:
 - Added secure workspace-membership admission and explicit client confirmation for dashboard mutations
 - Routed all privileged admin access mutations through the governed runtime with collision-free `admin:*` action IDs
 - Preserved route-level admin admission, downstream typed-service authorization, explicit confirmation, and response status semantics
+- Routed job creation, cancellation, and retry API mutations through the governed runtime with collision-free `jobs:*` action IDs
+- Added target-workspace authorization before queue mutation while preserving accepted response status and explicit confirmation
 
 Next:
-- Govern job queue mutation APIs and autonomous scheduler initiators
+- Govern worker processor admission and autonomous scheduler initiators
 - Refresh the runtime-path audit as each bypass is retired
 
 ## Suggested Execution Order

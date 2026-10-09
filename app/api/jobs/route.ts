@@ -1,43 +1,10 @@
-import { z } from "zod";
 import { getSessionUser } from "@/src/lib/auth";
 import { AppError } from "@/src/server/api/errors";
 import { apiError, apiSuccess } from "@/src/server/api/response";
-import { cancelBackgroundJob, queueBackgroundJob, readBackgroundJob, readBackgroundJobs, retryBackgroundJob } from "@/src/server/jobs/background-jobs";
-import type { SavedTriageView } from "@/src/server/services/summary-service";
-import { trackEvent } from "@/src/server/observability/analytics";
+import { readBackgroundJob, readBackgroundJobs } from "@/src/server/jobs/background-jobs";
 import { requireWorkspaceMember } from "@/src/server/auth/permissions";
 import { enforceRateLimit, getDefaultWindowMs, getJobsRateLimit } from "@/src/server/security/rate-limit";
-
-const viewSchema = z.object({
-  name: z.string(),
-  filter: z.enum(["all", "blocked", "review", "publish", "complete"]),
-  sort: z.enum(["urgency", "priority", "recent"]),
-  freshnessHours: z.number().positive(),
-});
-
-const postSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("workspace:generate-insights"),
-    workspaceId: z.string().min(1).optional(),
-  }),
-  z.object({
-    type: z.literal("workspace:failure-drill"),
-    workspaceId: z.string().min(1).optional(),
-  }),
-  z.object({
-    type: z.literal("workspace:generate-summary"),
-    workspaceId: z.string().min(1).optional(),
-    view: viewSchema,
-  }),
-  z.object({
-    type: z.literal("job:cancel"),
-    jobId: z.string().min(1),
-  }),
-  z.object({
-    type: z.literal("job:retry"),
-    jobId: z.string().min(1),
-  }),
-]);
+import { executeGovernedJobAction } from "@/src/server/services/governed-job-action-service";
 
 export async function GET(request: Request) {
   try {
@@ -74,54 +41,12 @@ export async function POST(request: Request) {
 
     await requireWorkspaceMember({ userId: user.id, userRole: user.role, workspaceId: user.workspaceId });
     enforceRateLimit(`jobs:post:${user.id}`, { limit: getJobsRateLimit(), windowMs: getDefaultWindowMs() });
-    const body = postSchema.parse(await request.json());
-
-    if (body.type === "workspace:generate-insights") {
-      const job = queueBackgroundJob(
-        body.type,
-        { workspaceId: body.workspaceId || user.workspaceId },
-        { actorId: user.id, actorName: user.name },
-      );
-      trackEvent({
-        event: "insight_generation_requested",
-        actorId: user.id,
-        workspaceId: body.workspaceId || user.workspaceId,
-        properties: { jobId: job.id },
-      });
-      return apiSuccess({ job }, { status: 202 });
+    const result = await executeGovernedJobAction(await request.json(), user);
+    if (result.requiresConfirmation || result.simulated) {
+      return apiSuccess(result);
     }
-
-    if (body.type === "workspace:failure-drill") {
-      const job = queueBackgroundJob(
-        body.type,
-        { workspaceId: body.workspaceId || user.workspaceId },
-        { actorId: user.id, actorName: user.name },
-      );
-      return apiSuccess({ job }, { status: 202 });
-    }
-
-    if (body.type === "workspace:generate-summary") {
-      const job = queueBackgroundJob(
-        body.type,
-        { workspaceId: body.workspaceId || user.workspaceId, view: body.view as SavedTriageView },
-        { actorId: user.id, actorName: user.name },
-      );
-      return apiSuccess({ job }, { status: 202 });
-    }
-
-    if (body.type === "job:cancel") {
-      const job = cancelBackgroundJob(body.jobId);
-      if (!job) {
-        throw new AppError(404, "job_not_found", "Job not found.");
-      }
-      return apiSuccess({ job });
-    }
-
-    const job = retryBackgroundJob(body.jobId);
-    if (!job) {
-      throw new AppError(404, "job_not_found", "Job not found.");
-    }
-    return apiSuccess({ job });
+    const actionResult = result as unknown as { data: unknown; status?: number };
+    return apiSuccess(actionResult.data, actionResult.status ? { status: actionResult.status } : undefined);
   } catch (error) {
     return apiError(error, "Unable to manage job.");
   }

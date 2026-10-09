@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { postJobAction } from "@/src/lib/client/job-actions";
 import type { ResearchBrief, ResearchReport, SessionUser } from "@/src/lib/types";
 
 const TRIAGE_FILTER_KEY = "research-desk.triage-filter";
@@ -593,24 +594,19 @@ export function ResearchDeskDashboard() {
     try {
       setQueueingSummary(true);
       setSummaryNotice(null);
-      const response = await fetch("/api/jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "workspace:generate-summary",
-          view: {
-            name: summaryViewName || "Current View",
-            filter: triageFilter,
-            sort: triageSort,
-            freshnessHours,
-          },
-        }),
+      const result = await postJobAction<{ job?: { id: string } }>({
+        type: "workspace:generate-summary",
+        view: {
+          name: summaryViewName || "Current View",
+          filter: triageFilter,
+          sort: triageSort,
+          freshnessHours,
+        },
       });
-      const payload = (await response.json()) as { ok: boolean; data?: { job?: { id: string } }; error?: { message?: string } };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error?.message || "Unable to queue AI summary.");
+      if (!result.ok) {
+        throw new Error(result.error || "Unable to queue AI summary.");
       }
-      setSummaryNotice(`Queued AI summary job ${payload.data?.job?.id || ""}. A draft report will appear when it completes.`);
+      setSummaryNotice(`Queued AI summary job ${result.data?.job?.id || ""}. A draft report will appear when it completes.`);
     } catch (error) {
       setSummaryNotice(error instanceof Error ? error.message : "Unable to queue AI summary.");
     } finally {

@@ -22,14 +22,36 @@ vi.mock("@/src/server/jobs/background-jobs", () => ({
   retryBackgroundJob: vi.fn(),
 }));
 
+vi.mock("@/src/server/services/governed-job-action-service", () => ({
+  executeGovernedJobAction: vi.fn(),
+}));
+
 import { GET, POST } from "@/app/api/jobs/route";
 import { AppError } from "@/src/server/api/errors";
 import { getSessionUser } from "@/src/lib/auth";
-import { queueBackgroundJob, readBackgroundJobs } from "@/src/server/jobs/background-jobs";
+import { cancelBackgroundJob, queueBackgroundJob, readBackgroundJobs, retryBackgroundJob } from "@/src/server/jobs/background-jobs";
+import { executeGovernedJobAction } from "@/src/server/services/governed-job-action-service";
 
 describe("jobs route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(executeGovernedJobAction).mockImplementation(async (input, user) => {
+      const body = input as Record<string, unknown>;
+      if (body.type === "job:cancel" || body.type === "job:retry") {
+        const job = body.type === "job:cancel"
+          ? cancelBackgroundJob(String(body.jobId))
+          : retryBackgroundJob(String(body.jobId));
+        if (!job) throw new AppError(404, "job_not_found", "Job not found.");
+        return { data: { job } } as never;
+      }
+      const workspaceId = String(body.workspaceId || user.workspaceId);
+      const job = queueBackgroundJob(
+        body.type as "workspace:generate-insights" | "workspace:generate-summary" | "workspace:failure-drill",
+        body.type === "workspace:generate-summary" ? { workspaceId, view: body.view } : { workspaceId },
+        { actorId: user.id, actorName: user.name },
+      );
+      return { data: { job }, status: 202 } as never;
+    });
   });
 
   it("queues an insight job for authenticated users", async () => {
@@ -165,5 +187,33 @@ describe("jobs route", () => {
     expect(payload.data.diagnostics.recent[0].scope).toBe("jobs.queue");
     expect(payload.data.diagnostics.recent[0].traceId).toBe("job_trace_1");
     expect(payload.data.diagnostics.latestFailures[0].traceId).toBe("job_trace_1");
+  });
+
+  it("returns confirmation evidence without dispatching the job mutation", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({
+      id: "user_1",
+      email: "operator@example.com",
+      name: "Operator",
+      role: "admin",
+      status: "active",
+      workspaceId: "workspace_1",
+      workspaceName: "Pulse Workspace",
+    });
+    vi.mocked(executeGovernedJobAction).mockResolvedValueOnce({
+      action: "job:cancel",
+      output: "Control review requires confirmation before execution.",
+      requiresConfirmation: true,
+    } as never);
+
+    const response = await POST(new Request("http://localhost/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "job:cancel", jobId: "job_1" }),
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.requiresConfirmation).toBe(true);
+    expect(cancelBackgroundJob).not.toHaveBeenCalled();
   });
 });
