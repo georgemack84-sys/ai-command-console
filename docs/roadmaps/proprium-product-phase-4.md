@@ -1,6 +1,7 @@
 # Proprium Product Phase 4: From account to a useful household
 
-Status: approved direction; 4.0 and 4.1 initial implementation in progress
+Status: 4.0 and 4.1 implementation complete; staged browser acceptance passed;
+staging soak evidence pending. 4.2 routine bill management in progress.
 
 ## Purpose
 

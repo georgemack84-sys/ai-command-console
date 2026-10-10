@@ -91,7 +91,7 @@ a:hover {
   padding: 0;
 }
 .bill-list li {
-  align-items: baseline;
+  align-items: center;
   background: var(--surface-raised);
   border-radius: var(--radius-md);
   display: flex;
@@ -101,6 +101,18 @@ a:hover {
 }
 .bill-list span {
   color: var(--text-secondary);
+  display: block;
+  margin-top: var(--space-1);
+}
+.bill-list p {
+  color: var(--text-secondary);
+  margin: var(--space-2) 0 0;
+}
+.bill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
 }
 .sr-only {
   position: absolute;

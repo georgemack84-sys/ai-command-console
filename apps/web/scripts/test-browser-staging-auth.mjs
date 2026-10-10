@@ -11,6 +11,9 @@ const displayName = `Staging Check ${suffix}`;
 const password = 'long-enough-password';
 const householdName = `Home ${suffix}`;
 const billName = `Internet ${suffix}`;
+const updatedAmount = '91.20';
+const updatedDueDate = '2030-01-20';
+const updatedNotes = 'Updated staging plan';
 
 let browser;
 try {
@@ -42,7 +45,9 @@ try {
   await page.getByRole('button', { name: 'Create account' }).click();
   assert.equal((await registration).status(), 204, 'Registration failed.');
 
-  console.log('2/6 Completing the first-household and first-bill journey.');
+  console.log(
+    '2/6 Completing the household and routine bill-management journey.',
+  );
   await page
     .getByRole('heading', { name: `${displayName}'s household` })
     .waitFor({ timeout: 15_000 });
@@ -72,8 +77,37 @@ try {
   await page.getByRole('button', { name: 'Add bill' }).click();
   assert.equal((await createBill).status(), 201, 'First-bill creation failed.');
   await page.getByText(billName, { exact: true }).waitFor();
+  await page.getByRole('button', { name: `Edit ${billName}` }).click();
+  await page.getByLabel(`Amount for ${billName} *`).fill(updatedAmount);
+  await page.getByLabel(`Due date for ${billName} *`).fill(updatedDueDate);
+  await page.getByLabel(`Notes for ${billName}`).fill(updatedNotes);
+  const updateBill = page.waitForResponse(
+    (response) =>
+      response.url().startsWith(`${baseUrl}/api/v1${householdPath}/bills/`) &&
+      !response.url().endsWith('/payment-status') &&
+      response.request().method() === 'PATCH',
+  );
+  await page.getByRole('button', { name: 'Save bill' }).click();
+  assert.equal((await updateBill).status(), 200, 'Bill update failed.');
+  await page
+    .getByText(`$91.20 · Due ${updatedDueDate}`)
+    .waitFor({ timeout: 15_000 });
+  const markPaid = page.waitForResponse(
+    (response) =>
+      response.url().startsWith(`${baseUrl}/api/v1${householdPath}/bills/`) &&
+      response.url().endsWith('/payment-status') &&
+      response.request().method() === 'PATCH',
+  );
+  await page.getByRole('button', { name: 'Mark paid' }).click();
+  assert.equal((await markPaid).status(), 200, 'Bill payment update failed.');
+  await page
+    .getByText(`$91.20 · Paid · due ${updatedDueDate}`)
+    .waitFor({ timeout: 15_000 });
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 15_000 });
-  await page.getByText(billName, { exact: true }).waitFor();
+  await page
+    .getByText(`$91.20 · Paid · due ${updatedDueDate}`)
+    .waitFor({ timeout: 15_000 });
+  await page.getByText(updatedNotes, { exact: true }).waitFor();
 
   console.log('3/6 Verifying authenticated dashboard and session cookie.');
   await page.goto(`${baseUrl}/dashboard`, {
