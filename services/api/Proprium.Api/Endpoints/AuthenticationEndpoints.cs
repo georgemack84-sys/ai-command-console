@@ -17,7 +17,7 @@ public static class AuthenticationEndpoints
         auth.MapPost("/login", async (HttpContext context, IAuthenticationService authentication, IAuthenticationAuditRecorder auditEvents, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
-            var (body, isTooLarge) = await ReadLoginBodyAsync(context.Request.Body, cancellationToken);
+            var (body, isTooLarge) = await ReadRequestBodyAsync(context.Request.Body, cancellationToken);
             var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(sources.Resolve(context.Connection.RemoteIpAddress), ExtractUsername(body)), cancellationToken);
             if (rateLimit.UsedFallback) await RecordEventAsync(auditEvents, AuthenticationEventType.LoginRateLimitFallbackActivated, AuthenticationEventOutcome.Success, context.TraceIdentifier, "redis-unavailable", cancellationToken);
             if (rateLimit.IsExceeded) { await RecordEventAsync(auditEvents, AuthenticationEventType.LoginRateLimited, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "attempt-limit", cancellationToken); context.Response.Headers.RetryAfter = rateLimit.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return Results.StatusCode(StatusCodes.Status429TooManyRequests); }
@@ -38,6 +38,31 @@ public static class AuthenticationEndpoints
         }).WithName("Login").WithSummary("Create an authenticated server-side session.")
             .WithDescription("Accepts credentials and returns 204 with the opaque session only in the HttpOnly cookie. Credential rejection is always 401.")
             .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status429TooManyRequests).Produces(StatusCodes.Status400BadRequest);
+
+        auth.MapPost("/register", async (HttpContext context, IAccountRegistrationService registration, IAuthenticationAuditRecorder auditEvents, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, CancellationToken cancellationToken) =>
+        {
+            SetNoStore(context);
+            var (body, isTooLarge) = await ReadRequestBodyAsync(context.Request.Body, cancellationToken);
+            var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(sources.Resolve(context.Connection.RemoteIpAddress), ExtractUsername(body)), cancellationToken);
+            if (rateLimit.UsedFallback) await RecordEventAsync(auditEvents, AuthenticationEventType.LoginRateLimitFallbackActivated, AuthenticationEventOutcome.Success, context.TraceIdentifier, "redis-unavailable", cancellationToken);
+            if (rateLimit.IsExceeded) { await RecordEventAsync(auditEvents, AuthenticationEventType.LoginRateLimited, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "account-registration-limit", cancellationToken); context.Response.Headers.RetryAfter = rateLimit.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return Results.StatusCode(StatusCodes.Status429TooManyRequests); }
+            if (!requestPolicy.IsOriginAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.OriginRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "origin", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (!requestPolicy.IsCsrfAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.CsrfRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "csrf", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (isTooLarge) return Results.BadRequest();
+            if (!string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
+            if (HasDuplicateProperties(body)) return Results.BadRequest();
+            RegisterAccountRequest? request;
+            try { request = JsonSerializer.Deserialize<RegisterAccountRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            if (request is null || string.IsNullOrWhiteSpace(request.Username) || request.Username.Trim().Length is < 3 or > 64 || string.IsNullOrWhiteSpace(request.DisplayName) || request.DisplayName.Trim().Length > 240 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length is < 12 or > 1024)
+                return Results.BadRequest();
+            var result = await registration.RegisterAsync(new AccountRegistrationAttempt(request.Username, request.DisplayName, request.Password, context.TraceIdentifier), cancellationToken);
+            if (!result.Succeeded || result.SessionToken is null) return Results.Conflict();
+            cookies.Append(context.Response, result.SessionToken);
+            return Results.NoContent();
+        }).WithName("RegisterAccount").WithSummary("Create an account and personal household.")
+            .WithDescription("Creates a Member account with a personal household and returns 204 with the opaque session only in the HttpOnly cookie.")
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status409Conflict).Produces(StatusCodes.Status429TooManyRequests);
 
         auth.MapGet("/me", (HttpContext context) =>
         {
@@ -69,7 +94,7 @@ public static class AuthenticationEndpoints
     private static Task RecordEventAsync(IAuthenticationAuditRecorder auditEvents, AuthenticationEventType eventType, AuthenticationEventOutcome outcome, string correlationId, string reasonCode, CancellationToken cancellationToken) =>
         auditEvents.RecordBestEffortAsync(eventType, outcome, correlationId, reasonCode, cancellationToken);
 
-    private static async Task<(string Body, bool IsTooLarge)> ReadLoginBodyAsync(Stream stream, CancellationToken cancellationToken)
+    private static async Task<(string Body, bool IsTooLarge)> ReadRequestBodyAsync(Stream stream, CancellationToken cancellationToken)
     {
         var bytes = new byte[4_097];
         var read = 0;

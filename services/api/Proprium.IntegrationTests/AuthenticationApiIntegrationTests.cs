@@ -65,6 +65,30 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Registration_creates_a_member_personal_household_and_authenticated_session()
+    {
+        var username = $"account-{Guid.NewGuid():N}";
+        var client = CreateAuthenticationClient(handleCookies: true);
+
+        var response = await client.PostAsJsonAsync("/api/v1/auth/register", new RegisterAccountRequest(username, "New Account", "long-enough-password"));
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+        Assert.Contains(response.Headers.GetValues("Set-Cookie"), value => value.StartsWith("proprium_session=", StringComparison.Ordinal));
+        var current = await client.GetFromJsonAsync<CurrentUserResponse>("/api/v1/auth/me");
+        Assert.Equal(username, current?.Username);
+        Assert.Contains("Member", current?.Roles ?? []);
+        Assert.Contains("identity.profile.read-self", current?.Permissions ?? []);
+
+        await using var database = CreateContext();
+        var user = await database.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
+        var household = await database.Households.SingleAsync(item => item.OwnerUserId == user.Id);
+        Assert.Equal("New Account's household", household.Name);
+        Assert.True(await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == household.Id && item.UserId == user.Id));
+        Assert.True(await database.AuthenticationEvents.AnyAsync(item => item.EventType == AuthenticationEventType.AccountRegistered && item.UserId == user.Id));
+    }
+
+    [Fact]
     public async Task Login_current_user_and_logout_use_authoritative_server_side_sessions()
     {
         var username = $"user-{Guid.NewGuid():N}";

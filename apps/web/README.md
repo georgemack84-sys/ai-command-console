@@ -1,8 +1,31 @@
 # Proprium frontend
 
-Restore with `npm ci`. For direct component development, copy `.env.example` to
-the ignored `.env.local`, then use `npm run dev`. The supported complete platform
-startup remains `npm run repo -- dev` from the repository root. Public
+Restore with `npm ci`.
+
+## Run the sign-in and account-creation flow locally
+
+The sign-in and **Create account** pages are backed by the Platform API, PostgreSQL,
+and Redis. Start Docker Desktop first, then use the repository-owned command from
+the repository root:
+
+```bash
+npm run repo -- dev
+npm run repo -- health
+```
+
+Open [http://localhost:3000/login](http://localhost:3000/login). The login card
+includes **Create an account**, which opens `/register` and creates a Member user,
+personal household, and authenticated session.
+
+Use `npm run repo -- stop` when finished. If Docker reports that it cannot connect
+to `dockerDesktopLinuxEngine`, Docker Desktop is installed but its daemon is not
+running; launch it and wait until it reports that the engine is ready before
+retrying the commands above.
+
+For direct component development, copy `.env.example` to the ignored `.env.local`,
+then use `npm run dev` from this `apps/web` directory. That frontend-only mode
+still requires a separately running Platform API with a matching
+`AUTH_ALLOWED_ORIGIN`; it cannot create or sign in accounts by itself. Public
 configuration is validated before production builds. `.env.docker` supplies Docker
 Compose build interpolation only:
 

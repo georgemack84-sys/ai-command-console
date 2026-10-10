@@ -4,4 +4,8 @@ public sealed record LoginRequest(string? Username, string? Password)
 {
     public override string ToString() => $"{nameof(LoginRequest)} {{ Username = [REDACTED], Password = [REDACTED] }}";
 }
+public sealed record RegisterAccountRequest(string? Username, string? DisplayName, string? Password)
+{
+    public override string ToString() => $"{nameof(RegisterAccountRequest)} {{ Username = [REDACTED], DisplayName = [REDACTED], Password = [REDACTED] }}";
+}
 public sealed record CurrentUserResponse(Guid UserId, string Username, string DisplayName, IReadOnlyList<string> Roles, IReadOnlyList<string> Permissions);

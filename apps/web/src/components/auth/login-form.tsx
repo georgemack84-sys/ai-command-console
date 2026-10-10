@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { ApiError } from '@/lib/api/api-error';
@@ -118,6 +119,9 @@ export function LoginForm({
       <Button type="submit" loading={busy} loadingLabel="Signing in">
         Sign in
       </Button>
+      <p className="auth-switch">
+        New to Proprium? <Link href="/register">Create an account</Link>
+      </p>
       <span className="sr-only" aria-live="polite">
         {busy ? 'Signing in' : ''}
       </span>

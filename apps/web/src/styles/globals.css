@@ -44,6 +44,16 @@ a:hover {
 .login-form h1 {
   margin: 0;
 }
+.auth-intro,
+.auth-switch {
+  margin: 0;
+}
+.auth-intro {
+  color: var(--text-secondary);
+}
+.auth-switch {
+  text-align: center;
+}
 .auth-resolution {
   text-align: center;
   align-content: center;
