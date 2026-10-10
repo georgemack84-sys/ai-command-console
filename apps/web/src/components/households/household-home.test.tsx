@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createBill,
+  createHouseholdInvitation,
   listBills,
   listHouseholds,
   renameHousehold,
@@ -14,6 +15,7 @@ import { HouseholdHome } from './household-home';
 
 vi.mock('@/lib/households/household-service', () => ({
   createBill: vi.fn(),
+  createHouseholdInvitation: vi.fn(),
   listBills: vi.fn(),
   listHouseholds: vi.fn(),
   renameHousehold: vi.fn(),
@@ -93,6 +95,29 @@ describe('HouseholdHome', () => {
     );
     expect(await screen.findByText('Internet')).toBeVisible();
     expect(screen.getByText('$87.45 · Due 2030-01-15')).toBeVisible();
+  });
+
+  it('lets the household owner create an in-product invitation', async () => {
+    vi.mocked(createHouseholdInvitation).mockResolvedValue({
+      id: 'invitation-1',
+      householdId,
+      householdName: 'Original household',
+      inviterDisplayName: 'Owner',
+      expiresAtUtc: '2030-01-08T00:00:00Z',
+    });
+    render(<HouseholdHome householdId={householdId} />);
+    await screen.findByRole('heading', { name: 'Original household' });
+    fireEvent.change(screen.getByLabelText('Username *'), {
+      target: { value: 'new-member' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
+    await waitFor(() =>
+      expect(createHouseholdInvitation).toHaveBeenCalledWith(
+        householdId,
+        'new-member',
+      ),
+    );
+    expect(await screen.findByText(/Invitation created/)).toBeVisible();
   });
 
   it('updates a bill and changes its payment status without a reload', async () => {

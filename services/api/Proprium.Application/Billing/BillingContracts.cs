@@ -61,6 +61,26 @@ public interface IHouseholdCommandService
     Task<RenameHouseholdResult> RenameAsync(RenameHouseholdCommand command, CancellationToken cancellationToken = default);
 }
 
+public sealed record HouseholdInvitationDetails(
+    Guid Id,
+    Guid HouseholdId,
+    string HouseholdName,
+    string InviterDisplayName,
+    DateTimeOffset ExpiresAtUtc);
+
+public enum CreateHouseholdInvitationOutcome { Created, Forbidden, TargetUnavailable, AlreadyMember, AlreadyPending }
+public enum ResolveHouseholdInvitationOutcome { Accepted, Revoked, Forbidden, NotFound, Expired }
+public sealed record CreateHouseholdInvitationResult(CreateHouseholdInvitationOutcome Outcome, HouseholdInvitationDetails? Invitation = null);
+public sealed record ResolveHouseholdInvitationResult(ResolveHouseholdInvitationOutcome Outcome, HouseholdInvitationDetails? Invitation = null);
+
+public interface IHouseholdInvitationService
+{
+    Task<IReadOnlyCollection<HouseholdInvitationDetails>> ListPendingForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<CreateHouseholdInvitationResult> CreateAsync(Guid householdId, Guid actorId, string targetUsername, CancellationToken cancellationToken = default);
+    Task<ResolveHouseholdInvitationResult> AcceptAsync(Guid invitationId, Guid actorId, CancellationToken cancellationToken = default);
+    Task<ResolveHouseholdInvitationResult> RevokeAsync(Guid invitationId, Guid actorId, CancellationToken cancellationToken = default);
+}
+
 public interface IBillUpdatedEventMapper : IIntegrationEventMapper<Proprium.Domain.Billing.BillUpdatedDomainEvent>;
 public interface IBillCreatedEventMapper : IIntegrationEventMapper<Proprium.Domain.Billing.BillCreatedDomainEvent>;
 public interface IBillPaymentStatusChangedEventMapper : IIntegrationEventMapper<Proprium.Domain.Billing.BillPaymentStatusChangedDomainEvent>;

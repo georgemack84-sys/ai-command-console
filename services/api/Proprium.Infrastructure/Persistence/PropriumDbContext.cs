@@ -19,6 +19,8 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
     public DbSet<AuthenticationEvent> AuthenticationEvents => Set<AuthenticationEvent>();
     public DbSet<Household> Households => Set<Household>();
     public DbSet<HouseholdMembership> HouseholdMemberships => Set<HouseholdMembership>();
+    public DbSet<HouseholdInvitation> HouseholdInvitations => Set<HouseholdInvitation>();
+    public DbSet<HouseholdInvitationAuditEvent> HouseholdInvitationAuditEvents => Set<HouseholdInvitationAuditEvent>();
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
@@ -113,6 +115,26 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
             entity.HasOne(membership => membership.Household).WithMany(household => household.Members).HasForeignKey(membership => membership.HouseholdId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<User>().WithMany().HasForeignKey(membership => membership.UserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(membership => membership.UserId);
+        });
+        modelBuilder.Entity<HouseholdInvitation>(entity =>
+        {
+            entity.ToTable("household_invitations"); entity.HasKey(invitation => invitation.Id);
+            entity.Property(invitation => invitation.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.HasIndex(invitation => new { invitation.TargetUserId, invitation.Status, invitation.ExpiresAtUtc });
+            entity.HasIndex(invitation => new { invitation.HouseholdId, invitation.TargetUserId, invitation.Status });
+            entity.HasOne<Household>().WithMany().HasForeignKey(invitation => invitation.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<User>().WithMany().HasForeignKey(invitation => invitation.InviterUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(invitation => invitation.TargetUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HouseholdInvitationAuditEvent>(entity =>
+        {
+            entity.ToTable("household_invitation_audit_events"); entity.HasKey(item => item.Id);
+            entity.Property(item => item.Action).HasConversion<string>().HasMaxLength(32).IsRequired().Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+            entity.Property(item => item.ReasonCode).HasMaxLength(128).IsRequired().Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+            entity.Property(item => item.OccurredAtUtc).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+            entity.HasIndex(item => new { item.HouseholdId, item.OccurredAtUtc });
+            entity.HasIndex(item => item.InvitationId);
+            entity.HasOne<Household>().WithMany().HasForeignKey(item => item.HouseholdId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<Bill>(entity =>
         {

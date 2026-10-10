@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Proprium.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Proprium.Infrastructure.Persistence;
 namespace Proprium.Infrastructure.Persistence
 {
     [DbContext(typeof(PropriumDbContext))]
-    partial class PropriumDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261010091705_AddHouseholdInvitations")]
+    partial class AddHouseholdInvitations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -131,46 +134,6 @@ namespace Proprium.Infrastructure.Persistence
                     b.HasIndex("TargetUserId", "Status", "ExpiresAtUtc");
 
                     b.ToTable("household_invitations", (string)null);
-                });
-
-            modelBuilder.Entity("Proprium.Domain.Billing.HouseholdInvitationAuditEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<Guid>("ActorUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("HouseholdId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("InvitationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("OccurredAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ReasonCode")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<Guid?>("TargetUserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvitationId");
-
-                    b.HasIndex("HouseholdId", "OccurredAtUtc");
-
-                    b.ToTable("household_invitation_audit_events", (string)null);
                 });
 
             modelBuilder.Entity("Proprium.Domain.Billing.HouseholdMembership", b =>
@@ -577,15 +540,6 @@ namespace Proprium.Infrastructure.Persistence
                         .WithMany()
                         .HasForeignKey("TargetUserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Proprium.Domain.Billing.HouseholdInvitationAuditEvent", b =>
-                {
-                    b.HasOne("Proprium.Domain.Billing.Household", null)
-                        .WithMany()
-                        .HasForeignKey("HouseholdId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

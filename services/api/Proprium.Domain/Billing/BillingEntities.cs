@@ -26,6 +26,34 @@ public sealed class HouseholdMembership
     }
 }
 
+public enum HouseholdInvitationStatus { Pending, Accepted, Revoked }
+
+public sealed class HouseholdInvitation
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid HouseholdId { get; init; }
+    public Guid InviterUserId { get; init; }
+    public Guid TargetUserId { get; init; }
+    public HouseholdInvitationStatus Status { get; set; } = HouseholdInvitationStatus.Pending;
+    public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset ExpiresAtUtc { get; init; }
+    public DateTimeOffset? ResolvedAtUtc { get; set; }
+}
+
+public enum HouseholdInvitationAuditAction { Created, Accepted, Revoked, Denied }
+
+public sealed class HouseholdInvitationAuditEvent
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid HouseholdId { get; init; }
+    public Guid? InvitationId { get; init; }
+    public Guid ActorUserId { get; init; }
+    public Guid? TargetUserId { get; init; }
+    public HouseholdInvitationAuditAction Action { get; init; }
+    public string ReasonCode { get; init; } = string.Empty;
+    public DateTimeOffset OccurredAtUtc { get; init; } = DateTimeOffset.UtcNow;
+}
+
 public sealed class Bill
 {
     private readonly List<IDomainEvent> _domainEvents = [];
