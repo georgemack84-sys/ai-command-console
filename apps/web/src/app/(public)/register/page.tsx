@@ -3,7 +3,7 @@ import { RegisterAccountForm } from '@/components/auth/register-account-form';
 
 export default function RegisterPage() {
   return (
-    <LoginExperienceBoundary>
+    <LoginExperienceBoundary authenticatedDestination="/households">
       <RegisterAccountForm />
     </LoginExperienceBoundary>
   );

@@ -46,6 +46,21 @@ public interface IBillQueryService
     Task<ListBillsResult> ListAsync(Guid householdId, Guid actorId, CancellationToken cancellationToken = default);
 }
 
+public sealed record HouseholdSummary(Guid Id, string Name, bool IsOwner);
+public sealed record RenameHouseholdCommand(Guid HouseholdId, Guid ActorId, string Name);
+public enum RenameHouseholdOutcome { Renamed, Forbidden, NotFound }
+public sealed record RenameHouseholdResult(RenameHouseholdOutcome Outcome, HouseholdSummary? Household = null);
+
+public interface IHouseholdQueryService
+{
+    Task<IReadOnlyCollection<HouseholdSummary>> ListForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+}
+
+public interface IHouseholdCommandService
+{
+    Task<RenameHouseholdResult> RenameAsync(RenameHouseholdCommand command, CancellationToken cancellationToken = default);
+}
+
 public interface IBillUpdatedEventMapper : IIntegrationEventMapper<Proprium.Domain.Billing.BillUpdatedDomainEvent>;
 public interface IBillCreatedEventMapper : IIntegrationEventMapper<Proprium.Domain.Billing.BillCreatedDomainEvent>;
 public interface IBillPaymentStatusChangedEventMapper : IIntegrationEventMapper<Proprium.Domain.Billing.BillPaymentStatusChangedDomainEvent>;
