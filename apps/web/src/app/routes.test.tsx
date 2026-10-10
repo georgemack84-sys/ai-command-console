@@ -11,6 +11,10 @@ describe('foundation routes', () => {
     expect(
       screen.getByText('Backend connectivity: Checking…'),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
+      'href',
+      '/login',
+    );
   });
   it('renders only approved health information', () => {
     const { container } = render(createElement(HealthPage));
