@@ -109,6 +109,24 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Authenticated_member_can_update_only_their_display_name()
+    {
+        var username = $"profile-{Guid.NewGuid():N}";
+        var client = CreateAuthenticationClient(handleCookies: true);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/register", new RegisterAccountRequest(username, "Original Name", "long-enough-password"))).StatusCode);
+
+        var update = await client.PatchAsJsonAsync("/api/v1/auth/me", new UpdateProfileRequest("Updated Name"));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        Assert.Equal("Updated Name", (await update.Content.ReadFromJsonAsync<CurrentUserResponse>())?.DisplayName);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PatchAsJsonAsync("/api/v1/auth/me", new UpdateProfileRequest(" "))).StatusCode);
+
+        await using var database = CreateContext();
+        var user = await database.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
+        Assert.Equal("Updated Name", user.DisplayName);
+        Assert.True(await database.AuthenticationEvents.AnyAsync(item => item.UserId == user.Id && item.EventType == AuthenticationEventType.ProfileUpdated));
+    }
+
+    [Fact]
     public async Task Login_current_user_and_logout_use_authoritative_server_side_sessions()
     {
         var username = $"user-{Guid.NewGuid():N}";

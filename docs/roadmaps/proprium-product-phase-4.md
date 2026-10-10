@@ -1,7 +1,8 @@
 # Proprium Product Phase 4: From account to a useful household
 
-Status: 4.0 and 4.1 implementation complete; staged browser acceptance passed;
-staging soak evidence pending. 4.2 routine bill management in progress.
+Status: 4.0 through 4.2 implementation complete and merged; staged browser
+acceptance passed. 4.3 profile editing is in implementation, while its broader
+account-management decisions remain deferred.
 
 ## Purpose
 
@@ -124,10 +125,12 @@ as a new authority mechanism.
 
 ### 4.3 — Account and household management
 
-Design and implement profile editing, password change, session management,
-household settings, and a multi-household switcher. Each sensitive mutation
-needs its own API contract, validation, audit evidence, and browser acceptance
-coverage.
+The first approved slice is self-service display-name editing. It has a
+dedicated self-management permission, authenticated API contract, audit event,
+protected Profile page, and staging browser acceptance coverage. Password
+change, session management, household settings, and a multi-household switcher
+remain separate decisions; each sensitive mutation needs its own contract,
+validation, audit evidence, and browser acceptance coverage.
 
 ### 4.4 — Shared household collaboration
 

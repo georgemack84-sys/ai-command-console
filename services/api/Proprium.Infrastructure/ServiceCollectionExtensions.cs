@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISessionService, PostgresSessionService>();
         services.AddScoped<IAuthenticationService, PostgresAuthenticationService>();
         services.AddScoped<IAccountRegistrationService, PostgresAccountRegistrationService>();
+        services.AddScoped<IProfileService, PostgresProfileService>();
         services.AddScoped<IAuthenticationAuditRecorder, PostgresAuthenticationAuditRecorder>();
         services.AddScoped<IPasswordChangeService, PostgresPasswordChangeService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

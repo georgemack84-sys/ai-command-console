@@ -47,6 +47,17 @@ export function getCurrentUser(signal?: AbortSignal): Promise<CurrentUser> {
     parse: parseCurrentUser,
   });
 }
+
+export function updateCurrentUserProfile(
+  displayName: string,
+): Promise<CurrentUser> {
+  return apiRequest({
+    path: '/api/v1/auth/me',
+    method: 'PATCH',
+    body: { displayName },
+    parse: parseCurrentUser,
+  });
+}
 export async function login(username: string, password: string): Promise<void> {
   const result = await apiRequest({
     path: '/api/v1/auth/login',

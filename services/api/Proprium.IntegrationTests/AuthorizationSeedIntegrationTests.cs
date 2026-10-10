@@ -43,6 +43,6 @@ public sealed class AuthorizationSeedIntegrationTests : IIntegrationTest
             .Select(item => item.Permission.Key)
             .OrderBy(key => key)
             .ToArrayAsync();
-        Assert.Equal(new[] { "application.authenticated.access", "identity.profile.read-self", "identity.session.manage-self" }, memberKeys);
+        Assert.Equal(new[] { "application.authenticated.access", "identity.profile.manage-self", "identity.profile.read-self", "identity.session.manage-self" }, memberKeys);
     }
 }
