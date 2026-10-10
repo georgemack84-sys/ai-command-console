@@ -61,6 +61,7 @@
     "test:browser:live-auth": "node scripts/test-browser-live-auth.mjs",
     "test:browser:live-onboarding": "node scripts/test-browser-live-auth.mjs",
     "test:browser:staging-auth": "node scripts/test-browser-staging-auth.mjs",
+    "test:browser:staging-onboarding": "node scripts/test-browser-staging-auth.mjs",
     "test:theme": "vitest run src/theme tests/unit/theme-provider.test.tsx",
     "test:config-build-failure": "node scripts/verify-invalid-environment.mjs",
     "test:secret-isolation": "node ../../scripts/validate-secret-artifacts.cjs --scope frontend --root .next/static --sentinel-env GP35_FRONTEND_SECRET_SENTINEL",

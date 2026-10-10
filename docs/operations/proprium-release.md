@@ -29,23 +29,20 @@ SHA in deployment records so rollback selects an immutable pair of images.
 
 ### Browser acceptance evidence
 
-After staging deploys, run the repeatable live authentication and onboarding
+After staging deploys, run the repeatable staging authentication and onboarding
 check from `apps/web`. It creates a uniquely named disposable account, verifies
 the resulting household route, renames the household, creates a first bill,
 verifies persistence after refresh, logs out, and proves the revoked session
 cannot reopen the household route.
 
 ```bash
-PROPRIUM_LIVE_AUTH_USERNAME=<existing-disposable-user> \
-PROPRIUM_LIVE_AUTH_PASSWORD=<password> \
-PROPRIUM_LIVE_API_BASE_URL=<staging-api-origin> \
-npm run test:browser:live-onboarding
+npm run test:browser:staging-onboarding
 ```
 
-The command also retains the established sign-in, refresh, logout, and replayed
-revoked-session checks for the supplied disposable user. Record its successful
-output with the immutable release SHA and soak evidence. It must run only
-against an isolated staging environment because it creates an account and bill.
+Set `PROPRIUM_STAGING_BASE_URL` only when targeting another staging host. Record
+the successful output with the immutable release SHA and soak evidence. It must
+run only against an isolated staging environment because it creates an account
+and bill.
 
 ## Staging rollout authority
 
