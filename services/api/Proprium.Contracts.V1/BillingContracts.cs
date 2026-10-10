@@ -8,6 +8,7 @@ public sealed record CreateHouseholdInvitationRequest(string Username);
 
 public sealed record HouseholdResponse(Guid Id, string Name, bool IsOwner);
 public sealed record HouseholdInvitationResponse(Guid Id, Guid HouseholdId, string HouseholdName, string InviterDisplayName, DateTimeOffset ExpiresAtUtc);
+public sealed record HouseholdMemberResponse(Guid UserId, string DisplayName, DateTimeOffset JoinedAtUtc, bool IsOwner);
 
 public sealed record BillResponse(
     Guid Id,

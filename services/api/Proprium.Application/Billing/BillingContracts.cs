@@ -68,17 +68,34 @@ public sealed record HouseholdInvitationDetails(
     string InviterDisplayName,
     DateTimeOffset ExpiresAtUtc);
 
+public sealed record HouseholdMemberDetails(
+    Guid UserId,
+    string DisplayName,
+    DateTimeOffset JoinedAtUtc,
+    bool IsOwner);
+
 public enum CreateHouseholdInvitationOutcome { Created, Forbidden, TargetUnavailable, AlreadyMember, AlreadyPending }
 public enum ResolveHouseholdInvitationOutcome { Accepted, Revoked, Forbidden, NotFound, Expired }
 public sealed record CreateHouseholdInvitationResult(CreateHouseholdInvitationOutcome Outcome, HouseholdInvitationDetails? Invitation = null);
 public sealed record ResolveHouseholdInvitationResult(ResolveHouseholdInvitationOutcome Outcome, HouseholdInvitationDetails? Invitation = null);
+public enum ListHouseholdInvitationOutcome { Listed, Forbidden }
+public sealed record ListHouseholdInvitationResult(ListHouseholdInvitationOutcome Outcome, IReadOnlyCollection<HouseholdInvitationDetails> Invitations);
+public enum RemoveHouseholdMemberOutcome { Removed, Forbidden, NotFound, CannotRemoveOwner }
+public sealed record RemoveHouseholdMemberResult(RemoveHouseholdMemberOutcome Outcome);
 
 public interface IHouseholdInvitationService
 {
     Task<IReadOnlyCollection<HouseholdInvitationDetails>> ListPendingForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<ListHouseholdInvitationResult> ListPendingForHouseholdAsync(Guid householdId, Guid actorId, CancellationToken cancellationToken = default);
     Task<CreateHouseholdInvitationResult> CreateAsync(Guid householdId, Guid actorId, string targetUsername, CancellationToken cancellationToken = default);
     Task<ResolveHouseholdInvitationResult> AcceptAsync(Guid invitationId, Guid actorId, CancellationToken cancellationToken = default);
     Task<ResolveHouseholdInvitationResult> RevokeAsync(Guid invitationId, Guid actorId, CancellationToken cancellationToken = default);
+}
+
+public interface IHouseholdMembershipService
+{
+    Task<IReadOnlyCollection<HouseholdMemberDetails>> ListAsync(Guid householdId, Guid actorId, CancellationToken cancellationToken = default);
+    Task<RemoveHouseholdMemberResult> RemoveAsync(Guid householdId, Guid actorId, Guid memberUserId, CancellationToken cancellationToken = default);
 }
 
 public interface IBillUpdatedEventMapper : IIntegrationEventMapper<Proprium.Domain.Billing.BillUpdatedDomainEvent>;

@@ -6,7 +6,7 @@ using Proprium.Infrastructure.Persistence;
 
 namespace Proprium.Infrastructure.Billing;
 
-public sealed class PostgresHouseholdInvitationService(PropriumDbContext database, TimeProvider timeProvider) : IHouseholdInvitationService
+public sealed class PostgresHouseholdInvitationService(PropriumDbContext database, TimeProvider timeProvider) : IHouseholdInvitationService, IHouseholdMembershipService
 {
     public async Task<IReadOnlyCollection<HouseholdInvitationDetails>> ListPendingForUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -17,6 +17,47 @@ public sealed class PostgresHouseholdInvitationService(PropriumDbContext databas
             .Join(database.Households, item => item.HouseholdId, household => household.Id, (item, household) => new { item, household })
             .Join(database.Users, value => value.item.InviterUserId, user => user.Id, (value, user) => new HouseholdInvitationDetails(value.item.Id, value.item.HouseholdId, value.household.Name, user.DisplayName, value.item.ExpiresAtUtc))
             .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<ListHouseholdInvitationResult> ListPendingForHouseholdAsync(Guid householdId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        if (!await IsOwnerAsync(householdId, actorId, cancellationToken))
+            return new(ListHouseholdInvitationOutcome.Forbidden, []);
+
+        var now = timeProvider.GetUtcNow();
+        var invitations = await database.HouseholdInvitations
+            .Where(item => item.HouseholdId == householdId && item.Status == HouseholdInvitationStatus.Pending && item.ExpiresAtUtc > now)
+            .OrderBy(item => item.ExpiresAtUtc)
+            .Join(database.Households, item => item.HouseholdId, household => household.Id, (item, household) => new { item, household })
+            .Join(database.Users, value => value.item.InviterUserId, user => user.Id, (value, user) => new HouseholdInvitationDetails(value.item.Id, value.item.HouseholdId, value.household.Name, user.DisplayName, value.item.ExpiresAtUtc))
+            .ToArrayAsync(cancellationToken);
+        return new(ListHouseholdInvitationOutcome.Listed, invitations);
+    }
+
+    public async Task<IReadOnlyCollection<HouseholdMemberDetails>> ListAsync(Guid householdId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        if (!await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == householdId && item.UserId == actorId, cancellationToken))
+            return [];
+
+        var ownerUserId = await database.Households.Where(item => item.Id == householdId).Select(item => item.OwnerUserId).SingleAsync(cancellationToken);
+        return await database.HouseholdMemberships
+            .Where(item => item.HouseholdId == householdId)
+            .Join(database.Users, membership => membership.UserId, user => user.Id, (membership, user) => new HouseholdMemberDetails(user.Id, user.DisplayName, membership.JoinedAtUtc, user.Id == ownerUserId))
+            .OrderByDescending(item => item.IsOwner).ThenBy(item => item.DisplayName)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<RemoveHouseholdMemberResult> RemoveAsync(Guid householdId, Guid actorId, Guid memberUserId, CancellationToken cancellationToken = default)
+    {
+        var household = await database.Households.SingleOrDefaultAsync(item => item.Id == householdId, cancellationToken);
+        if (household is null || household.OwnerUserId != actorId) return new(RemoveHouseholdMemberOutcome.Forbidden);
+        if (household.OwnerUserId == memberUserId) return new(RemoveHouseholdMemberOutcome.CannotRemoveOwner);
+        var membership = await database.HouseholdMemberships.SingleOrDefaultAsync(item => item.HouseholdId == householdId && item.UserId == memberUserId, cancellationToken);
+        if (membership is null) return new(RemoveHouseholdMemberOutcome.NotFound);
+        database.Remove(membership);
+        database.Add(Audit(householdId, null, actorId, memberUserId, HouseholdInvitationAuditAction.Removed, "removed", timeProvider.GetUtcNow()));
+        await database.SaveChangesAsync(cancellationToken);
+        return new(RemoveHouseholdMemberOutcome.Removed);
     }
 
     public async Task<CreateHouseholdInvitationResult> CreateAsync(Guid householdId, Guid actorId, string targetUsername, CancellationToken cancellationToken = default)
@@ -65,7 +106,10 @@ public sealed class PostgresHouseholdInvitationService(PropriumDbContext databas
         return new(ResolveHouseholdInvitationOutcome.Revoked);
     }
 
-    private static HouseholdInvitationAuditEvent Audit(Guid householdId, Guid invitationId, Guid actorId, Guid targetUserId, HouseholdInvitationAuditAction action, string reasonCode, DateTimeOffset occurredAtUtc)
+    private async Task<bool> IsOwnerAsync(Guid householdId, Guid actorId, CancellationToken cancellationToken) =>
+        await database.Households.AnyAsync(item => item.Id == householdId && item.OwnerUserId == actorId, cancellationToken);
+
+    private static HouseholdInvitationAuditEvent Audit(Guid householdId, Guid? invitationId, Guid actorId, Guid? targetUserId, HouseholdInvitationAuditAction action, string reasonCode, DateTimeOffset occurredAtUtc)
     {
         return new() { HouseholdId = householdId, InvitationId = invitationId, ActorUserId = actorId, TargetUserId = targetUserId, Action = action, ReasonCode = reasonCode, OccurredAtUtc = occurredAtUtc };
     }

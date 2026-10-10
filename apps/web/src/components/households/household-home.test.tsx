@@ -5,8 +5,12 @@ import {
   createBill,
   createHouseholdInvitation,
   listBills,
+  listHouseholdMembers,
   listHouseholds,
+  listOwnedHouseholdInvitations,
   renameHousehold,
+  removeHouseholdMember,
+  revokeHouseholdInvitation,
   setBillPaymentStatus,
   updateBill,
 } from '@/lib/households/household-service';
@@ -17,8 +21,12 @@ vi.mock('@/lib/households/household-service', () => ({
   createBill: vi.fn(),
   createHouseholdInvitation: vi.fn(),
   listBills: vi.fn(),
+  listHouseholdMembers: vi.fn(),
   listHouseholds: vi.fn(),
+  listOwnedHouseholdInvitations: vi.fn(),
   renameHousehold: vi.fn(),
+  removeHouseholdMember: vi.fn(),
+  revokeHouseholdInvitation: vi.fn(),
   setBillPaymentStatus: vi.fn(),
   updateBill: vi.fn(),
 }));
@@ -30,6 +38,15 @@ describe('HouseholdHome', () => {
     vi.mocked(listBills).mockResolvedValue([]);
     vi.mocked(listHouseholds).mockResolvedValue([
       { id: householdId, name: 'Original household', isOwner: true },
+    ]);
+    vi.mocked(listOwnedHouseholdInvitations).mockResolvedValue([]);
+    vi.mocked(listHouseholdMembers).mockResolvedValue([
+      {
+        userId: 'owner-1',
+        displayName: 'Owner',
+        joinedAtUtc: '2030-01-01T00:00:00Z',
+        isOwner: true,
+      },
     ]);
   });
 
@@ -118,6 +135,58 @@ describe('HouseholdHome', () => {
       ),
     );
     expect(await screen.findByText(/Invitation created/)).toBeVisible();
+  });
+
+  it('lets the household owner revoke a pending invitation', async () => {
+    vi.mocked(listOwnedHouseholdInvitations).mockResolvedValue([
+      {
+        id: 'invitation-1',
+        householdId,
+        householdName: 'Original household',
+        inviterDisplayName: 'Owner',
+        expiresAtUtc: '2030-01-08T00:00:00Z',
+      },
+    ]);
+    vi.mocked(revokeHouseholdInvitation).mockResolvedValue();
+    render(<HouseholdHome householdId={householdId} />);
+
+    await screen.findByText('Owner’s invitation');
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke invitation' }));
+    await waitFor(() =>
+      expect(revokeHouseholdInvitation).toHaveBeenCalledWith('invitation-1'),
+    );
+    expect(await screen.findByText('Invitation revoked.')).toBeVisible();
+  });
+
+  it('lets the household owner remove a non-owner member', async () => {
+    vi.mocked(listHouseholdMembers).mockResolvedValue([
+      {
+        userId: 'owner-1',
+        displayName: 'Owner',
+        joinedAtUtc: '2030-01-01T00:00:00Z',
+        isOwner: true,
+      },
+      {
+        userId: 'member-1',
+        displayName: 'Member',
+        joinedAtUtc: '2030-01-02T00:00:00Z',
+        isOwner: false,
+      },
+    ]);
+    vi.mocked(removeHouseholdMember).mockResolvedValue();
+    render(<HouseholdHome householdId={householdId} />);
+
+    expect(await screen.findByText('Member')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove member' }));
+    await waitFor(() =>
+      expect(removeHouseholdMember).toHaveBeenCalledWith(
+        householdId,
+        'member-1',
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('Member')).not.toBeInTheDocument(),
+    );
   });
 
   it('updates a bill and changes its payment status without a reload', async () => {

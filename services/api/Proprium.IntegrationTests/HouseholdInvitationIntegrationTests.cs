@@ -33,6 +33,11 @@ public sealed class HouseholdInvitationIntegrationTests : IIntegrationTest
         Assert.True(await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == household.Id && item.UserId == target.Id));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Created));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Accepted));
+
+        Assert.Equal(RemoveHouseholdMemberOutcome.Removed, (await service.RemoveAsync(household.Id, owner.Id, target.Id)).Outcome);
+        Assert.False(await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == household.Id && item.UserId == target.Id));
+        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.HouseholdId == household.Id && item.TargetUserId == target.Id && item.Action == HouseholdInvitationAuditAction.Removed));
+        Assert.Equal(ListBillsOutcome.Forbidden, (await new PostgresBillQueryService(database).ListAsync(household.Id, target.Id)).Outcome);
     }
 
     private static PropriumDbContext CreateContext()

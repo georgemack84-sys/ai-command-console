@@ -25,6 +25,13 @@ export interface HouseholdInvitation {
   expiresAtUtc: string;
 }
 
+export interface HouseholdMember {
+  userId: string;
+  displayName: string;
+  joinedAtUtc: string;
+  isOwner: boolean;
+}
+
 function parseInvitation(value: unknown): HouseholdInvitation {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Invalid household invitation');
@@ -57,6 +64,25 @@ function parseHousehold(value: unknown): Household {
   )
     throw new Error('Invalid household');
   return { id: item.id, name: item.name, isOwner: item.isOwner };
+}
+
+function parseHouseholdMember(value: unknown): HouseholdMember {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Invalid household member');
+  const item = value as Record<string, unknown>;
+  if (
+    typeof item.userId !== 'string' ||
+    typeof item.displayName !== 'string' ||
+    typeof item.joinedAtUtc !== 'string' ||
+    typeof item.isOwner !== 'boolean'
+  )
+    throw new Error('Invalid household member');
+  return {
+    userId: item.userId,
+    displayName: item.displayName,
+    joinedAtUtc: item.joinedAtUtc,
+    isOwner: item.isOwner,
+  };
 }
 
 function parseBill(value: unknown): Bill {
@@ -133,6 +159,50 @@ export function acceptHouseholdInvitation(id: string): Promise<void> {
   return apiRequest({
     path: `/api/v1/households/invitations/${id}/accept`,
     method: 'POST',
+    parse: () => undefined,
+  });
+}
+
+export function listOwnedHouseholdInvitations(
+  householdId: string,
+): Promise<readonly HouseholdInvitation[]> {
+  return apiRequest({
+    path: `/api/v1/households/${householdId}/invitations`,
+    parse: (payload) => {
+      if (!Array.isArray(payload)) throw new Error('Invalid invitation list');
+      return payload.map(parseInvitation);
+    },
+  });
+}
+
+export function revokeHouseholdInvitation(id: string): Promise<void> {
+  return apiRequest({
+    path: `/api/v1/households/invitations/${id}/revoke`,
+    method: 'POST',
+    parse: () => undefined,
+  });
+}
+
+export function listHouseholdMembers(
+  householdId: string,
+): Promise<readonly HouseholdMember[]> {
+  return apiRequest({
+    path: `/api/v1/households/${householdId}/members`,
+    parse: (payload) => {
+      if (!Array.isArray(payload))
+        throw new Error('Invalid household member list');
+      return payload.map(parseHouseholdMember);
+    },
+  });
+}
+
+export function removeHouseholdMember(
+  householdId: string,
+  memberUserId: string,
+): Promise<void> {
+  return apiRequest({
+    path: `/api/v1/households/${householdId}/members/${memberUserId}`,
+    method: 'DELETE',
     parse: () => undefined,
   });
 }
