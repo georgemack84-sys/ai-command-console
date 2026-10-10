@@ -1,8 +1,8 @@
 # Proprium Product Phase 4: From account to a useful household
 
-Status: 4.0 through 4.2 implementation complete and merged; staged browser
-acceptance passed. 4.3 profile editing is in implementation, while its broader
-account-management decisions remain deferred.
+Status: 4.0 through 4.3 implementation complete and merged; staged browser
+acceptance passed. Broader account-management decisions remain deferred, and
+4.4 collaboration awaits product approval.
 
 ## Purpose
 
@@ -137,7 +137,8 @@ validation, audit evidence, and browser acceptance coverage.
 Before implementation, approve the invitation lifecycle, membership roles,
 revocation semantics, transfer-of-ownership rules, notification channel, abuse
 limits, and audit trail. Do not ship invitations as an unbounded email feature
-without these decisions.
+without these decisions. The decision-ready proposal is in
+[the Phase 4.4 collaboration design](proprium-product-phase-4.4-collaboration-design.md).
 
 ### 4.5 — Recovery and trust completion
 
