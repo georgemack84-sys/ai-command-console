@@ -56,6 +56,20 @@ export async function login(username: string, password: string): Promise<void> {
   });
   if (result !== emptyResponse) throw new Error('Login response must be empty');
 }
+export async function registerAccount(
+  username: string,
+  displayName: string,
+  password: string,
+): Promise<void> {
+  const result = await apiRequest({
+    path: '/api/v1/auth/register',
+    method: 'POST',
+    body: { username, displayName, password },
+    parse: () => emptyResponse,
+  });
+  if (result !== emptyResponse)
+    throw new Error('Registration response must be empty');
+}
 export async function endSession(): Promise<void> {
   const result = await apiRequest({
     path: '/api/v1/auth/logout',

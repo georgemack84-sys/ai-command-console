@@ -91,6 +91,21 @@ public interface IAuthenticationService
     Task LogoutAsync(RawSessionToken? sessionToken, string correlationId, CancellationToken cancellationToken = default);
 }
 
+public sealed record AccountRegistrationAttempt(string Username, string DisplayName, string Password, string CorrelationId)
+{
+    public override string ToString() => $"{nameof(AccountRegistrationAttempt)} {{ Username = [REDACTED], DisplayName = [REDACTED], Password = [REDACTED], CorrelationId = {CorrelationId} }}";
+}
+
+public sealed record AccountRegistrationResult(bool Succeeded, bool UsernameUnavailable = false, RawSessionToken? SessionToken = null)
+{
+    public static AccountRegistrationResult UsernameTaken() => new(false, true);
+}
+
+public interface IAccountRegistrationService
+{
+    Task<AccountRegistrationResult> RegisterAsync(AccountRegistrationAttempt attempt, CancellationToken cancellationToken = default);
+}
+
 public interface IPasswordChangeService
 {
     Task ChangeAsync(Guid userId, string newPassword, string correlationId, CancellationToken cancellationToken = default);

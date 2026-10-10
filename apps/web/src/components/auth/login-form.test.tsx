@@ -47,6 +47,9 @@ describe('LoginForm', () => {
       'type',
       'password',
     );
+    expect(
+      screen.getByRole('link', { name: 'Create an account' }),
+    ).toHaveAttribute('href', '/register');
   });
   it('uses a recognizable visibility icon and exposes its pressed state', () => {
     renderForm();

@@ -153,6 +153,14 @@ jobs:
           curl --fail --silent --show-error --max-time 15 \
             --retry 3 --retry-delay 2 --output /dev/null "$PUBLIC_BASE_URL/"
 
+          # These pages are the public entry points for authentication. Keep
+          # their availability in the deployment contract so a healthy root
+          # page cannot mask a missing sign-in or account-creation route.
+          curl --fail --silent --show-error --max-time 15 \
+            --retry 3 --retry-delay 2 --output /dev/null "$PUBLIC_BASE_URL/login"
+          curl --fail --silent --show-error --max-time 15 \
+            --retry 3 --retry-delay 2 --output /dev/null "$PUBLIC_BASE_URL/register"
+
       - name: Summarize staging rollout
         shell: bash
         run: |
@@ -163,6 +171,6 @@ jobs:
             echo "- API migration: completed exactly once before API rollout"
             echo "- API readiness: Docker health check passed"
             echo "- Web rollout: completed"
-            echo "- Public endpoint verification: web and API health checks passed"
+            echo "- Public endpoint verification: web, sign-in, account-creation, and API health checks passed"
             echo "- Required operator follow-up: verify browser sign-in, refresh, logout, and revoked-session behavior."
           } >> "$GITHUB_STEP_SUMMARY"
