@@ -21,8 +21,11 @@ const context: AuthenticationContextValue = {
 };
 
 function renderForm(
-  createAccount: (username: string, displayName: string, password: string) => Promise<void> =
-    vi.fn(async () => undefined),
+  createAccount: (
+    username: string,
+    displayName: string,
+    password: string,
+  ) => Promise<void> = vi.fn(async () => undefined),
 ) {
   return {
     createAccount,
@@ -37,8 +40,13 @@ function renderForm(
 describe('RegisterAccountForm', () => {
   it('collects new-account credentials with password-manager metadata', () => {
     renderForm();
-    expect(screen.getByRole('heading', { name: 'Create account' })).toBeVisible();
-    expect(screen.getByLabelText('Name *')).toHaveAttribute('autocomplete', 'name');
+    expect(
+      screen.getByRole('heading', { name: 'Create account' }),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Name *')).toHaveAttribute(
+      'autocomplete',
+      'name',
+    );
     expect(screen.getByLabelText('Username *')).toHaveAttribute(
       'autocomplete',
       'username',
