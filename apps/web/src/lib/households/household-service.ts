@@ -17,6 +17,35 @@ export interface Bill {
   updatedAtUtc: string;
 }
 
+export interface HouseholdInvitation {
+  id: string;
+  householdId: string;
+  householdName: string;
+  inviterDisplayName: string;
+  expiresAtUtc: string;
+}
+
+function parseInvitation(value: unknown): HouseholdInvitation {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Invalid household invitation');
+  const item = value as Record<string, unknown>;
+  if (
+    typeof item.id !== 'string' ||
+    typeof item.householdId !== 'string' ||
+    typeof item.householdName !== 'string' ||
+    typeof item.inviterDisplayName !== 'string' ||
+    typeof item.expiresAtUtc !== 'string'
+  )
+    throw new Error('Invalid household invitation');
+  return {
+    id: item.id,
+    householdId: item.householdId,
+    householdName: item.householdName,
+    inviterDisplayName: item.inviterDisplayName,
+    expiresAtUtc: item.expiresAtUtc,
+  };
+}
+
 function parseHousehold(value: unknown): Household {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Invalid household');
@@ -73,6 +102,38 @@ export function renameHousehold(id: string, name: string): Promise<Household> {
     method: 'PATCH',
     body: { name },
     parse: parseHousehold,
+  });
+}
+
+export function createHouseholdInvitation(
+  householdId: string,
+  username: string,
+): Promise<HouseholdInvitation> {
+  return apiRequest({
+    path: `/api/v1/households/${householdId}/invitations`,
+    method: 'POST',
+    body: { username },
+    parse: parseInvitation,
+  });
+}
+
+export function listHouseholdInvitations(): Promise<
+  readonly HouseholdInvitation[]
+> {
+  return apiRequest({
+    path: '/api/v1/households/invitations',
+    parse: (payload) => {
+      if (!Array.isArray(payload)) throw new Error('Invalid invitation list');
+      return payload.map(parseInvitation);
+    },
+  });
+}
+
+export function acceptHouseholdInvitation(id: string): Promise<void> {
+  return apiRequest({
+    path: `/api/v1/households/invitations/${id}/accept`,
+    method: 'POST',
+    parse: () => undefined,
   });
 }
 

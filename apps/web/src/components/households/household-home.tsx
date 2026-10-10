@@ -20,6 +20,8 @@ import {
   Textarea,
 } from '@/ui/components/primitives';
 
+import { HouseholdInvitationForm } from './household-invitation-form';
+
 interface HouseholdHomeProps {
   householdId: string;
 }
@@ -207,6 +209,7 @@ export function HouseholdHome({ householdId }: HouseholdHomeProps) {
           Save name
         </Button>
       </form>
+      <HouseholdInvitationForm householdId={householdId} />
       <form className="ui-card household-form" onSubmit={addBill}>
         <div>
           <h2>Add your first bill</h2>
