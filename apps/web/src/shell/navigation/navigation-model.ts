@@ -15,6 +15,12 @@ export const defaultShellNavigation: readonly ShellNavigationItem[] = [
     indicator: 'HH',
   },
   {
+    id: 'profile',
+    label: 'Profile',
+    href: '/profile',
+    indicator: 'PR',
+  },
+  {
     id: 'components',
     label: 'Component Gallery',
     href: '/components',

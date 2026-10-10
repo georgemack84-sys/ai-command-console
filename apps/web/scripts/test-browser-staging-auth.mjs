@@ -8,6 +8,7 @@ const baseUrl = (
 const suffix = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
 const username = `staging-check-${suffix}`;
 const displayName = `Staging Check ${suffix}`;
+const updatedDisplayName = `Updated Check ${suffix}`;
 const password = 'long-enough-password';
 const householdName = `Home ${suffix}`;
 const billName = `Internet ${suffix}`;
@@ -17,7 +18,7 @@ const updatedNotes = 'Updated staging plan';
 
 let browser;
 try {
-  console.log('1/6 Opening staging registration.');
+  console.log('1/7 Opening staging registration.');
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
@@ -46,7 +47,7 @@ try {
   assert.equal((await registration).status(), 204, 'Registration failed.');
 
   console.log(
-    '2/6 Completing the household and routine bill-management journey.',
+    '2/7 Completing the household and routine bill-management journey.',
   );
   await page
     .getByRole('heading', { name: `${displayName}'s household` })
@@ -109,7 +110,27 @@ try {
     .waitFor({ timeout: 15_000 });
   await page.getByText(updatedNotes, { exact: true }).waitFor();
 
-  console.log('3/6 Verifying authenticated dashboard and session cookie.');
+  console.log('3/7 Updating the account profile.');
+  await page.goto(`${baseUrl}/profile`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 15_000,
+  });
+  await page
+    .getByRole('heading', { name: 'Profile' })
+    .waitFor({ timeout: 15_000 });
+  await page.getByLabel('Display name *').fill(updatedDisplayName);
+  const updateProfile = page.waitForResponse(
+    (response) =>
+      response.url() === `${baseUrl}/api/v1/auth/me` &&
+      response.request().method() === 'PATCH',
+  );
+  await page.getByRole('button', { name: 'Save profile' }).click();
+  assert.equal((await updateProfile).status(), 200, 'Profile update failed.');
+  await page.getByRole('status').getByText('Profile saved.').waitFor();
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 15_000 });
+  await page.getByDisplayValue(updatedDisplayName).waitFor({ timeout: 15_000 });
+
+  console.log('4/7 Verifying authenticated dashboard and session cookie.');
   await page.goto(`${baseUrl}/dashboard`, {
     waitUntil: 'domcontentloaded',
     timeout: 15_000,
@@ -127,7 +148,7 @@ try {
     'No HttpOnly session cookie was issued.',
   );
 
-  console.log('4/6 Verifying session restoration after refresh.');
+  console.log('5/7 Verifying session restoration after refresh.');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 15_000 });
   await page
     .getByRole('heading', { name: 'Dashboard' })
@@ -144,7 +165,7 @@ try {
     .getByRole('heading', { name: 'Sign in' })
     .waitFor({ timeout: 15_000 });
 
-  console.log('5/6 Replaying the revoked session on the protected routes.');
+  console.log('6/7 Replaying the revoked session on the protected routes.');
   const replay = await browser.newContext();
   await replay.addCookies([session]);
   const replayPage = await replay.newPage();
@@ -172,9 +193,21 @@ try {
     0,
     'A revoked session exposed household bill content.',
   );
+  await replayPage.goto(`${baseUrl}/profile`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 15_000,
+  });
+  await replayPage
+    .getByRole('heading', { name: 'Sign in' })
+    .waitFor({ timeout: 15_000 });
+  assert.equal(
+    await replayPage.getByRole('heading', { name: 'Profile' }).count(),
+    0,
+    'A revoked session exposed profile content.',
+  );
   await replay.close();
   await context.close();
-  console.log(`6/6 Staging onboarding acceptance passed for ${username}.`);
+  console.log(`7/7 Staging onboarding acceptance passed for ${username}.`);
 } finally {
   await browser?.close();
 }

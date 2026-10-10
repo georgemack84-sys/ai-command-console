@@ -3,6 +3,7 @@ export const Permission = {
   AuthenticatedAccess: 'application.authenticated.access',
   AuthenticationEventRead: 'identity.authentication-event.read',
   PermissionRead: 'identity.permission.read',
+  ProfileManageSelf: 'identity.profile.manage-self',
   ProfileReadSelf: 'identity.profile.read-self',
   RoleAssignmentManage: 'identity.role-assignment.manage',
   RolePermissionManage: 'identity.role-permission.manage',

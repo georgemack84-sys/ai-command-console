@@ -15,6 +15,11 @@
     "capabilityGroup": "identity"
   },
   {
+    "key": "identity.profile.manage-self",
+    "description": "Update the current user\u0027s profile.",
+    "capabilityGroup": "identity"
+  },
+  {
     "key": "identity.profile.read-self",
     "description": "Read the current user\u0027s profile.",
     "capabilityGroup": "identity"

@@ -74,6 +74,30 @@ public static class AuthenticationEndpoints
             .Produces<CurrentUserResponse>().Produces(StatusCodes.Status401Unauthorized)
             .RequirePermission(PermissionCatalog.Identity.ProfileReadSelf);
 
+        auth.MapPatch("/me", async (HttpContext context, IProfileService profiles, IAuthenticationAuditRecorder auditEvents, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
+        {
+            SetNoStore(context);
+            if (!requestPolicy.IsOriginAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.OriginRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "origin", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (!requestPolicy.IsCsrfAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.CsrfRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "csrf", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            var (body, isTooLarge) = await ReadRequestBodyAsync(context.Request.Body, cancellationToken);
+            if (isTooLarge) return Results.BadRequest();
+            if (!string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
+            if (HasDuplicateProperties(body)) return Results.BadRequest();
+            UpdateProfileRequest? request;
+            try { request = JsonSerializer.Deserialize<UpdateProfileRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            var actor = context.Features.Get<AuthenticatedRequest>();
+            if (actor is null) return Results.Unauthorized();
+            var displayName = request?.DisplayName?.Trim();
+            if (string.IsNullOrWhiteSpace(displayName) || displayName.Length > 240) return Results.BadRequest();
+            var result = await profiles.UpdateDisplayNameAsync(new ProfileUpdateAttempt(actor.UserId, actor.SessionId, displayName, context.TraceIdentifier), cancellationToken);
+            return !result.Succeeded || result.DisplayName is null
+                ? Results.Unauthorized()
+                : Results.Ok(new CurrentUserResponse(actor.UserId, actor.Username, result.DisplayName, actor.Roles, actor.Permissions.Permissions));
+        }).WithName("UpdateCurrentUserProfile").WithSummary("Update the authenticated user's display name.")
+            .Produces<CurrentUserResponse>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status401Unauthorized)
+            .RequirePermission(PermissionCatalog.Identity.ProfileManageSelf);
+
         auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, IAuthenticationAuditRecorder auditEvents, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);

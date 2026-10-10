@@ -106,6 +106,15 @@ public interface IAccountRegistrationService
     Task<AccountRegistrationResult> RegisterAsync(AccountRegistrationAttempt attempt, CancellationToken cancellationToken = default);
 }
 
+public sealed record ProfileUpdateAttempt(Guid UserId, Guid SessionId, string DisplayName, string CorrelationId);
+
+public sealed record ProfileUpdateResult(bool Succeeded, string? DisplayName = null);
+
+public interface IProfileService
+{
+    Task<ProfileUpdateResult> UpdateDisplayNameAsync(ProfileUpdateAttempt attempt, CancellationToken cancellationToken = default);
+}
+
 public interface IPasswordChangeService
 {
     Task ChangeAsync(Guid userId, string newPassword, string correlationId, CancellationToken cancellationToken = default);

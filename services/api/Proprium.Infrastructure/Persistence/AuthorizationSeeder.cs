@@ -11,7 +11,7 @@ public static class AuthorizationSeeder
         var member = await EnsureRoleAsync(database, "Member", "Minimum authenticated-user access.", cancellationToken);
         var permissions = await EnsurePermissionsAsync(database, cancellationToken);
         await EnsureMappingsAsync(database, administrator, PermissionCatalog.All.Select(item => item.Key), permissions, cancellationToken);
-        await EnsureMappingsAsync(database, member, ["application.authenticated.access", "identity.profile.read-self", "identity.session.manage-self"], permissions, cancellationToken);
+        await EnsureMappingsAsync(database, member, ["application.authenticated.access", "identity.profile.read-self", "identity.profile.manage-self", "identity.session.manage-self"], permissions, cancellationToken);
         await database.SaveChangesAsync(cancellationToken);
     }
 
