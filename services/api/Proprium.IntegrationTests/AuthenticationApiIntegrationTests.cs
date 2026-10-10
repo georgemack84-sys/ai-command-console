@@ -89,6 +89,26 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     }
 
     [Fact]
+    public async Task Authenticated_owner_can_discover_and_rename_their_household()
+    {
+        var username = $"household-{Guid.NewGuid():N}";
+        var client = CreateAuthenticationClient(handleCookies: true);
+        var registration = await client.PostAsJsonAsync("/api/v1/auth/register", new RegisterAccountRequest(username, "Original Name", "long-enough-password"));
+        Assert.Equal(HttpStatusCode.NoContent, registration.StatusCode);
+
+        var households = await client.GetFromJsonAsync<HouseholdResponse[]>("/api/v1/households");
+        var household = Assert.Single(households ?? []);
+        Assert.Equal("Original Name's household", household.Name);
+        Assert.True(household.IsOwner);
+
+        var rename = await client.PatchAsJsonAsync($"/api/v1/households/{household.Id}", new RenameHouseholdRequest("Our household"));
+        Assert.Equal(HttpStatusCode.OK, rename.StatusCode);
+        var renamed = await rename.Content.ReadFromJsonAsync<HouseholdResponse>();
+        Assert.Equal("Our household", renamed?.Name);
+        Assert.True(renamed is { IsOwner: true });
+    }
+
+    [Fact]
     public async Task Login_current_user_and_logout_use_authoritative_server_side_sessions()
     {
         var username = $"user-{Guid.NewGuid():N}";

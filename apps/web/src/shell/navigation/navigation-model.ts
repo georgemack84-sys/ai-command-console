@@ -9,6 +9,12 @@ export const defaultShellNavigation: readonly ShellNavigationItem[] = [
     indicator: 'DB',
   },
   {
+    id: 'households',
+    label: 'Households',
+    href: '/households',
+    indicator: 'HH',
+  },
+  {
     id: 'components',
     label: 'Component Gallery',
     href: '/components',

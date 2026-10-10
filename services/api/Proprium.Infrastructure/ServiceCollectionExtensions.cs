@@ -52,6 +52,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IBillCommandService, PostgresBillCommandService>();
         services.AddScoped<IBillQueryService, PostgresBillQueryService>();
+        services.AddScoped<PostgresHouseholdService>();
+        services.AddScoped<IHouseholdQueryService>(provider => provider.GetRequiredService<PostgresHouseholdService>());
+        services.AddScoped<IHouseholdCommandService>(provider => provider.GetRequiredService<PostgresHouseholdService>());
         services.AddSingleton<IBillUpdatedEventMapper, BillUpdatedIntegrationEventMapper>();
         services.AddSingleton<IBillCreatedEventMapper, BillCreatedIntegrationEventMapper>();
         services.AddSingleton<IBillPaymentStatusChangedEventMapper, BillPaymentStatusChangedIntegrationEventMapper>();

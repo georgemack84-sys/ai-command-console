@@ -9,11 +9,16 @@ import { AuthenticationErrorState } from './authentication-error-state';
 import { AuthenticationResolutionFrame } from './authentication-resolution-frame';
 import { UnauthorizedState } from './unauthorized-state';
 
-export function LoginExperienceBoundary({ children }: React.PropsWithChildren) {
+export function LoginExperienceBoundary({
+  children,
+  authenticatedDestination,
+}: React.PropsWithChildren<{ authenticatedDestination?: string }>) {
   const { state } = useAuthentication();
   const router = useRouter();
   const search = useSearchParams();
-  const returnPath = resolveSafeReturnPath(search.get('returnTo'));
+  const returnPath = search.get('returnTo')
+    ? resolveSafeReturnPath(search.get('returnTo'))
+    : (authenticatedDestination ?? '/');
 
   useEffect(() => {
     if (state.status === 'authenticated') router.replace(returnPath);

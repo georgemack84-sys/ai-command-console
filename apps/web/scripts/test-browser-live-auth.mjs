@@ -232,6 +232,103 @@ try {
   );
   await replayContext.close();
 
+  const onboardingContext = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+  });
+  const onboardingPage = await onboardingContext.newPage();
+  const suffix = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+  const onboardingUsername = `onboarding-${suffix}`;
+  const onboardingName = `Onboarding ${suffix}`;
+  const renamedHousehold = `Home ${suffix}`;
+  const billName = `Internet ${suffix}`;
+  await onboardingPage.goto(`${baseUrl}/register`);
+  await onboardingPage
+    .getByRole('heading', { name: 'Create account' })
+    .waitFor();
+  await onboardingPage.getByLabel('Name *').fill(onboardingName);
+  await onboardingPage.getByLabel('Username *').fill(onboardingUsername);
+  await onboardingPage.getByLabel('Password *').fill('long-enough-password');
+  const registrationResponse = onboardingPage.waitForResponse(
+    (response) =>
+      response.url() === `${apiBaseUrl}/api/v1/auth/register` &&
+      response.request().method() === 'POST',
+  );
+  await onboardingPage.getByRole('button', { name: 'Create account' }).click();
+  await check(
+    registrationResponse.then((response) => response.status() === 204),
+    'Account registration did not complete with 204.',
+  );
+  await onboardingPage
+    .getByRole('heading', { name: `${onboardingName}'s household` })
+    .waitFor();
+  const householdPath = new URL(onboardingPage.url()).pathname;
+  await check(
+    Promise.resolve(/^\/households\/[0-9a-f-]+$/i.test(householdPath)),
+    'Registration did not reach an explicit household route.',
+  );
+
+  await onboardingPage.getByLabel('Household name *').fill(renamedHousehold);
+  const renameResponse = onboardingPage.waitForResponse(
+    (response) =>
+      response.url().endsWith(householdPath) &&
+      response.request().method() === 'PATCH',
+  );
+  await onboardingPage.getByRole('button', { name: 'Save name' }).click();
+  await check(
+    renameResponse.then((response) => response.status() === 200),
+    'Household rename did not complete with 200.',
+  );
+  await onboardingPage
+    .getByRole('heading', { name: renamedHousehold })
+    .waitFor();
+
+  await onboardingPage.getByLabel('Bill name *').fill(billName);
+  await onboardingPage.getByLabel('Amount *').fill('87.45');
+  await onboardingPage.getByLabel('Due date *').fill('2030-01-15');
+  const createBillResponse = onboardingPage.waitForResponse(
+    (response) =>
+      response.url().endsWith(`${householdPath}/bills`) &&
+      response.request().method() === 'POST',
+  );
+  await onboardingPage.getByRole('button', { name: 'Add bill' }).click();
+  await check(
+    createBillResponse.then((response) => response.status() === 201),
+    'First-bill creation did not complete with 201.',
+  );
+  await onboardingPage.getByText(billName, { exact: true }).waitFor();
+  await onboardingPage.reload();
+  await onboardingPage.getByText(billName, { exact: true }).waitFor();
+  await check(
+    onboardingPage
+      .getByText('$87.45 · due 2030-01-15', { exact: true })
+      .count()
+      .then((count) => count === 1),
+    'Refresh did not preserve the first bill.',
+  );
+
+  await onboardingPage.getByRole('button', { name: 'Open user menu' }).click();
+  const onboardingLogout = onboardingPage.waitForResponse(
+    (response) =>
+      response.url() === `${apiBaseUrl}/api/v1/auth/logout` &&
+      response.request().method() === 'POST',
+  );
+  await onboardingPage.getByRole('menuitem', { name: 'Sign out' }).click();
+  await check(
+    onboardingLogout.then((response) => response.status() === 204),
+    'Onboarding logout did not complete with 204.',
+  );
+  await onboardingPage.getByRole('heading', { name: 'Sign in' }).waitFor();
+  await onboardingPage.goto(`${baseUrl}${householdPath}`);
+  await onboardingPage.getByRole('heading', { name: 'Sign in' }).waitFor();
+  await check(
+    onboardingPage
+      .getByText(billName, { exact: true })
+      .count()
+      .then((count) => count === 0),
+    'A revoked session exposed household bill content.',
+  );
+  await onboardingContext.close();
+
   console.log(
     `Live authentication browser checks passed: ${assertionCount} assertions against the real API, PostgreSQL, and Redis.`,
   );
