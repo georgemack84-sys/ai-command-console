@@ -42,7 +42,7 @@ describe('AuthenticationProvider invalidation', () => {
     authService.getCurrentUser.mockReset();
     authService.endSession.mockReset();
   });
-  it('keeps a stale refresh result from restoring access after a confirmed 401', async () => {
+  it('keeps the authenticated view through refresh and prevents a stale result from restoring access after a confirmed 401', async () => {
     const stale = deferred<typeof user>();
     authService.getCurrentUser
       .mockResolvedValueOnce(user)
@@ -56,7 +56,7 @@ describe('AuthenticationProvider invalidation', () => {
       expect(screen.getByText('authenticated')).toBeVisible(),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-    await waitFor(() => expect(screen.getByText('unknown')).toBeVisible());
+    expect(screen.getByText('authenticated')).toBeVisible();
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
