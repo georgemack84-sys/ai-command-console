@@ -1,7 +1,7 @@
 # Proprium Product Phase 4.3: Account management design
 
-Status: profile-editing implementation in progress; password, cross-session,
-and multi-household work remains deferred.
+Status: profile-editing implementation complete and staged; password,
+cross-session, and multi-household work remain deferred.
 
 ## First implementation slice
 
