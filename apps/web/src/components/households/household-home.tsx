@@ -21,6 +21,7 @@ import {
 } from '@/ui/components/primitives';
 
 import { HouseholdInvitationForm } from './household-invitation-form';
+import { HouseholdMembers } from './household-members';
 
 interface HouseholdHomeProps {
   householdId: string;
@@ -210,6 +211,7 @@ export function HouseholdHome({ householdId }: HouseholdHomeProps) {
         </Button>
       </form>
       <HouseholdInvitationForm householdId={householdId} />
+      <HouseholdMembers householdId={householdId} />
       <form className="ui-card household-form" onSubmit={addBill}>
         <div>
           <h2>Add your first bill</h2>

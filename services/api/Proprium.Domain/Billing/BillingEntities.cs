@@ -40,7 +40,7 @@ public sealed class HouseholdInvitation
     public DateTimeOffset? ResolvedAtUtc { get; set; }
 }
 
-public enum HouseholdInvitationAuditAction { Created, Accepted, Revoked, Denied }
+public enum HouseholdInvitationAuditAction { Created, Accepted, Revoked, Removed, Denied }
 
 public sealed class HouseholdInvitationAuditEvent
 {
