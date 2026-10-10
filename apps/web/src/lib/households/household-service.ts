@@ -97,3 +97,29 @@ export function createBill(
     parse: parseBill,
   });
 }
+
+export function updateBill(
+  householdId: string,
+  billId: string,
+  value: { amount: number; dueDate: string; notes?: string },
+): Promise<Bill> {
+  return apiRequest({
+    path: `/api/v1/households/${householdId}/bills/${billId}`,
+    method: 'PATCH',
+    body: value,
+    parse: parseBill,
+  });
+}
+
+export function setBillPaymentStatus(
+  householdId: string,
+  billId: string,
+  paymentStatus: Bill['paymentStatus'],
+): Promise<Bill> {
+  return apiRequest({
+    path: `/api/v1/households/${householdId}/bills/${billId}/payment-status`,
+    method: 'PATCH',
+    body: { paymentStatus },
+    parse: parseBill,
+  });
+}

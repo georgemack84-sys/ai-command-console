@@ -6,6 +6,8 @@ import {
   listBills,
   listHouseholds,
   renameHousehold,
+  setBillPaymentStatus,
+  updateBill,
 } from '@/lib/households/household-service';
 
 import { HouseholdHome } from './household-home';
@@ -15,6 +17,8 @@ vi.mock('@/lib/households/household-service', () => ({
   listBills: vi.fn(),
   listHouseholds: vi.fn(),
   renameHousehold: vi.fn(),
+  setBillPaymentStatus: vi.fn(),
+  updateBill: vi.fn(),
 }));
 
 const householdId = 'household-1';
@@ -88,6 +92,69 @@ describe('HouseholdHome', () => {
       }),
     );
     expect(await screen.findByText('Internet')).toBeVisible();
-    expect(screen.getByText('$87.45 · due 2030-01-15')).toBeVisible();
+    expect(screen.getByText('$87.45 · Due 2030-01-15')).toBeVisible();
+  });
+
+  it('updates a bill and changes its payment status without a reload', async () => {
+    const bill = {
+      id: 'bill-1',
+      householdId,
+      name: 'Internet',
+      amount: 87.45,
+      dueDate: '2030-01-15',
+      notes: null,
+      paymentStatus: 'Unpaid' as const,
+      updatedAtUtc: '2030-01-01T00:00:00Z',
+    };
+    vi.mocked(listBills).mockResolvedValue([bill]);
+    vi.mocked(updateBill).mockResolvedValue({
+      ...bill,
+      amount: 91.2,
+      dueDate: '2030-01-20',
+      notes: 'New plan',
+    });
+    vi.mocked(setBillPaymentStatus).mockResolvedValue({
+      ...bill,
+      amount: 91.2,
+      dueDate: '2030-01-20',
+      notes: 'New plan',
+      paymentStatus: 'Paid',
+    });
+    render(<HouseholdHome householdId={householdId} />);
+
+    await screen.findByText('Internet');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Internet' }));
+    fireEvent.change(screen.getByLabelText('Amount for Internet *'), {
+      target: { value: '91.20' },
+    });
+    fireEvent.change(screen.getByLabelText('Due date for Internet *'), {
+      target: { value: '2030-01-20' },
+    });
+    fireEvent.change(screen.getByLabelText('Notes for Internet'), {
+      target: { value: 'New plan' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save bill' }));
+
+    await waitFor(() =>
+      expect(updateBill).toHaveBeenCalledWith(householdId, bill.id, {
+        amount: 91.2,
+        dueDate: '2030-01-20',
+        notes: 'New plan',
+      }),
+    );
+    expect(await screen.findByText('$91.20 · Due 2030-01-20')).toBeVisible();
+    expect(screen.getByText('New plan')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark paid' }));
+    await waitFor(() =>
+      expect(setBillPaymentStatus).toHaveBeenCalledWith(
+        householdId,
+        bill.id,
+        'Paid',
+      ),
+    );
+    expect(
+      await screen.findByText('$91.20 · Paid · due 2030-01-20'),
+    ).toBeVisible();
   });
 });

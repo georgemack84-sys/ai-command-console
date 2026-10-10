@@ -31,9 +31,9 @@ SHA in deployment records so rollback selects an immutable pair of images.
 
 After staging deploys, run the repeatable staging authentication and onboarding
 check from `apps/web`. It creates a uniquely named disposable account, verifies
-the resulting household route, renames the household, creates a first bill,
-verifies persistence after refresh, logs out, and proves the revoked session
-cannot reopen the household route.
+the resulting household route, renames the household, creates and updates a
+first bill, changes its payment status, verifies persistence after refresh,
+logs out, and proves the revoked session cannot reopen the household route.
 
 ```bash
 npm run test:browser:staging-onboarding
@@ -120,6 +120,7 @@ staging-environment workflows instead of opening SSH to the internet:
    The bootstrap workflow validates this structure, key presence, port ranges,
    origins, and key encoding without printing any values. It refuses to write a
    malformed file to the host.
+
 5. Run `Bootstrap Proprium Staging Host` with the network and bindings. It
    creates the files at mode `0600` and refuses to replace existing files unless
    `replace_existing_files` is explicitly selected.
