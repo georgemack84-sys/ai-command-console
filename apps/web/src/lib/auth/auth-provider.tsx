@@ -31,7 +31,11 @@ export function AuthenticationProvider({ children }: React.PropsWithChildren) {
     active.current?.abort();
     const controller = new AbortController();
     active.current = controller;
-    setState({ status: 'unknown' });
+    // A refresh after authentication should keep the protected UI mounted.
+    // Callers such as ProfileForm can then preserve local feedback while the
+    // identity response is revalidated. Initial resolution still uses the
+    // unknown state so route guards do not render prematurely.
+    if (!hasResolvedAuthenticated.current) setState({ status: 'unknown' });
     try {
       const user = await getCurrentUser(controller.signal);
       if (request === generation.current) {

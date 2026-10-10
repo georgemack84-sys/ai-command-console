@@ -126,7 +126,9 @@ try {
   );
   await page.getByRole('button', { name: 'Save profile' }).click();
   assert.equal((await updateProfile).status(), 200, 'Profile update failed.');
-  await page.getByRole('status').getByText('Profile saved.').waitFor();
+  await page
+    .getByRole('status', { name: 'Profile saved.' })
+    .waitFor({ timeout: 15_000 });
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 15_000 });
   await page.getByDisplayValue(updatedDisplayName).waitFor({ timeout: 15_000 });
 
