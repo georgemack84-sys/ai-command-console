@@ -9,7 +9,11 @@ import {
 } from '@/lib/households/household-service';
 import { Button, Field, FieldError, Input } from '@/ui/components/primitives';
 
-export function HouseholdInvitationForm({ householdId }: { householdId: string }) {
+export function HouseholdInvitationForm({
+  householdId,
+}: {
+  householdId: string;
+}) {
   const [isOwner, setIsOwner] = useState(false);
   const [username, setUsername] = useState('');
   const [saving, setSaving] = useState(false);
@@ -17,7 +21,9 @@ export function HouseholdInvitationForm({ householdId }: { householdId: string }
 
   useEffect(() => {
     void listHouseholds().then((households) =>
-      setIsOwner(households.some((item) => item.id === householdId && item.isOwner)),
+      setIsOwner(
+        households.some((item) => item.id === householdId && item.isOwner),
+      ),
     );
   }, [householdId]);
 
@@ -30,7 +36,9 @@ export function HouseholdInvitationForm({ householdId }: { householdId: string }
     try {
       await createHouseholdInvitation(householdId, username);
       setUsername('');
-      setMessage('Invitation created. The member can accept it from their dashboard.');
+      setMessage(
+        'Invitation created. The member can accept it from their dashboard.',
+      );
     } catch (error) {
       setMessage(
         error instanceof ApiError && error.kind === 'authorization'
@@ -49,10 +57,16 @@ export function HouseholdInvitationForm({ householdId }: { householdId: string }
         <p>Invite an existing Proprium user by username.</p>
       </div>
       <Field label="Username" required>
-        <Input value={username} onChange={(event) => setUsername(event.target.value)} maxLength={256} />
+        <Input
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          maxLength={256}
+        />
       </Field>
       {message ? <FieldError role="status">{message}</FieldError> : null}
-      <Button type="submit" loading={saving} loadingLabel="Creating invitation">Create invitation</Button>
+      <Button type="submit" loading={saving} loadingLabel="Creating invitation">
+        Create invitation
+      </Button>
     </form>
   );
 }

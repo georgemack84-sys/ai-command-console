@@ -25,14 +25,14 @@ public sealed class HouseholdInvitationIntegrationTests : IIntegrationTest
 
         var created = await service.CreateAsync(household.Id, owner.Id, target.Username);
         Assert.Equal(CreateHouseholdInvitationOutcome.Created, created.Outcome);
-        Assert.NotNull(created.Invitation);
+        var invitation = Assert.IsType<HouseholdInvitationDetails>(created.Invitation);
         Assert.Single(await service.ListPendingForUserAsync(target.Id));
 
-        Assert.Equal(ResolveHouseholdInvitationOutcome.Accepted, (await service.AcceptAsync(created.Invitation!.Id, target.Id)).Outcome);
-        Assert.Equal(ResolveHouseholdInvitationOutcome.Accepted, (await service.AcceptAsync(created.Invitation.Id, target.Id)).Outcome);
+        Assert.Equal(ResolveHouseholdInvitationOutcome.Accepted, (await service.AcceptAsync(invitation.Id, target.Id)).Outcome);
+        Assert.Equal(ResolveHouseholdInvitationOutcome.Accepted, (await service.AcceptAsync(invitation.Id, target.Id)).Outcome);
         Assert.True(await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == household.Id && item.UserId == target.Id));
-        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == created.Invitation.Id && item.Action == HouseholdInvitationAuditAction.Created));
-        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == created.Invitation.Id && item.Action == HouseholdInvitationAuditAction.Accepted));
+        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Created));
+        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Accepted));
     }
 
     private static PropriumDbContext CreateContext()
