@@ -31,6 +31,10 @@ public sealed class HouseholdInvitationIntegrationTests : IIntegrationTest
         Assert.Equal(ResolveHouseholdInvitationOutcome.Accepted, (await service.AcceptAsync(invitation.Id, target.Id)).Outcome);
         Assert.Equal(ResolveHouseholdInvitationOutcome.Accepted, (await service.AcceptAsync(invitation.Id, target.Id)).Outcome);
         Assert.True(await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == household.Id && item.UserId == target.Id));
+        var members = await service.ListAsync(household.Id, owner.Id);
+        Assert.Collection(members,
+            member => Assert.Equal(owner.Id, member.UserId),
+            member => Assert.Equal(target.Id, member.UserId));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Created));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Accepted));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.ReasonCode == "invite_duplicate_accept"));

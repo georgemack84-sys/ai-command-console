@@ -45,8 +45,9 @@ public sealed class PostgresHouseholdInvitationService(PropriumDbContext databas
         var ownerUserId = await database.Households.Where(item => item.Id == householdId).Select(item => item.OwnerUserId).SingleAsync(cancellationToken);
         return await database.HouseholdMemberships
             .Where(item => item.HouseholdId == householdId)
-            .Join(database.Users, membership => membership.UserId, user => user.Id, (membership, user) => new HouseholdMemberDetails(user.Id, user.DisplayName, membership.JoinedAtUtc, user.Id == ownerUserId))
-            .OrderByDescending(item => item.IsOwner).ThenBy(item => item.DisplayName)
+            .Join(database.Users, membership => membership.UserId, user => user.Id, (membership, user) => new { membership.JoinedAtUtc, User = user })
+            .OrderByDescending(item => item.User.Id == ownerUserId).ThenBy(item => item.User.DisplayName)
+            .Select(item => new HouseholdMemberDetails(item.User.Id, item.User.DisplayName, item.JoinedAtUtc, item.User.Id == ownerUserId))
             .ToArrayAsync(cancellationToken);
     }
 
