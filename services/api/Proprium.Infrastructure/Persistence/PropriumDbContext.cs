@@ -17,6 +17,7 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<AuthenticationEvent> AuthenticationEvents => Set<AuthenticationEvent>();
+    public DbSet<RecoveryContact> RecoveryContacts => Set<RecoveryContact>();
     public DbSet<Household> Households => Set<Household>();
     public DbSet<HouseholdMembership> HouseholdMemberships => Set<HouseholdMembership>();
     public DbSet<HouseholdInvitation> HouseholdInvitations => Set<HouseholdInvitation>();
@@ -101,6 +102,15 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
             entity.HasIndex(item => item.EventType); entity.HasIndex(item => item.Outcome); entity.HasIndex(item => item.CorrelationId);
             entity.HasOne(item => item.User).WithMany(user => user.AuthenticationEvents).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(item => item.Session).WithMany().HasForeignKey(item => item.SessionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<RecoveryContact>(entity =>
+        {
+            entity.ToTable("recovery_contacts"); entity.HasKey(item => item.UserId);
+            entity.Property(item => item.Email).HasMaxLength(320).IsRequired();
+            entity.Property(item => item.NormalizedEmail).HasMaxLength(320).IsRequired();
+            entity.Property(item => item.VerificationTokenHash).HasMaxLength(128);
+            entity.HasIndex(item => item.NormalizedEmail).IsUnique();
+            entity.HasOne(item => item.User).WithOne(user => user.RecoveryContact).HasForeignKey<RecoveryContact>(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<Household>(entity =>
         {

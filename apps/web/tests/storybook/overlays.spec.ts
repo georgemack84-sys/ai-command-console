@@ -167,13 +167,14 @@ test('overlays preserve theme, reduced motion, shell layering, and Axe contracts
       };
     });
     expect(layers.dialog).toBeGreaterThan(layers.header);
-    const results = await new AxeBuilder({ page }).analyze();
-    expect(
-      results.violations
-        .filter((violation) =>
-          ['serious', 'critical'].includes(violation.impact ?? ''),
-        )
-        .map((violation) => violation.id),
-    ).toEqual([]);
   }
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(
+    results.violations
+      .filter((violation) =>
+        ['serious', 'critical'].includes(violation.impact ?? ''),
+      )
+      .map((violation) => violation.id),
+  ).toEqual([]);
 });

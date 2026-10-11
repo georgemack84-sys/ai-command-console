@@ -98,6 +98,61 @@ public static class AuthenticationEndpoints
             .Produces<CurrentUserResponse>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status401Unauthorized)
             .RequirePermission(PermissionCatalog.Identity.ProfileManageSelf);
 
+        auth.MapGet("/recovery-contact", async (HttpContext context, IRecoveryContactService contacts, CancellationToken cancellationToken) =>
+        {
+            SetNoStore(context);
+            var actor = context.Features.Get<AuthenticatedRequest>();
+            if (actor is null) return Results.Unauthorized();
+            var contact = await contacts.GetAsync(actor.UserId, cancellationToken);
+            return Results.Ok(new RecoveryContactResponse(contact.MaskedEmail, contact.IsVerified, contact.VerificationPending));
+        }).WithName("GetRecoveryContact").WithSummary("Return the authenticated user's masked recovery-contact state.")
+            .Produces<RecoveryContactResponse>().Produces(StatusCodes.Status401Unauthorized)
+            .RequirePermission(PermissionCatalog.Identity.RecoveryContactManageSelf);
+
+        auth.MapPost("/recovery-contact", async (HttpContext context, IRecoveryContactService contacts, IAuthenticationAuditRecorder auditEvents, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
+        {
+            SetNoStore(context);
+            if (!requestPolicy.IsOriginAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.OriginRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "origin", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (!requestPolicy.IsCsrfAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.CsrfRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "csrf", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            var (body, isTooLarge) = await ReadRequestBodyAsync(context.Request.Body, cancellationToken);
+            if (isTooLarge || !string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase) || HasDuplicateProperties(body)) return Results.BadRequest();
+            BeginRecoveryContactVerificationRequest? request;
+            try { request = JsonSerializer.Deserialize<BeginRecoveryContactVerificationRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            var actor = context.Features.Get<AuthenticatedRequest>();
+            if (actor is null) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(request?.Email) || request.Email.Length > 320 || string.IsNullOrWhiteSpace(request.CurrentPassword) || request.CurrentPassword.Length > 1024) return Results.BadRequest();
+            var result = await contacts.BeginVerificationAsync(new BeginRecoveryContactVerificationAttempt(actor.UserId, actor.SessionId, request.Email, request.CurrentPassword, context.TraceIdentifier), cancellationToken);
+            return result.Outcome switch
+            {
+                BeginRecoveryContactVerificationOutcome.Sent => Results.Accepted(),
+                BeginRecoveryContactVerificationOutcome.Unauthorized => Results.Unauthorized(),
+                BeginRecoveryContactVerificationOutcome.Unavailable => Results.StatusCode(StatusCodes.Status503ServiceUnavailable),
+                _ => Results.Accepted()
+            };
+        }).WithName("BeginRecoveryContactVerification").WithSummary("Send a recovery-contact verification challenge through the configured delivery provider.")
+            .Produces(StatusCodes.Status202Accepted).Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status503ServiceUnavailable)
+            .RequirePermission(PermissionCatalog.Identity.RecoveryContactManageSelf);
+
+        auth.MapPost("/recovery-contact/verify", async (HttpContext context, IRecoveryContactService contacts, IAuthenticationAuditRecorder auditEvents, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
+        {
+            SetNoStore(context);
+            if (!requestPolicy.IsOriginAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.OriginRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "origin", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            if (!requestPolicy.IsCsrfAllowed(context.Request)) { await RecordEventAsync(auditEvents, AuthenticationEventType.CsrfRejected, AuthenticationEventOutcome.Denied, context.TraceIdentifier, "csrf", cancellationToken); return Results.StatusCode(StatusCodes.Status403Forbidden); }
+            var (body, isTooLarge) = await ReadRequestBodyAsync(context.Request.Body, cancellationToken);
+            if (isTooLarge || !string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase) || HasDuplicateProperties(body)) return Results.BadRequest();
+            CompleteRecoveryContactVerificationRequest? request;
+            try { request = JsonSerializer.Deserialize<CompleteRecoveryContactVerificationRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            var actor = context.Features.Get<AuthenticatedRequest>();
+            if (actor is null) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(request?.Token) || request.Token.Length > 128) return Results.BadRequest();
+            var result = await contacts.CompleteVerificationAsync(new CompleteRecoveryContactVerificationAttempt(actor.UserId, actor.SessionId, new RawSessionToken(request.Token), context.TraceIdentifier), cancellationToken);
+            return result.Outcome == CompleteRecoveryContactVerificationOutcome.Verified ? Results.NoContent() : Results.BadRequest();
+        }).WithName("CompleteRecoveryContactVerification").WithSummary("Verify a recovery-contact challenge for the authenticated user.")
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden)
+            .RequirePermission(PermissionCatalog.Identity.RecoveryContactManageSelf);
+
         auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, IAuthenticationAuditRecorder auditEvents, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
