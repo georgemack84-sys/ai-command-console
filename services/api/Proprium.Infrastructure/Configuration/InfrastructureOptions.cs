@@ -43,3 +43,17 @@ public sealed class RedisOptions
 
     public override string ToString() => $"{nameof(RedisOptions)} {{ Host = {Host}, Port = {Port}, Password = [REDACTED] }}";
 }
+
+public sealed class RecoveryContactEmailOptions
+{
+    public string? Host { get; init; }
+    public int Port { get; init; }
+    public string? Username { get; init; }
+    public string? Password { get; init; }
+    public string? FromAddress { get; init; }
+    public string? FromDisplayName { get; init; }
+
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(Host);
+
+    public override string ToString() => $"{nameof(RecoveryContactEmailOptions)} {{ Values = [REDACTED] }}";
+}

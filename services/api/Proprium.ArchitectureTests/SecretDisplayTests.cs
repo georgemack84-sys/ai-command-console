@@ -43,6 +43,7 @@ public sealed class SecretDisplayTests
             new SessionOptions { TokenDigestKey = secret },
             new LoginRateLimitOptions { PrivacyKeyMaterial = secret },
             new AuthenticationRequestOptions(),
+            new RecoveryContactEmailOptions { Username = "operator", Password = secret },
             localAdministrator);
 
         foreach (var value in new object[]
@@ -51,6 +52,7 @@ public sealed class SecretDisplayTests
             snapshot,
             snapshot.Postgres,
             snapshot.Redis,
+            snapshot.RecoveryContactEmail,
         })
         {
             Assert.DoesNotContain(secret, value.ToString(), StringComparison.Ordinal);

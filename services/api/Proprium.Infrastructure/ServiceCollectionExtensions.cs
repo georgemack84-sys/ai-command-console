@@ -49,7 +49,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAccountRegistrationService, PostgresAccountRegistrationService>();
         services.AddScoped<IProfileService, PostgresProfileService>();
         services.AddScoped<IRecoveryContactService, PostgresRecoveryContactService>();
-        services.AddSingleton<IRecoveryContactDelivery, UnavailableRecoveryContactDelivery>();
+        services.AddSingleton<IRecoveryContactDelivery>(provider =>
+            provider.GetRequiredService<IOptions<RecoveryContactEmailOptions>>().Value.IsConfigured
+                ? new SmtpRecoveryContactDelivery(provider.GetRequiredService<IOptions<RecoveryContactEmailOptions>>())
+                : new UnavailableRecoveryContactDelivery());
         services.AddScoped<IAuthenticationAuditRecorder, PostgresAuthenticationAuditRecorder>();
         services.AddScoped<IPasswordChangeService, PostgresPasswordChangeService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
