@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  evaluateSemanticScopeApplicability,
   evaluateSemanticScopeContainment,
   isValidSemanticScopeReference,
+  proposeSemanticScopeWidening,
   type SemanticScopeReference,
 } from "@/types/learning-constitution";
 
@@ -70,6 +72,71 @@ describe("semantic scope identity, parentage, and containment", () => {
       outcome: "DOES_NOT_APPLY",
       reason: "DISTINCT_IDENTITIES",
     });
+  });
+
+  it("inherits only into an explicitly nested context and keeps lateral scopes isolated", () => {
+    expect(
+      evaluateSemanticScopeApplicability(workspace, project),
+    ).toMatchObject({
+      outcome: "APPLIES",
+      reason: "EXPLICIT_INHERITANCE",
+    });
+    expect(
+      evaluateSemanticScopeApplicability(project, {
+        identity: { dimension: "PROJECT", identifier: "project-2" },
+        parent: workspace,
+      }),
+    ).toMatchObject({
+      outcome: "DOES_NOT_APPLY",
+      reason: "DISTINCT_IDENTITIES",
+    });
+  });
+
+  it("requires an explicit governance proposal before applicability can widen", () => {
+    expect(
+      evaluateSemanticScopeApplicability(project, workspace),
+    ).toMatchObject({
+      outcome: "REQUIRES_REVIEW",
+      reason: "WIDENING_PROPOSAL_REQUIRED",
+    });
+
+    expect(
+      proposeSemanticScopeWidening({
+        proposalId: "scope-widening-1",
+        sourceScope: project,
+        targetScope: workspace,
+        rationale:
+          "A reviewer may later assess whether this project knowledge applies workspace-wide.",
+      }),
+    ).toEqual({
+      outcome: "PROPOSED",
+      reason: "EXPLICIT_ANCESTOR_TARGET",
+      proposal: {
+        proposalId: "scope-widening-1",
+        sourceScope: project,
+        targetScope: workspace,
+        rationale:
+          "A reviewer may later assess whether this project knowledge applies workspace-wide.",
+        status: "PROPOSED",
+        persistenceEffect: "NONE",
+        authorityEffect: "UNCHANGED",
+        executionPermissionGranted: false,
+      },
+      persistenceEffect: "NONE",
+      authorityEffect: "UNCHANGED",
+      executionPermissionGranted: false,
+    });
+  });
+
+  it("rejects a proposal that is not a widening operation", () => {
+    expect(
+      proposeSemanticScopeWidening({
+        proposalId: "scope-widening-2",
+        sourceScope: workspace,
+        targetScope: project,
+        rationale: "This is narrowing, not widening.",
+      }),
+    ).toMatchObject({ outcome: "REJECTED", reason: "TARGET_IS_NOT_WIDER" });
   });
 
   it("requires review for malformed parentage and has no authority effect", () => {
