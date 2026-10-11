@@ -1,7 +1,12 @@
 using System.Net;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Proprium.Api.Configuration;
+using Proprium.Application.Authentication;
+using Proprium.Infrastructure;
+using Proprium.Infrastructure.Authentication;
 using Proprium.Infrastructure.Configuration;
 using Xunit;
 
@@ -25,6 +30,7 @@ public sealed class ApiConfigurationTests
         Assert.Equal("localhost", resolved.Redis.Host);
         Assert.Equal(6379, resolved.Redis.Port);
         Assert.Null(resolved.Redis.Password);
+        Assert.False(resolved.RecoveryContactEmail.IsConfigured);
     }
 
     [Theory]
@@ -115,6 +121,7 @@ public sealed class ApiConfigurationTests
         values.Remove("LOGIN_RATE_LIMIT_WINDOW_MINUTES");
         values.Remove("LOGIN_RATE_LIMIT_FALLBACK_CAPACITY");
         values.Remove("LOCAL_ADMIN_ENABLED");
+        values.Remove("RECOVERY_CONTACT_SMTP_HOST");
 
         var resolved = Resolve(values);
 
@@ -124,6 +131,62 @@ public sealed class ApiConfigurationTests
         Assert.Equal(5, resolved.LoginRateLimit.WindowMinutes);
         Assert.Equal(10_000, resolved.LoginRateLimit.FallbackCapacity);
         Assert.False(resolved.LocalAdministrator.Enabled);
+        Assert.False(resolved.RecoveryContactEmail.IsConfigured);
+    }
+
+    [Fact]
+    public void Recovery_contact_smtp_requires_complete_valid_configuration_before_it_is_enabled()
+    {
+        var incomplete = ValidValues();
+        incomplete["RECOVERY_CONTACT_SMTP_HOST"] = "smtp.example.test";
+
+        var error = Assert.Throws<ApiConfigurationException>(() => Resolve(incomplete));
+        Assert.Equal("RECOVERY_CONTACT_SMTP_PORT", error.Setting);
+
+        var configured = ValidValues();
+        configured["RECOVERY_CONTACT_SMTP_HOST"] = "smtp.example.test";
+        configured["RECOVERY_CONTACT_SMTP_PORT"] = "587";
+        configured["RECOVERY_CONTACT_SMTP_USERNAME"] = "smtp-user";
+        configured["RECOVERY_CONTACT_SMTP_PASSWORD"] = "smtp-secret";
+        configured["RECOVERY_CONTACT_SMTP_FROM_ADDRESS"] = "recovery@example.test";
+
+        var resolved = Resolve(configured);
+
+        Assert.True(resolved.RecoveryContactEmail.IsConfigured);
+        Assert.Equal(587, resolved.RecoveryContactEmail.Port);
+    }
+
+    [Fact]
+    public void Recovery_contact_smtp_rejects_an_invalid_sender_address()
+    {
+        var values = ValidValues();
+        values["RECOVERY_CONTACT_SMTP_HOST"] = "smtp.example.test";
+        values["RECOVERY_CONTACT_SMTP_PORT"] = "587";
+        values["RECOVERY_CONTACT_SMTP_USERNAME"] = "smtp-user";
+        values["RECOVERY_CONTACT_SMTP_PASSWORD"] = "smtp-secret";
+        values["RECOVERY_CONTACT_SMTP_FROM_ADDRESS"] = "not-an-email";
+
+        var error = Assert.Throws<ApiConfigurationException>(() => Resolve(values));
+
+        Assert.Equal("RECOVERY_CONTACT_SMTP_FROM_ADDRESS", error.Setting);
+        Assert.Equal(ConfigurationFailureCategory.Malformed, error.Category);
+    }
+
+    [Fact]
+    public void Recovery_contact_delivery_uses_smtp_only_when_the_typed_configuration_is_enabled()
+    {
+        using var unavailableProvider = BuildInfrastructureProvider(new RecoveryContactEmailOptions());
+        Assert.IsType<UnavailableRecoveryContactDelivery>(unavailableProvider.GetRequiredService<IRecoveryContactDelivery>());
+
+        using var smtpProvider = BuildInfrastructureProvider(new RecoveryContactEmailOptions
+        {
+            Host = "smtp.example.test",
+            Port = 587,
+            Username = "smtp-user",
+            Password = "smtp-secret",
+            FromAddress = "recovery@example.test",
+        });
+        Assert.IsType<SmtpRecoveryContactDelivery>(smtpProvider.GetRequiredService<IRecoveryContactDelivery>());
     }
 
     [Fact]
@@ -262,6 +325,14 @@ public sealed class ApiConfigurationTests
 
     private static ApiConfigurationSnapshot Resolve(Dictionary<string, string?> values, string environment = "Test") =>
         ApiConfiguration.Resolve(new ConfigurationBuilder().AddInMemoryCollection(values).Build(), environment);
+
+    private static ServiceProvider BuildInfrastructureProvider(RecoveryContactEmailOptions recoveryContactEmail)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IOptions<RecoveryContactEmailOptions>>(Options.Create(recoveryContactEmail));
+        services.AddPropriumInfrastructure();
+        return services.BuildServiceProvider();
+    }
 
     private static Dictionary<string, string?> ValidValues() => new()
     {

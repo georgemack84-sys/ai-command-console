@@ -143,6 +143,12 @@ Changing this value requires rebuilding the learning agent. It must be an absolu
 | `LOCAL_ADMIN_ENABLED` | Optional; defaults to `false` | No | Boolean | Enables Development-only administrator bootstrap during migration |
 | `LOCAL_ADMIN_USERNAME` | Required when local admin is enabled | No | String | Development bootstrap username |
 | `LOCAL_ADMIN_PASSWORD` | Required when local admin is enabled | Yes | String | Development bootstrap password |
+| `RECOVERY_CONTACT_SMTP_HOST` | Optional; disabled when absent | No | Hostname | Enables provider-neutral SMTP recovery-contact delivery |
+| `RECOVERY_CONTACT_SMTP_PORT` | Required when SMTP is enabled | No | Port | SMTP endpoint port |
+| `RECOVERY_CONTACT_SMTP_USERNAME` | Required when SMTP is enabled | Yes | String | SMTP authentication username |
+| `RECOVERY_CONTACT_SMTP_PASSWORD` | Required when SMTP is enabled | Yes | String | SMTP authentication password or API key |
+| `RECOVERY_CONTACT_SMTP_FROM_ADDRESS` | Required when SMTP is enabled | No | Email | Valid sender address for recovery-contact verification |
+| `RECOVERY_CONTACT_SMTP_FROM_NAME` | Optional | No | String | Sender display name |
 
 ## Build-time and runtime behavior
 

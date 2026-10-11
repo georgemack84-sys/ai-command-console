@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net.Mail;
 using Microsoft.Extensions.Options;
 using Proprium.Infrastructure.Configuration;
 
@@ -80,6 +81,7 @@ public sealed class ApiConfigurationSnapshot(
     Proprium.Infrastructure.Configuration.SessionOptions session,
     LoginRateLimitOptions loginRateLimit,
     AuthenticationRequestOptions authentication,
+    RecoveryContactEmailOptions recoveryContactEmail,
     LocalAdministratorOptions localAdministrator)
 {
     public PlatformOptions Platform { get; } = platform;
@@ -88,6 +90,7 @@ public sealed class ApiConfigurationSnapshot(
     public Proprium.Infrastructure.Configuration.SessionOptions Session { get; } = session;
     public LoginRateLimitOptions LoginRateLimit { get; } = loginRateLimit;
     public AuthenticationRequestOptions Authentication { get; } = authentication;
+    public RecoveryContactEmailOptions RecoveryContactEmail { get; } = recoveryContactEmail;
     public LocalAdministratorOptions LocalAdministrator { get; } = localAdministrator;
     public override string ToString() => $"{nameof(ApiConfigurationSnapshot)} {{ Values = [REDACTED] }}";
 }
@@ -123,6 +126,7 @@ public static class ApiConfiguration
         };
         var session = ResolveSession(validation);
         var authentication = ResolveAuthentication(validation);
+        var recoveryContactEmail = ResolveRecoveryContactEmail(validation);
         var loginRateLimit = ResolveLoginRateLimit(validation);
         var localAdministrator = ResolveLocalAdministrator(validation, environmentName);
 
@@ -135,6 +139,7 @@ public static class ApiConfiguration
             session,
             loginRateLimit,
             authentication,
+            recoveryContactEmail,
             localAdministrator);
     }
 
@@ -146,6 +151,7 @@ public static class ApiConfiguration
         services.AddSingleton<IOptions<Proprium.Infrastructure.Configuration.SessionOptions>>(Options.Create(snapshot.Session));
         services.AddSingleton<IOptions<LoginRateLimitOptions>>(Options.Create(snapshot.LoginRateLimit));
         services.AddSingleton<IOptions<AuthenticationRequestOptions>>(Options.Create(snapshot.Authentication));
+        services.AddSingleton<IOptions<RecoveryContactEmailOptions>>(Options.Create(snapshot.RecoveryContactEmail));
         services.AddSingleton(snapshot.LocalAdministrator);
         return services;
     }
@@ -167,6 +173,41 @@ public static class ApiConfiguration
         }
 
         return new AuthenticationRequestOptions { AllowedOrigin = origin };
+    }
+
+    private static RecoveryContactEmailOptions ResolveRecoveryContactEmail(StartupConfigurationValidation validation)
+    {
+        const string hostKey = "RECOVERY_CONTACT_SMTP_HOST";
+        var host = validation.Optional(hostKey);
+        if (string.IsNullOrWhiteSpace(host)) return new RecoveryContactEmailOptions();
+
+        var port = validation.RequiredInteger("RECOVERY_CONTACT_SMTP_PORT", 1, 65_535);
+        var username = validation.Required("RECOVERY_CONTACT_SMTP_USERNAME", isSecret: true);
+        var password = validation.Required("RECOVERY_CONTACT_SMTP_PASSWORD", isSecret: true);
+        var fromAddress = validation.Required("RECOVERY_CONTACT_SMTP_FROM_ADDRESS");
+        var options = new RecoveryContactEmailOptions
+        {
+            Host = host,
+            Port = port,
+            Username = username,
+            Password = password,
+            FromAddress = fromAddress,
+            FromDisplayName = validation.Optional("RECOVERY_CONTACT_SMTP_FROM_NAME"),
+        };
+
+        if (validation.IsValid("RECOVERY_CONTACT_SMTP_FROM_ADDRESS"))
+        {
+            try
+            {
+                _ = new MailAddress(fromAddress);
+            }
+            catch (FormatException)
+            {
+                validation.Malformed("RECOVERY_CONTACT_SMTP_FROM_ADDRESS", "must be a valid email address.");
+            }
+        }
+
+        return options;
     }
 
     private static LocalAdministratorOptions ResolveLocalAdministrator(

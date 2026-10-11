@@ -117,6 +117,24 @@ staging-environment workflows instead of opening SSH to the internet:
    AUTH_ALLOWED_ORIGIN=https://34.45.207.173.sslip.io
    ```
 
+   Recovery-contact verification remains fail-closed unless SMTP is explicitly
+   configured. To enable it, add all of the following provider-neutral values
+   to the same protected runtime secret; never place the username or password
+   in workflow inputs or repository files:
+
+   ```text
+   RECOVERY_CONTACT_SMTP_HOST=<smtp-host>
+   RECOVERY_CONTACT_SMTP_PORT=587
+   RECOVERY_CONTACT_SMTP_USERNAME=<smtp-username>
+   RECOVERY_CONTACT_SMTP_PASSWORD=<smtp-password-or-api-key>
+   RECOVERY_CONTACT_SMTP_FROM_ADDRESS=<verified-sender-address>
+   RECOVERY_CONTACT_SMTP_FROM_NAME=Proprium
+   ```
+
+   The API validates the complete SMTP configuration at startup and uses
+   authenticated TLS. If no SMTP host is present, it retains the unavailable
+   adapter and no usable verification challenge is issued.
+
    The bootstrap workflow validates this structure, key presence, port ranges,
    origins, and key encoding without printing any values. It refuses to write a
    malformed file to the host.
