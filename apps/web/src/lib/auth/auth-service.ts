@@ -6,6 +6,12 @@ import { apiRequest, emptyResponse } from '@/lib/api/api-client';
 
 import type { CurrentUser } from './auth-state';
 
+export interface RecoveryContact {
+  maskedEmail: string | null;
+  isVerified: boolean;
+  verificationPending: boolean;
+}
+
 export function parseCurrentUser(payload: unknown): CurrentUser {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload))
     throw new Error('Invalid identity');
@@ -57,6 +63,57 @@ export function updateCurrentUserProfile(
     body: { displayName },
     parse: parseCurrentUser,
   });
+}
+
+function parseRecoveryContact(payload: unknown): RecoveryContact {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload))
+    throw new Error('Invalid recovery contact');
+  const value = payload as Record<string, unknown>;
+  if (
+    (typeof value.maskedEmail !== 'string' && value.maskedEmail !== null) ||
+    typeof value.isVerified !== 'boolean' ||
+    typeof value.verificationPending !== 'boolean'
+  )
+    throw new Error('Invalid recovery contact');
+  return {
+    maskedEmail: value.maskedEmail,
+    isVerified: value.isVerified,
+    verificationPending: value.verificationPending,
+  };
+}
+
+export function getRecoveryContact(): Promise<RecoveryContact> {
+  return apiRequest({
+    path: '/api/v1/auth/recovery-contact',
+    parse: parseRecoveryContact,
+  });
+}
+
+export async function beginRecoveryContactVerification(
+  email: string,
+  currentPassword: string,
+): Promise<void> {
+  const result = await apiRequest({
+    path: '/api/v1/auth/recovery-contact',
+    method: 'POST',
+    body: { email, currentPassword },
+    parse: () => emptyResponse,
+  });
+  if (result !== emptyResponse)
+    throw new Error('Recovery-contact response must be empty');
+}
+
+export async function completeRecoveryContactVerification(
+  token: string,
+): Promise<void> {
+  const result = await apiRequest({
+    path: '/api/v1/auth/recovery-contact/verify',
+    method: 'POST',
+    body: { token },
+    parse: () => emptyResponse,
+  });
+  if (result !== emptyResponse)
+    throw new Error('Recovery-contact response must be empty');
 }
 export async function login(username: string, password: string): Promise<void> {
   const result = await apiRequest({
