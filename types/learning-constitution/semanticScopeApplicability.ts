@@ -81,6 +81,44 @@ export type ScopeWideningProposalResult = Readonly<{
   executionPermissionGranted: false;
 }>;
 
+export type ScopePromotionReview = Readonly<{
+  reviewId: string;
+  proposalId: string;
+  reviewerId: string;
+  decision: "APPROVED" | "REJECTED";
+  evidenceIds: readonly string[];
+  reviewedAt: string;
+}>;
+
+export type ScopePromotionEvaluation = Readonly<{
+  outcome: "READY_FOR_GOVERNED_PROMOTION" | "REQUIRES_REVIEW" | "REJECTED";
+  reason:
+    | "APPROVED_REVIEW_REQUIRES_SEPARATE_GOVERNED_ACTIVATION"
+    | "REVIEW_IS_MISSING_OR_INCOMPLETE"
+    | "REVIEW_REJECTED"
+    | "PROPOSAL_IS_NOT_A_VALID_WIDENING";
+  scopeChanged: false;
+  persistenceEffect: "NONE";
+  authorityEffect: "UNCHANGED";
+  executionPermissionGranted: false;
+}>;
+
+export type SemanticScopeExitGateInput = Readonly<{
+  boundaryCoveragePassed: boolean;
+  promotionEvaluation: ScopePromotionEvaluation;
+}>;
+
+export type SemanticScopeExitGateReport = Readonly<{
+  gateId: "semantic-scope-applicability-v1-exit-gate";
+  passed: boolean;
+  checks: readonly Readonly<{
+    checkId: string;
+    passed: boolean;
+    detail: string;
+  }>[];
+  architecturalOutcome: "APPLICABILITY_ONLY_WITHOUT_AUTHORITY_OR_EXECUTION_EFFECTS";
+}>;
+
 const canonicalDimensions = new Set<string>(CANONICAL_SCOPE_DIMENSIONS);
 
 const nonEmptyString = (value: unknown): value is string =>
@@ -292,5 +330,99 @@ export const proposeSemanticScopeWidening = (
     persistenceEffect: "NONE",
     authorityEffect: "UNCHANGED",
     executionPermissionGranted: false,
+  };
+};
+
+const promotionResult = (
+  outcome: ScopePromotionEvaluation["outcome"],
+  reason: ScopePromotionEvaluation["reason"],
+): ScopePromotionEvaluation => ({
+  outcome,
+  reason,
+  scopeChanged: false,
+  persistenceEffect: "NONE",
+  authorityEffect: "UNCHANGED",
+  executionPermissionGranted: false,
+});
+
+/**
+ * Assesses an independently recorded review. A positive assessment is not an
+ * activation: a later governed operation must still decide whether to widen.
+ */
+export const evaluateSemanticScopePromotion = (
+  proposal: ScopeWideningProposal,
+  review?: ScopePromotionReview,
+): ScopePromotionEvaluation => {
+  const widening = evaluateSemanticScopeApplicability(
+    proposal.sourceScope,
+    proposal.targetScope,
+  );
+  if (widening.reason !== "WIDENING_PROPOSAL_REQUIRED") {
+    return promotionResult("REJECTED", "PROPOSAL_IS_NOT_A_VALID_WIDENING");
+  }
+  if (
+    !review ||
+    review.proposalId !== proposal.proposalId ||
+    !review.reviewId.trim() ||
+    !review.reviewerId.trim() ||
+    !review.reviewedAt.trim() ||
+    review.evidenceIds.length === 0
+  ) {
+    return promotionResult(
+      "REQUIRES_REVIEW",
+      "REVIEW_IS_MISSING_OR_INCOMPLETE",
+    );
+  }
+  if (review.decision === "REJECTED") {
+    return promotionResult("REJECTED", "REVIEW_REJECTED");
+  }
+
+  return promotionResult(
+    "READY_FOR_GOVERNED_PROMOTION",
+    "APPROVED_REVIEW_REQUIRES_SEPARATE_GOVERNED_ACTIVATION",
+  );
+};
+
+export const SEMANTIC_SCOPE_EXIT_GATE_ID =
+  "semantic-scope-applicability-v1-exit-gate" as const;
+
+/**
+ * Confirms that the Phase 2 contract is applicable-only. It deliberately does
+ * not activate a widening proposal or substitute for a governance decision.
+ */
+export const evaluateSemanticScopeExitGate = (
+  input: SemanticScopeExitGateInput,
+): SemanticScopeExitGateReport => {
+  const checks = [
+    {
+      checkId: "canonical-dimensions",
+      passed: CANONICAL_SCOPE_DIMENSIONS.length === 8,
+      detail:
+        "The frozen v1 scope vocabulary contains exactly the canonical dimensions.",
+    },
+    {
+      checkId: "boundary-coverage",
+      passed: input.boundaryCoveragePassed,
+      detail:
+        "Cross-project, agent, ownership, temporal, and conflict boundaries are covered.",
+    },
+    {
+      checkId: "promotion-remains-inert",
+      passed:
+        input.promotionEvaluation.scopeChanged === false &&
+        input.promotionEvaluation.persistenceEffect === "NONE" &&
+        input.promotionEvaluation.authorityEffect === "UNCHANGED" &&
+        input.promotionEvaluation.executionPermissionGranted === false,
+      detail:
+        "Promotion evaluation cannot mutate scope, grant authority, or execute work.",
+    },
+  ] as const;
+
+  return {
+    gateId: SEMANTIC_SCOPE_EXIT_GATE_ID,
+    passed: checks.every((check) => check.passed),
+    checks,
+    architecturalOutcome:
+      "APPLICABILITY_ONLY_WITHOUT_AUTHORITY_OR_EXECUTION_EFFECTS",
   };
 };

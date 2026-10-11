@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  evaluateSemanticScopeExitGate,
+  evaluateSemanticScopePromotion,
   evaluateSemanticScopeApplicability,
   evaluateSemanticScopeContainment,
   isValidSemanticScopeReference,
@@ -141,6 +143,85 @@ describe("semantic scope identity, parentage, and containment", () => {
         rationale: "This is narrowing, not widening.",
       }),
     ).toMatchObject({ outcome: "REJECTED", reason: "TARGET_IS_NOT_WIDER" });
+  });
+
+  it("keeps an approved widening review inert until a separate governed activation", () => {
+    const proposal = proposeSemanticScopeWidening({
+      proposalId: "scope-widening-review-1",
+      sourceScope: project,
+      targetScope: workspace,
+      rationale: "A reviewer may assess broader applicability.",
+    }).proposal!;
+
+    expect(
+      evaluateSemanticScopePromotion(proposal, {
+        reviewId: "review-1",
+        proposalId: proposal.proposalId,
+        reviewerId: "reviewer-1",
+        decision: "APPROVED",
+        evidenceIds: ["evidence-1"],
+        reviewedAt: "2026-10-11T00:00:00.000Z",
+      }),
+    ).toEqual({
+      outcome: "READY_FOR_GOVERNED_PROMOTION",
+      reason: "APPROVED_REVIEW_REQUIRES_SEPARATE_GOVERNED_ACTIVATION",
+      scopeChanged: false,
+      persistenceEffect: "NONE",
+      authorityEffect: "UNCHANGED",
+      executionPermissionGranted: false,
+    });
+  });
+
+  it("requires a complete, proposal-specific review and respects rejection", () => {
+    const proposal = proposeSemanticScopeWidening({
+      proposalId: "scope-widening-review-2",
+      sourceScope: project,
+      targetScope: workspace,
+      rationale: "A reviewer may assess broader applicability.",
+    }).proposal!;
+
+    expect(evaluateSemanticScopePromotion(proposal)).toMatchObject({
+      outcome: "REQUIRES_REVIEW",
+      reason: "REVIEW_IS_MISSING_OR_INCOMPLETE",
+    });
+    expect(
+      evaluateSemanticScopePromotion(proposal, {
+        reviewId: "review-2",
+        proposalId: proposal.proposalId,
+        reviewerId: "reviewer-1",
+        decision: "REJECTED",
+        evidenceIds: ["evidence-1"],
+        reviewedAt: "2026-10-11T00:00:00.000Z",
+      }),
+    ).toMatchObject({ outcome: "REJECTED", reason: "REVIEW_REJECTED" });
+  });
+
+  it("passes the exit gate only when boundary coverage and inert promotion are proven", () => {
+    const evaluation = evaluateSemanticScopePromotion(
+      proposeSemanticScopeWidening({
+        proposalId: "scope-widening-review-3",
+        sourceScope: project,
+        targetScope: workspace,
+        rationale: "A reviewer may assess broader applicability.",
+      }).proposal!,
+    );
+
+    expect(
+      evaluateSemanticScopeExitGate({
+        boundaryCoveragePassed: true,
+        promotionEvaluation: evaluation,
+      }),
+    ).toMatchObject({
+      passed: true,
+      architecturalOutcome:
+        "APPLICABILITY_ONLY_WITHOUT_AUTHORITY_OR_EXECUTION_EFFECTS",
+    });
+    expect(
+      evaluateSemanticScopeExitGate({
+        boundaryCoveragePassed: false,
+        promotionEvaluation: evaluation,
+      }).passed,
+    ).toBe(false);
   });
 
   it("keeps sibling projects isolated even when they share an explicit workspace", () => {
