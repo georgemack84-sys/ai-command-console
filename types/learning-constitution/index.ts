@@ -43,6 +43,7 @@ export * from "./taxonomyEvaluation";
 export * from "./taxonomyChangeGovernance";
 export * from "./taxonomyRelease";
 export * from "./canonicalScopeTaxonomy";
+export * from "./semanticScopeApplicability";
 export * from "./learningDecision";
 export * from "./skillGraph";
 export * from "./assessment";
