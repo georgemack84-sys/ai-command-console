@@ -1,8 +1,9 @@
 # Proprium Product Phase 4: From account to a useful household
 
-Status: 4.0 through 4.3 implementation complete and merged; staged browser
-acceptance passed. Broader account-management decisions remain deferred, and
-4.4 collaboration awaits product approval.
+Status: 4.0 through 4.3 are complete and staged. The approved first 4.4
+collaboration slice—registered-user invitations, recipient acceptance,
+membership removal, rate limits, and append-only audit evidence—is complete
+and staging-verified. Ownership transfer and recovery remain separate decisions.
 
 ## Purpose
 
@@ -38,14 +39,16 @@ Already implemented:
 - the API enforces household membership for bill reads and mutations;
 - the web app has protected routing, session renewal, logout, route states, and
   an accessible registration form.
+- authenticated users can discover their household, rename it when they are the
+  owner, create and manage bills, and update their display name;
+- household owners can invite an existing registered user, and recipients can
+  accept invitations; owners can revoke invitations and remove non-owner
+  members.
 
 Important gaps:
 
-- the browser cannot discover the authenticated user's household or select an
-  active household;
-- there is no product household home, onboarding checkpoint, or bill UI;
-- household naming, profile management, invites, recovery, and multi-household
-  behavior have not been designed as customer experiences.
+- recovery, password management, session management, ownership transfer, and
+  multi-household selection remain to be designed as customer experiences.
 
 ## Scope boundaries
 
@@ -55,10 +58,11 @@ does **not** grant, infer, or widen execution authority.
 | Concern | Phase 4 decision |
 | --- | --- |
 | Household access | The API remains the authority: every query and command verifies membership server-side. UI visibility is never authorization. |
-| Roles | The initial slice uses the existing member relationship only. Household roles and delegated administration require an explicit later design and permission catalog change. |
+| Roles | Household-local Owner and Member capabilities are evaluated from persisted household and membership facts. They do not grant application-wide identity roles or execution authority. |
 | Semantic scope | Phase 2 defines applicability, containment, inheritance, and governed widening for information. A Phase 4 household is a product boundary, not a semantic-scope parent, authority grant, or execution scope. |
 | Execution | Adding or changing a bill is a domain mutation with ordinary product authorization and audit/event behavior; it must not use or imply the legacy console's governed-execution authority. |
-| Invitations and recovery | Deferred until the owner/member model, account recovery policy, abuse controls, and audit requirements are separately approved. |
+| Invitations | The first collaboration slice uses registered-user, in-product invitations only, with recipient acceptance, owner revocation/removal, abuse limits, and protected audit evidence. |
+| Recovery | Deferred until the account-recovery policy, abuse controls, support boundary, and audit requirements are approved. |
 
 Phase 2 and Phase 4 may proceed in parallel only if their contracts remain
 separate and neither persists the other's identifiers as an authority shortcut.
@@ -134,20 +138,28 @@ validation, audit evidence, and browser acceptance coverage.
 
 ### 4.4 — Shared household collaboration
 
-Before implementation, approve the invitation lifecycle, membership roles,
-revocation semantics, transfer-of-ownership rules, notification channel, abuse
-limits, and audit trail. Do not ship invitations as an unbounded email feature
-without these decisions. The decision-ready proposal is in
+The first approved collaboration slice is complete: an owner can create a
+bounded, in-product invitation for an existing registered user; the recipient
+can accept it idempotently; owners can revoke pending invitations and remove
+non-owner members. The API enforces household-local authorization and records
+append-only invitation/member evidence. Staging acceptance proves invitation,
+acceptance, removal, and immediate loss of household access across two accounts.
+
+Ownership transfer remains deliberately deferred. It needs its own
+confirmation-gated contract and invariant evidence before it is exposed. The
+original policy rationale remains in
 [the Phase 4.4 collaboration design](proprium-product-phase-4.4-collaboration-design.md).
 
 ### 4.5 — Recovery and trust completion
 
-Approve a recovery model before exposing it: verified contact method, reset and
-recovery tokens, enumeration resistance, session invalidation, rate limits,
-support procedures, and evidence retention. Recovery changes authentication
-security posture and is not a UI-only follow-up.
+Approve a recovery model before exposing it. The decision-ready proposal is in
+[the Phase 4.5 recovery and trust design](proprium-product-phase-4.5-recovery-and-trust-design.md).
+It covers verified recovery contact, reset-token handling, enumeration
+resistance, session invalidation, rate limits, support procedures, and evidence
+retention. Recovery changes authentication security posture and is not a
+UI-only follow-up.
 
-## Product decisions required before 4.1 is merged
+## Product decisions recorded for the initial onboarding slice
 
 1. **Name:** is the initial object always called a “household” in customer
    language, or should the interface use a broader term such as “space”? This
@@ -162,12 +174,12 @@ security posture and is not a UI-only follow-up.
 
 ## Release and platform work that remains independent
 
-Before treating Phase 4 as customer-ready, complete the outstanding release
-evidence for the merged account-creation commit: publish it with `Release
-Proprium`, deploy the immutable SHA through `Deploy Proprium Staging`, manually
-check registration, sign-in, refresh, logout, and revoked-session behavior, and
-record a 30–120 minute staging soak. Turn those checks into a repeatable browser
-acceptance suite before adding the Phase 4 flow.
+Each merged Phase 4 slice is published with `Release Proprium`, deployed by
+immutable SHA through `Deploy Proprium Staging`, and qualified through the
+repeatable staging browser suite. Registration, sign-in, refresh, logout,
+revoked-session behavior, onboarding, profile persistence, and the two-account
+collaboration flow now have staging evidence. A fresh deployment still requires
+its own 30–120 minute staging soak before it is treated as release-qualified.
 
 macOS certification and reconciliation of obsolete root-Next.js documentation
 remain platform work. They should be tracked alongside, but must not change the
