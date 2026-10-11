@@ -10,4 +10,7 @@ public sealed class UnavailableRecoveryContactDelivery : IRecoveryContactDeliver
 {
     public Task<bool> DeliverVerificationAsync(RecoveryContactVerificationDelivery delivery, CancellationToken cancellationToken = default) =>
         Task.FromResult(false);
+
+    public Task<bool> DeliverPasswordResetAsync(PasswordResetDelivery delivery, CancellationToken cancellationToken = default) =>
+        Task.FromResult(false);
 }

@@ -1,6 +1,9 @@
 # Proprium Product Phase 4.5: Recovery and trust design
 
-Status: proposal — requires product approval before implementation.
+Status: approved for implementation. The recovery-contact delivery and masked
+state acceptance check completed in staging on 2026-10-11. The approved first
+factor is one verified email contact; public reset implementation must retain
+the boundaries defined below.
 
 ## Purpose
 
@@ -164,6 +167,6 @@ token.
 5. Approve the support boundary: guidance and protected investigation only, no
    manual credential reset or recovery-contact override.
 
-If approved, the smallest engineering slice is authenticated recovery-contact
-verification and its audit contracts. Public password reset follows only after
-that slice has delivery and privacy evidence.
+Authenticated recovery-contact verification and its audit contracts are
+implemented and staging-verified. Public password reset is the next engineering
+slice, using the decisions above without broadening the recovery model.

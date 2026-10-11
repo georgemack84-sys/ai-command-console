@@ -130,9 +130,14 @@ public sealed record RecoveryContactVerificationDelivery(Guid UserId, string Ema
 {
     public override string ToString() => $"{nameof(RecoveryContactVerificationDelivery)} {{ UserId = {UserId}, Email = [REDACTED], Token = [REDACTED], ExpiresAtUtc = {ExpiresAtUtc:O} }}";
 }
+public sealed record PasswordResetDelivery(Guid UserId, string Email, RawSessionToken Token, DateTimeOffset ExpiresAtUtc, string PublicApplicationOrigin)
+{
+    public override string ToString() => $"{nameof(PasswordResetDelivery)} {{ UserId = {UserId}, Email = [REDACTED], Token = [REDACTED], ExpiresAtUtc = {ExpiresAtUtc:O}, PublicApplicationOrigin = {PublicApplicationOrigin} }}";
+}
 public interface IRecoveryContactDelivery
 {
     Task<bool> DeliverVerificationAsync(RecoveryContactVerificationDelivery delivery, CancellationToken cancellationToken = default);
+    Task<bool> DeliverPasswordResetAsync(PasswordResetDelivery delivery, CancellationToken cancellationToken = default);
 }
 
 public interface IRecoveryContactService
@@ -145,6 +150,20 @@ public interface IRecoveryContactService
 public interface IPasswordChangeService
 {
     Task ChangeAsync(Guid userId, string newPassword, string correlationId, CancellationToken cancellationToken = default);
+}
+
+public sealed record RequestPasswordResetAttempt(string Email, string Source, string CorrelationId, bool IsRateLimited = false)
+{
+    public override string ToString() => $"{nameof(RequestPasswordResetAttempt)} {{ Email = [REDACTED], Source = [REDACTED], CorrelationId = {CorrelationId} }}";
+}
+public sealed record CompletePasswordResetAttempt(RawSessionToken Token, string NewPassword, string CorrelationId)
+{
+    public override string ToString() => $"{nameof(CompletePasswordResetAttempt)} {{ Token = [REDACTED], NewPassword = [REDACTED], CorrelationId = {CorrelationId} }}";
+}
+public interface IPasswordResetService
+{
+    Task RequestAsync(RequestPasswordResetAttempt attempt, CancellationToken cancellationToken = default);
+    Task<bool> CompleteAsync(CompletePasswordResetAttempt attempt, CancellationToken cancellationToken = default);
 }
 
 public sealed record CurrentUser(Guid UserId, string Username, string DisplayName, IReadOnlyList<string> Roles, IReadOnlyList<string> Permissions);

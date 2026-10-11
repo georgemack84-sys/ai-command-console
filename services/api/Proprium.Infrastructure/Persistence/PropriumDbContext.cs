@@ -18,6 +18,7 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<AuthenticationEvent> AuthenticationEvents => Set<AuthenticationEvent>();
     public DbSet<RecoveryContact> RecoveryContacts => Set<RecoveryContact>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Household> Households => Set<Household>();
     public DbSet<HouseholdMembership> HouseholdMemberships => Set<HouseholdMembership>();
     public DbSet<HouseholdInvitation> HouseholdInvitations => Set<HouseholdInvitation>();
@@ -111,6 +112,14 @@ public sealed class PropriumDbContext(DbContextOptions<PropriumDbContext> option
             entity.Property(item => item.VerificationTokenHash).HasMaxLength(128);
             entity.HasIndex(item => item.NormalizedEmail).IsUnique();
             entity.HasOne(item => item.User).WithOne(user => user.RecoveryContact).HasForeignKey<RecoveryContact>(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("password_reset_tokens"); entity.HasKey(item => item.Id);
+            entity.Property(item => item.TokenHash).HasMaxLength(128).IsRequired();
+            entity.HasIndex(item => item.TokenHash).IsUnique();
+            entity.HasIndex(item => new { item.UserId, item.ConsumedAtUtc, item.SupersededAtUtc, item.ExpiresAtUtc });
+            entity.HasOne(item => item.User).WithMany(user => user.PasswordResetTokens).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<Household>(entity =>
         {

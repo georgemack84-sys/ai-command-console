@@ -193,6 +193,7 @@ public static class ApiConfiguration
             Password = password,
             FromAddress = fromAddress,
             FromDisplayName = validation.Optional("RECOVERY_CONTACT_SMTP_FROM_NAME"),
+            PublicApplicationOrigin = validation.Optional("AUTH_ALLOWED_ORIGIN"),
         };
 
         if (validation.IsValid("RECOVERY_CONTACT_SMTP_FROM_ADDRESS"))

@@ -55,6 +55,7 @@ public static class ServiceCollectionExtensions
                 : new UnavailableRecoveryContactDelivery());
         services.AddScoped<IAuthenticationAuditRecorder, PostgresAuthenticationAuditRecorder>();
         services.AddScoped<IPasswordChangeService, PostgresPasswordChangeService>();
+        services.AddScoped<IPasswordResetService, PostgresPasswordResetService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IBillCommandService, PostgresBillCommandService>();
         services.AddScoped<IBillQueryService, PostgresBillQueryService>();

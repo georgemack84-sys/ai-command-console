@@ -115,6 +115,30 @@ export async function completeRecoveryContactVerification(
   if (result !== emptyResponse)
     throw new Error('Recovery-contact response must be empty');
 }
+export async function requestPasswordReset(email: string): Promise<void> {
+  const result = await apiRequest({
+    path: '/api/v1/auth/password-reset',
+    method: 'POST',
+    body: { email },
+    parse: () => emptyResponse,
+  });
+  if (result !== emptyResponse)
+    throw new Error('Password-reset request response must be empty');
+}
+
+export async function completePasswordReset(
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  const result = await apiRequest({
+    path: '/api/v1/auth/password-reset/complete',
+    method: 'POST',
+    body: { token, newPassword },
+    parse: () => emptyResponse,
+  });
+  if (result !== emptyResponse)
+    throw new Error('Password-reset completion response must be empty');
+}
 export async function login(username: string, password: string): Promise<void> {
   const result = await apiRequest({
     path: '/api/v1/auth/login',
