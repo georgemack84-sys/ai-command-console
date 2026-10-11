@@ -74,7 +74,7 @@ public sealed record HouseholdMemberDetails(
     DateTimeOffset JoinedAtUtc,
     bool IsOwner);
 
-public enum CreateHouseholdInvitationOutcome { Created, Forbidden, TargetUnavailable, AlreadyMember, AlreadyPending }
+public enum CreateHouseholdInvitationOutcome { Created, Forbidden, TargetUnavailable, AlreadyMember, AlreadyPending, RateLimited }
 public enum ResolveHouseholdInvitationOutcome { Accepted, Revoked, Forbidden, NotFound, Expired }
 public sealed record CreateHouseholdInvitationResult(CreateHouseholdInvitationOutcome Outcome, HouseholdInvitationDetails? Invitation = null);
 public sealed record ResolveHouseholdInvitationResult(ResolveHouseholdInvitationOutcome Outcome, HouseholdInvitationDetails? Invitation = null);
