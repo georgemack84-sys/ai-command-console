@@ -25,6 +25,11 @@
     "capabilityGroup": "identity"
   },
   {
+    "key": "identity.recovery-contact.manage-self",
+    "description": "Manage the current user\u0027s recovery contact.",
+    "capabilityGroup": "identity"
+  },
+  {
     "key": "identity.role-assignment.manage",
     "description": "Manage user role assignments.",
     "capabilityGroup": "identity"

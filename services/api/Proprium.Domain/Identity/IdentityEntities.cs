@@ -14,6 +14,7 @@ public sealed class User
     public ICollection<UserRole> Roles { get; } = new List<UserRole>();
     public ICollection<Session> Sessions { get; } = new List<Session>();
     public ICollection<AuthenticationEvent> AuthenticationEvents { get; } = new List<AuthenticationEvent>();
+    public RecoveryContact? RecoveryContact { get; set; }
 }
 
 public sealed class Role
@@ -76,7 +77,7 @@ public sealed class Session
     public User User { get; init; } = null!;
 }
 
-public enum AuthenticationEventType { AccountRegistered, LoginSucceeded, LoginFailed, SessionCreated, Logout, SessionRevoked, SessionRejected, SecurityVersionInvalidated, ProfileUpdated, AuthorizationDenied, OriginRejected, CsrfRejected, LoginRateLimited, LoginRateLimitFallbackActivated }
+public enum AuthenticationEventType { AccountRegistered, LoginSucceeded, LoginFailed, SessionCreated, Logout, SessionRevoked, SessionRejected, SecurityVersionInvalidated, ProfileUpdated, RecoveryContactVerificationRequested, RecoveryContactVerified, RecoveryContactVerificationDenied, AuthorizationDenied, OriginRejected, CsrfRejected, LoginRateLimited, LoginRateLimitFallbackActivated }
 public enum AuthenticationEventOutcome { Success, Failure, Denied }
 
 public sealed class AuthenticationEvent
@@ -93,6 +94,18 @@ public sealed class AuthenticationEvent
     public string? RequestMetadata { get; init; }
     public User? User { get; init; }
     public Session? Session { get; init; }
+}
+
+public sealed class RecoveryContact
+{
+    public Guid UserId { get; init; }
+    public string Email { get; set; } = string.Empty;
+    public string NormalizedEmail { get; set; } = string.Empty;
+    public string? VerificationTokenHash { get; set; }
+    public DateTimeOffset? VerificationExpiresAtUtc { get; set; }
+    public DateTimeOffset? VerifiedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public required User User { get; init; }
 }
 
 public static class AuthenticationEventFactory

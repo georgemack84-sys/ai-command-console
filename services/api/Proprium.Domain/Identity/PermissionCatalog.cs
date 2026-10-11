@@ -10,6 +10,7 @@ public static partial class PermissionCatalog
     {
         public static PermissionDefinition ProfileReadSelf { get; } = new("identity.profile.read-self", "Read the current user's profile.", "identity");
         public static PermissionDefinition ProfileManageSelf { get; } = new("identity.profile.manage-self", "Update the current user's profile.", "identity");
+        public static PermissionDefinition RecoveryContactManageSelf { get; } = new("identity.recovery-contact.manage-self", "Manage the current user's recovery contact.", "identity");
         public static PermissionDefinition SessionManageSelf { get; } = new("identity.session.manage-self", "Manage the current user's sessions.", "identity");
         public static PermissionDefinition UserRead { get; } = new("identity.user.read", "Read users administratively.", "identity");
         public static PermissionDefinition UserManage { get; } = new("identity.user.manage", "Manage users administratively.", "identity");
@@ -29,6 +30,7 @@ public static partial class PermissionCatalog
     [
         Identity.ProfileReadSelf,
         Identity.ProfileManageSelf,
+        Identity.RecoveryContactManageSelf,
         Identity.SessionManageSelf,
         Application.AuthenticatedAccess,
         Identity.UserRead,

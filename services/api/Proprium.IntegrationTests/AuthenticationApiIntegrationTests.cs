@@ -34,6 +34,16 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     {
         public string Resolve(System.Net.IPAddress? address) => source;
     }
+    private sealed class CapturingRecoveryContactDelivery : IRecoveryContactDelivery
+    {
+        public List<RecoveryContactVerificationDelivery> Deliveries { get; } = [];
+
+        public Task<bool> DeliverVerificationAsync(RecoveryContactVerificationDelivery delivery, CancellationToken cancellationToken = default)
+        {
+            Deliveries.Add(delivery);
+            return Task.FromResult(true);
+        }
+    }
     private sealed class RehashConflictPasswordHasher(Action onRehash) : IUserPasswordHasher
     {
         public string Hash(User user, string password)
@@ -51,6 +61,21 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         {
             services.RemoveAll<ILoginSourceResolver>();
             services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"test-source-{Guid.NewGuid():N}"));
+        }));
+        var client = isolatedFactory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
+        client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
+        client.DefaultRequestHeaders.Add("X-Proprium-CSRF", "1");
+        return client;
+    }
+
+    private HttpClient CreateRecoveryContactClient(CapturingRecoveryContactDelivery delivery, bool handleCookies = false)
+    {
+        var isolatedFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<ILoginSourceResolver>();
+            services.AddSingleton<ILoginSourceResolver>(new StaticLoginSourceResolver($"test-source-{Guid.NewGuid():N}"));
+            services.RemoveAll<IRecoveryContactDelivery>();
+            services.AddSingleton<IRecoveryContactDelivery>(delivery);
         }));
         var client = isolatedFactory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = handleCookies });
         client.DefaultRequestHeaders.Add("Origin", Environment.GetEnvironmentVariable("AUTH_ALLOWED_ORIGIN") ?? "http://localhost");
@@ -124,6 +149,51 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var user = await database.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
         Assert.Equal("Updated Name", user.DisplayName);
         Assert.True(await database.AuthenticationEvents.AnyAsync(item => item.UserId == user.Id && item.EventType == AuthenticationEventType.ProfileUpdated));
+    }
+
+    [Fact]
+    public async Task Authenticated_member_can_verify_a_recovery_contact_only_through_the_delivery_boundary()
+    {
+        var username = $"recovery-{Guid.NewGuid():N}";
+        var delivery = new CapturingRecoveryContactDelivery();
+        var client = CreateRecoveryContactClient(delivery, handleCookies: true);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/register", new RegisterAccountRequest(username, "Recovery Contact", "long-enough-password"))).StatusCode);
+
+        var email = $"{username}@example.test";
+        var begin = await client.PostAsJsonAsync("/api/v1/auth/recovery-contact", new BeginRecoveryContactVerificationRequest(email, "long-enough-password"));
+        Assert.Equal(HttpStatusCode.Accepted, begin.StatusCode);
+        var sent = Assert.Single(delivery.Deliveries);
+        Assert.Equal(email.ToUpperInvariant(), sent.Email);
+
+        var pending = await client.GetFromJsonAsync<RecoveryContactResponse>("/api/v1/auth/recovery-contact");
+        Assert.Equal($"{char.ToUpperInvariant(username[0])}***@EXAMPLE.TEST", pending?.MaskedEmail);
+        Assert.False(pending?.IsVerified);
+        Assert.True(pending?.VerificationPending);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/recovery-contact/verify", new CompleteRecoveryContactVerificationRequest(sent.Token.Value))).StatusCode);
+        var verified = await client.GetFromJsonAsync<RecoveryContactResponse>("/api/v1/auth/recovery-contact");
+        Assert.True(verified?.IsVerified);
+        Assert.False(verified?.VerificationPending);
+
+        await using var database = CreateContext();
+        var user = await database.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
+        var contact = await database.RecoveryContacts.SingleAsync(item => item.UserId == user.Id);
+        Assert.Null(contact.VerificationTokenHash);
+        Assert.True(await database.AuthenticationEvents.AnyAsync(item => item.UserId == user.Id && item.EventType == AuthenticationEventType.RecoveryContactVerificationRequested));
+        Assert.True(await database.AuthenticationEvents.AnyAsync(item => item.UserId == user.Id && item.EventType == AuthenticationEventType.RecoveryContactVerified));
+    }
+
+    [Fact]
+    public async Task Recovery_contact_verification_fails_closed_without_a_delivery_provider()
+    {
+        var username = $"recovery-unavailable-{Guid.NewGuid():N}";
+        var client = CreateAuthenticationClient(handleCookies: true);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/register", new RegisterAccountRequest(username, "Recovery Contact", "long-enough-password"))).StatusCode);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/v1/auth/recovery-contact", new BeginRecoveryContactVerificationRequest($"{username}@example.test", "long-enough-password"))).StatusCode);
+        var contact = await client.GetFromJsonAsync<RecoveryContactResponse>("/api/v1/auth/recovery-contact");
+        Assert.False(contact?.IsVerified);
+        Assert.False(contact?.VerificationPending);
     }
 
     [Fact]

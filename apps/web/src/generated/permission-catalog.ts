@@ -5,6 +5,7 @@ export const Permission = {
   PermissionRead: 'identity.permission.read',
   ProfileManageSelf: 'identity.profile.manage-self',
   ProfileReadSelf: 'identity.profile.read-self',
+  RecoveryContactManageSelf: 'identity.recovery-contact.manage-self',
   RoleAssignmentManage: 'identity.role-assignment.manage',
   RolePermissionManage: 'identity.role-permission.manage',
   RoleRead: 'identity.role.read',

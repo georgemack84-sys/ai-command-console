@@ -115,6 +115,33 @@ public interface IProfileService
     Task<ProfileUpdateResult> UpdateDisplayNameAsync(ProfileUpdateAttempt attempt, CancellationToken cancellationToken = default);
 }
 
+public sealed record RecoveryContactDetails(string? MaskedEmail, bool IsVerified, bool VerificationPending);
+public sealed record BeginRecoveryContactVerificationAttempt(Guid UserId, Guid SessionId, string Email, string CurrentPassword, string CorrelationId)
+{
+    public override string ToString() => $"{nameof(BeginRecoveryContactVerificationAttempt)} {{ UserId = {UserId}, SessionId = {SessionId}, Email = [REDACTED], CurrentPassword = [REDACTED], CorrelationId = {CorrelationId} }}";
+}
+public enum BeginRecoveryContactVerificationOutcome { Sent, Unauthorized, Unavailable, Conflict }
+public sealed record BeginRecoveryContactVerificationResult(BeginRecoveryContactVerificationOutcome Outcome);
+public sealed record CompleteRecoveryContactVerificationAttempt(Guid UserId, Guid SessionId, RawSessionToken Token, string CorrelationId);
+public enum CompleteRecoveryContactVerificationOutcome { Verified, Invalid }
+public sealed record CompleteRecoveryContactVerificationResult(CompleteRecoveryContactVerificationOutcome Outcome);
+
+public sealed record RecoveryContactVerificationDelivery(Guid UserId, string Email, RawSessionToken Token, DateTimeOffset ExpiresAtUtc)
+{
+    public override string ToString() => $"{nameof(RecoveryContactVerificationDelivery)} {{ UserId = {UserId}, Email = [REDACTED], Token = [REDACTED], ExpiresAtUtc = {ExpiresAtUtc:O} }}";
+}
+public interface IRecoveryContactDelivery
+{
+    Task<bool> DeliverVerificationAsync(RecoveryContactVerificationDelivery delivery, CancellationToken cancellationToken = default);
+}
+
+public interface IRecoveryContactService
+{
+    Task<RecoveryContactDetails> GetAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<BeginRecoveryContactVerificationResult> BeginVerificationAsync(BeginRecoveryContactVerificationAttempt attempt, CancellationToken cancellationToken = default);
+    Task<CompleteRecoveryContactVerificationResult> CompleteVerificationAsync(CompleteRecoveryContactVerificationAttempt attempt, CancellationToken cancellationToken = default);
+}
+
 public interface IPasswordChangeService
 {
     Task ChangeAsync(Guid userId, string newPassword, string correlationId, CancellationToken cancellationToken = default);
