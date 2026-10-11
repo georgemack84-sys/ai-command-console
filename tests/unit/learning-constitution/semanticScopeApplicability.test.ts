@@ -19,6 +19,10 @@ const project: SemanticScopeReference = {
   identity: { dimension: "PROJECT", identifier: "project-1" },
   parent: workspace,
 };
+const siblingProject: SemanticScopeReference = {
+  identity: { dimension: "PROJECT", identifier: "project-2" },
+  parent: workspace,
+};
 
 describe("semantic scope identity, parentage, and containment", () => {
   it("requires an identifier for every non-system canonical dimension", () => {
@@ -137,6 +141,84 @@ describe("semantic scope identity, parentage, and containment", () => {
         rationale: "This is narrowing, not widening.",
       }),
     ).toMatchObject({ outcome: "REJECTED", reason: "TARGET_IS_NOT_WIDER" });
+  });
+
+  it("keeps sibling projects isolated even when they share an explicit workspace", () => {
+    expect(
+      evaluateSemanticScopeApplicability(project, siblingProject),
+    ).toMatchObject({
+      outcome: "DOES_NOT_APPLY",
+      reason: "DISTINCT_IDENTITIES",
+    });
+  });
+
+  it("does not treat an agent identity as applicable to another agent", () => {
+    const agentA: SemanticScopeReference = {
+      identity: { dimension: "AGENT", identifier: "agent-a" },
+      parent: workspace,
+    };
+    const agentB: SemanticScopeReference = {
+      identity: { dimension: "AGENT", identifier: "agent-b" },
+      parent: workspace,
+    };
+
+    expect(evaluateSemanticScopeApplicability(agentA, agentB)).toMatchObject({
+      outcome: "DOES_NOT_APPLY",
+      reason: "DISTINCT_IDENTITIES",
+    });
+  });
+
+  it("does not convert ownership-shaped user context into workspace applicability", () => {
+    const owner: SemanticScopeReference = {
+      identity: { dimension: "USER", identifier: "user-owner" },
+    };
+    const ownedWorkspace: SemanticScopeReference = {
+      identity: { dimension: "WORKSPACE", identifier: "workspace-owned" },
+      parent: organization,
+    };
+
+    expect(
+      evaluateSemanticScopeApplicability(owner, ownedWorkspace),
+    ).toMatchObject({
+      outcome: "DOES_NOT_APPLY",
+      reason: "DISTINCT_IDENTITIES",
+    });
+  });
+
+  it("keeps session-local information separate across time while allowing conversation scope", () => {
+    const conversation: SemanticScopeReference = {
+      identity: { dimension: "CONVERSATION", identifier: "conversation-1" },
+    };
+    const earlierSession: SemanticScopeReference = {
+      identity: { dimension: "SESSION", identifier: "session-earlier" },
+      parent: conversation,
+    };
+    const laterSession: SemanticScopeReference = {
+      identity: { dimension: "SESSION", identifier: "session-later" },
+      parent: conversation,
+    };
+
+    expect(
+      evaluateSemanticScopeApplicability(earlierSession, laterSession),
+    ).toMatchObject({
+      outcome: "DOES_NOT_APPLY",
+      reason: "DISTINCT_IDENTITIES",
+    });
+    expect(
+      evaluateSemanticScopeApplicability(conversation, laterSession),
+    ).toMatchObject({ outcome: "APPLIES", reason: "EXPLICIT_INHERITANCE" });
+  });
+
+  it("does not use a shared ancestor to resolve conflicting project-scoped claims", () => {
+    const conflictingClaims = [project, siblingProject];
+    const outcomes = conflictingClaims.map((claim) =>
+      evaluateSemanticScopeApplicability(claim, siblingProject),
+    );
+
+    expect(outcomes).toMatchObject([
+      { outcome: "DOES_NOT_APPLY", reason: "DISTINCT_IDENTITIES" },
+      { outcome: "APPLIES", reason: "EXACT_IDENTITY" },
+    ]);
   });
 
   it("requires review for malformed parentage and has no authority effect", () => {
