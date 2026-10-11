@@ -38,6 +38,49 @@ export type ScopeContainmentResult = Readonly<{
   executionPermissionGranted: false;
 }>;
 
+export const SCOPE_APPLICABILITY_REASONS = [
+  "EXACT_IDENTITY",
+  "EXPLICIT_INHERITANCE",
+  "WIDENING_PROPOSAL_REQUIRED",
+  "DISTINCT_IDENTITIES",
+  "INVALID_SCOPE_REFERENCE",
+  "PARENTAGE_CYCLE",
+] as const;
+export type ScopeApplicabilityReason =
+  (typeof SCOPE_APPLICABILITY_REASONS)[number];
+
+export type SemanticScopeApplicabilityResult = Readonly<{
+  outcome: ScopeContainmentOutcome;
+  reason: ScopeApplicabilityReason;
+  persistenceEffect: "NONE";
+  authorityEffect: "UNCHANGED";
+  executionPermissionGranted: false;
+}>;
+
+export type ScopeWideningProposal = Readonly<{
+  proposalId: string;
+  sourceScope: SemanticScopeReference;
+  targetScope: SemanticScopeReference;
+  rationale: string;
+  status: "PROPOSED";
+  persistenceEffect: "NONE";
+  authorityEffect: "UNCHANGED";
+  executionPermissionGranted: false;
+}>;
+
+export type ScopeWideningProposalResult = Readonly<{
+  outcome: "PROPOSED" | "REJECTED";
+  reason:
+    | "EXPLICIT_ANCESTOR_TARGET"
+    | "TARGET_IS_NOT_WIDER"
+    | "INVALID_SCOPE_REFERENCE"
+    | "PARENTAGE_CYCLE";
+  proposal?: ScopeWideningProposal;
+  persistenceEffect: "NONE";
+  authorityEffect: "UNCHANGED";
+  executionPermissionGranted: false;
+}>;
+
 const canonicalDimensions = new Set<string>(CANONICAL_SCOPE_DIMENSIONS);
 
 const nonEmptyString = (value: unknown): value is string =>
@@ -107,6 +150,17 @@ const result = (
   executionPermissionGranted: false,
 });
 
+const applicabilityResult = (
+  outcome: ScopeContainmentOutcome,
+  reason: ScopeApplicabilityReason,
+): SemanticScopeApplicabilityResult => ({
+  outcome,
+  reason,
+  persistenceEffect: "NONE",
+  authorityEffect: "UNCHANGED",
+  executionPermissionGranted: false,
+});
+
 /**
  * Evaluates applicability only. It does not infer a hierarchy and never grants
  * authority, persistence, promotion, or permission to execute.
@@ -140,4 +194,103 @@ export const evaluateSemanticScopeContainment = (
   }
 
   return result("DOES_NOT_APPLY", "DISTINCT_IDENTITIES");
+};
+
+/**
+ * Applies information to an exact context or an explicitly nested context.
+ * A broader target is review-only: applicability never widens by inference.
+ */
+export const evaluateSemanticScopeApplicability = (
+  informationScope: SemanticScopeReference,
+  contextScope: SemanticScopeReference,
+): SemanticScopeApplicabilityResult => {
+  const inherited = evaluateSemanticScopeContainment(
+    contextScope,
+    informationScope,
+  );
+  if (inherited.outcome === "APPLIES") {
+    return applicabilityResult(
+      "APPLIES",
+      inherited.reason === "EXACT_IDENTITY"
+        ? "EXACT_IDENTITY"
+        : "EXPLICIT_INHERITANCE",
+    );
+  }
+  if (inherited.reason === "INVALID_SCOPE_REFERENCE") {
+    return applicabilityResult("REQUIRES_REVIEW", "INVALID_SCOPE_REFERENCE");
+  }
+  if (inherited.reason === "PARENTAGE_CYCLE") {
+    return applicabilityResult("REQUIRES_REVIEW", "PARENTAGE_CYCLE");
+  }
+
+  const targetIsWider = evaluateSemanticScopeContainment(
+    informationScope,
+    contextScope,
+  );
+  if (targetIsWider.outcome === "APPLIES") {
+    return applicabilityResult("REQUIRES_REVIEW", "WIDENING_PROPOSAL_REQUIRED");
+  }
+
+  return applicabilityResult("DOES_NOT_APPLY", "DISTINCT_IDENTITIES");
+};
+
+/**
+ * Makes an explicit widening request available for later governance. It neither
+ * changes applicability nor approves, persists, or executes anything.
+ */
+export const proposeSemanticScopeWidening = (
+  proposal: Omit<
+    ScopeWideningProposal,
+    | "status"
+    | "persistenceEffect"
+    | "authorityEffect"
+    | "executionPermissionGranted"
+  >,
+): ScopeWideningProposalResult => {
+  const widening = evaluateSemanticScopeApplicability(
+    proposal.sourceScope,
+    proposal.targetScope,
+  );
+  if (widening.reason === "INVALID_SCOPE_REFERENCE") {
+    return {
+      outcome: "REJECTED",
+      reason: "INVALID_SCOPE_REFERENCE",
+      persistenceEffect: "NONE",
+      authorityEffect: "UNCHANGED",
+      executionPermissionGranted: false,
+    };
+  }
+  if (widening.reason === "PARENTAGE_CYCLE") {
+    return {
+      outcome: "REJECTED",
+      reason: "PARENTAGE_CYCLE",
+      persistenceEffect: "NONE",
+      authorityEffect: "UNCHANGED",
+      executionPermissionGranted: false,
+    };
+  }
+  if (widening.reason !== "WIDENING_PROPOSAL_REQUIRED") {
+    return {
+      outcome: "REJECTED",
+      reason: "TARGET_IS_NOT_WIDER",
+      persistenceEffect: "NONE",
+      authorityEffect: "UNCHANGED",
+      executionPermissionGranted: false,
+    };
+  }
+
+  return {
+    outcome: "PROPOSED",
+    reason: "EXPLICIT_ANCESTOR_TARGET",
+    proposal: {
+      ...proposal,
+      status: "PROPOSED",
+      persistenceEffect: "NONE",
+      authorityEffect: "UNCHANGED",
+      executionPermissionGranted: false,
+    },
+    persistenceEffect: "NONE",
+    authorityEffect: "UNCHANGED",
+    executionPermissionGranted: false,
+  };
 };

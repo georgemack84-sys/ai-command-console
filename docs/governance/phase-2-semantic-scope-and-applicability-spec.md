@@ -1,6 +1,6 @@
 # Phase 2 — Semantic Scope and Applicability
 
-- Status: In progress — Part 2 (scope identity, parentage, and containment) is implemented as a pure applicability contract
+- Status: In progress — Parts 2 and 3 are implemented as pure applicability contracts
 - Depends on: [Canonical Learning Taxonomy — Implementation Specification](phase-1-canonical-learning-taxonomy-spec.md)
 
 Phase 2 answers one question only:
@@ -27,7 +27,7 @@ Phase 2 consumes the frozen Phase 1 category, provenance, confidence, and contex
 
 1. Freeze scope vocabulary and migration mapping. **Complete.**
 2. Define scope identity, parentage, and containment contracts. **Complete.**
-3. Implement scope inheritance, narrowing, and widening proposals.
+3. Implement scope inheritance, narrowing, and widening proposals. **Complete.**
 4. Add cross-project, agent, ownership, temporal, and conflict boundary tests.
 5. Add governed scope-promotion evaluation and a Phase 2 exit gate.
 
