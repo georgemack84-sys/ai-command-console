@@ -1,0 +1,167 @@
+name: Configure Proprium Recovery SMTP Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type configure-recovery-smtp to confirm the protected staging configuration update
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proprium-staging-rollout
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: staging
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      SMTP_HOST: ${{ secrets.PROPRIUM_SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.PROPRIUM_SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.PROPRIUM_SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.PROPRIUM_SMTP_PASSWORD }}
+      SMTP_FROM_ADDRESS: ${{ secrets.PROPRIUM_SMTP_FROM_ADDRESS }}
+      SMTP_FROM_NAME: ${{ secrets.PROPRIUM_SMTP_FROM_NAME }}
+      CONFIGURATION_CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - name: Validate protected SMTP configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CONFIGURATION_CONFIRMATION" = configure-recovery-smtp
+          for value in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD SMTP_FROM_ADDRESS SMTP_FROM_NAME; do
+            test -n "${!value}"
+            case "${!value}" in
+              *$'\r'*|*$'\n'*)
+                echo "$value must not contain a line break." >&2
+                exit 1
+                ;;
+            esac
+          done
+          test -n "$DEPLOY_SSH_KEY"
+          [[ "$SMTP_HOST" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,253}$ ]]
+          [[ "$SMTP_PORT" =~ ^[1-9][0-9]{0,4}$ ]]
+          (( SMTP_PORT <= 65535 ))
+          [[ "$SMTP_FROM_ADDRESS" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]
+          test "${#SMTP_FROM_NAME}" -le 256
+
+      - name: Stage non-logged SMTP environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          smtp_env="$RUNNER_TEMP/proprium-recovery-smtp.env"
+          trap 'rm -f "$smtp_env"' EXIT
+          printf '%s\n' \
+            "RECOVERY_CONTACT_SMTP_HOST=$SMTP_HOST" \
+            "RECOVERY_CONTACT_SMTP_PORT=$SMTP_PORT" \
+            "RECOVERY_CONTACT_SMTP_USERNAME=$SMTP_USERNAME" \
+            "RECOVERY_CONTACT_SMTP_PASSWORD=$SMTP_PASSWORD" \
+            "RECOVERY_CONTACT_SMTP_FROM_ADDRESS=$SMTP_FROM_ADDRESS" \
+            "RECOVERY_CONTACT_SMTP_FROM_NAME=$SMTP_FROM_NAME" > "$smtp_env"
+          test "$(wc -l < "$smtp_env")" -eq 6
+          chmod 600 "$smtp_env"
+          mv "$smtp_env" "$RUNNER_TEMP/proprium-recovery-smtp.ready"
+
+      - name: Atomically update the protected host configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          smtp_env="$RUNNER_TEMP/proprium-recovery-smtp.ready"
+          trap 'rm -f "$smtp_env"' EXIT
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          remote_dir="$DEPLOY_PATH/proprium"
+          remote_smtp="$remote_dir/.recovery-smtp.$GITHUB_RUN_ID"
+          scp -i ~/.ssh/deploy_key -P "${DEPLOY_PORT:-22}" "$smtp_env" "$DEPLOY_USER@$DEPLOY_HOST:$remote_smtp"
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$remote_dir' '$remote_smtp'" <<'REMOTE'
+          set -euo pipefail
+          runtime_dir="$1"
+          staged_smtp="$2"
+          runtime_file="$runtime_dir/runtime.env"
+          temporary_file=""
+          configuration_applied=false
+          cleanup_or_restore() {
+            result=$?
+            trap - EXIT
+            rm -f "$staged_smtp"
+            test -z "$temporary_file" || rm -f "$temporary_file"
+            if [ "$result" -ne 0 ] && [ "$configuration_applied" = true ]; then
+              # A failed restart must not strand the host on a configuration
+              # that was not proven healthy. The backup remains retained.
+              cp -p "$runtime_file.smtp-backup" "$runtime_file"
+              (
+                cd "$runtime_dir"
+                docker compose --env-file compose.env --env-file current-release.env -f compose.yml up -d --no-deps platform-api
+              ) || true
+            fi
+            exit "$result"
+          }
+          trap cleanup_or_restore EXIT
+
+          test -f "$runtime_file"
+          test -f "$staged_smtp"
+          test "$(wc -l < "$staged_smtp")" -eq 6
+          chmod 600 "$staged_smtp"
+
+          # Retain a single host-local recovery point without printing its contents.
+          cp -p "$runtime_file" "$runtime_file.smtp-backup"
+          temporary_file="$(mktemp "$runtime_dir/.runtime.env.smtp.XXXXXX")"
+          grep -Ev '^(RECOVERY_CONTACT_SMTP_HOST|RECOVERY_CONTACT_SMTP_PORT|RECOVERY_CONTACT_SMTP_USERNAME|RECOVERY_CONTACT_SMTP_PASSWORD|RECOVERY_CONTACT_SMTP_FROM_ADDRESS|RECOVERY_CONTACT_SMTP_FROM_NAME)=' "$runtime_file" > "$temporary_file" || true
+          cat "$staged_smtp" >> "$temporary_file"
+          chmod --reference="$runtime_file" "$temporary_file"
+          chown --reference="$runtime_file" "$temporary_file"
+          mv -f "$temporary_file" "$runtime_file"
+          temporary_file=""
+          configuration_applied=true
+
+          cd "$runtime_dir"
+          docker compose --env-file compose.env --env-file current-release.env -f compose.yml up -d --no-deps platform-api
+          container="$(docker compose --env-file compose.env --env-file current-release.env -f compose.yml ps -q platform-api)"
+          test -n "$container"
+          for attempt in $(seq 1 30); do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container")"
+            if [ "$status" = healthy ]; then
+              exit 0
+            fi
+            if [ "$attempt" = 30 ]; then
+              docker logs --tail 100 "$container"
+              exit 1
+            fi
+            sleep 2
+          done
+          REMOTE
+
+      - name: Verify public API liveness
+        shell: bash
+        env:
+          PUBLIC_BASE_URL: https://${{ vars.DEPLOY_HOST }}.sslip.io
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 15 --retry 3 --retry-delay 2 \
+            "$PUBLIC_BASE_URL/api/v1/health/live" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"healthy"'
+
+      - name: Summarize protected SMTP configuration
+        shell: bash
+        run: |
+          {
+            echo "## Proprium recovery SMTP configuration"
+            echo
+            echo "- The six recovery SMTP settings were validated without printing values."
+            echo "- Only those settings were atomically replaced in the protected host runtime file."
+            echo "- The prior runtime file is retained as a host-local protected backup."
+            echo "- The API restarted and passed its public liveness check."
+            echo "- Next: run the recovery-contact browser acceptance flow using a disposable inbox."
+          } >> "$GITHUB_STEP_SUMMARY"

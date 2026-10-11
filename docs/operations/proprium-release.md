@@ -118,9 +118,16 @@ staging-environment workflows instead of opening SSH to the internet:
    ```
 
    Recovery-contact verification remains fail-closed unless SMTP is explicitly
-   configured. To enable it, add all of the following provider-neutral values
-   to the same protected runtime secret; never place the username or password
-   in workflow inputs or repository files:
+   configured. For an existing isolated staging host, use the manual
+   **Configure Proprium Recovery SMTP Staging** workflow instead of replacing
+   the complete `PROPRIUM_RUNTIME_ENV` bootstrap secret. Add these six values as
+   individual **staging environment secrets** (named `PROPRIUM_SMTP_HOST`,
+   `PROPRIUM_SMTP_PORT`, `PROPRIUM_SMTP_USERNAME`, `PROPRIUM_SMTP_PASSWORD`,
+   `PROPRIUM_SMTP_FROM_ADDRESS`, and `PROPRIUM_SMTP_FROM_NAME`), then dispatch
+   that workflow with the confirmation `configure-recovery-smtp`. It validates
+   values, atomically changes only the SMTP entries in the host-local
+   `runtime.env`, preserves a protected host-local backup, and restarts the API.
+   Never place the username or password in workflow inputs or repository files:
 
    ```text
    RECOVERY_CONTACT_SMTP_HOST=<smtp-host>
