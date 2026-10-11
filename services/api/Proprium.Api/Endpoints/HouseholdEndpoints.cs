@@ -52,9 +52,10 @@ public static class HouseholdEndpoints
             {
                 CreateHouseholdInvitationOutcome.Created when result.Invitation is not null => Results.Created($"/api/v1/households/invitations/{result.Invitation.Id}", ToInvitationResponse(result.Invitation)),
                 CreateHouseholdInvitationOutcome.Forbidden => Results.Forbid(),
+                CreateHouseholdInvitationOutcome.RateLimited => Results.StatusCode(StatusCodes.Status429TooManyRequests),
                 _ => Results.BadRequest()
             };
-        }).WithName("CreateHouseholdInvitation").WithSummary("Invite an existing user to an owned household.").Produces<HouseholdInvitationResponse>(StatusCodes.Status201Created).Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden);
+        }).WithName("CreateHouseholdInvitation").WithSummary("Invite an existing user to an owned household.").Produces<HouseholdInvitationResponse>(StatusCodes.Status201Created).Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden).Produces(StatusCodes.Status429TooManyRequests);
         households.MapGet("/{householdId:guid}/invitations", async (Guid householdId, HttpContext context, IHouseholdInvitationService invitations, CancellationToken cancellationToken) =>
         {
             var actor = context.Features.Get<AuthenticatedRequest>();

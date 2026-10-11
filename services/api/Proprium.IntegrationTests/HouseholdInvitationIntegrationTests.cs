@@ -33,12 +33,77 @@ public sealed class HouseholdInvitationIntegrationTests : IIntegrationTest
         Assert.True(await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == household.Id && item.UserId == target.Id));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Created));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.Action == HouseholdInvitationAuditAction.Accepted));
+        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.InvitationId == invitation.Id && item.ReasonCode == "invite_duplicate_accept"));
 
         Assert.Equal(RemoveHouseholdMemberOutcome.Removed, (await service.RemoveAsync(household.Id, owner.Id, target.Id)).Outcome);
         Assert.False(await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == household.Id && item.UserId == target.Id));
         Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item => item.HouseholdId == household.Id && item.TargetUserId == target.Id && item.Action == HouseholdInvitationAuditAction.Removed));
         Assert.Equal(ListBillsOutcome.Forbidden, (await new PostgresBillQueryService(database).ListAsync(household.Id, target.Id)).Outcome);
     }
+
+    [Fact]
+    public async Task Owner_cannot_create_more_than_ten_pending_household_invitations()
+    {
+        await using var database = CreateContext();
+        var suffix = Guid.NewGuid().ToString("N");
+        var owner = NewUser("owner", suffix);
+        var targets = Enumerable.Range(0, 11).Select(index => NewUser($"target-{index}", suffix)).ToArray();
+        var household = new Household { OwnerUserId = owner.Id, Name = "Shared home" };
+        database.AddRange(owner, household, new HouseholdMembership { Household = household, UserId = owner.Id });
+        database.AddRange(targets);
+        database.AddRange(targets.Take(10).Select(target => new HouseholdInvitation
+        {
+            HouseholdId = household.Id,
+            InviterUserId = owner.Id,
+            TargetUserId = target.Id,
+            ExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(1)
+        }));
+        await database.SaveChangesAsync();
+
+        var result = await new PostgresHouseholdInvitationService(database, TimeProvider.System).CreateAsync(household.Id, owner.Id, targets[10].Username);
+
+        Assert.Equal(CreateHouseholdInvitationOutcome.RateLimited, result.Outcome);
+        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item =>
+            item.HouseholdId == household.Id &&
+            item.Action == HouseholdInvitationAuditAction.Denied &&
+            item.ReasonCode == "invite_create_pending_limit"));
+    }
+
+    [Fact]
+    public async Task Owner_cannot_make_more_than_twenty_invitation_attempts_in_a_day()
+    {
+        await using var database = CreateContext();
+        var suffix = Guid.NewGuid().ToString("N");
+        var owner = NewUser("owner", suffix);
+        var target = NewUser("target", suffix);
+        var household = new Household { OwnerUserId = owner.Id, Name = "Shared home" };
+        database.AddRange(owner, target, household, new HouseholdMembership { Household = household, UserId = owner.Id });
+        database.AddRange(Enumerable.Range(0, 20).Select(_ => new HouseholdInvitationAuditEvent
+        {
+            HouseholdId = household.Id,
+            ActorUserId = owner.Id,
+            Action = HouseholdInvitationAuditAction.Denied,
+            ReasonCode = "invite_create_target_unavailable",
+            OccurredAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1)
+        }));
+        await database.SaveChangesAsync();
+
+        var result = await new PostgresHouseholdInvitationService(database, TimeProvider.System).CreateAsync(household.Id, owner.Id, target.Username);
+
+        Assert.Equal(CreateHouseholdInvitationOutcome.RateLimited, result.Outcome);
+        Assert.True(await database.HouseholdInvitationAuditEvents.AnyAsync(item =>
+            item.HouseholdId == household.Id &&
+            item.Action == HouseholdInvitationAuditAction.Denied &&
+            item.ReasonCode == "invite_create_rate_limited"));
+    }
+
+    private static User NewUser(string prefix, string suffix) => new()
+    {
+        Username = $"{prefix}-{suffix}",
+        NormalizedUsername = $"{prefix}-{suffix}".ToUpperInvariant(),
+        PasswordHash = "test",
+        DisplayName = prefix
+    };
 
     private static PropriumDbContext CreateContext()
     {

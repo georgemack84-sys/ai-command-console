@@ -8,6 +8,9 @@ namespace Proprium.Infrastructure.Billing;
 
 public sealed class PostgresHouseholdInvitationService(PropriumDbContext database, TimeProvider timeProvider) : IHouseholdInvitationService, IHouseholdMembershipService
 {
+    private const int MaximumPendingInvitations = 10;
+    private const int MaximumInvitationAttemptsPerDay = 20;
+
     public async Task<IReadOnlyCollection<HouseholdInvitationDetails>> ListPendingForUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
@@ -63,15 +66,34 @@ public sealed class PostgresHouseholdInvitationService(PropriumDbContext databas
     public async Task<CreateHouseholdInvitationResult> CreateAsync(Guid householdId, Guid actorId, string targetUsername, CancellationToken cancellationToken = default)
     {
         var household = await database.Households.SingleOrDefaultAsync(item => item.Id == householdId, cancellationToken);
-        if (household is null || household.OwnerUserId != actorId) return new(CreateHouseholdInvitationOutcome.Forbidden);
-        var target = await database.Users.SingleOrDefaultAsync(item => item.NormalizedUsername == IdentityNormalization.NormalizeUsername(targetUsername.Trim()), cancellationToken);
-        if (target is null || target.Id == actorId) return new(CreateHouseholdInvitationOutcome.TargetUnavailable);
-        if (await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == householdId && item.UserId == target.Id, cancellationToken)) return new(CreateHouseholdInvitationOutcome.AlreadyMember);
+        if (household is null) return new(CreateHouseholdInvitationOutcome.Forbidden);
         var now = timeProvider.GetUtcNow();
-        if (await database.HouseholdInvitations.AnyAsync(item => item.HouseholdId == householdId && item.TargetUserId == target.Id && item.Status == HouseholdInvitationStatus.Pending && item.ExpiresAtUtc > now, cancellationToken)) return new(CreateHouseholdInvitationOutcome.AlreadyPending);
+        if (household.OwnerUserId != actorId)
+            return await DenyCreateAsync(householdId, actorId, null, CreateHouseholdInvitationOutcome.Forbidden, "invite_forbidden", now, cancellationToken);
+
+        var attemptWindowStart = now.AddHours(-24);
+        var attemptCount = await database.HouseholdInvitationAuditEvents.CountAsync(item =>
+            item.HouseholdId == householdId &&
+            item.ActorUserId == actorId &&
+            item.OccurredAtUtc >= attemptWindowStart &&
+            (item.Action == HouseholdInvitationAuditAction.Created ||
+             (item.Action == HouseholdInvitationAuditAction.Denied && item.ReasonCode.StartsWith("invite_create_"))), cancellationToken);
+        if (attemptCount >= MaximumInvitationAttemptsPerDay)
+            return await DenyCreateAsync(householdId, actorId, null, CreateHouseholdInvitationOutcome.RateLimited, "invite_create_rate_limited", now, cancellationToken);
+
+        var target = await database.Users.SingleOrDefaultAsync(item => item.NormalizedUsername == IdentityNormalization.NormalizeUsername(targetUsername.Trim()), cancellationToken);
+        if (target is null || target.Id == actorId)
+            return await DenyCreateAsync(householdId, actorId, target?.Id, CreateHouseholdInvitationOutcome.TargetUnavailable, "invite_create_target_unavailable", now, cancellationToken);
+        if (await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == householdId && item.UserId == target.Id, cancellationToken))
+            return await DenyCreateAsync(householdId, actorId, target.Id, CreateHouseholdInvitationOutcome.AlreadyMember, "invite_create_already_member", now, cancellationToken);
+        var pendingInvitationCount = await database.HouseholdInvitations.CountAsync(item => item.HouseholdId == householdId && item.Status == HouseholdInvitationStatus.Pending && item.ExpiresAtUtc > now, cancellationToken);
+        if (pendingInvitationCount >= MaximumPendingInvitations)
+            return await DenyCreateAsync(householdId, actorId, target.Id, CreateHouseholdInvitationOutcome.RateLimited, "invite_create_pending_limit", now, cancellationToken);
+        if (await database.HouseholdInvitations.AnyAsync(item => item.HouseholdId == householdId && item.TargetUserId == target.Id && item.Status == HouseholdInvitationStatus.Pending && item.ExpiresAtUtc > now, cancellationToken))
+            return await DenyCreateAsync(householdId, actorId, target.Id, CreateHouseholdInvitationOutcome.AlreadyPending, "invite_create_already_pending", now, cancellationToken);
         var invitation = new HouseholdInvitation { HouseholdId = householdId, InviterUserId = actorId, TargetUserId = target.Id, ExpiresAtUtc = now.AddDays(7) };
         database.Add(invitation);
-        database.Add(Audit(householdId, invitation.Id, actorId, target.Id, HouseholdInvitationAuditAction.Created, "created", now));
+        database.Add(Audit(householdId, invitation.Id, actorId, target.Id, HouseholdInvitationAuditAction.Created, "invite_created", now));
         await database.SaveChangesAsync(cancellationToken);
         var inviter = await database.Users.SingleAsync(item => item.Id == actorId, cancellationToken);
         return new(CreateHouseholdInvitationOutcome.Created, new(invitation.Id, household.Id, household.Name, inviter.DisplayName, invitation.ExpiresAtUtc));
@@ -81,14 +103,21 @@ public sealed class PostgresHouseholdInvitationService(PropriumDbContext databas
     {
         var invitation = await database.HouseholdInvitations.SingleOrDefaultAsync(item => item.Id == invitationId, cancellationToken);
         if (invitation is null) return new(ResolveHouseholdInvitationOutcome.NotFound);
-        if (invitation.TargetUserId != actorId) return new(ResolveHouseholdInvitationOutcome.Forbidden);
-        if (invitation.Status == HouseholdInvitationStatus.Accepted) return new(ResolveHouseholdInvitationOutcome.Accepted);
         var now = timeProvider.GetUtcNow();
-        if (invitation.Status != HouseholdInvitationStatus.Pending || invitation.ExpiresAtUtc <= now) return new(ResolveHouseholdInvitationOutcome.Expired);
+        if (invitation.TargetUserId != actorId)
+            return await DenyResolveAsync(invitation, actorId, ResolveHouseholdInvitationOutcome.Forbidden, "invite_accept_forbidden", now, cancellationToken);
+        if (invitation.Status == HouseholdInvitationStatus.Accepted)
+        {
+            database.Add(Audit(invitation.HouseholdId, invitation.Id, actorId, invitation.TargetUserId, HouseholdInvitationAuditAction.Accepted, "invite_duplicate_accept", now));
+            await database.SaveChangesAsync(cancellationToken);
+            return new(ResolveHouseholdInvitationOutcome.Accepted);
+        }
+        if (invitation.Status != HouseholdInvitationStatus.Pending || invitation.ExpiresAtUtc <= now)
+            return await DenyResolveAsync(invitation, actorId, ResolveHouseholdInvitationOutcome.Expired, "invite_expired", now, cancellationToken);
         if (!await database.HouseholdMemberships.AnyAsync(item => item.HouseholdId == invitation.HouseholdId && item.UserId == actorId, cancellationToken)) database.Add(new HouseholdMembership { HouseholdId = invitation.HouseholdId, UserId = actorId });
         invitation.Status = HouseholdInvitationStatus.Accepted;
         invitation.ResolvedAtUtc = now;
-        database.Add(Audit(invitation.HouseholdId, invitation.Id, actorId, actorId, HouseholdInvitationAuditAction.Accepted, "accepted", now));
+        database.Add(Audit(invitation.HouseholdId, invitation.Id, actorId, actorId, HouseholdInvitationAuditAction.Accepted, "invite_accepted", now));
         await database.SaveChangesAsync(cancellationToken);
         return new(ResolveHouseholdInvitationOutcome.Accepted);
     }
@@ -97,17 +126,32 @@ public sealed class PostgresHouseholdInvitationService(PropriumDbContext databas
     {
         var invitation = await database.HouseholdInvitations.SingleOrDefaultAsync(item => item.Id == invitationId, cancellationToken);
         if (invitation is null) return new(ResolveHouseholdInvitationOutcome.NotFound);
-        if (invitation.InviterUserId != actorId || invitation.Status != HouseholdInvitationStatus.Pending) return new(ResolveHouseholdInvitationOutcome.Forbidden);
-        invitation.Status = HouseholdInvitationStatus.Revoked;
         var now = timeProvider.GetUtcNow();
+        if (invitation.InviterUserId != actorId || invitation.Status != HouseholdInvitationStatus.Pending)
+            return await DenyResolveAsync(invitation, actorId, ResolveHouseholdInvitationOutcome.Forbidden, "invite_revoke_forbidden", now, cancellationToken);
+        invitation.Status = HouseholdInvitationStatus.Revoked;
         invitation.ResolvedAtUtc = now;
-        database.Add(Audit(invitation.HouseholdId, invitation.Id, actorId, invitation.TargetUserId, HouseholdInvitationAuditAction.Revoked, "revoked", now));
+        database.Add(Audit(invitation.HouseholdId, invitation.Id, actorId, invitation.TargetUserId, HouseholdInvitationAuditAction.Revoked, "invite_revoked", now));
         await database.SaveChangesAsync(cancellationToken);
         return new(ResolveHouseholdInvitationOutcome.Revoked);
     }
 
     private async Task<bool> IsOwnerAsync(Guid householdId, Guid actorId, CancellationToken cancellationToken) =>
         await database.Households.AnyAsync(item => item.Id == householdId && item.OwnerUserId == actorId, cancellationToken);
+
+    private async Task<CreateHouseholdInvitationResult> DenyCreateAsync(Guid householdId, Guid actorId, Guid? targetUserId, CreateHouseholdInvitationOutcome outcome, string reasonCode, DateTimeOffset occurredAtUtc, CancellationToken cancellationToken)
+    {
+        database.Add(Audit(householdId, null, actorId, targetUserId, HouseholdInvitationAuditAction.Denied, reasonCode, occurredAtUtc));
+        await database.SaveChangesAsync(cancellationToken);
+        return new(outcome);
+    }
+
+    private async Task<ResolveHouseholdInvitationResult> DenyResolveAsync(HouseholdInvitation invitation, Guid actorId, ResolveHouseholdInvitationOutcome outcome, string reasonCode, DateTimeOffset occurredAtUtc, CancellationToken cancellationToken)
+    {
+        database.Add(Audit(invitation.HouseholdId, invitation.Id, actorId, invitation.TargetUserId, HouseholdInvitationAuditAction.Denied, reasonCode, occurredAtUtc));
+        await database.SaveChangesAsync(cancellationToken);
+        return new(outcome);
+    }
 
     private static HouseholdInvitationAuditEvent Audit(Guid householdId, Guid? invitationId, Guid actorId, Guid? targetUserId, HouseholdInvitationAuditAction action, string reasonCode, DateTimeOffset occurredAtUtc)
     {
