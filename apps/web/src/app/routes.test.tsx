@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
 
@@ -11,10 +11,17 @@ describe('foundation routes', () => {
     expect(
       screen.getByText('Backend connectivity: Checking…'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
-      'href',
-      '/login',
-    );
+    const accountNavigation = screen.getByRole('navigation', {
+      name: 'Account access',
+    });
+    expect(
+      within(accountNavigation).getByRole('link', {
+        name: 'Create your account',
+      }),
+    ).toHaveAttribute('href', '/register');
+    expect(
+      within(accountNavigation).getByRole('link', { name: 'Sign in' }),
+    ).toHaveAttribute('href', '/login');
   });
   it('renders only approved health information', () => {
     const { container } = render(createElement(HealthPage));
