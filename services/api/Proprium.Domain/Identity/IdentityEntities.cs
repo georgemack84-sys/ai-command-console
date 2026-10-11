@@ -15,6 +15,7 @@ public sealed class User
     public ICollection<Session> Sessions { get; } = new List<Session>();
     public ICollection<AuthenticationEvent> AuthenticationEvents { get; } = new List<AuthenticationEvent>();
     public RecoveryContact? RecoveryContact { get; set; }
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; } = new List<PasswordResetToken>();
 }
 
 public sealed class Role
@@ -77,7 +78,7 @@ public sealed class Session
     public User User { get; init; } = null!;
 }
 
-public enum AuthenticationEventType { AccountRegistered, LoginSucceeded, LoginFailed, SessionCreated, Logout, SessionRevoked, SessionRejected, SecurityVersionInvalidated, ProfileUpdated, RecoveryContactVerificationRequested, RecoveryContactVerified, RecoveryContactVerificationDenied, AuthorizationDenied, OriginRejected, CsrfRejected, LoginRateLimited, LoginRateLimitFallbackActivated }
+public enum AuthenticationEventType { AccountRegistered, LoginSucceeded, LoginFailed, SessionCreated, Logout, SessionRevoked, SessionRejected, SecurityVersionInvalidated, ProfileUpdated, RecoveryContactVerificationRequested, RecoveryContactVerified, RecoveryContactVerificationDenied, PasswordResetRequested, PasswordResetSuppressed, PasswordResetSucceeded, PasswordResetDenied, AuthorizationDenied, OriginRejected, CsrfRejected, LoginRateLimited, LoginRateLimitFallbackActivated }
 public enum AuthenticationEventOutcome { Success, Failure, Denied }
 
 public sealed class AuthenticationEvent
@@ -105,6 +106,22 @@ public sealed class RecoveryContact
     public DateTimeOffset? VerificationExpiresAtUtc { get; set; }
     public DateTimeOffset? VerifiedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public required User User { get; init; }
+}
+
+/// <summary>
+/// Stores only a keyed digest of the opaque password-reset token. A reset request
+/// supersedes prior active tokens for the same user; consumption is irreversible.
+/// </summary>
+public sealed class PasswordResetToken
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid UserId { get; init; }
+    public string TokenHash { get; init; } = string.Empty;
+    public DateTimeOffset RequestedAtUtc { get; init; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset ExpiresAtUtc { get; init; }
+    public DateTimeOffset? ConsumedAtUtc { get; set; }
+    public DateTimeOffset? SupersededAtUtc { get; set; }
     public required User User { get; init; }
 }
 

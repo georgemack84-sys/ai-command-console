@@ -19,3 +19,11 @@ public sealed record CompleteRecoveryContactVerificationRequest(string? Token)
 {
     public override string ToString() => $"{nameof(CompleteRecoveryContactVerificationRequest)} {{ Token = [REDACTED] }}";
 }
+public sealed record RequestPasswordResetRequest(string? Email)
+{
+    public override string ToString() => $"{nameof(RequestPasswordResetRequest)} {{ Email = [REDACTED] }}";
+}
+public sealed record CompletePasswordResetRequest(string? Token, string? NewPassword)
+{
+    public override string ToString() => $"{nameof(CompletePasswordResetRequest)} {{ Token = [REDACTED], NewPassword = [REDACTED] }}";
+}

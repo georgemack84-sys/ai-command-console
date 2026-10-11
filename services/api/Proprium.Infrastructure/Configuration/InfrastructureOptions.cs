@@ -52,6 +52,7 @@ public sealed class RecoveryContactEmailOptions
     public string? Password { get; init; }
     public string? FromAddress { get; init; }
     public string? FromDisplayName { get; init; }
+    public string? PublicApplicationOrigin { get; init; }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(Host);
 

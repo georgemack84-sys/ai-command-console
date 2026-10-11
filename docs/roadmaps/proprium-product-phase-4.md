@@ -152,8 +152,9 @@ original policy rationale remains in
 
 ### 4.5 — Recovery and trust completion
 
-Approve a recovery model before exposing it. The decision-ready proposal is in
-[the Phase 4.5 recovery and trust design](proprium-product-phase-4.5-recovery-and-trust-design.md).
+The recovery model is approved and its verified-contact delivery evidence is
+captured in staging. The implementation contract is in [the Phase 4.5 recovery
+and trust design](proprium-product-phase-4.5-recovery-and-trust-design.md).
 It covers verified recovery contact, reset-token handling, enumeration
 resistance, session invalidation, rate limits, support procedures, and evidence
 retention. Recovery changes authentication security posture and is not a

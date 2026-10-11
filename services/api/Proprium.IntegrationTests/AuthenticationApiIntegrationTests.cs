@@ -37,10 +37,17 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
     private sealed class CapturingRecoveryContactDelivery : IRecoveryContactDelivery
     {
         public List<RecoveryContactVerificationDelivery> Deliveries { get; } = [];
+        public List<PasswordResetDelivery> PasswordResetDeliveries { get; } = [];
 
         public Task<bool> DeliverVerificationAsync(RecoveryContactVerificationDelivery delivery, CancellationToken cancellationToken = default)
         {
             Deliveries.Add(delivery);
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> DeliverPasswordResetAsync(PasswordResetDelivery delivery, CancellationToken cancellationToken = default)
+        {
+            PasswordResetDeliveries.Add(delivery);
             return Task.FromResult(true);
         }
     }
@@ -194,6 +201,33 @@ public sealed class AuthenticationApiIntegrationTests(WebApplicationFactory<Prog
         var contact = await client.GetFromJsonAsync<RecoveryContactResponse>("/api/v1/auth/recovery-contact");
         Assert.False(contact?.IsVerified);
         Assert.False(contact?.VerificationPending);
+    }
+
+    [Fact]
+    public async Task Password_reset_for_a_verified_contact_is_one_time_and_revokes_every_session()
+    {
+        var username = $"reset-{Guid.NewGuid():N}";
+        var email = $"{username}@example.test";
+        var delivery = new CapturingRecoveryContactDelivery();
+        var client = CreateRecoveryContactClient(delivery, handleCookies: true);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/register", new RegisterAccountRequest(username, "Reset User", "long-enough-password"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/recovery-contact", new BeginRecoveryContactVerificationRequest(email, "long-enough-password"))).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/recovery-contact/verify", new CompleteRecoveryContactVerificationRequest(Assert.Single(delivery.Deliveries).Token.Value))).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/password-reset", new RequestPasswordResetRequest(email))).StatusCode);
+        var firstReset = Assert.Single(delivery.PasswordResetDeliveries);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/password-reset", new RequestPasswordResetRequest(email))).StatusCode);
+        var secondReset = delivery.PasswordResetDeliveries[1];
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/password-reset/complete", new CompletePasswordResetRequest(firstReset.Token.Value, "replacement-password"))).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/password-reset/complete", new CompletePasswordResetRequest(secondReset.Token.Value, "replacement-password"))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/password-reset/complete", new CompletePasswordResetRequest(secondReset.Token.Value, "another-password"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+
+        await using var database = CreateContext();
+        var user = await database.Users.SingleAsync(item => item.NormalizedUsername == username.ToUpperInvariant());
+        Assert.True(await database.Sessions.Where(item => item.UserId == user.Id).AllAsync(item => item.RevokedAtUtc != null));
+        Assert.True(await database.PasswordResetTokens.AnyAsync(item => item.UserId == user.Id && item.ConsumedAtUtc != null));
+        Assert.True(await database.AuthenticationEvents.AnyAsync(item => item.UserId == user.Id && item.EventType == AuthenticationEventType.PasswordResetSucceeded));
     }
 
     [Fact]

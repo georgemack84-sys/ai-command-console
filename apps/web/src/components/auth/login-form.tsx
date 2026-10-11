@@ -122,6 +122,9 @@ export function LoginForm({
       <p className="auth-switch">
         New to Proprium? <Link href="/register">Create an account</Link>
       </p>
+      <p className="auth-switch">
+        <Link href="/reset-password">Forgot your password?</Link>
+      </p>
       <span className="sr-only" aria-live="polite">
         {busy ? 'Signing in' : ''}
       </span>

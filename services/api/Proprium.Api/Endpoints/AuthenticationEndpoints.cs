@@ -153,6 +153,37 @@ public static class AuthenticationEndpoints
             .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status401Unauthorized).Produces(StatusCodes.Status403Forbidden)
             .RequirePermission(PermissionCatalog.Identity.RecoveryContactManageSelf);
 
+        auth.MapPost("/password-reset", async (HttpContext context, IPasswordResetService resets, ILoginRateLimiter rateLimiter, ILoginSourceResolver sources, CancellationToken cancellationToken) =>
+        {
+            SetNoStore(context);
+            var (body, isTooLarge) = await ReadRequestBodyAsync(context.Request.Body, cancellationToken);
+            if (isTooLarge || !string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase) || HasDuplicateProperties(body)) return Results.BadRequest();
+            RequestPasswordResetRequest? request;
+            try { request = JsonSerializer.Deserialize<RequestPasswordResetRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            if (string.IsNullOrWhiteSpace(request?.Email) || request.Email.Length > 320) return Results.BadRequest();
+            var source = sources.Resolve(context.Connection.RemoteIpAddress);
+            var rateLimit = await rateLimiter.IncrementAsync(new LoginRateLimitRequest(source, request.Email), cancellationToken);
+            await resets.RequestAsync(new RequestPasswordResetAttempt(request.Email, source, context.TraceIdentifier, rateLimit.IsExceeded), cancellationToken);
+            return Results.Accepted();
+        }).WithName("RequestPasswordReset").WithSummary("Request a password-reset link without revealing recovery-contact eligibility.")
+            .WithDescription("Always returns the same accepted response for well-formed requests. Delivery is attempted only for an active account with a verified recovery contact.")
+            .Produces(StatusCodes.Status202Accepted).Produces(StatusCodes.Status400BadRequest);
+
+        auth.MapPost("/password-reset/complete", async (HttpContext context, IPasswordResetService resets, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
+        {
+            SetNoStore(context);
+            if (!requestPolicy.IsOriginAllowed(context.Request)) return Results.StatusCode(StatusCodes.Status403Forbidden);
+            var (body, isTooLarge) = await ReadRequestBodyAsync(context.Request.Body, cancellationToken);
+            if (isTooLarge || !string.Equals(context.Request.ContentType?.Split(';')[0], "application/json", StringComparison.OrdinalIgnoreCase) || HasDuplicateProperties(body)) return Results.BadRequest();
+            CompletePasswordResetRequest? request;
+            try { request = JsonSerializer.Deserialize<CompletePasswordResetRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }); }
+            catch (JsonException) { return Results.BadRequest(); }
+            if (string.IsNullOrWhiteSpace(request?.Token) || request.Token.Length > 128 || string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length is < 12 or > 1024) return Results.BadRequest();
+            return await resets.CompleteAsync(new CompletePasswordResetAttempt(new RawSessionToken(request.Token), request.NewPassword, context.TraceIdentifier), cancellationToken) ? Results.NoContent() : Results.BadRequest();
+        }).WithName("CompletePasswordReset").WithSummary("Consume a one-time password-reset token and revoke every existing session.")
+            .Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status403Forbidden);
+
         auth.MapPost("/logout", async (HttpContext context, IAuthenticationService authentication, IAuthenticationAuditRecorder auditEvents, AuthenticationCookiePolicy cookies, AuthenticationRequestPolicy requestPolicy, CancellationToken cancellationToken) =>
         {
             SetNoStore(context);
