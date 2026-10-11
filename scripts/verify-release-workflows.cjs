@@ -11,12 +11,14 @@ const releaseSource = readFileSync(join(root, '.github', 'workflows', 'release-p
 const stagingDeploySource = readFileSync(join(root, '.github', 'workflows', 'deploy-proprium-staging.yml'), 'utf8');
 const stagingDiagnosticsSource = readFileSync(join(root, '.github', 'workflows', 'diagnose-proprium-staging.yml'), 'utf8');
 const stagingBootstrapSource = readFileSync(join(root, '.github', 'workflows', 'bootstrap-proprium-staging.yml'), 'utf8');
+const stagingRecoverySmtpSource = readFileSync(join(root, '.github', 'workflows', 'configure-proprium-recovery-smtp-staging.yml'), 'utf8');
 const stagingComposeSource = readFileSync(join(root, 'deploy', 'proprium', 'staging.compose.yml'), 'utf8');
 const legacy = yaml.load(legacySource);
 const release = yaml.load(releaseSource);
 const stagingDeploy = yaml.load(stagingDeploySource);
 const stagingDiagnostics = yaml.load(stagingDiagnosticsSource);
 const stagingBootstrap = yaml.load(stagingBootstrapSource);
+const stagingRecoverySmtp = yaml.load(stagingRecoverySmtpSource);
 const stagingCompose = yaml.load(stagingComposeSource);
 
 assert.equal(legacy.name, 'Legacy Deployment (manual only)');
@@ -107,6 +109,23 @@ assert.match(stagingBootstrapSource, /LOGIN_RATE_LIMIT_PRIVACY_KEY/);
 assert.match(stagingBootstrapSource, /invalid dotenv syntax/);
 assert.match(stagingBootstrapSource, /No secret values were printed/);
 assert.doesNotMatch(stagingBootstrapSource, /pull_request_target/);
+
+assert.equal(stagingRecoverySmtp.name, 'Configure Proprium Recovery SMTP Staging');
+assert.deepEqual(Object.keys(stagingRecoverySmtp.on), ['workflow_dispatch']);
+assert.equal(stagingRecoverySmtp.jobs.configure.environment, 'staging');
+assert.equal(stagingRecoverySmtp.concurrency.group, 'proprium-staging-rollout');
+assert.equal(stagingRecoverySmtp.concurrency['cancel-in-progress'], false);
+assert.match(stagingRecoverySmtpSource, /configure-recovery-smtp/);
+assert.match(stagingRecoverySmtpSource, /PROPRIUM_SMTP_HOST/);
+assert.match(stagingRecoverySmtpSource, /PROPRIUM_SMTP_PASSWORD/);
+assert.match(stagingRecoverySmtpSource, /runtime_file\.smtp-backup/);
+assert.match(stagingRecoverySmtpSource, /A failed restart must not strand the host/);
+assert.match(stagingRecoverySmtpSource, /chmod --reference="\$runtime_file"/);
+assert.match(stagingRecoverySmtpSource, /chown --reference="\$runtime_file"/);
+assert.match(stagingRecoverySmtpSource, /docker compose .*up -d --no-deps platform-api/);
+assert.match(stagingRecoverySmtpSource, /api\/v1\/health\/live/);
+assert.doesNotMatch(stagingRecoverySmtpSource, /PROPRIUM_RUNTIME_ENV/);
+assert.doesNotMatch(stagingRecoverySmtpSource, /pull_request_target/);
 
 assert.equal(stagingCompose.services.web.environment.HOSTNAME, '0.0.0.0');
 assert.match(stagingComposeSource, /in-container health check/);
