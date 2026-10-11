@@ -57,9 +57,8 @@ describe('PasswordResetForm', () => {
         'Your password has been reset. Sign in with your new password.',
       ),
     ).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
-      'href',
-      '/login',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Back to sign in' }),
+    ).toHaveAttribute('href', '/login');
   });
 });

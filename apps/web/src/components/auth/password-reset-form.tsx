@@ -32,15 +32,20 @@ export function PasswordResetForm() {
     try {
       if (token) {
         await completePasswordReset(token, password);
-        setStatus('Your password has been reset. Sign in with your new password.');
+        setStatus(
+          'Your password has been reset. Sign in with your new password.',
+        );
       } else {
         await requestPasswordReset(email);
         setStatus(requestConfirmation);
       }
     } catch (reason) {
       if (token && reason instanceof ApiError && reason.status === 400)
-        setError('This password-reset link is invalid or has expired. Request a new link.');
-      else setError('Unable to process this request right now. Please try again.');
+        setError(
+          'This password-reset link is invalid or has expired. Request a new link.',
+        );
+      else
+        setError('Unable to process this request right now. Please try again.');
     } finally {
       setPending(false);
     }
@@ -57,7 +62,11 @@ export function PasswordResetForm() {
               : 'Enter your recovery email and we will send a one-time link if it can be used.'}
           </p>
           {token ? (
-            <Field label="New password" description="At least 12 characters" required>
+            <Field
+              label="New password"
+              description="At least 12 characters"
+              required
+            >
               <Input
                 name="new-password"
                 type="password"
