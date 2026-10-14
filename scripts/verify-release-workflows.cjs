@@ -75,6 +75,9 @@ assert.match(stagingDeploySource, /api\/v1\/health\/live/);
 assert.match(stagingDeploySource, /"status"\[\[:space:\]\]\*:\[\[:space:\]\]\*"healthy"/);
 assert.match(stagingDeploySource, /--retry 3 --retry-delay 2/);
 assert.match(stagingDeploySource, /DEPLOY_SSH_KEY/);
+const stagingEnvironmentTemplate = readFileSync(join(root, '.github', 'environment-templates', 'staging.env.example'), 'utf8');
+assert.match(stagingEnvironmentTemplate, /^WORKFLOW_STAGING_NURU_BASE_URL=$/m);
+assert.match(stagingEnvironmentTemplate, /^WORKFLOW_STAGING_HEADLINE_FLOW_BASE_URL=$/m);
 assert.match(stagingDeploySource, /Staging host prerequisite missing/);
 assert.doesNotMatch(stagingDeploySource, /pull_request_target/);
 
