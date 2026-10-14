@@ -1,4 +1,10 @@
-# Migration Guide
+# API Migration Guide (EF Core)
+
+> Scope: this guide governs the .NET API persistence surface under
+> `services/api`. The Next.js application platform and workflow persistence
+> surface is governed by Prisma; use [prisma-migrations.md](prisma-migrations.md)
+> for that independent schema history. The two migration ledgers must never be
+> substituted for, copied into, or manually reconciled with one another.
 
 ## Authority
 
@@ -60,9 +66,9 @@ PostgreSQL state. Docker image builds also compile and test the backend. Reviewe
 must confirm startup ordering, forward compatibility, seed idempotence, and the
 absence of environment-specific data or secrets.
 
-Never:
+Never for the API persistence surface:
 
-- create a second schema-management mechanism;
+- create a second schema-management mechanism for the same API schema;
 - call migration execution during ordinary API startup;
 - edit an already-applied migration to repair a deployed schema;
 - manually modify `__EFMigrationsHistory` as routine recovery; or

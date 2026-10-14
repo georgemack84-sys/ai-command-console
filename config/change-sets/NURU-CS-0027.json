@@ -1,0 +1,10 @@
+{
+  "id": "NURU-CS-0027",
+  "project": "NURU",
+  "purpose": "Make the partitioned root release suite a required CI validation gate for the Nuru reference integration foundation.",
+  "expectedAreas": ["CI", "Governance", "Tests"],
+  "expectedPaths": [".github/workflows/ci.yml", "scripts/verify-ci-workflow.cjs", "config/change-sets/**"],
+  "dependencies": ["NURU-CS-0023", "NURU-CS-0024", "NURU-CS-0025", "NURU-CS-0026"],
+  "requiredCommands": ["npm run test:ci-workflow", "npm run test:release-workflows", "npm run test:release -- --dry-run"],
+  "status": "QUALIFIED"
+}

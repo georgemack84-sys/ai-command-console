@@ -51,6 +51,10 @@ const envSchema = z.object({
   RATE_LIMIT_SOURCE_LIMIT: z.string().optional(),
   RATE_LIMIT_JOBS_LIMIT: z.string().optional(),
   FEATURE_FLAGS_ENABLED: z.string().optional(),
+  WORKFLOW_DISPATCH_MODE: z.enum(["disabled", "sandbox"]).default("disabled"),
+  WORKFLOW_SANDBOX_BASE_URL: z.string().url().optional(),
+  WORKFLOW_STAGING_NURU_BASE_URL: z.string().url().optional(),
+  WORKFLOW_STAGING_HEADLINE_FLOW_BASE_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -64,7 +68,7 @@ function isLocalHost(value: string) {
   return ["localhost", "127.0.0.1", "::1"].includes(value.toLowerCase());
 }
 
-function getAppUrl() {
+export function getAppUrl() {
   try {
     return new URL(env.NEXT_PUBLIC_APP_URL);
   } catch {
@@ -234,6 +238,46 @@ export function getJobQueueMaxPending() {
 export function getJobQueueMaxRunning() {
   const configured = Number(env.JOB_QUEUE_MAX_RUNNING);
   return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : 12;
+}
+
+/**
+ * Workflow dispatch remains intentionally fail-closed. A sandbox URL is
+ * configuration evidence only; no runtime is permitted to call it until a
+ * dedicated sandbox verification and dispatch adapter are introduced.
+ */
+export type WorkflowDispatchMode = "disabled" | "sandbox";
+
+export function resolveWorkflowDispatchReadiness(input: { mode?: WorkflowDispatchMode; sandboxUrl?: string | null }) {
+  const mode = input.mode ?? "disabled";
+  const sandboxUrl = input.sandboxUrl?.trim() || null;
+  if (mode !== "sandbox") {
+    return { mode: "disabled" as const, sandboxUrl, dispatchEnabled: false, reason: "Outbound workflow dispatch is disabled by policy." };
+  }
+  if (!sandboxUrl) {
+    return { mode: "sandbox" as const, sandboxUrl, dispatchEnabled: false, reason: "Sandbox mode requires WORKFLOW_SANDBOX_BASE_URL before verification can begin." };
+  }
+  return { mode: "sandbox" as const, sandboxUrl, dispatchEnabled: false, reason: "Sandbox endpoint is configured, but outbound dispatch remains disabled until its verification gate is implemented." };
+}
+
+export function getWorkflowDispatchReadiness() {
+  return resolveWorkflowDispatchReadiness({ mode: env.WORKFLOW_DISPATCH_MODE, sandboxUrl: env.WORKFLOW_SANDBOX_BASE_URL });
+}
+
+/**
+ * Staging endpoints are configuration evidence only. This release never
+ * treats their presence as authorization to dispatch outside the local sandbox.
+ */
+export function getWorkflowStagingReadiness() {
+  const missing = [
+    !env.WORKFLOW_STAGING_NURU_BASE_URL ? "Nuru staging endpoint" : null,
+    !env.WORKFLOW_STAGING_HEADLINE_FLOW_BASE_URL ? "Headline Flow staging endpoint" : null,
+  ].filter((item): item is string => Boolean(item));
+  return {
+    configured: missing.length === 0,
+    missing,
+    externalDispatchEnabled: false,
+    reason: missing.length ? `Staging integration is not configured: ${missing.join(" and ")} missing.` : "Staging endpoints are configured, but external dispatch remains disabled pending contract verification and a separate production policy decision.",
+  };
 }
 
 export function sentryEnabled() {

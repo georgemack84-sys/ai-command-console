@@ -20,6 +20,7 @@ assert.ok(workflow.on.workflow_dispatch !== undefined);
 
 const expectedJobs = {
   'repository-validation': 'Repository Validation',
+  'root-release-validation': 'Root Release Validation',
   'frontend-validation': 'Frontend Validation',
   'backend-validation': 'Backend Validation',
   'integration-validation': 'Integration Validation',
@@ -54,6 +55,8 @@ assert.match(commands('repository-validation'), /npm run test:dependency-audit-p
 assert.match(commands('repository-validation'), /npm run test:release-workflows/);
 assert.match(commands('repository-validation'), /npm run validate:secrets/);
 assert.match(commands('repository-validation'), /npm run repo -- validate configuration/);
+assert.match(commands('root-release-validation'), /npm ci/);
+assert.match(commands('root-release-validation'), /npm run test:release/);
 assert.match(commands('frontend-validation'), /npm run repo -- validate frontend/);
 assert.match(commands('frontend-validation'), /npm run repo -- build frontend/);
 assert.match(commands('frontend-validation'), /npm run test:secret-isolation/);
@@ -100,4 +103,4 @@ assert.ok(
   'frontend artifact scanning must run immediately after the production build',
 );
 
-console.log('CI workflow contract: PASS (7 stable merge gates)');
+console.log('CI workflow contract: PASS (8 stable merge gates)');

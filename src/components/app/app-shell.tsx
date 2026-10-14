@@ -110,9 +110,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
   const { user, logout, authLoading } = useAppSession();
 
-  const meta = pageMeta.find((item) => item.match(pathname)) ?? pageMeta[0];
   const visiblePrimaryNavItems = primaryNavItems.filter((item) => !item.protected || user);
   const isHome = pathname === "/";
+  const isWorkflowLibrary = pathname.startsWith("/platform/workflows");
+  const meta = isWorkflowLibrary
+    ? {
+        eyebrow: "Workflow Library",
+        title: "Governed execution observatory",
+        description: "Review the run, its scoped authority, and each recorded approval without leaving the operator surface.",
+      }
+    : pageMeta.find((item) => item.match(pathname)) ?? pageMeta[0];
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.12),transparent_24%),radial-gradient(circle_at_85%_14%,rgba(251,191,36,0.08),transparent_18%),linear-gradient(180deg,#020617_0%,#08101d_38%,#0a1322_100%)] pb-24 md:pb-0">
@@ -186,12 +193,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="mt-2 text-sm leading-6 text-slate-300">{meta.description}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <HeaderMetric label="Surface" value={isHome ? "Landing" : pathname.replace("/", "") || "Home"} tone="sky" />
-              <HeaderMetric label="Workflow" value="Research" tone="emerald" />
-              <HeaderMetric label="State" value="Production" tone="amber" />
-              <HeaderMetric label="User" value={authLoading ? "..." : user ? user.email : "Guest"} tone="slate" />
-            </div>
+            {!isWorkflowLibrary ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <HeaderMetric label="Surface" value={isHome ? "Landing" : pathname.replace("/", "") || "Home"} tone="sky" />
+                <HeaderMetric label="Workflow" value="Research" tone="emerald" />
+                <HeaderMetric label="State" value="Production" tone="amber" />
+                <HeaderMetric label="User" value={authLoading ? "..." : user ? user.email : "Guest"} tone="slate" />
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
