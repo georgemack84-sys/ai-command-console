@@ -1,0 +1,10 @@
+{
+  "id": "NURU-CS-0026",
+  "project": "NURU",
+  "purpose": "Record Nuru integration qualification evidence, migration ownership, and release readiness without enabling production dispatch.",
+  "expectedAreas": ["Governance", "Documentation", "Tests"],
+  "expectedPaths": ["docs/operations/migrations.md", "docs/operations/prisma-migrations.md", "docs/roadmaps/nuru-reference-integration-roadmap.md", "docs/validation/nuru-track-0-baseline.md", "tests/unit/legacy-console-handler-support.test.ts"],
+  "dependencies": ["NURU-CS-0023", "NURU-CS-0024", "NURU-CS-0025"],
+  "requiredCommands": ["npm run validate:documentation", "npm run validate:change-sets", "npx vitest run --config vitest.config.mjs --environment node --pool forks --maxWorkers 1 --no-file-parallelism tests/unit/legacy-console-handler-support.test.ts"],
+  "status": "PLANNED"
+}

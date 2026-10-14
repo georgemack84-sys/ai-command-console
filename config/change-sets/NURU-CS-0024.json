@@ -1,0 +1,10 @@
+{
+  "id": "NURU-CS-0024",
+  "project": "NURU",
+  "purpose": "Establish immutable governed workflow definitions, admission, per-step authorization, evidence, recovery, and the Nuru-to-Headline-Flow reference template.",
+  "expectedAreas": ["Workflow", "Persistence", "API", "Tests", "Documentation"],
+  "expectedPaths": ["prisma/schema.prisma", "prisma/migrations/202610110006_workflow_identity_foundation/**", "prisma/migrations/202610110007_workflow_step_approvals/**", "app/api/platform/workflows/**", "app/platform/workflows/**", "src/server/services/workflow-*.ts", "src/server/services/nuru-*-invocation-service.ts", "src/server/services/headline-flow-governed-invocation-service.ts", "src/server/services/nuru-headline-workflow-template.ts", "docs/architecture/ADR-0013-workflow-identity-and-execution-boundary.md", "docs/roadmaps/governed-orchestration-phase-6.md", "tests/unit/nuru-headline-workflow-template.test.ts", "tests/unit/workflow-*.test.ts"],
+  "dependencies": ["NURU-CS-0023 application identity and capability contracts"],
+  "requiredCommands": ["npm run typecheck", "npm run lint", "npx vitest run --config vitest.config.mjs --environment node --pool forks --maxWorkers 1 --no-file-parallelism tests/unit/nuru-headline-workflow-template.test.ts tests/unit/workflow-definition-validation-service.test.ts tests/unit/workflow-dispatch-safety.test.ts tests/unit/workflow-identity-service.test.ts tests/unit/workflow-simulation-service.test.ts"],
+  "status": "PLANNED"
+}

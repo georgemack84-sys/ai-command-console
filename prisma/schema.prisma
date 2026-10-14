@@ -32,6 +32,72 @@ enum WorkspaceInviteStatus {
   revoked
 }
 
+enum ApplicationLifecycleState {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  MAINTENANCE
+  DEPRECATED
+  RETIRED
+}
+
+enum ApplicationPrincipalStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum ApplicationCredentialStatus {
+  ACTIVE
+  ROTATED
+  REVOKED
+}
+
+enum ApplicationCapabilityGrantStatus {
+  REQUESTED
+  ACTIVE
+  DENIED
+  REVOKED
+}
+
+// Phase 6 workflow records distinguish mutable design-time definitions from
+// immutable published versions and their durable execution snapshots.
+enum WorkflowDefinitionStatus {
+  DRAFT
+  PUBLISHED
+  DEPRECATED
+  RETIRED
+}
+
+enum WorkflowRunStatus {
+  CREATED
+  VALIDATING
+  READY
+  RUNNING
+  WAITING_APPROVAL
+  RETRY_WAIT
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum WorkflowStepRunStatus {
+  PENDING
+  RUNNING
+  WAITING_APPROVAL
+  RETRY_WAIT
+  COMPLETED
+  FAILED
+  SKIPPED
+  CANCELLED
+}
+
+enum WorkflowStepApprovalStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum SourceType {
   website
   repository
@@ -1670,6 +1736,282 @@ model Workspace {
   noesisLearningAnalyticsArtifacts NoesisLearningAnalyticsArtifact[]
   noesisStrategyRegistryArtifacts NoesisStrategyRegistryArtifact[]
   noesisStrategyEvaluationArtifacts NoesisStrategyEvaluationArtifact[]
+  registeredApplications          RegisteredApplication[]
+  workflowDefinitions             WorkflowDefinition[]
+  workflowRuns                    WorkflowRun[]
+}
+
+// The registry owns application metadata only. Credentials, authorization
+// grants, semantic scope, and application domain records remain outside it.
+model RegisteredApplication {
+  id                        String                    @id @default(cuid())
+  workspaceId               String
+  slug                      String
+  displayName               String
+  description               String
+  ownerApplicationContact   String
+  lifecycleState            ApplicationLifecycleState @default(DRAFT)
+  supportedContractVersions String[]
+  metadata                  Json                      @default("{}")
+  createdById               String
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  workspace                 Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  servicePrincipals         ApplicationServicePrincipal[]
+  capabilities              ApplicationCapability[]
+  eventSubscriptions        ApplicationEventSubscription[]
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, lifecycleState])
+}
+
+model ApplicationEventSubscription {
+  id            String                @id @default(cuid())
+  applicationId String
+  eventType     String
+  version       String
+  status        String                @default("ACTIVE")
+  createdById   String
+  createdAt     DateTime              @default(now())
+  application   RegisteredApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  deliveries    ApplicationEventDelivery[]
+  @@unique([applicationId, eventType, version])
+  @@index([applicationId, status])
+}
+
+model ApplicationEventDelivery {
+  id             String                       @id @default(cuid())
+  subscriptionId String
+  eventId        String
+  status         String                       @default("PENDING")
+  attempts       Int                          @default(0)
+  lastError      String?
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  subscription   ApplicationEventSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  @@unique([subscriptionId, eventId])
+  @@index([status, updatedAt])
+}
+
+// A declaration is a discoverable contract, never an execution grant.
+model ApplicationCapability {
+  id                  String                @id @default(cuid())
+  applicationId       String
+  capabilityKey       String
+  version             String
+  description         String
+  inputSchema         Json
+  requiredPermissions String[]
+  constraints         String[]
+  declaredById        String
+  declaredAt          DateTime              @default(now())
+  application         RegisteredApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  grants              ApplicationCapabilityGrant[]
+
+  @@unique([applicationId, capabilityKey, version])
+  @@index([applicationId, capabilityKey])
+}
+
+model ApplicationServicePrincipal {
+  id            String                     @id @default(cuid())
+  applicationId String
+  displayName   String
+  status        ApplicationPrincipalStatus @default(ACTIVE)
+  createdById   String
+  createdAt     DateTime                   @default(now())
+  revokedAt     DateTime?
+  application   RegisteredApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  credentials   ApplicationCredential[]
+  capabilityGrants ApplicationCapabilityGrant[]
+
+  @@unique([applicationId, displayName])
+  @@index([applicationId, status])
+}
+
+// Only a keyed one-way hash is stored. The raw credential is returned once on
+// issuance and cannot be recovered from this record.
+model ApplicationCredential {
+  id          String                      @id @default(cuid())
+  principalId String
+  secretHash  String                      @unique
+  secretHint  String
+  status      ApplicationCredentialStatus @default(ACTIVE)
+  issuedById  String
+  issuedAt    DateTime                    @default(now())
+  rotatedAt   DateTime?
+  revokedAt   DateTime?
+  principal   ApplicationServicePrincipal @relation(fields: [principalId], references: [id], onDelete: Cascade)
+
+  @@index([principalId, status])
+}
+
+// Grants are the sole permission bridge between a declared capability and a
+// service principal. A declaration itself remains inert.
+model ApplicationCapabilityGrant {
+  id            String                           @id @default(cuid())
+  capabilityId  String
+  principalId   String
+  scope         Json
+  status        ApplicationCapabilityGrantStatus @default(REQUESTED)
+  requestedById String
+  requestedAt   DateTime                         @default(now())
+  approvedById  String?
+  approvedAt    DateTime?
+  revokedById   String?
+  revokedAt     DateTime?
+  revokeReason  String?
+  capability    ApplicationCapability            @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  principal     ApplicationServicePrincipal      @relation(fields: [principalId], references: [id], onDelete: Cascade)
+
+  @@index([capabilityId, status])
+  @@index([principalId, status])
+}
+
+// A workflow definition is a workspace-scoped design-time handle. Its mutable
+// draft never grants authority and is never used directly for execution.
+model WorkflowDefinition {
+  id          String                   @id @default(cuid())
+  workspaceId String
+  slug        String
+  displayName String
+  description String
+  status      WorkflowDefinitionStatus @default(DRAFT)
+  createdById String
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  workspace   Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  versions    WorkflowVersion[]
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, status])
+}
+
+// Published versions are append-only. `definitionSnapshot` is self-contained
+// so a future design edit cannot change a historical execution contract.
+model WorkflowVersion {
+  id                 String             @id @default(cuid())
+  workflowDefinitionId String
+  version            Int
+  definitionSnapshot Json
+  definitionHash     String
+  contractVersion    String
+  publishedById      String
+  publishedAt        DateTime           @default(now())
+  workflowDefinition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id], onDelete: Cascade)
+  runs               WorkflowRun[]
+
+  @@unique([workflowDefinitionId, version])
+  @@unique([workflowDefinitionId, definitionHash])
+  @@index([workflowDefinitionId, publishedAt])
+}
+
+// A run retains the exact version snapshot and does not obtain authority merely
+// by referencing it. Step-time capability and policy checks remain mandatory.
+model WorkflowRun {
+  id                String            @id @default(cuid())
+  workspaceId       String
+  workflowVersionId String
+  status            WorkflowRunStatus @default(CREATED)
+  correlationId     String
+  idempotencyKey    String
+  inputSnapshot     Json
+  versionSnapshot   Json
+  createdById       String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  startedAt         DateTime?
+  completedAt       DateTime?
+  workspace         Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflowVersion   WorkflowVersion   @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
+  steps             WorkflowStepRun[]
+  approvals         WorkflowStepApproval[]
+
+  @@unique([workspaceId, idempotencyKey])
+  @@index([workspaceId, status, createdAt])
+  @@index([workflowVersionId, createdAt])
+  @@index([workspaceId, correlationId])
+}
+
+// Approval is durable, run-specific evidence. It is deliberately separate
+// from a workflow definition, service credential, and capability grant.
+model WorkflowStepApproval {
+  id            String                     @id @default(cuid())
+  workflowRunId String
+  stepKey       String
+  status        WorkflowStepApprovalStatus @default(REQUESTED)
+  reason        String
+  requestedById String
+  requestedAt   DateTime                   @default(now())
+  approvedById  String?
+  approvedAt    DateTime?
+  rejectedById  String?
+  rejectedAt    DateTime?
+  rejectionNote String?
+  workflowRun   WorkflowRun                @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, stepKey, status, requestedAt])
+}
+
+// Attempts are durable evidence; retries create a new row rather than
+// overwriting the result of a prior external handoff.
+model WorkflowStepRun {
+  id                     String                @id @default(cuid())
+  workflowRunId          String
+  stepKey                String
+  attempt                Int
+  status                 WorkflowStepRunStatus @default(PENDING)
+  inputSnapshot          Json
+  outputSnapshot         Json?
+  authorizationSnapshot  Json?
+  idempotencyKey         String
+  failureCode            String?
+  failureDetail          String?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  workflowRun            WorkflowRun           @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowRunId, stepKey, attempt])
+  @@unique([workflowRunId, idempotencyKey])
+  @@index([workflowRunId, status, createdAt])
+}
+
+// Sandbox receipts make replay behavior auditable without storing a raw
+// service credential. They are not evidence of production dispatch.
+model WorkflowSandboxReceipt {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  applicationSlug  String
+  operation        String
+  idempotencyKey   String
+  inputFingerprint String
+  correlationId    String
+  responseSnapshot Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([workspaceId, applicationSlug, operation, idempotencyKey])
+  @@index([workspaceId, correlationId, createdAt])
+}
+
+// Verification and approval are durable, workspace-scoped proof that the
+// configured endpoint is the built-in, non-publishing sandbox. A configured
+// URL alone can never enable outbound workflow dispatch.
+model WorkflowSandboxVerification {
+  id                 String   @id @default(cuid())
+  workspaceId        String
+  sandboxUrl         String
+  verificationProof  Json
+  verifiedById       String
+  verifiedAt         DateTime @default(now())
+  approvedById       String?
+  approvedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([workspaceId, sandboxUrl])
+  @@index([workspaceId, approvedAt])
 }
 
 model KnowledgeScope {
