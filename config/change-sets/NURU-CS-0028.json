@@ -1,0 +1,10 @@
+{
+  "id": "NURU-CS-0028",
+  "project": "NURU",
+  "purpose": "Expose Nuru's independently deployable, read-only workflow evidence retrieval contract with fail-closed authorization and replay handling.",
+  "expectedAreas": ["Nuru API", "Authorization", "Tests", "Documentation"],
+  "expectedPaths": ["app/v1/workflow/**", "src/server/services/nuru-workflow-evidence-contract-service.ts", "tests/unit/nuru-workflow-evidence-*.test.ts", "docs/operations/nuru-workflow-evidence-contract.md", "config/change-sets/**"],
+  "dependencies": ["NURU-CS-0023", "NURU-CS-0024"],
+  "requiredCommands": ["npm run typecheck", "npm run lint", "npx vitest run --config vitest.config.mjs --environment node --pool forks --maxWorkers 1 --no-file-parallelism tests/unit/nuru-workflow-evidence-contract-service.test.ts tests/unit/nuru-workflow-evidence-route.test.ts", "npm run validate:change-sets"],
+  "status": "ACTIVE"
+}
