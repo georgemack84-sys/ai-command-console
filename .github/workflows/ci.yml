@@ -45,6 +45,23 @@ jobs:
       - name: Verify release workflow contract
         run: npm run test:release-workflows
 
+  root-release-validation:
+    name: Root Release Validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Restore locked release-test dependencies
+        run: npm ci
+      - name: Run partitioned root release suite
+        run: npm run test:release
+
   frontend-validation:
     name: Frontend Validation
     runs-on: ubuntu-24.04
