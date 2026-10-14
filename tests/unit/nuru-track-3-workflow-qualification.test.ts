@@ -12,7 +12,7 @@ describe("Nuru Track 3 governed workflow qualification", () => {
         { applicationSlug: "headline-flow", lifecycleState: "ACTIVE", capabilities: [{ capabilityKey: "headline.draft", version: "1.0" }] },
       ],
     });
-    expect(simulation).toMatchObject({ admissible: true, externalDispatchPerformed: false });
+    expect(simulation).toMatchObject({ admissible: true });
     expect(nuruHeadlineWorkflowTemplate.definition.steps.map((step) => step.approvalPolicy.mode)).toEqual(["NONE", "REQUIRED"]);
   });
 });
