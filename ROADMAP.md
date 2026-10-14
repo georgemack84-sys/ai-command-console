@@ -1,5 +1,10 @@
 # AI Command Console Roadmap
 
+> Ecosystem application-platform work is tracked separately in
+> [Ecosystem Platform Phase 5](docs/roadmaps/ecosystem-platform-phase-5.md).
+> Its milestone numbering intentionally does not alter the historic phases in
+> this console roadmap.
+
 This roadmap turns the current console from a strong single-operator tool into a reliable multi-agent operations platform.
 
 ## Principles

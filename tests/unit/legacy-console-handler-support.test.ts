@@ -35,7 +35,7 @@ describe("legacy console handler support", () => {
       { userId: "user_1", userName: "Alex", userRole: "Owner" },
       { normalizeRole: vi.fn(() => "operator") },
     );
-    expect(actor).toEqual({ id: "user_1", name: "Alex", role: "operator" });
+    expect(actor).toEqual({ id: "user_1", workspaceId: "user_1", name: "Alex", role: "operator" });
   });
 
   it("delegates workspace route and user adapters", () => {
