@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { nuruHeadlineWorkflowTemplate, validateNuruHeadlineWorkflowTemplate } from "@/src/server/services/nuru-headline-workflow-template";
+describe("Nuru to Headline Flow reference workflow", () => { it("preserves application ownership and requires approval before headline drafting", () => { const result = validateNuruHeadlineWorkflowTemplate(); expect(result.valid).toBe(true); expect(nuruHeadlineWorkflowTemplate.definition.steps[1].approvalPolicy.mode).toBe("REQUIRED"); expect(nuruHeadlineWorkflowTemplate.definition.steps.map((step) => step.capability.applicationSlug)).toEqual(["nuru", "headline-flow"]); }); });

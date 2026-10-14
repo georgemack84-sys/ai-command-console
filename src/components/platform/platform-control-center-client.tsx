@@ -1482,6 +1482,9 @@ export function PlatformControlCenterClient() {
         description="The platform control center is reserved for administrators."
       >
         <p className="text-sm text-slate-300">Switch to an admin account to manage cross-workspace remediation and policy posture.</p>
+        <Link href="/platform/workflows" className={buttonVariants({ variant: "secondary", className: "mt-4" })}>
+          Open workspace workflows
+        </Link>
       </SectionCard>
     );
   }
