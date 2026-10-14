@@ -43,7 +43,7 @@ export async function provisionNuruReferenceIntegration(workspaceId: string, act
     if (!existing) await declareApplicationCapability(workspaceId, applicationId, actorId, capability);
   }
   const capabilities = await prisma.applicationCapability.findMany({ where: { applicationId }, orderBy: { capabilityKey: "asc" } });
-  return { application: registration.application, registered: registration.created, capabilities, credentialsCreated: false, grantsCreated: false };
+  return { application: registration.application, registered: registration.created, capabilities, activationRequired: registration.application.lifecycleState !== "ACTIVE", credentialsCreated: false, grantsCreated: false };
 }
 
 /** Registers the reference contract only. Activation, credentials, and grants stay explicit. */
