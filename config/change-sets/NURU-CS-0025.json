@@ -6,5 +6,5 @@
   "expectedPaths": [".env.example", "src/config/env.ts", "prisma/migrations/20261012000*_workflow_sandbox_*/**", "app/api/sandbox/**", "src/server/services/workflow-sandbox-*.ts", "docs/governance/phase-6-5-sandbox-dispatch-contract.md", "docs/governance/phase-6-6-staging-integration-readiness.md", "tests/unit/workflow-sandbox-*.test.ts", "tests/unit/workflow-dispatch-safety.test.ts"],
   "dependencies": ["NURU-CS-0024 governed workflow contracts"],
   "requiredCommands": ["npm run validate:configuration-contract", "npx vitest run --config vitest.config.mjs --environment node --pool forks --maxWorkers 1 --no-file-parallelism tests/unit/workflow-dispatch-safety.test.ts tests/unit/workflow-sandbox-contract-service.test.ts tests/unit/workflow-sandbox-receipt-service.test.ts"],
-  "status": "PLANNED"
+  "status": "QUALIFIED"
 }

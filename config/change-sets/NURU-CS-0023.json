@@ -6,5 +6,5 @@
   "expectedPaths": ["prisma/schema.prisma", "prisma/migrations/20261011000*_application_*/**", "app/api/platform/applications/**", "app/platform/applications/**", "src/server/services/application-*.ts", "src/components/platform/application-*.tsx", "docs/architecture/ADR-0012-application-platform-boundary.md", "docs/roadmaps/ecosystem-platform-phase-5.md", "tests/unit/application-*.test.ts"],
   "dependencies": ["workspace authorization", "Prisma application persistence"],
   "requiredCommands": ["npm run typecheck", "npm run lint", "npx vitest run --config vitest.config.mjs --environment node --pool forks --maxWorkers 1 --no-file-parallelism tests/unit/application-capability-route.test.ts tests/unit/application-identity-routes.test.ts tests/unit/application-onboarding-validation-route.test.ts tests/unit/application-registry-route.test.ts tests/unit/application-registry-service.test.ts"],
-  "status": "PLANNED"
+  "status": "QUALIFIED"
 }
