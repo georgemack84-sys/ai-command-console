@@ -19,6 +19,23 @@ This initial implementation covers the roadmap's first six dependencies:
 
 The agent contracts are intentionally data-only. Agents do not exist yet, and no future agent may directly mutate authoritative time state.
 
+## Axiom OS governance
+
+The reviewed Axiom OS contract outline lives in
+[axiom/contract-outline.md](axiom/contract-outline.md). It defines the allowed
+capabilities, Owner approval boundary, local-only data handling, audit events,
+and prohibited behavior for Axiom Time.
+
+Before changing an action boundary, data flow, external service, approval rule,
+or audit behavior, update and review that outline first. Natural-language and
+voice input must remain proposals only; they must never directly mutate alarms,
+timers, notifications, local storage, or external services.
+
+Once the Axiom OS CLI is installed, follow
+[axiom/README.md](axiom/README.md) to initialize, validate, simulate, generate,
+and verify the executable `app.ax` contract. A failed Axiom validation or policy
+simulation is a release blocker for any capability expansion.
+
 ## Run locally
 
 ```bash
