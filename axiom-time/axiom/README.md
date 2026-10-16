@@ -7,6 +7,8 @@ contract. It reflects the app's existing local-first behavior and explicit
 command-confirmation boundary. Review it before expanding a capability,
 connecting a service, or allowing an agent to act on behalf of a user.
 
+The ordered implementation and release plan is in [ROADMAP.md](ROADMAP.md).
+
 ## Generate the executable contract
 
 The Axiom OS CLI is not bundled with this repository. After installing the CLI,
